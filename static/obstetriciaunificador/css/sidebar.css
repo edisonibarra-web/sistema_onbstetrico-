@@ -1,0 +1,480 @@
+/* ============================================================================
+   ENCABEZADO FORMATOS INSTITUCIONALES - Logos institucionales, visible en todas las URLs
+   ============================================================================ */
+
+.header-formatos-institucionales {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: linear-gradient(120deg, #0b0b0b 0%, #1a1a1a 45%, #0f0f0f 100%);
+    color: #ffffff;
+    padding: 10px 20px;
+    margin-bottom: 8px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+    border-bottom: 1px solid #222222;
+    position: relative;
+    overflow: visible;
+}
+
+.header-formatos-institucionales::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 18% 30%, rgba(255, 255, 255, 0.07) 0%, transparent 48%),
+                radial-gradient(circle at 82% 75%, rgba(255, 255, 255, 0.05) 0%, transparent 52%);
+    pointer-events: none;
+}
+
+@keyframes header-formatos-gradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.header-formatos-logo-left,
+.header-formatos-logo-right {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+}
+
+.header-formatos-logo-left { justify-content: flex-start; }
+.header-formatos-logo-right { justify-content: flex-end; }
+
+.header-formatos-logo-img {
+    max-height: 45px;
+    max-width: 140px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.header-formatos-centro {
+    flex: 1 1 auto;
+    text-align: left;
+    position: relative;
+    z-index: 1;
+}
+
+.header-formatos-titulo {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #ffffff;
+    text-shadow: none;
+}
+
+/* ============================================================================
+   BARRA LATERAL - Rediseño Profesional y Dinámico
+   ============================================================================ */
+
+:root {
+    --sidebar-width: 190px;
+    --sidebar-bg: linear-gradient(135deg, #0b1220 0%, #0f1f38 55%, #123a5e 100%);
+    --sidebar-accent: #0891b2;
+    --sidebar-hover: rgba(255, 255, 255, 0.08);
+    --sidebar-text: #94a3b8;
+    --sidebar-text-bright: #f8fafc;
+    --transition-speed: 0.3s;
+}
+
+.app-layout-sidebar {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 50;
+    padding-top: 8px;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    overflow-x: hidden;
+    transition: width var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1),
+                min-width var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Sombreado atmosférico (viñeta) ── */
+.sidebar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.07) 0%, transparent 55%),
+        radial-gradient(circle at 15% 95%, rgba(0, 0, 0, 0.45) 0%, transparent 60%);
+}
+
+/* ── Logo difuminado alusivo a partos (marca de agua) ── */
+.sidebar-watermark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 190px;
+    margin-top: 8px;
+    pointer-events: none;
+    opacity: 0.22;
+    filter: blur(0.4px);
+}
+
+.sidebar-watermark svg {
+    width: 168px;
+    height: 168px;
+}
+
+.sidebar.collapsed .sidebar-watermark {
+    display: none;
+}
+
+/* ---------- Colapso del sidebar (riel de íconos) ---------- */
+.sidebar.collapsed {
+    width: 68px !important;
+    min-width: 68px !important;
+}
+
+.sidebar-toggle-btn {
+    position: absolute;
+    top: 22px;
+    right: -13px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--sidebar-accent);
+    color: #fff;
+    border: 3px solid var(--sidebar-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 60;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.sidebar-toggle-btn:hover {
+    background: #155e75;
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(8, 145, 178, 0.45);
+}
+
+.sidebar-toggle-btn .nav-icon {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2.75;
+}
+
+.sidebar.collapsed .sidebar-module {
+    margin: 10px 10px;
+}
+
+.sidebar.collapsed .sidebar-module-header {
+    justify-content: center;
+    padding: 12px 0;
+}
+
+.sidebar.collapsed .sidebar-module-info,
+.sidebar.collapsed .sidebar-module-header .chevron,
+.sidebar.collapsed .sidebar-module-dropdown {
+    display: none;
+}
+
+.sidebar.collapsed .icon-container {
+    margin: 0 auto;
+}
+
+.sidebar-module {
+    margin: 12px 16px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+    transition: all var(--transition-speed) ease;
+}
+
+.sidebar-module:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.sidebar-module-header {
+    padding: 14px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    user-select: none;
+    transition: background var(--transition-speed) ease;
+}
+
+.sidebar-module-header:hover {
+    background: var(--sidebar-hover);
+}
+
+.sidebar-module-header .icon-container {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #22d3ee, #0891b2);
+    box-shadow: 0 3px 10px rgba(8, 145, 178, 0.45);
+    color: #fff;
+    border-radius: 8px;
+    transition: all var(--transition-speed) ease;
+}
+
+.sidebar-module-header.expanded .icon-container {
+    background: linear-gradient(135deg, #22d3ee, #0891b2);
+    box-shadow: 0 4px 14px rgba(8, 145, 178, 0.6);
+    color: white;
+}
+
+.sidebar-module-header:hover .icon-container {
+    transform: scale(1.08);
+}
+
+.sidebar-module-info {
+    flex: 1;
+}
+
+.sidebar-module-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--sidebar-text);
+    opacity: 0.7;
+    margin-bottom: 2px;
+}
+
+.sidebar-module-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--sidebar-text-bright);
+}
+
+.sidebar-module-header .chevron {
+    font-size: 10px;
+    transition: transform var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.5;
+}
+
+.sidebar-module-header.expanded .chevron {
+    transform: rotate(180deg);
+    opacity: 1;
+}
+
+.sidebar-module-dropdown,
+.sidebar-module-dropdown-consulta {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-module-dropdown.expanded,
+.sidebar-module-dropdown-consulta.expanded {
+    max-height: 500px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sidebar .tabs {
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    gap: 4px;
+}
+
+.sidebar .tabs button,
+.sidebar .tabs .tabs-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.sidebar .tabs .tabs-link:hover,
+.sidebar .tabs button:hover {
+    background: var(--sidebar-hover);
+    color: var(--sidebar-text-bright);
+    transform: translateX(4px);
+}
+
+.sidebar .tabs .tabs-link.active,
+.sidebar .tabs button.active {
+    background: #ffffff;
+    color: #0f172a;
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    transform: none;
+}
+
+.sidebar .tabs .tabs-link.active:hover {
+    background: #ffffff;
+    color: #0f172a;
+    transform: none;
+}
+
+/* ── Insignia de ícono por módulo (mismo lenguaje visual que Central de Mezclas) ── */
+.tab-icon-badge {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.09);
+    color: rgba(255, 255, 255, 0.7);
+    transition: all var(--transition-speed) ease;
+}
+
+.tab-icon-badge .nav-icon { width: 14px; height: 14px; }
+
+.tabs-link.active .tab-icon-badge { color: #0f172a; }
+
+.tab-icon-badge.badge-meows { background: linear-gradient(135deg, #a78bfa, #7c3aed); box-shadow: 0 2px 8px rgba(124, 58, 237, 0.45); color: #fff; }
+.tab-icon-badge.badge-fetal { background: linear-gradient(135deg, #2dd4bf, #0d9488); box-shadow: 0 2px 8px rgba(13, 148, 136, 0.45); color: #fff; }
+.tab-icon-badge.badge-parto { background: linear-gradient(135deg, #f472b6, #db2777); box-shadow: 0 2px 8px rgba(219, 39, 119, 0.45); color: #fff; }
+.tab-icon-badge.badge-dashboard { background: linear-gradient(135deg, #60a5fa, #2563eb); box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45); color: #fff; }
+
+.tabs-link.active .tab-icon-badge.badge-meows,
+.tabs-link.active .tab-icon-badge.badge-fetal,
+.tabs-link.active .tab-icon-badge.badge-parto,
+.tabs-link.active .tab-icon-badge.badge-dashboard {
+    color: #fff;
+}
+
+/* Estados Deshabilitados (Módulo Sala de Partos) */
+.sala-partos-deshabilitado .sidebar .tabs .tab-modulo {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+    filter: grayscale(0.8);
+    transition: all 0.3s ease;
+}
+
+.sala-partos-deshabilitado .sidebar .tabs .tab-modulo:hover {
+    transform: none;
+    background: transparent;
+}
+
+.sidebar-consulta-form {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar-consulta-form input {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.sidebar-consulta-form input:focus {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--sidebar-accent);
+    box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.2);
+}
+
+.sidebar-consulta-form .btn-consultar-sidebar {
+    width: 100%;
+    padding: 10px;
+    background: var(--sidebar-accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.sidebar-consulta-form .btn-consultar-sidebar:hover {
+    background: #155e75;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
+}
+
+.sidebar-consulta-form .btn-consultar-sidebar:active {
+    transform: translateY(0);
+}
+
+/* Estilos de Iconos */
+.nav-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* Utilidades de Diseño */
+.sidebar-main-content {
+    flex: 1;
+    overflow-x: hidden;
+    padding: 0 16px 16px 16px;
+    margin-top: 0;
+}
+
+.main-content {
+    flex: 1;
+    overflow-x: hidden;
+    background: #f8fafc;
+}
+
+/* Estilos de Barra de Desplazamiento */
+.sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Frecuencia fetal">
+  <rect width="256" height="256" rx="28" fill="#f8fafc"/>
+  <path d="M24 140h34l16-34 22 68 24-54 18 20h24l10-18 12 18h48" fill="none" stroke="#dc2626" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M128 68c-14-18-44-16-54 4-9 18-3 40 14 54l40 34 40-34c17-14 23-36 14-54-10-20-40-22-54-4z" fill="#fb7185" opacity="0.25"/>
+  <text x="128" y="222" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#0f172a">FF</text>
+</svg>

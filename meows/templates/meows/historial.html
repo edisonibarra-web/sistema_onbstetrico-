@@ -1,0 +1,81 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial MEOWS - {{ paciente.nombres }} {{ paciente.apellidos }}</title>
+    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260814d">
+    <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260814d">
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
+    <style>
+        /* Esta vista usa el shell de encabezado + sidebar a borde completo (.app-layout-sidebar);
+           el padding por defecto del body (definido en meows-form.css para páginas simples) deja
+           un espacio muerto en blanco alrededor del encabezado y el sidebar. Se anula aquí. */
+        body { margin: 0 !important; padding: 0 !important; }
+    </style>
+</head>
+<body>
+{% include 'obstetricia/header_formatos.html' with current_module='meows' documento=documento modulo_titulo='Historial Clínico MEOWS' modulo_subtitulo='Evolución del Estado Clínico' %}
+<div class="app-layout-sidebar">
+    {% include 'obstetricia/sidebar.html' with is_panel=False atencion_id=atencion_id documento=documento current_module='meows' %}
+    <div class="sidebar-main-content">
+    <div class="container">
+        <!-- SECCIÓN: INFORMACIÓN DEL PACIENTE -->
+        <section class="section patient-section patient-section-redesigned">
+            <div class="info-section">
+                <h3 class="info-section-title">
+                    <span class="info-section-title-icon"><i data-lucide="user"></i></span>
+                    Información del Paciente
+                </h3>
+                <div class="patient-info-grid">
+                    <div class="info-item">
+                        <label class="info-label">Nombre Completo</label>
+                        <div class="info-value">{{ paciente.nombres }} {{ paciente.apellidos }}</div>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">Documento</label>
+                        <div class="info-value">{{ paciente.numero_documento }}</div>
+                    </div>
+                    {% if paciente.edad %}
+                    <div class="info-item">
+                        <label class="info-label">Edad</label>
+                        <div class="info-value">{{ paciente.edad }} años</div>
+                    </div>
+                    {% endif %}
+                    {% if paciente.aseguradora %}
+                    <div class="info-item">
+                        <label class="info-label">Aseguradora</label>
+                        <div class="info-value">{{ paciente.aseguradora }}</div>
+                    </div>
+                    {% endif %}
+                    {% if paciente.cama %}
+                    <div class="info-item">
+                        <label class="info-label">Cama</label>
+                        <div class="info-value">{{ paciente.cama }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: CUADRÍCULA CLÍNICA DE MEDICIONES (incluye el botón "Nueva Medición" junto a "Regresar a Trabajo de Parto") -->
+        {% include 'meows/_timeline_grid.html' with meows_paciente=paciente mostrar_link_volver=True %}
+    </div>
+    </div>
+</div>
+<script>
+    /* El script embebido en obstetricia/sidebar.html llama a lucide.createIcons()
+       en el punto en que se incluye, antes de que exista el resto del contenido
+       de esta página en el DOM (los íconos de las cards de esta vista). Se
+       reinvoca aquí, al final, para que también se rendericen esos íconos. */
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+</script>
+</body>
+</html>
+
+
+

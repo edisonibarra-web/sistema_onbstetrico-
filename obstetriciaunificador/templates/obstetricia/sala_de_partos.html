@@ -1,0 +1,1865 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} | Sistema Obstétrico Unificado</title>
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
+    <script src="{% static 'obstetriciaunificador/js/chart.umd.min.js' %}"></script>
+    <style>
+        :root {
+            --panel-bg: #f4f7fb;
+            --primary-blue: #1e3a5f;
+            --success-green: #2f855a;
+            --meows-violet: #7c3aed;
+            --fetal-teal: #0d9488;
+            --parto-pink: #db2777;
+        }
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(180deg, #f6f8fc 0%, #edf2f7 100%);
+            color: #1e293b;
+        }
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        .main-content {
+            flex: 1;
+            padding: 32px 40px 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Contenedor de Consulta (Independiente) */
+        .search-container {
+            width: 100%;
+            max-width: 100%;
+            margin: 40px 0 10px;
+            align-self: stretch;
+            background: #ffffff;
+            padding: 28px;
+            border-radius: 20px;
+            box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+            border: 1px solid #dbe3ee;
+            transition: all 0.35s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .search-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 24px 44px rgba(15, 23, 42, 0.14);
+        }
+        .search-container::before {
+            content: "";
+            position: absolute;
+            top: -140px;
+            right: -130px;
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(37, 99, 235, 0.2) 0%, rgba(37, 99, 235, 0) 70%);
+            pointer-events: none;
+        }
+        .search-container::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            padding: 1px;
+            background: linear-gradient(125deg, rgba(37,99,235,0.35), rgba(30,58,95,0.14), rgba(37,99,235,0.35));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        .search-container.search-enter {
+            animation: searchCardEnter 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        @keyframes searchCardEnter {
+            0% {
+                opacity: 0;
+                transform: translateX(-18px) translateY(6px) scale(0.99);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0) translateY(0) scale(1);
+            }
+        }
+
+        .search-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            cursor: pointer;
+        }
+        .search-header .icon-container {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(145deg, #eff6ff, #dbeafe);
+            color: var(--primary-blue);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 0 1px #bfdbfe, 0 8px 18px rgba(37, 99, 235, 0.22);
+            animation: iconPulse 2.4s ease-in-out infinite;
+        }
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.04); }
+        }
+        .search-header .title-group {
+            flex: 1;
+            text-align: left;
+        }
+        .search-header .subtitle { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+        .search-header .main-title { font-size: 20px; font-weight: 800; color: var(--primary-blue); }
+        .search-helper {
+            margin: 0 0 14px 0;
+            font-size: 0.84rem;
+            color: #475569;
+            font-weight: 600;
+            line-height: 1.45;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .search-input-wrap {
+            flex: 1;
+            position: relative;
+        }
+        .search-input-wrap i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            width: 16px;
+            height: 16px;
+        }
+        .search-form input {
+            flex: 1;
+            padding: 15px 16px 15px 40px;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+            background: #f8fbff;
+        }
+        .search-form input:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 4px rgba(30, 58, 95, 0.12);
+            background: #ffffff;
+        }
+        /* Refrescar lista de activos (vive dentro del search-header unificado) */
+        .active-patients-refresh {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #334155;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .active-patients-refresh:hover {
+            background: #eef2f7;
+            transform: translateY(-1px);
+        }
+        .active-patients-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .active-patients-loading,
+        .active-patients-empty,
+        .active-patients-error {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 18px 10px;
+            color: #64748b;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .active-patients-error { color: #b91c1c; }
+        .active-patient-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: left;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #6d28d9;
+            border-radius: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+        }
+        .active-patient-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(109, 40, 217, 0.16);
+            border-color: #c4b5fd;
+        }
+        /* Color del borde según el área/sala de la paciente */
+        .active-patient-item-partos { border-left-color: #6d28d9; }
+        .active-patient-item-gineco { border-left-color: #2563eb; }
+        .active-patient-item-intermedio { border-left-color: #0d9488; }
+        .active-patient-item-otra { border-left-color: #d97706; }
+
+        .active-patient-area {
+            align-self: flex-start;
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            padding: 2px 9px;
+            border-radius: 999px;
+        }
+        .active-patient-area-partos { background: #ede9fe; color: #5b21b6; }
+        .active-patient-area-gineco { background: #dbeafe; color: #1e40af; }
+        .active-patient-area-intermedio { background: #ccfbf1; color: #0f766e; }
+        .active-patient-area-otra { background: #fef3c7; color: #92400e; }
+
+        /* Pestañas para segmentar la lista de activos por área */
+        .area-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 18px;
+        }
+        .area-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            color: #475569;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.16s ease;
+        }
+        .area-tab:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .area-tab-count {
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 1px 7px;
+            border-radius: 999px;
+            background: rgba(100, 116, 139, 0.14);
+            color: inherit;
+        }
+        .area-tab-activa { color: #ffffff; border-color: transparent; }
+        .area-tab-activa .area-tab-count { background: rgba(255, 255, 255, 0.28); }
+        .area-tab-todas.area-tab-activa { background: var(--primary-blue); }
+        .area-tab-partos.area-tab-activa { background: #6d28d9; }
+        .area-tab-gineco.area-tab-activa { background: #2563eb; }
+        .area-tab-intermedio.area-tab-activa { background: #0d9488; }
+        .area-tab-otra.area-tab-activa { background: #d97706; }
+
+        .active-patient-name {
+            font-weight: 800;
+            font-size: 0.92rem;
+            color: #1e293b;
+        }
+        .active-patient-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .active-patient-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: #ede9fe;
+            color: #5b21b6;
+            border: 1px solid #c4b5fd;
+        }
+        .active-patient-doc {
+            font-size: 0.78rem;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        /* Grid de Módulos (Cards) */
+        .modules-grid {
+            display: none; /* Se muestra al encontrar paciente */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            width: 100%;
+            max-width: 100%;
+            margin-top: 30px;
+        }
+        .module-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fbff 65%, #f1f5ff 100%);
+            padding: 24px;
+            border-radius: 16px;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+            border: 1px solid #dbeafe;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .module-card::before {
+            content: "";
+            position: absolute;
+            top: -40px;
+            right: -30px;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.45);
+            pointer-events: none;
+        }
+        .module-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 18px 32px rgba(15, 23, 42, 0.18);
+            border-color: currentColor;
+        }
+        .module-card .card-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .module-card h3 { margin: 0 0 10px; font-size: 18px; font-weight: 800; }
+        .module-card p { margin: 0; font-size: 14px; color: #64748b; line-height: 1.4; }
+
+        .card-meows {
+            color: #6d28d9;
+            border-top: 6px solid #7c3aed;
+            background: linear-gradient(145deg, #f5f3ff 0%, #ede9fe 100%);
+        }
+        .card-meows .card-icon {
+            background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
+            box-shadow: 0 8px 18px rgba(124, 58, 237, 0.24);
+        }
+        .card-fetal {
+            color: #0f766e;
+            border-top: 6px solid #2dd4bf;
+            background: linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%);
+        }
+        .card-fetal .card-icon {
+            background: linear-gradient(135deg, #99f6e4 0%, #5eead4 100%);
+            box-shadow: 0 8px 18px rgba(13, 148, 136, 0.24);
+        }
+        .card-parto {
+            color: #9d174d;
+            border-top: 6px solid #f472b6;
+            background: linear-gradient(145deg, #fdf2f8 0%, #fce7f3 100%);
+        }
+        .card-parto .card-icon {
+            background: linear-gradient(135deg, #fbcfe8 0%, #f9a8d4 100%);
+            box-shadow: 0 8px 18px rgba(219, 39, 119, 0.24);
+        }
+
+        /* Compact Clinical Card (Colorful & Organized) */
+        .card-clinico-unificado {
+            display: none;
+            width: 100%;
+            max-width: 100%;
+            background: linear-gradient(135deg, #111827 0%, #374151 45%, #4b5563 75%, #6b7280 100%);
+            padding: 18px 22px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            box-shadow: 0 18px 38px rgba(15, 23, 42, 0.4), 0 10px 20px rgba(15, 23, 42, 0.25);
+            border: 1px solid #374151;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            border-left: 6px solid #1f2937;
+        }
+        .card-clinico-unificado::before {
+            content: "";
+            position: absolute;
+            top: -110px;
+            right: -75px;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 72%);
+            pointer-events: none;
+        }
+        .card-clinico-unificado::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            padding: 1px;
+            background: linear-gradient(120deg, rgba(255,255,255,0.4), rgba(255,255,255,0.12), rgba(255,255,255,0.32));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        .card-clinico-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+        }
+        .card-clinico-identidad {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+        }
+        .card-clinico-avatar-wrap {
+            flex-shrink: 0;
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            padding: 3px;
+            background: rgba(255, 255, 255, 0.28);
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
+        }
+        .card-clinico-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            color: #374151;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.35);
+        }
+        .card-clinico-avatar i, .card-clinico-avatar svg { width: 28px; height: 28px; stroke-width: 2.25; }
+        .card-clinico-title { min-width: 0; }
+        .card-clinico-eyebrow {
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: rgba(255, 255, 255, 0.75);
+            margin-bottom: 2px;
+        }
+        .card-clinico-title h2 {
+            margin: 0;
+            font-size: 1.28rem;
+            color: #ffffff;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+        }
+
+        .card-clinico-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 7px; }
+        .card-clinico-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.92);
+            font-weight: 600;
+        }
+        .card-clinico-meta-item i, .card-clinico-meta-item svg { color: #ffffff; opacity: 0.9; }
+
+        .card-clinico-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .card-clinico-actions-divider {
+            width: 1px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 0 2px;
+        }
+        .card-clinico-btn-pdf {
+            background: #ffffff;
+            color: #374151 !important;
+            padding: 8px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.32), 0 4px 12px rgba(15, 23, 42, 0.2);
+        }
+        .card-clinico-btn-pdf:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+            box-shadow: 0 16px 30px rgba(6, 40, 51, 0.36), 0 6px 14px rgba(6, 40, 51, 0.22);
+        }
+        
+        .card-clinico-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 14px;
+            border-radius: 999px;
+            color: white;
+            font-weight: 900;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
+        }
+        .card-clinico-status::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .status-critico { background: #dc2626; }
+        .status-alerta { background: #d97706; }
+        .status-estable { background: #15803d; }
+
+        .btn-change-patient {
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: #ffffff;
+            padding: 7px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .btn-change-patient:hover {
+            background: rgba(255, 255, 255, 0.26);
+            transform: translateY(-1px);
+        }
+
+        .clinico-stats-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.4);
+        }
+        .stat-pill {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+        }
+        .stat-pill::after {
+            content: "";
+            position: absolute;
+            top: -16px;
+            right: -10px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.24);
+            pointer-events: none;
+        }
+        .stat-pill strong { font-size: 1.1rem; }
+        
+        .stat-meows {
+            background: linear-gradient(135deg, #ede9fe 0%, #c4b5fd 100%);
+            color: #5b21b6;
+            border: 1px solid #a78bfa;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.42);
+        }
+        .stat-fetal {
+            background: linear-gradient(135deg, #ccfbf1 0%, #5eead4 100%);
+            color: #115e59;
+            border: 1px solid #2dd4bf;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.42);
+        }
+        .stat-parto {
+            background: linear-gradient(135deg, #fce7f3 0%, #f9a8d4 100%);
+            color: #9d174d;
+            border: 1px solid #f472b6;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.42);
+        }
+
+        /* Card informativa de paciente */
+        .patient-info-card {
+            display: none;
+            width: 100%;
+            max-width: 100%;
+            background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 55%, #ecfeff 100%);
+            border: 1px solid #99f6e4;
+            border-radius: 16px;
+            box-shadow: 0 14px 30px rgba(8, 145, 178, 0.12);
+            padding: 0 0 20px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .patient-info-card::before {
+            content: "";
+            position: absolute;
+            top: -50px;
+            right: -60px;
+            width: 160px;
+            height: 160px;
+            background: radial-gradient(circle, rgba(8, 145, 178, 0.16) 0%, rgba(8, 145, 178, 0) 72%);
+            pointer-events: none;
+        }
+        .patient-info-header {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            color: #ffffff;
+            font-weight: 800;
+            margin-bottom: 16px;
+            padding: 13px 22px;
+            font-size: 0.92rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            background: linear-gradient(120deg, #0e7490 0%, #0891b2 60%, #06b6d4 100%);
+            box-shadow: 0 4px 12px rgba(8, 145, 178, 0.25);
+        }
+        .patient-info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 11px;
+            padding: 0 22px;
+        }
+        .patient-info-item {
+            border: 1px solid #ccfbf1;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            padding: 11px 12px;
+            box-shadow: 0 6px 14px rgba(8, 145, 178, 0.06);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+        .patient-info-item:hover {
+            transform: translateY(-2px);
+            border-color: #5eead4;
+            box-shadow: 0 12px 22px rgba(8, 145, 178, 0.14);
+        }
+        .patient-info-item:nth-child(3n + 1) { border-left: 4px solid #0891b2; }
+        .patient-info-item:nth-child(3n + 2) { border-left: 4px solid #2dd4bf; }
+        .patient-info-item:nth-child(3n + 3) { border-left: 4px solid #5eead4; }
+        .patient-info-item:nth-child(3n + 1) .patient-info-label { color: #0e7490; }
+        .patient-info-item:nth-child(3n + 2) .patient-info-label { color: #0f766e; }
+        .patient-info-item:nth-child(3n + 3) .patient-info-label { color: #0d9488; }
+        .patient-info-item:nth-child(3n + 1) .patient-info-value { color: #155e75; }
+        .patient-info-item:nth-child(3n + 2) .patient-info-value { color: #115e59; }
+        .patient-info-item:nth-child(3n + 3) .patient-info-value { color: #134e4a; }
+        .patient-info-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #475569;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .patient-info-value {
+            font-size: 0.92rem;
+            color: #0f172a;
+            font-weight: 700;
+            word-break: break-word;
+        }
+        .patient-info-item-full { grid-column: 1 / -1; }
+
+        @media (max-width: 920px) {
+            .patient-info-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 620px) {
+            .patient-info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loader */
+        .loader { display: none; width: 24px; height: 24px; border: 3px solid #f3f3f3; border-top: 3px solid var(--primary-blue); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Timeline en Sala de Partos */
+        .timeline-section {
+            display: none;
+            width: 100%;
+            max-width: 100%;
+            margin-top: 26px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fbff 52%, #fdf7ff 100%);
+            padding: 24px;
+            border-radius: 18px;
+            border: 1px solid #dbeafe;
+            box-shadow: 0 16px 34px rgba(15, 23, 42, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .timeline-section::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 12% 15%, rgba(59, 130, 246, 0.1), transparent 42%),
+                        radial-gradient(circle at 88% 12%, rgba(236, 72, 153, 0.1), transparent 40%),
+                        radial-gradient(circle at 54% 100%, rgba(139, 92, 246, 0.09), transparent 40%);
+            pointer-events: none;
+        }
+        .timeline-section > h3 {
+            position: relative;
+            z-index: 1;
+            color: #1e3a8a !important;
+            letter-spacing: 0.01em;
+        }
+        .timeline-container {
+            position: relative;
+            padding-left: 30px;
+            border-left: 2px solid #e2e8f0;
+            margin-left: 10px;
+        }
+        .timeline-groups {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .timeline-group {
+            border: 1px solid #dbeafe;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.86);
+            padding: 12px;
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+            backdrop-filter: blur(1px);
+        }
+        .timeline-group-title {
+            margin: 0 0 10px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+        .timeline-group-title-text {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+        }
+        .timeline-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+            padding: 4px 9px;
+            border-radius: 999px;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            background: rgba(255, 255, 255, 0.7);
+            color: #475569;
+            font-size: 0.62rem;
+            font-weight: 800;
+            text-transform: none;
+            letter-spacing: 0;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+        .timeline-toggle-btn:hover {
+            background: #ffffff;
+            border-color: #64748b;
+        }
+        .timeline-toggle-btn i, .timeline-toggle-btn svg { width: 12px; height: 12px; }
+
+        /* Lista de registros colapsable: por defecto oculta, para que con
+           muchos registros la gráfica no quede empujada muy abajo. */
+        .timeline-registros-collapse {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .timeline-registros-collapse.is-expanded {
+            grid-template-rows: 1fr;
+        }
+        .timeline-registros-inner {
+            overflow: hidden;
+            min-height: 0;
+        }
+        .timeline-group .timeline-container {
+            padding-left: 18px;
+            margin-left: 0;
+            border-left-width: 1px;
+        }
+        .timeline-group.timeline-group-meows {
+            border-color: #c4b5fd;
+            background: linear-gradient(180deg, rgba(245, 243, 255, 0.95) 0%, rgba(237, 233, 254, 0.72) 100%);
+        }
+        .timeline-group.timeline-group-fetal {
+            border-color: #5eead4;
+            background: linear-gradient(180deg, rgba(240, 253, 250, 0.95) 0%, rgba(204, 251, 241, 0.72) 100%);
+        }
+        .timeline-group.timeline-group-parto {
+            border-color: #f9a8d4;
+            background: linear-gradient(180deg, rgba(253, 242, 248, 0.95) 0%, rgba(251, 207, 232, 0.74) 100%);
+        }
+        .timeline-group.timeline-group-meows .timeline-group-title { color: #6d28d9; }
+        .timeline-group.timeline-group-fetal .timeline-group-title { color: #0f766e; }
+        .timeline-group.timeline-group-parto .timeline-group-title { color: #9d174d; }
+        .timeline-group.timeline-group-meows .timeline-container { border-left-color: #c4b5fd; }
+        .timeline-group.timeline-group-fetal .timeline-container { border-left-color: #5eead4; }
+        .timeline-group.timeline-group-parto .timeline-container { border-left-color: #f9a8d4; }
+
+        /* Gráfica de trazabilidad por módulo (MEOWS / Parto), dentro de cada
+           card de la Línea de Vida del Paciente. Fetal queda pendiente. */
+        .timeline-group-chart-wrap {
+            margin-top: 12px;
+            padding: 10px 8px 6px;
+            background: rgba(255, 255, 255, 0.75);
+            border-radius: 10px;
+        }
+        .timeline-group-chart-wrap canvas {
+            width: 100% !important;
+            height: 160px !important;
+        }
+        /* Grid de mini-gráficas por parámetro/signo vital (Parto y MEOWS): cada
+           una con su propia escala, para no aplastar valores pequeños (p.ej.
+           Dilatación) al lado de otros mucho más grandes (p.ej. FCF). */
+        .timeline-mini-charts-grid {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+        }
+        .timeline-mini-chart-card {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 8px;
+            padding: 6px 8px 4px;
+        }
+        .timeline-mini-chart-label {
+            font-size: 0.62rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .timeline-mini-chart-card canvas {
+            width: 100% !important;
+            height: 80px !important;
+        }
+        .timeline-group-chart-pendiente {
+            margin-top: 12px;
+            padding: 14px 10px;
+            text-align: center;
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: #64748b;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px dashed #94a3b8;
+            border-radius: 10px;
+        }
+        .timeline-group .timeline-item {
+            margin-bottom: 12px;
+        }
+        .timeline-group .timeline-dot {
+            left: -24px;
+            width: 12px;
+            height: 12px;
+            border-width: 2px;
+        }
+        .timeline-group .timeline-content {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border-color: rgba(255,255,255,0.8);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+        }
+        .timeline-group .timeline-title {
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .timeline-group .timeline-time {
+            font-size: 11px;
+        }
+        .timeline-group .timeline-detail {
+            font-size: 12px;
+        }
+        .timeline-empty-group {
+            font-size: 12px;
+            color: #64748b;
+            background: rgba(255,255,255,0.75);
+            border: 1px dashed #94a3b8;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 25px;
+        }
+        .timeline-item:last-child { margin-bottom: 0; }
+        .timeline-dot {
+            position: absolute;
+            left: -41px;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            border: 4px solid var(--primary-blue);
+        }
+        .timeline-content {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .timeline-title { font-weight: 700; font-size: 14px; color: #1e293b; display: flex; align-items: center; gap: 8px; }
+        .timeline-time { font-size: 12px; color: #64748b; font-weight: 600; }
+        .timeline-detail { font-size: 13px; color: #334155; }
+
+        @media (max-width: 1100px) {
+            .modules-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 760px) {
+            .main-content { padding: 20px 14px 30px; }
+            .modules-grid { grid-template-columns: 1fr; }
+            .search-container { align-self: stretch; max-width: 100%; }
+            .search-header { flex-wrap: wrap; }
+            .timeline-groups { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 1040px) {
+            .timeline-groups { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    {% include "obstetricia/header_formatos.html" with current_module='' documento='' modulo_titulo='Hospital Universitario Departamental' modulo_subtitulo='Sistema Unificado de Obstetricia' %}
+    <div class="app-layout">
+        {% include "obstetricia/sidebar.html" %}
+        
+        <main class="main-content">
+            <!-- Identificar Paciente = Pacientes activos en Sala de Partos (DGEMPRES_NEXUS, solo lectura) -->
+            <div class="search-container" id="search-section">
+                <div class="search-header">
+                    <div class="icon-container">
+                        <i data-lucide="bed-double" size="24"></i>
+                    </div>
+                    <div class="title-group">
+                        <div class="subtitle">Consulta</div>
+                        <div class="main-title">Pacientes activos en Sala de Partos</div>
+                    </div>
+                    <button type="button" class="active-patients-refresh" id="btn-refrescar-activos" onclick="cargarPacientesActivosSalaPartos()">
+                        <i data-lucide="refresh-cw" size="14"></i> Actualizar
+                    </button>
+                </div>
+                <p class="search-helper">Filtra por nombre o documento y selecciona un paciente para abrir de inmediato su tablero clínico unificado.</p>
+
+                <div class="search-form">
+                    <div class="search-input-wrap">
+                        <i data-lucide="badge-check"></i>
+                        <input type="text" id="cedula-input" placeholder="Buscar por nombre o documento..." maxlength="50">
+                    </div>
+                </div>
+
+                <div class="area-tabs" id="area-tabs"></div>
+
+                <div class="active-patients-list" id="active-patients-list">
+                    <div class="active-patients-loading" id="active-patients-loading">
+                        <div class="loader" style="display:inline-block;vertical-align:middle;margin-right:8px"></div>
+                        Consultando pacientes activos...
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🏥 CARD CLÍNICA COMPACTA (Colorful & Organized) -->
+            <div class="card-clinico-unificado" id="card-clinico-unificado">
+                <div class="card-clinico-header">
+                    <div class="card-clinico-identidad">
+                        <div class="card-clinico-avatar-wrap">
+                            <div class="card-clinico-avatar"><i data-lucide="user-round"></i></div>
+                        </div>
+                        <div class="card-clinico-title">
+                            <span class="card-clinico-eyebrow">Paciente en atención</span>
+                            <h2 id="display-nombres">-</h2>
+                            <div class="card-clinico-meta">
+                                <span class="card-clinico-meta-item"><i data-lucide="hash" size="12"></i> <span id="display-atencion">Atención: -</span></span>
+                                <span class="card-clinico-meta-item"><i data-lucide="fingerprint" size="12"></i> <span id="display-cedula">ID: -</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-clinico-actions">
+                        <span id="display-estado-valor" class="card-clinico-status status-estable">ESTABLE</span>
+                        <span class="card-clinico-actions-divider"></span>
+                        <a id="btn-pdf-unificado" href="#" target="_blank" class="card-clinico-btn-pdf">
+                           <i data-lucide="file-text" size="14"></i> PDF Unificado
+                        </a>
+                        <button onclick="nuevaBusqueda()" class="btn-change-patient" title="Salir de la atención y buscar otro paciente">
+                            <i data-lucide="log-out" size="14"></i> Salir de la Atención
+                        </button>
+                    </div>
+                </div>
+
+                <div class="clinico-stats-row">
+                    <div class="stat-pill stat-meows">
+                        <span>MEOWS</span>
+                        <strong id="stat-meows">0</strong>
+                    </div>
+                    <div class="stat-pill stat-fetal">
+                        <span>FETAL</span>
+                        <strong id="stat-fetal">0</strong>
+                    </div>
+                    <div class="stat-pill stat-parto">
+                        <span>PARTO</span>
+                        <strong id="stat-parto">0</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid de Módulos (Visible si paciente existe) -->
+            <div class="modules-grid" id="modules-grid">
+                <a href="#" id="link-meows" class="module-card card-meows">
+                    <div class="card-icon"><i data-lucide="activity" size="32"></i></div>
+                    <h3>MODULO MEOWS</h3>
+                    <p>Monitoreo de signos vitales y alerta temprana obstétrica.</p>
+                </a>
+                
+                <a href="#" id="link-fetal" class="module-card card-fetal">
+                    <div class="card-icon"><i data-lucide="baby" size="32"></i></div>
+                    <h3>FRECUENCIA FETAL</h3>
+                    <p>Registro y seguimiento de latidos y bienestar fetal.</p>
+                </a>
+                
+                <a href="#" id="link-parto" class="module-card card-parto">
+                    <div class="card-icon"><i data-lucide="clipboard-list" size="32"></i></div>
+                    <h3>TRABAJO DE PARTO</h3>
+                    <p>Formulario clínico y partograma de evolución.</p>
+                </a>
+            </div>
+
+            <!-- Card informativa (solo lectura) -->
+            <div class="patient-info-card" id="patient-info-card">
+                <div class="patient-info-header">
+                    <i data-lucide="info" size="16"></i>
+                    Datos registrados del paciente
+                </div>
+                <div class="patient-info-grid">
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Identificación</div>
+                        <div class="patient-info-value" id="info-identificacion">-</div>
+                    </div>
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Fecha nacimiento</div>
+                        <div class="patient-info-value" id="info-fecha-nacimiento">-</div>
+                    </div>
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Edad</div>
+                        <div class="patient-info-value" id="info-edad">-</div>
+                    </div>
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Tipo de sangre</div>
+                        <div class="patient-info-value" id="info-tipo-sangre">-</div>
+                    </div>
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Aseguradora</div>
+                        <div class="patient-info-value" id="info-aseguradora">-</div>
+                    </div>
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Cama</div>
+                        <div class="patient-info-value" id="info-cama">-</div>
+                    </div>
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Fecha de ingreso</div>
+                        <div class="patient-info-value" id="info-fecha-ingreso">-</div>
+                    </div>
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Responsable</div>
+                        <div class="patient-info-value" id="info-responsable">-</div>
+                    </div>
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Acompañante</div>
+                        <div class="patient-info-value" id="info-acompanante">-</div>
+                    </div>
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Edad gestacional</div>
+                        <div class="patient-info-value" id="info-edad-gestacional">-</div>
+                    </div>
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Gestas</div>
+                        <div class="patient-info-value" id="info-gestas">-</div>
+                    </div>
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Controles prenatales</div>
+                        <div class="patient-info-value" id="info-controles-prenatales">-</div>
+                    </div>
+                    <div class="patient-info-item patient-info-item-full">
+                        <div class="patient-info-label">Diagnóstico</div>
+                        <div class="patient-info-value" id="info-diagnostico">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Línea de Vida Cronológica -->
+            <div class="timeline-section" id="timeline-section">
+                <h3 style="margin-bottom: 25px; font-size: 18px; font-weight: 800; color: var(--primary-blue); display: flex; align-items: center; gap: 10px;">
+                    <i data-lucide="history"></i> Línea de Vida del Paciente
+                </h3>
+                <div class="timeline-groups" id="timeline-list">
+                    <!-- Dinámico con JS -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div style="display:none">{% csrf_token %}</div>
+
+    <script>
+        lucide.createIcons();
+
+        // Instancias de Chart.js: se guardan para poder destruirlas y volver a
+        // armarlas cada vez que llega data nueva (búsqueda de paciente, refresh),
+        // así la gráfica siempre refleja las mediciones más recientes.
+        let chartMeows = null;
+        let chartsMeowsVitales = [];
+        let chartPartoResumen = null;
+        let chartsParto = [];
+
+        // Dibuja un grid de mini-gráficas de línea, una por parámetro, cada una
+        // con su propia escala Y (evita aplastar valores pequeños al lado de
+        // otros mucho más grandes al compartir un solo eje). Reutilizado por
+        // los signos vitales de MEOWS y los parámetros de Trabajo de Parto.
+        function renderMiniChartsGrid(gridId, chartsArray, traza, rangoEjeYPorParametro) {
+            const grid = document.getElementById(gridId);
+            if (!grid) return [];
+
+            chartsArray.forEach(c => c.destroy());
+            grid.innerHTML = '';
+
+            if (!traza || !traza.labels || traza.labels.length === 0 || !traza.series || traza.series.length === 0) return [];
+
+            const nuevosCharts = [];
+            traza.series.forEach(serie => {
+                const card = document.createElement('div');
+                card.className = 'timeline-mini-chart-card';
+
+                const label = document.createElement('div');
+                label.className = 'timeline-mini-chart-label';
+                label.style.color = serie.color;
+                label.textContent = serie.unidad ? `${serie.parametro} (${serie.unidad})` : serie.parametro;
+                card.appendChild(label);
+
+                const canvas = document.createElement('canvas');
+                card.appendChild(canvas);
+                grid.appendChild(card);
+
+                const chart = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: traza.labels,
+                        datasets: [{
+                            label: serie.parametro,
+                            data: serie.data,
+                            borderColor: serie.color,
+                            backgroundColor: serie.color + '22',
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true,
+                            spanGaps: true,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (ctx) => serie.unidad ? `${ctx.parsed.y} ${serie.unidad}` : `${ctx.parsed.y}`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { ticks: { font: { size: 8 } }, grid: { display: false } },
+                            y: { ticks: { font: { size: 8 } }, ...((rangoEjeYPorParametro || {})[serie.parametro] || {}) }
+                        }
+                    }
+                });
+                nuevosCharts.push(chart);
+            });
+            return nuevosCharts;
+        }
+
+        function renderGraficaMeows(traza) {
+            const canvas = document.getElementById('chart-meows');
+            if (!canvas) return;
+            if (chartMeows) { chartMeows.destroy(); chartMeows = null; }
+
+            chartsMeowsVitales = renderMiniChartsGrid('meows-vitales-grid', chartsMeowsVitales, traza && traza.vitales);
+
+            if (!traza || !traza.labels || traza.labels.length === 0) return;
+
+            chartMeows = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: traza.labels,
+                    datasets: [{
+                        label: 'Puntaje MEOWS',
+                        data: traza.valores,
+                        borderColor: '#7c3aed',
+                        backgroundColor: 'rgba(124, 58, 237, 0.12)',
+                        pointBackgroundColor: traza.colores,
+                        pointBorderColor: '#ffffff',
+                        pointRadius: 5,
+                        pointHoverRadius: 6,
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `Puntaje: ${ctx.parsed.y}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { font: { size: 9 } }, grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { font: { size: 9 }, precision: 0 } }
+                    }
+                }
+            });
+        }
+
+        // Parámetro usado como "resumen" grande de Parto, igual que MEOWS
+        // destaca su puntaje total: Dilatación cervical es la métrica clásica
+        // de un partograma para seguir el avance del trabajo de parto.
+        const PARAMETRO_RESUMEN_PARTO = 'Dilatación';
+
+        function renderGraficaPartoResumen(traza) {
+            const canvas = document.getElementById('chart-parto-resumen');
+            if (!canvas) return;
+            if (chartPartoResumen) { chartPartoResumen.destroy(); chartPartoResumen = null; }
+
+            const serie = traza && traza.series && traza.series.find(s => s.parametro === PARAMETRO_RESUMEN_PARTO);
+            const wrap = canvas.closest('.timeline-group-chart-wrap');
+            if (!serie) {
+                if (wrap) wrap.style.display = 'none';
+                return;
+            }
+            if (wrap) wrap.style.display = '';
+
+            // Cada ronda de mediciones nueva debe reflejarse en la gráfica aunque
+            // esa ronda en particular no haya vuelto a registrar Dilatación: se
+            // arrastra el último valor conocido (igual que un partograma real),
+            // marcando esos puntos "arrastrados" en hueco en vez de rellenos.
+            let ultimoValor = null;
+            const datosConArrastre = serie.data.map(v => {
+                if (v !== null && v !== undefined) { ultimoValor = v; return v; }
+                return ultimoValor;
+            });
+            const esValorReal = serie.data.map(v => v !== null && v !== undefined);
+
+            chartPartoResumen = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: traza.labels,
+                    datasets: [{
+                        label: serie.unidad ? `${serie.parametro} (${serie.unidad})` : serie.parametro,
+                        data: datosConArrastre,
+                        borderColor: serie.color,
+                        backgroundColor: serie.color + '22',
+                        pointBackgroundColor: esValorReal.map(real => real ? serie.color : '#ffffff'),
+                        pointBorderColor: esValorReal.map(real => real ? '#ffffff' : serie.color),
+                        pointBorderWidth: 2,
+                        pointRadius: esValorReal.map(real => real ? 5 : 4),
+                        pointHoverRadius: 6,
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        spanGaps: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => {
+                                    const unidadTxt = serie.unidad ? ` ${serie.unidad}` : '';
+                                    return esValorReal[ctx.dataIndex]
+                                        ? `${ctx.parsed.y}${unidadTxt}`
+                                        : `${ctx.parsed.y}${unidadTxt} (sin nueva medición en esta ronda)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { font: { size: 9 } }, grid: { display: false } },
+                        y: { min: 1, max: 10, ticks: { font: { size: 9 }, precision: 0 } }
+                    }
+                }
+            });
+        }
+
+        function renderGraficaParto(traza) {
+            renderGraficaPartoResumen(traza);
+
+            // Rango fijo del eje Y para parámetros con escala clínica conocida
+            // (en vez de auto-ajustar al rango de los datos registrados).
+            const rangoEjeYPorParametro = {
+                'Dilatación': { min: 1, max: 10 },
+            };
+            // Dilatación ya se destaca arriba como resumen; se excluye aquí para
+            // no repetir la misma gráfica dos veces en la misma card.
+            const trazaSinResumen = traza && traza.series
+                ? { labels: traza.labels, series: traza.series.filter(s => s.parametro !== PARAMETRO_RESUMEN_PARTO) }
+                : traza;
+            chartsParto = renderMiniChartsGrid('parto-charts-grid', chartsParto, trazaSinResumen, rangoEjeYPorParametro);
+        }
+
+        function toggleRegistrosGrupo(tipoSlug, btn) {
+            const collapse = document.getElementById(`timeline-registros-${tipoSlug}`);
+            if (!collapse) return;
+            const expandido = collapse.classList.toggle('is-expanded');
+            const totalItems = collapse.querySelectorAll('.timeline-item').length;
+            btn.innerHTML = expandido
+                ? 'Ocultar registros <i data-lucide="chevron-up"></i>'
+                : `Ver ${totalItems} registro${totalItems === 1 ? '' : 's'} <i data-lucide="chevron-down"></i>`;
+            lucide.createIcons();
+        }
+
+        function getCookie(name) {
+            const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+            return v ? v[2] : null;
+        }
+
+        function mostrarModulos(data, cedula) {
+            document.getElementById('search-section').style.display = 'none';
+
+            const card = document.getElementById('card-clinico-unificado');
+            card.style.display = 'flex';
+            
+            // Poblar Datos
+            document.getElementById('display-nombres').textContent = data.nombre_completo.toUpperCase();
+            document.getElementById('display-cedula').textContent = `ID: ${cedula}`;
+            document.getElementById('display-atencion').textContent = `ID de Atención: ${data.atencion_id || '-'}`;
+            
+            // Status
+            const statusVal = document.getElementById('display-estado-valor');
+            statusVal.textContent = data.estado_global || 'ESTABLE';
+            statusVal.className = 'card-clinico-status ' + 
+                (data.estado_global === 'CRÍTICO' ? 'status-critico' : 
+                 data.estado_global === 'ALERTA' ? 'status-alerta' : 'status-estable');
+
+            // Stats
+            const meowsCount = Number(data.mediciones_count || 0);
+            const fetalCount = Number(data.fetal_count || 0);
+            const partoCount = Number(data.parto_count || 0);
+            const totalRegistros = meowsCount + fetalCount + partoCount;
+            document.getElementById('stat-meows').textContent = meowsCount;
+            document.getElementById('stat-fetal').textContent = fetalCount;
+            document.getElementById('stat-parto').textContent = partoCount;
+
+            // Card informativa de paciente (solo lectura)
+            const patientInfo = document.getElementById('patient-info-card');
+            patientInfo.style.display = 'block';
+            document.getElementById('info-identificacion').textContent = data.identificacion || cedula || '-';
+            document.getElementById('info-fecha-nacimiento').textContent = data.fecha_nacimiento || '-';
+            document.getElementById('info-edad').textContent = data.edad !== null && data.edad !== undefined ? `${data.edad} años` : '-';
+            document.getElementById('info-tipo-sangre').textContent = data.tipo_sangre || '-';
+            document.getElementById('info-aseguradora').textContent = data.aseguradora || '-';
+            document.getElementById('info-cama').textContent = data.cama || '-';
+            document.getElementById('info-fecha-ingreso').textContent = data.fecha_ingreso || '-';
+            document.getElementById('info-responsable').textContent = data.responsable || '-';
+            document.getElementById('info-acompanante').textContent = data.nombre_acompanante || '-';
+            document.getElementById('info-edad-gestacional').textContent = (data.edad_gestacional !== null && data.edad_gestacional !== undefined) ? `${data.edad_gestacional} sem` : '-';
+            document.getElementById('info-gestas').textContent = (data.gestas !== null && data.gestas !== undefined) ? data.gestas : '-';
+            document.getElementById('info-controles-prenatales').textContent = (data.n_controles_prenatales !== null && data.n_controles_prenatales !== undefined) ? data.n_controles_prenatales : '-';
+            document.getElementById('info-diagnostico').textContent = data.diagnostico || '-';
+
+            // PDF Link: ocultar cuando no existan registros en ningún módulo
+            const atencionQuery = new URLSearchParams(window.location.search).get('atencion');
+            const atencion_id = data.atencion_id || atencionQuery || 1;
+            const docPdf = encodeURIComponent(data.identificacion || cedula || '');
+            const btnPdf = document.getElementById('btn-pdf-unificado');
+            if (btnPdf) {
+                if (totalRegistros > 0) {
+                    btnPdf.style.display = 'inline-flex';
+                    btnPdf.href = `/atencion/${atencion_id}/pdf/?doc=${docPdf}`;
+                    btnPdf.removeAttribute('aria-disabled');
+                    btnPdf.style.pointerEvents = '';
+                    btnPdf.style.opacity = '';
+                } else {
+                    btnPdf.style.display = 'none';
+                    btnPdf.href = '#';
+                    btnPdf.setAttribute('aria-disabled', 'true');
+                    btnPdf.style.pointerEvents = 'none';
+                    btnPdf.style.opacity = '0.5';
+                }
+            }
+
+            const grid = document.getElementById('modules-grid');
+            grid.style.display = 'grid';
+
+            // Renderizar Timeline
+            const timelineSection = document.getElementById('timeline-section');
+            const timelineList = document.getElementById('timeline-list');
+            timelineList.innerHTML = ''; 
+
+            if (data.timeline && data.timeline.length > 0) {
+                timelineSection.style.display = 'block';
+                const grupos = {
+                    MEOWS: { titulo: 'MEOWS', icono: 'activity', color: '#7c3aed', items: [] },
+                    FETAL: { titulo: 'FETAL', icono: 'baby', color: '#0d9488', items: [] },
+                    PARTO: { titulo: 'PARTO', icono: 'clipboard-list', color: '#db2777', items: [] },
+                };
+
+                data.timeline.forEach(item => {
+                    const tipo = (item.tipo || '').toUpperCase();
+                    if (grupos[tipo]) grupos[tipo].items.push(item);
+                });
+
+                Object.keys(grupos).forEach((tipo) => {
+                    const grupo = grupos[tipo];
+                    const tipoSlug = tipo.toLowerCase();
+                    const groupWrap = document.createElement('div');
+                    groupWrap.className = `timeline-group timeline-group-${tipoSlug}`;
+
+                    const title = document.createElement('h4');
+                    title.className = 'timeline-group-title';
+                    title.innerHTML = `
+                        <span class="timeline-group-title-text"><i data-lucide="${grupo.icono}"></i> ${grupo.titulo}</span>
+                        <button type="button" class="timeline-toggle-btn" onclick="toggleRegistrosGrupo('${tipoSlug}', this)">
+                            Ver ${grupo.items.length} registro${grupo.items.length === 1 ? '' : 's'} <i data-lucide="chevron-down"></i>
+                        </button>
+                    `;
+                    groupWrap.appendChild(title);
+
+                    const groupContainer = document.createElement('div');
+                    groupContainer.className = 'timeline-container';
+
+                    if (grupo.items.length === 0) {
+                        const empty = document.createElement('div');
+                        empty.className = 'timeline-empty-group';
+                        empty.textContent = 'Sin registros en este módulo';
+                        groupContainer.appendChild(empty);
+                    } else {
+                        grupo.items.forEach(item => {
+                            const dateObj = new Date(item.fecha);
+                            const dateStr = dateObj.toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+                            const div = document.createElement('div');
+                            div.className = 'timeline-item';
+                            div.innerHTML = `
+                                <div class="timeline-dot" style="border-color: ${escapeHtml(item.color || grupo.color)}"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-header">
+                                        <span class="timeline-title" style="color: ${escapeHtml(item.color || grupo.color)}">
+                                            <i data-lucide="${escapeHtml(item.icon || grupo.icono)}"></i> ${escapeHtml(item.titulo)}
+                                        </span>
+                                        <span class="timeline-time">${escapeHtml(dateStr)}</span>
+                                    </div>
+                                    <div class="timeline-detail">${escapeHtml(item.detalle)}</div>
+                                </div>
+                            `;
+                            groupContainer.appendChild(div);
+                        });
+                    }
+
+                    // Colapsado por defecto: con muchos registros, la lista completa
+                    // empujaba la gráfica muy abajo. Se despliega bajo demanda.
+                    const collapseWrap = document.createElement('div');
+                    collapseWrap.className = 'timeline-registros-collapse';
+                    collapseWrap.id = `timeline-registros-${tipoSlug}`;
+                    const collapseInner = document.createElement('div');
+                    collapseInner.className = 'timeline-registros-inner';
+                    collapseInner.appendChild(groupContainer);
+                    collapseWrap.appendChild(collapseInner);
+                    groupWrap.appendChild(collapseWrap);
+
+                    // Gráfica de trazabilidad (Fetal queda pendiente).
+                    if (tipo === 'MEOWS') {
+                        // Puntaje total (resumen) + un mini-gráfico por cada signo vital
+                        // individual, porque el puntaje agregado oculta cuál signo vital
+                        // concreto está mejorando o empeorando.
+                        const chartWrap = document.createElement('div');
+                        chartWrap.className = 'timeline-group-chart-wrap';
+                        const canvas = document.createElement('canvas');
+                        canvas.id = 'chart-meows';
+                        chartWrap.appendChild(canvas);
+                        groupWrap.appendChild(chartWrap);
+
+                        const vitalesGrid = document.createElement('div');
+                        vitalesGrid.className = 'timeline-mini-charts-grid';
+                        vitalesGrid.id = 'meows-vitales-grid';
+                        groupWrap.appendChild(vitalesGrid);
+                    } else if (tipo === 'PARTO') {
+                        // Resumen grande (Dilatación, la métrica clásica de un partograma),
+                        // igual que MEOWS destaca su puntaje total, + un mini-gráfico por
+                        // cada otro parámetro (cada uno con su propia escala: cm, %, lpm,
+                        // escala 0-4...), ya que compartir un eje Y los volvería ilegibles.
+                        const chartWrapParto = document.createElement('div');
+                        chartWrapParto.className = 'timeline-group-chart-wrap';
+                        const canvasParto = document.createElement('canvas');
+                        canvasParto.id = 'chart-parto-resumen';
+                        chartWrapParto.appendChild(canvasParto);
+                        groupWrap.appendChild(chartWrapParto);
+
+                        const chartsGrid = document.createElement('div');
+                        chartsGrid.className = 'timeline-mini-charts-grid';
+                        chartsGrid.id = 'parto-charts-grid';
+                        groupWrap.appendChild(chartsGrid);
+                    } else if (tipo === 'FETAL') {
+                        const pendiente = document.createElement('div');
+                        pendiente.className = 'timeline-group-chart-pendiente';
+                        pendiente.textContent = 'Gráfica de trazabilidad pendiente';
+                        groupWrap.appendChild(pendiente);
+                    }
+
+                    timelineList.appendChild(groupWrap);
+                });
+
+                renderGraficaMeows(data.meows_trazabilidad);
+                renderGraficaParto(data.parto_trazabilidad);
+            } else {
+                timelineSection.style.display = 'none';
+                if (chartMeows) { chartMeows.destroy(); chartMeows = null; }
+                chartsMeowsVitales.forEach(c => c.destroy());
+                chartsMeowsVitales = [];
+                if (chartPartoResumen) { chartPartoResumen.destroy(); chartPartoResumen = null; }
+                chartsParto.forEach(c => c.destroy());
+                chartsParto = [];
+            }
+
+            // Configurar links de módulos
+            document.getElementById('link-meows').href = `/meows/crear/${cedula}/?atencion=${atencion_id}`;
+            document.getElementById('link-fetal').href = `/fetal/?doc=${cedula}&atencion=${atencion_id}`;
+            document.getElementById('link-parto').href = `/parto/?doc=${cedula}&atencion=${atencion_id}`;
+            
+            lucide.createIcons();
+        }
+
+        function nuevaBusqueda() {
+            document.getElementById('modules-grid').style.display = 'none';
+            document.getElementById('timeline-section').style.display = 'none';
+            const card = document.getElementById('card-clinico-unificado');
+            if (card) card.style.display = 'none';
+            const infoCard = document.getElementById('patient-info-card');
+            if (infoCard) infoCard.style.display = 'none';
+
+            const searchSection = document.getElementById('search-section');
+            searchSection.style.display = 'block';
+            searchSection.classList.remove('search-enter');
+            void searchSection.offsetWidth;
+            searchSection.classList.add('search-enter');
+
+            document.getElementById('cedula-input').value = '';
+            document.getElementById('cedula-input').focus();
+            cargarPacientesActivosSalaPartos();
+        }
+
+        async function cargarPacienteDesdeURL() {
+            const params = new URLSearchParams(window.location.search);
+            const cedula = (params.get('num_identificacion') || params.get('doc') || '').trim();
+            if (!cedula) return false;
+
+            const input = document.getElementById('cedula-input');
+            if (input) input.value = cedula;
+
+            try {
+                const response = await fetch(`/atencion/api/datos-paciente-unificado/?num_identificacion=${encodeURIComponent(cedula)}`);
+                const data = await response.json();
+                if (data.ok && data.encontrado) {
+                    mostrarModulos(data, cedula);
+                    return true;
+                }
+            } catch (error) {
+                console.error("Error al cargar paciente desde URL:", error);
+            }
+            return false;
+        }
+
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/[&<>"']/g, (c) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        // Traduce el nombre de sala (HSUNOMBRE) a una etiqueta corta y una clase de color.
+        // Si el área no es una de las 3 salas gineco-obstétricas esperadas, la paciente fue
+        // detectada por estar marcada como gestante (AINGESTAN=1) en otra área del hospital
+        // (p. ej. urgencias, antes de trasladarla a piso gineco).
+        function areaInfo(areaRaw) {
+            const area = (areaRaw || '').trim().toUpperCase();
+            if (area === 'SALA DE PARTOS') {
+                return { etiqueta: 'Sala de Partos', clase: 'partos' };
+            }
+            if (area === 'HOSPITALIZACION GINECOBSTETRICIA') {
+                return { etiqueta: 'Ginecobstetricia', clase: 'gineco' };
+            }
+            if (area.includes('CUIDADO INTERMEDIO GINECOBSTETRIC')) {
+                return { etiqueta: 'Cuidado Intermedio Gineco', clase: 'intermedio' };
+            }
+            if (!area) {
+                return { etiqueta: 'Área sin identificar', clase: 'otra' };
+            }
+            return { etiqueta: `Gestante en ${areaRaw.trim()}`, clase: 'otra' };
+        }
+
+        // Orden fijo de pestañas de área (las áreas gineco-obstétricas primero, "otra" al final).
+        const ORDEN_TABS = ['todas', 'partos', 'gineco', 'intermedio', 'otra'];
+        const TITULOS_TABS = {
+            todas: 'Todas',
+            partos: 'Sala de Partos',
+            gineco: 'Ginecobstetricia',
+            intermedio: 'Cuidado Intermedio Gineco',
+            otra: 'Otra área',
+        };
+        window._areaTabActiva = window._areaTabActiva || 'todas';
+
+        function renderAreaTabs(pacientes) {
+            const tabsEl = document.getElementById('area-tabs');
+            if (!tabsEl) return;
+
+            const conteos = { todas: pacientes.length };
+            pacientes.forEach((p) => {
+                const clase = areaInfo(p.area).clase;
+                conteos[clase] = (conteos[clase] || 0) + 1;
+            });
+
+            // Si la pestaña activa ya no tiene pacientes (ej. tras un nuevo filtro de búsqueda), volver a "Todas".
+            if (window._areaTabActiva !== 'todas' && !conteos[window._areaTabActiva]) {
+                window._areaTabActiva = 'todas';
+            }
+
+            tabsEl.innerHTML = ORDEN_TABS
+                .filter((clase) => clase === 'todas' || conteos[clase] > 0)
+                .map((clase) => {
+                    const activa = clase === window._areaTabActiva ? ' area-tab-activa' : '';
+                    return `
+                        <button type="button" class="area-tab area-tab-${clase}${activa}" onclick="seleccionarTabArea('${clase}')">
+                            ${escapeHtml(TITULOS_TABS[clase])}
+                            <span class="area-tab-count">${conteos[clase] || 0}</span>
+                        </button>`;
+                }).join('');
+        }
+
+        function renderListaPacientesActivos(pacientes) {
+            const list = document.getElementById('active-patients-list');
+            if (!list) return;
+
+            const filtrados = window._areaTabActiva === 'todas'
+                ? pacientes
+                : pacientes.filter((p) => areaInfo(p.area).clase === window._areaTabActiva);
+
+            if (filtrados.length === 0) {
+                list.innerHTML = `<div class="active-patients-empty">Ningún paciente activo en "${escapeHtml(TITULOS_TABS[window._areaTabActiva])}".</div>`;
+                return;
+            }
+
+            list.innerHTML = filtrados.map((p) => {
+                const nombre = p.nombre_paciente || 'Sin nombre registrado';
+                const doc = p.identificacion || '';
+                const cama = p.numero_cama ? `Cama ${p.numero_cama}` : null;
+                const eg = (p.edad_gestacional !== null && p.edad_gestacional !== undefined) ? `${p.edad_gestacional} sem` : null;
+                const gestas = p.gestas ? `G${p.gestas}` : null;
+                const badges = [cama, eg, gestas].filter(Boolean)
+                    .map(b => `<span class="active-patient-badge">${escapeHtml(b)}</span>`).join('');
+                const area = areaInfo(p.area);
+                return `
+                    <div class="active-patient-item active-patient-item-${area.clase}" data-doc="${escapeHtml(doc)}" onclick="seleccionarPacienteActivo(this)">
+                        <span class="active-patient-area active-patient-area-${area.clase}">${escapeHtml(area.etiqueta)}</span>
+                        <div class="active-patient-name">${escapeHtml(nombre)}</div>
+                        <div class="active-patient-doc">Doc: ${escapeHtml(doc || '-')}</div>
+                        <div class="active-patient-meta">${badges}</div>
+                    </div>`;
+            }).join('');
+        }
+
+        function seleccionarTabArea(clase) {
+            window._areaTabActiva = clase;
+            const pacientes = window._pacientesActivosSalaPartos || [];
+            renderAreaTabs(pacientes);
+            renderListaPacientesActivos(pacientes);
+        }
+
+        async function cargarPacientesActivosSalaPartos(query) {
+            const list = document.getElementById('active-patients-list');
+            const tabsEl = document.getElementById('area-tabs');
+            if (!list) return;
+            list.innerHTML = `
+                <div class="active-patients-loading">
+                    <div class="loader" style="display:inline-block;vertical-align:middle;margin-right:8px"></div>
+                    Consultando pacientes activos...
+                </div>`;
+            if (tabsEl) tabsEl.innerHTML = '';
+
+            const q = (query || '').trim();
+            try {
+                const url = q
+                    ? `/fetal/api/registros/sala-partos/?q=${encodeURIComponent(q)}`
+                    : '/fetal/api/registros/sala-partos/';
+                const response = await fetch(url, { credentials: 'same-origin' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const pacientes = await response.json();
+                window._pacientesActivosSalaPartos = Array.isArray(pacientes) ? pacientes : [];
+
+                if (!Array.isArray(pacientes) || pacientes.length === 0) {
+                    list.innerHTML = q
+                        ? '<div class="active-patients-empty">Ningún paciente activo en Sala de Partos coincide con la búsqueda.</div>'
+                        : '<div class="active-patients-empty">No hay pacientes activos en Sala de Partos en este momento.</div>';
+                    return;
+                }
+
+                renderAreaTabs(window._pacientesActivosSalaPartos);
+                renderListaPacientesActivos(window._pacientesActivosSalaPartos);
+            } catch (error) {
+                console.error('Error al consultar pacientes activos en Sala de Partos:', error);
+                list.innerHTML = '<div class="active-patients-error">No se pudo consultar la base de datos de Sala de Partos.</div>';
+            }
+        }
+
+        function seleccionarPacienteActivo(el) {
+            const doc = el.getAttribute('data-doc');
+            if (!doc) return;
+            const activo = (window._pacientesActivosSalaPartos || [])
+                .find(p => (p.identificacion || '').trim() === doc);
+            if (activo) abrirAtencionActivo(activo);
+        }
+
+        // Abre la atención (y por ende los 3 módulos) de un paciente activo en Sala de Partos.
+        // Si aún no existe registro local, lo crea automáticamente con los datos ya confirmados
+        // de la lista de activos: el paciente ya no se registra a mano en el aplicativo.
+        async function abrirAtencionActivo(pacienteActivo) {
+            const doc = (pacienteActivo.identificacion || '').trim();
+            if (!doc) return;
+
+            const list = document.getElementById('active-patients-list');
+            const previousHtml = list ? list.innerHTML : '';
+            if (list) {
+                list.innerHTML = `
+                    <div class="active-patients-loading">
+                        <div class="loader" style="display:inline-block;vertical-align:middle;margin-right:8px"></div>
+                        Abriendo atención de ${escapeHtml(pacienteActivo.nombre_paciente || doc)}...
+                    </div>`;
+            }
+
+            try {
+                let response = await fetch(`/atencion/api/datos-paciente-unificado/?num_identificacion=${encodeURIComponent(doc)}`);
+                let data = await response.json();
+
+                if (!data.ok || !data.encontrado) {
+                    const registro = await fetch('/atencion/api/registrar-desde-sala-partos/', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken'),
+                        },
+                        body: JSON.stringify(pacienteActivo),
+                    });
+                    if (!registro.ok) throw new Error(`HTTP ${registro.status}`);
+
+                    response = await fetch(`/atencion/api/datos-paciente-unificado/?num_identificacion=${encodeURIComponent(doc)}`);
+                    data = await response.json();
+                }
+
+                if (data.ok && data.encontrado) {
+                    mostrarModulos(data, doc);
+                } else {
+                    throw new Error('No se pudo confirmar el registro del paciente');
+                }
+            } catch (error) {
+                console.error('Error al abrir la atención del paciente activo:', error);
+                alert('No se pudo abrir la atención de este paciente. Intente nuevamente.');
+                if (list) list.innerHTML = previousHtml;
+            }
+        }
+
+        // Filtro en vivo: busca por nombre o documento entre los pacientes activos.
+        let _filtroActivosTimer = null;
+        document.getElementById('cedula-input').addEventListener('input', function() {
+            clearTimeout(_filtroActivosTimer);
+            const valor = this.value;
+            _filtroActivosTimer = setTimeout(() => cargarPacientesActivosSalaPartos(valor), 300);
+        });
+
+        // Enter: si el filtro dejó un único resultado, abrirlo directamente.
+        document.getElementById('cedula-input').addEventListener('keypress', function(e) {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            clearTimeout(_filtroActivosTimer);
+            const activos = window._pacientesActivosSalaPartos || [];
+            if (activos.length === 1) {
+                abrirAtencionActivo(activos[0]);
+            } else {
+                cargarPacientesActivosSalaPartos(this.value);
+            }
+        });
+
+        // Si llega con documento en la URL, abrir directamente la vista con datos del paciente;
+        // si no está registrado localmente, cargar la lista de activos filtrada por ese documento.
+        (async function inicializarSalaDePartos() {
+            const abierto = await cargarPacienteDesdeURL();
+            if (!abierto) {
+                const params = new URLSearchParams(window.location.search);
+                const cedula = (params.get('num_identificacion') || params.get('doc') || '').trim();
+                cargarPacientesActivosSalaPartos(cedula);
+            }
+        })();
+    </script>
+</body>
+</html>

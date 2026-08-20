@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vista Previa - Datos del PDF</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+        }
+        h3 {
+            color: #555;
+            margin-top: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .data-row {
+            display: flex;
+            margin: 8px 0;
+            padding: 8px;
+            background: white;
+            border-left: 3px solid #e0e0e0;
+        }
+        .data-label {
+            font-weight: bold;
+            min-width: 200px;
+            color: #555;
+        }
+        .data-value {
+            color: #333;
+            flex: 1;
+        }
+        .formulario-box {
+            border: 2px solid #3498db;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+            background: #f0f8ff;
+        }
+        .item-box {
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-left: 4px solid #2ecc71;
+        }
+        .parametro-box {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-left: 3px solid #95a5a6;
+        }
+        .campo-item {
+            padding: 5px 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 3px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .btn:hover {
+            background: #2980b9;
+        }
+        .empty {
+            color: #999;
+            font-style: italic;
+        }
+        .json-view {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 Vista Previa - Datos del PDF</h1>
+        
+        <a href="{% url 'generar_pdf_paciente' paciente_id %}" class="btn">📥 Generar PDF</a>
+        
+        <h2>👤 Datos del Paciente</h2>
+        <div class="section">
+            <div class="data-row">
+                <span class="data-label">ID:</span>
+                <span class="data-value">{{ paciente.id }}</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Nombres:</span>
+                <span class="data-value">{{ paciente.nombres }}</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Número de Identificación:</span>
+                <span class="data-value">{{ paciente.num_identificacion }}</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Historia clinica:</span>
+                <span class="data-value">{{ paciente.num_historia_clinica }}</span>
+            </div>
+            {% if paciente.fecha_nacimiento %}
+            <div class="data-row">
+                <span class="data-label">Fecha de Nacimiento:</span>
+                <span class="data-value">{{ paciente.fecha_nacimiento }}</span>
+            </div>
+            {% endif %}
+            {% if paciente.tipo_sangre %}
+            <div class="data-row">
+                <span class="data-label">Tipo de Sangre:</span>
+                <span class="data-value">{{ paciente.tipo_sangre }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <h2>📋 Formularios ({{ formularios|length }})</h2>
+        
+        {% if formularios %}
+            {% for formulario in formularios %}
+            <div class="formulario-box">
+                <h3>Formulario: {{ formulario.codigo }} v{{ formulario.version }}</h3>
+                
+                <div class="section">
+                    <div class="data-row">
+                        <span class="data-label">ID Formulario:</span>
+                        <span class="data-value">{{ formulario.id }}</span>
+                    </div>
+                    {% if formulario.fecha_elabora %}
+                    <div class="data-row">
+                        <span class="data-label">Fecha de Elaboración:</span>
+                        <span class="data-value">{{ formulario.fecha_elabora }}</span>
+                    </div>
+                    {% endif %}
+                    {% if formulario.fecha_actualizacion %}
+                    <div class="data-row">
+                        <span class="data-label">Fecha de Actualización:</span>
+                        <span class="data-value">{{ formulario.fecha_actualizacion }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="data-row">
+                        <span class="data-label">Número de Hoja:</span>
+                        <span class="data-value">{{ formulario.num_hoja }}</span>
+                    </div>
+                    {% if formulario.aseguradora %}
+                    <div class="data-row">
+                        <span class="data-label">Aseguradora:</span>
+                        <span class="data-value">{{ formulario.aseguradora }}</span>
+                    </div>
+                    {% endif %}
+                    {% if formulario.diagnostico %}
+                    <div class="data-row">
+                        <span class="data-label">Diagnóstico:</span>
+                        <span class="data-value">{{ formulario.diagnostico }}</span>
+                    </div>
+                    {% endif %}
+                    {% if formulario.edad_snapshot is not None %}
+                    <div class="data-row">
+                        <span class="data-label">Edad Snapshot:</span>
+                        <span class="data-value">{{ formulario.edad_snapshot }} años</span>
+                    </div>
+                    {% endif %}
+                    {% if formulario.edad_gestion is not None %}
+                    <div class="data-row">
+                        <span class="data-label">Edad Gestación:</span>
+                        <span class="data-value">{{ formulario.edad_gestion }} semanas</span>
+                    </div>
+                    {% endif %}
+                    {% if formulario.estado %}
+                    <div class="data-row">
+                        <span class="data-label">Estado:</span>
+                        <span class="data-value">{{ formulario.estado }}</span>
+                    </div>
+                    {% endif %}
+                    {% if formulario.n_controles_prenatales is not None %}
+                    <div class="data-row">
+                        <span class="data-label">Número de Controles Prenatales:</span>
+                        <span class="data-value">{{ formulario.n_controles_prenatales }}</span>
+                    </div>
+                    {% endif %}
+                    {% if formulario.responsable %}
+                    <div class="data-row">
+                        <span class="data-label">Responsable:</span>
+                        <span class="data-value">{{ formulario.responsable }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <h4>Items y Parámetros:</h4>
+                {% if formulario.items %}
+                    {% for item in formulario.items %}
+                    <div class="item-box">
+                        <strong>📦 {{ item.nombre }}</strong>
+                        {% if item.parametros %}
+                            {% for parametro in item.parametros %}
+                            <div class="parametro-box">
+                                <strong>🔹 {{ parametro.nombre }}</strong>
+                                {% if parametro.campos %}
+                                    {% for campo in parametro.campos %}
+                                    <div class="campo-item">
+                                        <strong>{{ campo.nombre }}:</strong> 
+                                        {{ campo.valor }} 
+                                        {% if campo.unidad %}<span style="color: #7f8c8d;">{{ campo.unidad }}</span>{% endif %}
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="empty">Sin campos</div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty">Sin parámetros</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty">Sin items</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="section">
+                <p class="empty">No hay formularios para este paciente</p>
+            </div>
+        {% endif %}
+
+        <h2>🔍 Información de Prueba</h2>
+        <div class="section">
+            <p><strong>Total de formularios encontrados:</strong> {{ formularios|length }}</p>
+            <p><strong>URL para generar PDF:</strong> <a href="{% url 'generar_pdf_paciente' paciente_id %}">/pacientes/{{ paciente_id }}/pdf/</a></p>
+        </div>
+    </div>
+</body>
+</html>
+

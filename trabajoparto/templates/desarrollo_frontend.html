@@ -1,0 +1,1361 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTROL DE TRABAJO DE PARTO</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260813b">
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/vendor/toastify.min.css' %}">
+    <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
+    <script src="{% static 'js/vendor/signature_pad.umd.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/vendor/toastify.min.js' %}"></script>
+    <style>
+        /* Esta vista usa el shell de encabezado + sidebar a borde completo (.app-layout-sidebar);
+           el padding por defecto del body (definido en style.css para páginas simples) deja un
+           espacio muerto en blanco alrededor del encabezado y el sidebar. Se anula aquí. */
+        body { margin: 0 !important; padding: 0 !important; }
+        .patient-info-card-parto {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+        }
+
+        /* Card de datos de la paciente organizada por secciones numeradas
+           (Datos Generales / Información Clínica / Resultados Obstétricos),
+           cada una con su propio color e ícono de identificación. */
+        .info-section {
+            border-radius: 14px;
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            border: 1px solid #dbeafe;
+            background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+            position: relative;
+            z-index: 1;
+        }
+        .info-section:last-child { margin-bottom: 0; }
+        .info-section.info-section-green {
+            border-color: #0e7490;
+            background: linear-gradient(135deg, #0e7490 0%, #0891b2 45%, #22d3ee 100%);
+            box-shadow: 0 14px 32px rgba(8, 145, 178, 0.28);
+        }
+
+        .info-section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin: 0 0 16px;
+            color: #1d4ed8;
+            letter-spacing: 0.01em;
+        }
+        .info-section-green .info-section-title { color: #ffffff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+        /* Subencabezado interno: separa subgrupos dentro de una misma card
+           unificada (p.ej. "Información clínica" + "Resultados obstétricos")
+           sin duplicar el fondo/borde de una card completa por cada uno. */
+        .info-section-title.info-section-subtitle {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.4);
+        }
+
+        .info-section-title-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        .info-section-title-icon svg { width: 19px; height: 19px; }
+        .info-section-green .info-section-title-icon { background: #ffffff; color: #0e7490; box-shadow: 0 4px 10px rgba(4, 30, 39, 0.3); }
+
+        .info-section-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .info-field {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 6px 10px;
+            flex: 1 1 108px;
+            min-width: 0;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .info-field:focus-within {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+        .info-section-green .info-field:focus-within {
+            border-color: #67e8f9;
+            box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.12);
+        }
+        .info-field.size-xs { flex: 0 1 72px; }
+        .info-field.size-sm { flex: 0 1 140px; }
+        .info-field.size-lg { flex: 2 1 135px; }
+        .info-field.size-xl { flex: 3 1 240px; }
+
+        .info-field-label {
+            display: flex;
+            align-items: center;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            gap: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 5px;
+        }
+        /* Campos con badge opcional (sugerido/sin dato): todo en una sola línea,
+           sin bajar a un segundo renglón. */
+        .info-field-label.info-field-label-wrap {
+            flex-wrap: nowrap;
+        }
+        .info-field-label.info-field-label-wrap .info-field-label-icon,
+        .info-field-label.info-field-label-wrap > span[id$="-badge"] {
+            flex-shrink: 0;
+        }
+        .info-field-label-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        .info-field-label-icon svg { width: 11px; height: 11px; }
+        .info-section-green .info-field-label-icon { background: #cffafe; color: #0891b2; }
+
+        .patient-input {
+            width: 100%;
+            padding: 6px 8px;
+            font-size: 0.78rem;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            color: #212529;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            text-overflow: ellipsis;
+        }
+        .patient-input:hover {
+            background: #fff;
+            border-color: #adb5bd;
+        }
+        .patient-input:focus {
+            outline: none;
+            border-color: #0891b2;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.14), inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-1px);
+        }
+        /* El estado "válido/diligenciado" nativo del navegador (.form-input:valid) es verde
+           por defecto (definido en style.css); aquí se sobrescribe solo dentro de esta card
+           para que combine con el resto del tema cian de esta página. */
+        .patient-info-card-parto .form-input:valid:not(:placeholder-shown) {
+            border-color: #0891b2 !important;
+            background: #ecfeff !important;
+        }
+        @media (max-width: 640px) {
+            .info-field,
+            .info-field.size-xs,
+            .info-field.size-sm,
+            .info-field.size-lg,
+            .info-field.size-xl {
+                flex: 1 1 100%;
+            }
+        }
+
+        .preview-card {
+            display: none;
+            margin-top: 18px;
+            margin-bottom: 22px;
+            background: #ffffff;
+            border: 1px solid #99f6e4;
+            border-radius: 14px;
+            box-shadow: 0 6px 18px rgba(8, 145, 178, 0.1);
+            overflow: hidden;
+        }
+        .preview-card-header {
+            background: linear-gradient(120deg, #0e7490 0%, #0891b2 100%);
+            color: #ffffff;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .preview-card-title {
+            font-weight: 800;
+            letter-spacing: 0.03em;
+        }
+        .preview-total-badge {
+            font-size: 0.8rem;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 999px;
+            padding: 4px 10px;
+        }
+        .preview-card-body {
+            padding: 14px 16px;
+        }
+        .preview-section-title {
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        .preview-mediciones-scroll {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 8px;
+            scroll-behavior: smooth;
+            border: 1px solid #99f6e4;
+            border-radius: 12px;
+        }
+        .preview-mediciones-scroll::-webkit-scrollbar {
+            height: 7px;
+        }
+        .preview-mediciones-scroll::-webkit-scrollbar-thumb {
+            background: #5eead4;
+            border-radius: 999px;
+        }
+        /* Grilla Item -> Parámetro x Hora, misma estructura que el PDF FRSPA-022 */
+        .preview-grid-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            min-width: 560px;
+            table-layout: fixed;
+            font-size: 0.74rem;
+        }
+        .preview-grid-table th,
+        .preview-grid-table td {
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 6px 8px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .preview-grid-th-item,
+        .preview-grid-td-item,
+        .preview-grid-th-param,
+        .preview-grid-td-param {
+            position: sticky;
+            background: #ffffff;
+            text-align: left;
+            /* Gana a ".preview-grid-table th/td" (más específica por combinar
+               elemento+clase) que fuerza white-space:nowrap; sin !important
+               el texto largo no envolvía y se salía sobre la columna vecina. */
+            white-space: normal !important;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        .preview-grid-th-item,
+        .preview-grid-td-item {
+            left: 0;
+            width: 130px;
+            min-width: 130px;
+            max-width: 130px;
+            z-index: 3;
+            font-weight: 800;
+            color: #0f172a;
+            background: #f1f5f9;
+        }
+        .preview-grid-th-param,
+        .preview-grid-td-param {
+            left: 130px;
+            width: 168px;
+            min-width: 168px;
+            max-width: 168px;
+            z-index: 2;
+            font-weight: 700;
+            color: #334155;
+            background: #f8fafc;
+        }
+        .preview-grid-th-item,
+        .preview-grid-th-param,
+        .preview-grid-th-hora {
+            background: linear-gradient(120deg, #0e7490 0%, #0891b2 100%);
+            color: #ffffff;
+            font-weight: 800;
+            z-index: 4;
+        }
+        .preview-grid-th-hora {
+            min-width: 78px;
+        }
+        .preview-grid-col-fecha,
+        .preview-grid-col-hora {
+            display: block;
+        }
+        .preview-grid-col-fecha {
+            font-size: 0.62rem;
+            opacity: 0.85;
+        }
+        .preview-grid-col-hora {
+            font-size: 0.78rem;
+            font-weight: 800;
+        }
+        .preview-grid-td-valor {
+            min-width: 78px;
+            color: #0f172a;
+            font-weight: 700;
+        }
+        .preview-grid-td-valor.tiene-valor {
+            background: #ecfdf5;
+            color: #047857;
+        }
+        .preview-empty-state {
+            min-width: 100%;
+            border: 2px dashed #dbeafe;
+            border-radius: 12px;
+            padding: 28px 20px;
+            text-align: center;
+            background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+        }
+        .preview-empty-icon {
+            font-size: 2.1rem;
+            display: block;
+            margin-bottom: 8px;
+            opacity: 0.6;
+        }
+        .preview-empty-text {
+            color: #64748b;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+        .preview-empty-subtext {
+            color: #94a3b8;
+            font-size: 0.84rem;
+            margin-top: 6px;
+            margin-bottom: 0;
+        }
+        @media (max-width: 768px) {
+            .preview-card-body {
+                padding: 12px;
+            }
+            .preview-grid-th-item,
+            .preview-grid-td-item {
+                width: 100px;
+                min-width: 100px;
+                max-width: 100px;
+            }
+            .preview-grid-th-param,
+            .preview-grid-td-param {
+                left: 100px;
+                width: 128px;
+                min-width: 128px;
+                max-width: 128px;
+            }
+        }
+    </style>
+</head>
+<body>
+{% include 'obstetricia/header_formatos.html' with current_module='parto' documento=documento %}
+<div class="app-layout-sidebar">
+    {% include 'obstetricia/sidebar.html' with is_panel=False atencion_id=atencion_id documento=documento current_module='parto' %}
+    <div class="sidebar-main-content">
+    <div class="form-container">
+        <!-- Encabezado del Formulario -->
+        <div class="meta-box">
+        <!-- Parámetros dinámicos desde estructura (parametro.campos) -->
+        {% if estructura_plana %}
+        <div class="estructura-params" style="margin: 16px 0; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <h4 style="margin: 0 0 12px 0; color: #475569;">Parámetros desde estructura (campos)</h4>
+            {% for item in estructura_plana %}
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 4px;">{{ item.parametro.nombre }}</label>
+                {% if item.opciones %}
+                <select class="form-input param-select-estructura" data-parametro-id="{{ item.parametro.id }}" style="min-width: 200px;">
+                    <option value="">Seleccione...</option>
+                    {% for op in item.opciones %}
+                    <option value="{{ op.codigo }}">{{ op.nombre }}</option>
+                    {% endfor %}
+                </select>
+                {% else %}
+                <input type="text" class="form-input param-input-estructura" data-parametro-id="{{ item.parametro.id }}" placeholder="{{ item.parametro.nombre }}" style="min-width: 200px;">
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Campos ocultos para IDs -->
+        <input type="hidden" id="paciente_id" name="paciente_id">
+        <input type="hidden" id="formulario_id" name="formulario_id">
+        <input type="hidden" name="atencion" value="{{ atencion_id|default:'' }}">
+
+        <form id="formulario-clinico" method="post">
+            {% csrf_token %}
+
+            <!-- Información del Paciente -->
+            <div class="patient-info-section">
+                <div class="patient-info-card-parto">
+                    <!-- 1. DATOS GENERALES -->
+                    <section class="info-section info-section-green">
+                        <h3 class="info-section-title">
+                            <span class="info-section-title-icon"><i data-lucide="user"></i></span>
+                            1. Datos generales
+                        </h3>
+                        <div class="info-section-row">
+                            <div class="info-field size-sm">
+                                <label class="info-field-label" for="fecha_elabora_paciente"><span class="info-field-label-icon"><i data-lucide="calendar"></i></span>Fecha elaboración</label>
+                                <input type="date" id="fecha_elabora_paciente" name="fecha_elabora_paciente" class="form-input patient-input">
+                            </div>
+                            <div class="info-field">
+                                <label class="info-field-label" for="num_identificacion"><span class="info-field-label-icon"><i data-lucide="user"></i></span>CC. Identificación</label>
+                                <input type="text" id="num_identificacion" name="num_identificacion" class="form-input patient-input" maxlength="255" required
+                                       placeholder="Escriba el documento y presione Enter para buscar"
+                                       onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarPaciente(); }">
+                                <input type="hidden" id="cedula" name="cedula">
+                            </div>
+                            <div class="info-field size-sm">
+                                <label class="info-field-label" for="num_historia_clinica"><span class="info-field-label-icon"><i data-lucide="file-text"></i></span>N° historia clinica</label>
+                                <input type="text" id="num_historia_clinica" name="num_historia_clinica" class="form-input patient-input" maxlength="255" required>
+                            </div>
+                            <div class="info-field size-lg">
+                                <label class="info-field-label" for="nombres"><span class="info-field-label-icon"><i data-lucide="user"></i></span>Nombre y apellido</label>
+                                <input type="text" id="nombres" name="nombres" class="form-input patient-input" maxlength="255" required>
+                                <input type="hidden" id="nombre" name="nombre">
+                            </div>
+                            <div class="info-field size-xs">
+                                <label class="info-field-label" for="edad_snapshot"><span class="info-field-label-icon"><i data-lucide="user"></i></span>Edad</label>
+                                <input type="number" id="edad_snapshot" name="edad_snapshot" class="form-input patient-input" min="0" step="1">
+                            </div>
+                            <div class="info-field size-lg">
+                                <label class="info-field-label" for="aseguradora_nombre"><span class="info-field-label-icon"><i data-lucide="shield"></i></span>Aseguradora</label>
+                                <input type="text" id="aseguradora_nombre" name="aseguradora_nombre" class="form-input patient-input"
+                                       list="aseguradora-list" placeholder="Ej. Sura EPS, Nueva EPS" autocomplete="off">
+                                <datalist id="aseguradora-list"></datalist>
+                            </div>
+                            <div class="info-field size-lg">
+                                <label class="info-field-label info-field-label-wrap" for="tipo_sangre">
+                                    <span class="info-field-label-icon"><i data-lucide="droplet"></i></span>
+                                    Grupo sanguíneo
+                                    <span id="tipo-sangre-sin-dato-badge" style="display:none; margin-left:6px; padding:1px 6px; border-radius:999px; background:#e2e8f0; color:#475569; font-size:0.62rem; font-weight:800; text-transform:none; letter-spacing:0; white-space:nowrap;" title="La historia clínica de origen no trae este dato registrado">sin dato en la fuente</span>
+                                </label>
+                                <input type="text" id="tipo_sangre" name="tipo_sangre" class="form-input patient-input"
+                                       list="tipo-sangre-list" placeholder="Ej. O+, A-, AB+" maxlength="5" autocomplete="off"
+                                       oninput="document.getElementById('tipo-sangre-sin-dato-badge').style.display='none'">
+                                <datalist id="tipo-sangre-list">
+                                    <option value="O+"><option value="O-">
+                                    <option value="A+"><option value="A-">
+                                    <option value="B+"><option value="B-">
+                                    <option value="AB+"><option value="AB-">
+                                </datalist>
+                                <input type="hidden" id="grupo_sanguineo" name="grupo_sanguineo">
+                            </div>
+                            <div class="info-field size-sm">
+                                <label class="info-field-label" for="edad_gestion"><span class="info-field-label-icon"><i data-lucide="baby"></i></span>Edad gestacional</label>
+                                <input type="number" id="edad_gestion" name="edad_gestion" class="form-input patient-input" min="0" step="1">
+                                <input type="hidden" id="edad_gestacional" name="edad_gestacional">
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 2-3. INFORMACIÓN CLÍNICA + RESULTADOS OBSTÉTRICOS (unificadas en una sola card,
+                         separadas por un divisor interno para conservar la organización por subgrupos) -->
+                    <section class="info-section info-section-green">
+                        <h3 class="info-section-title">
+                            <span class="info-section-title-icon"><i data-lucide="file-text"></i></span>
+                            2. Información clínica
+                        </h3>
+                        <div class="info-section-row">
+                            <div class="info-field size-sm">
+                                <label class="info-field-label" for="n_controles_prenatales"><span class="info-field-label-icon"><i data-lucide="users"></i></span>N° controles prenatales</label>
+                                <input type="number" id="n_controles_prenatales" name="n_controles_prenatales" class="form-input patient-input" min="0" step="1">
+                                <input type="hidden" id="controles_prenatales" name="controles_prenatales">
+                            </div>
+                            <div class="info-field">
+                                <label class="info-field-label info-field-label-wrap" for="estado">
+                                    <span class="info-field-label-icon"><i data-lucide="list-checks"></i></span>
+                                    G_P_C_A_V_M_
+                                    <span id="estado-sugerido-badge" style="display:none; margin-left:6px; padding:1px 6px; border-radius:999px; background:#fef3c7; color:#92400e; font-size:0.62rem; font-weight:800; text-transform:none; letter-spacing:0; white-space:nowrap;">sugerido, verifique</span>
+                                </label>
+                                <select id="estado" name="estado" class="form-input patient-input" required onchange="document.getElementById('estado-sugerido-badge').style.display='none'">
+                                    <option value="">Seleccione...</option>
+                                    <option value="g">G - Gestante</option>
+                                    <option value="p">P - Puérpera</option>
+                                    <option value="c">C - Cesárea</option>
+                                    <option value="a">A - Aborto</option>
+                                    <option value="v">V - Vaginal</option>
+                                    <option value="m">M - Muerte materna</option>
+                                </select>
+                            </div>
+                            <div class="info-field size-xl">
+                                <label class="info-field-label" for="diagnostico"><span class="info-field-label-icon"><i data-lucide="file-text"></i></span>Diagnóstico</label>
+                                <textarea id="diagnostico" name="diagnostico" class="form-input patient-input" rows="1" style="min-height:34px;"></textarea>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Vista previa clínica: solo mediciones -->
+            <div id="vista-previa-paciente" class="preview-card">
+                <div class="preview-card-header">
+                    <div class="preview-card-title">VISTA PREVIA DE MEDICIONES</div>
+                    <div id="preview-total-controles" class="preview-total-badge">0 REGISTROS</div>
+                </div>
+
+                <div class="preview-card-body">
+                    <div class="preview-section-title">Mediciones por fecha y hora</div>
+                    <div id="preview-mediciones-scroll" class="preview-mediciones-scroll">
+                        <div id="preview-empty-state" class="preview-empty-state">
+                            <span class="preview-empty-icon">📋</span>
+                            <p class="preview-empty-text">No se registran mediciones previas para este paciente todavía.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+<!-- Tabla Principal de Control -->
+
+            <!-- Selector Global de Hora -->
+            <div class="global-time-selector" style="margin: 14px 0 18px; width: 100%; background: linear-gradient(135deg, #b0b6bd 0%, #e2e6ea 45%, #ced3d9 100%); padding: 18px 20px; border-radius: 14px; box-shadow: 0 6px 20px rgba(15,23,42,0.10); border: 1px solid #aab0b8; border-left: 5px solid #0891b2;">
+                <style>
+                    #btn-hora-ahora { background: linear-gradient(135deg, #0891b2 0%, #155e75 100%) !important; box-shadow: 0 4px 15px rgba(8, 145, 178, 0.35) !important; }
+                    #btn-hora-ahora:hover { background: linear-gradient(135deg, #155e75 0%, #0891b2 100%) !important; box-shadow: 0 6px 24px rgba(8, 145, 178, 0.45) !important; }
+                    #btn-vista-previa, #btn-vista-previa-meows {
+                        background: linear-gradient(135deg, #0891b2 0%, #155e75 100%) !important;
+                        color: #fff !important;
+                        font-weight: 700 !important;
+                        box-shadow: 0 4px 15px rgba(8, 145, 178, 0.35) !important;
+                        border: none !important;
+                    }
+                    #btn-vista-previa:hover, #btn-vista-previa-meows:hover {
+                        background: linear-gradient(135deg, #155e75 0%, #0891b2 100%) !important;
+                        transform: translateY(-2px);
+                        box-shadow: 0 6px 24px rgba(8, 145, 178, 0.45) !important;
+                    }
+                </style>
+                <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: #ffffff; flex-shrink: 0;">
+                        <span style="font-size: 1.2em;">🕒</span>
+                    </div>
+
+                    <div style="flex: 0 0 auto;">
+                        <label for="hora_registro_actual" style="display: block; font-weight: 700; font-size: 0.82em; letter-spacing: 0.02em; text-transform: uppercase; color: #334155; margin-bottom: 4px;">Hora del control actual</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="datetime-local" id="hora_registro_actual" class="form-input" readonly tabindex="-1" style="width: 220px; font-size: 1em; font-weight: 600; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #eef0f2; color: #495057; cursor: not-allowed;">
+                            <button type="button" id="btn-hora-ahora" class="btn btn-primary" onclick="establecerHoraActual()" title="Fijar la hora actual del sistema" style="height: 40px; padding: 0 16px; font-size: 0.82em; font-weight: 600; margin: 0; white-space: nowrap;">
+                                ⟳ Ahora
+                            </button>
+                        </div>
+                    </div>
+
+                    <span id="hora-seleccionada-feedback" style="display: none; color: #059669; font-weight: 700; font-size: 0.78em; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 999px; padding: 4px 10px;">✓ Hora fijada</span>
+
+                    <div style="display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap;">
+                        <div style="flex: 0 0 auto;">
+                            <label for="gestas" style="display: block; font-weight: 700; font-size: 0.72em; letter-spacing: 0.02em; text-transform: uppercase; color: #334155; margin-bottom: 4px;">Gestas (G)</label>
+                            <input type="number" id="gestas" name="gestas" class="form-input patient-input" min="0" step="1" style="width: 74px; font-size: 0.95em; font-weight: 600; padding: 9px 6px; border-radius: 10px; border: 1.5px solid #cbd5e1; text-align: center;">
+                        </div>
+                        <div style="flex: 0 0 auto;">
+                            <label for="partos" style="display: block; font-weight: 700; font-size: 0.72em; letter-spacing: 0.02em; text-transform: uppercase; color: #334155; margin-bottom: 4px;">Partos (P)</label>
+                            <input type="number" id="partos" name="partos" class="form-input patient-input" min="0" step="1" style="width: 74px; font-size: 0.95em; font-weight: 600; padding: 9px 6px; border-radius: 10px; border: 1.5px solid #cbd5e1; text-align: center;">
+                        </div>
+                        <div style="flex: 0 0 auto;">
+                            <label for="cesareas" style="display: block; font-weight: 700; font-size: 0.72em; letter-spacing: 0.02em; text-transform: uppercase; color: #334155; margin-bottom: 4px;">Cesáreas (C)</label>
+                            <input type="number" id="cesareas" name="cesareas" class="form-input patient-input" min="0" step="1" style="width: 74px; font-size: 0.95em; font-weight: 600; padding: 9px 6px; border-radius: 10px; border: 1.5px solid #cbd5e1; text-align: center;">
+                        </div>
+                        <div style="flex: 0 0 auto;">
+                            <label for="abortos" style="display: block; font-weight: 700; font-size: 0.72em; letter-spacing: 0.02em; text-transform: uppercase; color: #334155; margin-bottom: 4px;">Abortos (A)</label>
+                            <input type="number" id="abortos" name="abortos" class="form-input patient-input" min="0" step="1" style="width: 74px; font-size: 0.95em; font-weight: 600; padding: 9px 6px; border-radius: 10px; border: 1.5px solid #cbd5e1; text-align: center;">
+                        </div>
+                    </div>
+
+                    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" id="btn-vista-previa" class="btn btn-secondary" onclick="abrirVistaPreviaMediciones()" style="height: 40px; padding: 0 16px; font-size: 0.82em; font-weight: 600; margin: 0; white-space: nowrap;">
+                            Vista Previa
+                        </button>
+                        <button type="button" id="btn-vista-previa-meows" class="btn btn-secondary" onclick="abrirVistaPreviaMeows()" style="height: 40px; padding: 0 16px; font-size: 0.82em; font-weight: 600; margin: 0; white-space: nowrap;">
+                            Vista Previa MEOWS
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Clínico de Parámetros (Alineación Horizontal Premium) -->
+            <div class="parameter-buttons-section" style="background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); margin-bottom: 32px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; border: 1px solid #f1f5f9;">
+                
+                <!-- 2. CONTRACCIONES UTERINAS -->
+                <div class="category-section cat-uterina" style="border-radius: 12px; border: 2px solid var(--accent); background: linear-gradient(135deg, #b0b6bd 0%, #e2e6ea 45%, #ced3d9 100%); overflow: hidden; display: flex; flex-direction: column;">
+                    <h3 class="category-title" style="background: #64748b; color: #fff; padding: 10px 12px; margin: 0; font-size: 0.85em; font-weight: 800; text-align: center; letter-spacing: 0.5px; text-transform: uppercase;"><span style="font-size: 1.6em; vertical-align: middle; margin-right: 6px; display: inline-block; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));">📉</span>ACTIVIDAD UTERINA</h3>
+                    <div class="buttons-container" style="padding: 12px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1;">
+                        <button type="button" class="btn-parametro" id="btn-parametro-5" data-parametro-id="5" data-parametro-nombre="FRECUENCIA" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-5" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            🕒 FRECUENCIA</span>
+                            <span class="btn-parametro-value" id="val-preview-5">-</span>
+                        </button>
+                        <button type="button" class="btn-parametro" id="btn-parametro-6" data-parametro-id="6" data-parametro-nombre="DURACIÓN" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-6" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            ⏱️ DURACIÓN</span>
+                            <span class="btn-parametro-value" id="val-preview-6">-</span>
+                        </button>
+                        <button type="button" class="btn-parametro" id="btn-parametro-7" data-parametro-id="7" data-parametro-nombre="INTENSIDAD" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-7" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            📊 INTENSIDAD</span>
+                            <span class="btn-parametro-value" id="val-preview-7">-</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. CONTROL FETAL -->
+                <div class="category-section cat-fetal" style="border-radius: 12px; border: 2px solid var(--accent); background: linear-gradient(135deg, #b0b6bd 0%, #e2e6ea 45%, #ced3d9 100%); overflow: hidden; display: flex; flex-direction: column;">
+                    <h3 class="category-title" style="background: #64748b; color: #fff; padding: 10px 12px; margin: 0; font-size: 0.85em; font-weight: 800; text-align: center; letter-spacing: 0.5px; text-transform: uppercase;"><span style="font-size: 1.6em; vertical-align: middle; margin-right: 6px; display: inline-block; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));">👶</span>FETAL</h3>
+                    <div class="buttons-container" style="padding: 12px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1;">
+                        <button type="button" class="btn-parametro" id="btn-parametro-8" data-parametro-id="8" data-parametro-nombre="FRECUENCIA CARDIACA FETAL" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-8" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            ❤️ FRECUENCIA CARDIACA FETAL</span>
+                            <span class="btn-parametro-value" id="val-preview-8">-</span>
+                        </button>
+                        <button type="button" class="btn-parametro" id="btn-parametro-9" data-parametro-id="9" data-parametro-nombre="MOVIMIENTOS FETALES" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-9" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            🦶 MOV. FETAL</span>
+                            <span class="btn-parametro-value" id="val-preview-9">-</span>
+                        </button>
+                        <button type="button" class="btn-parametro" id="btn-parametro-10" data-parametro-id="10" data-parametro-nombre="PRESENTACIÓN" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-10" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            📍 PRESENTACIÓN</span>
+                            <span class="btn-parametro-value" id="val-preview-10">-</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. TACTO VAGINAL -->
+                <div class="category-section cat-tacto" style="border-radius: 12px; border: 2px solid var(--accent); background: linear-gradient(135deg, #b0b6bd 0%, #e2e6ea 45%, #ced3d9 100%); overflow: hidden; display: flex; flex-direction: column;">
+                    <h3 class="category-title" style="background: #64748b; color: #fff; padding: 10px 12px; margin: 0; font-size: 0.85em; font-weight: 800; text-align: center; letter-spacing: 0.5px; text-transform: uppercase;"><span style="font-size: 1.6em; vertical-align: middle; margin-right: 6px; display: inline-block; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));">🩹</span>TACTO</h3>
+                    <div class="buttons-container" style="padding: 12px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1;">
+                        <button type="button" class="btn-parametro" id="btn-parametro-11" data-parametro-id="11" data-parametro-nombre="MEMBRANAS" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-11" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            🛡️ MEMBRANAS</span>
+                            <span class="btn-parametro-value" id="val-preview-11">-</span>
+                        </button>
+                        <button type="button" class="btn-parametro" id="btn-parametro-13" data-parametro-id="13" data-parametro-nombre="LÍQUIDO AMNIOTICO" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-13" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            💧 LÍQUIDO AM.</span>
+                            <span class="btn-parametro-value" id="val-preview-13">-</span>
+                        </button>
+                        <button type="button" class="btn-parametro" id="btn-parametro-15" data-parametro-id="15" data-parametro-nombre="DILATACIÓN" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-15" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            ⭕ DILATACIÓN</span>
+                            <span class="btn-parametro-value" id="val-preview-15">-</span>
+                        </button>
+                        <button type="button" class="btn-parametro" id="btn-parametro-16" data-parametro-id="16" data-parametro-nombre="BORRAMIENTO" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-16" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            📏 BORRAMIENTO</span>
+                            <span class="btn-parametro-value" id="val-preview-16">-</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 5. MONITOREO FETAL -->
+                <div class="category-section cat-monitoreo" style="border-radius: 12px; border: 2px solid var(--accent); background: linear-gradient(135deg, #b0b6bd 0%, #e2e6ea 45%, #ced3d9 100%); overflow: hidden; display: flex; flex-direction: column;">
+                    <h3 class="category-title" style="background: #64748b; color: #fff; padding: 10px 12px; margin: 0; font-size: 0.85em; font-weight: 800; text-align: center; letter-spacing: 0.5px; text-transform: uppercase;"><span style="font-size: 1.6em; vertical-align: middle; margin-right: 6px; display: inline-block; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));">📟</span>MONITOREO</h3>
+                    <div class="buttons-container" style="padding: 12px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1;">
+                        <button type="button" class="btn-parametro" id="btn-parametro-17" data-parametro-id="17" data-parametro-nombre="HORA" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-17" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            ⏰ HORA</span>
+                            <span class="btn-parametro-value" id="val-preview-17">-</span>
+                        </button>
+                        <button type="button" class="btn-parametro" id="btn-parametro-18" data-parametro-id="18" data-parametro-nombre="CATEGORIA" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-18" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            🏷️ CATEGORIA</span>
+                            <span class="btn-parametro-value" id="val-preview-18">-</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 6. OXITOCINA -->
+                <div class="category-section cat-oxitocina" style="border-radius: 12px; border: 2px solid var(--accent); background: linear-gradient(135deg, #b0b6bd 0%, #e2e6ea 45%, #ced3d9 100%); overflow: hidden; display: flex; flex-direction: column;">
+                    <h3 class="category-title" style="background: #64748b; color: #fff; padding: 10px 12px; margin: 0; font-size: 0.85em; font-weight: 800; text-align: center; letter-spacing: 0.5px; text-transform: uppercase;"><span style="font-size: 1.6em; vertical-align: middle; margin-right: 6px; display: inline-block; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));">💉</span>OXITOCINA</h3>
+                    <div class="buttons-container" style="padding: 12px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1;">
+                        <button type="button" class="btn-parametro" id="btn-parametro-22" data-parametro-id="22" data-parametro-nombre="OXITOCINA 3U/500CC" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-22" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            💧 OXITOCINA 3U/500CC</span>
+                            <span class="btn-parametro-value" id="val-preview-22">-</span>
+                        </button>
+                        <button type="button" class="btn-parametro" id="btn-parametro-23" data-parametro-id="23" data-parametro-nombre="OXITOCINA 5U/500CC" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-23" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            💧 OXITOCINA 5U/500CC</span>
+                            <span class="btn-parametro-value" id="val-preview-23">-</span>
+                        </button>
+                        <button type="button" class="btn-parametro" id="btn-parametro-24" data-parametro-id="24" data-parametro-nombre="OXITOCINA 6U/500CC" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-24" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            💧 OXITOCINA 6U/500CC</span>
+                            <span class="btn-parametro-value" id="val-preview-24">-</span>
+                        </button>
+                        <button type="button" class="btn-parametro" id="btn-parametro-25" data-parametro-id="25" data-parametro-nombre="OXITOCINA 10U/500CC" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-25" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            💧 OXITOCINA 10U/500CC</span>
+                            <span class="btn-parametro-value" id="val-preview-25">-</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modales para cada parámetro (dinámicos con selects y opciones) -->
+            <div id="modales-parametros">
+                <style>
+                    @keyframes modalFadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+                    /* --- Tarjetas de categoría (MATERNOS, UTERINAS, FETAL...) --- */
+                    .category-section {
+                        border-radius: 14px !important;
+                        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+                        transition: box-shadow 0.2s ease;
+                    }
+                    .category-title {
+                        border-radius: 14px 14px 0 0 !important;
+                        font-size: 0.8em !important;
+                        letter-spacing: 0.06em !important;
+                    }
+
+                    /* --- Botón de parámetro: más espacio y jerarquía clara entre
+                       el nombre del parámetro y el valor ya diligenciado --- */
+                    .btn-parametro {
+                        flex-direction: column !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        height: auto !important;
+                        min-height: 62px;
+                        padding: 11px 13px !important;
+                        gap: 6px !important;
+                        border-radius: 10px !important;
+                        font-size: 0.86rem !important;
+                        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+                        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease !important;
+                    }
+                    .btn-parametro:hover {
+                        border-color: #2563eb !important;
+                        color: #2563eb !important;
+                        background: #eff6ff !important;
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.14) !important;
+                    }
+                    .btn-parametro-top {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 7px;
+                        width: 100%;
+                        font-size: 0.94em;
+                        font-weight: 700;
+                        letter-spacing: 0.01em;
+                        text-align: center;
+                    }
+                    .btn-parametro-value {
+                        display: block;
+                        width: 100%;
+                        padding: 5px 8px;
+                        margin-top: 1px;
+                        font-size: 0.86em;
+                        font-weight: 600;
+                        font-style: italic;
+                        color: #94a3b8;
+                        white-space: normal;
+                        word-break: break-word;
+                        line-height: 1.4;
+                        text-align: center;
+                    }
+
+                    /* --- Estado "diligenciado": borde de acento + fondo suave + valor destacado y legible.
+                       El color de acento (--accent*) lo define cada .category-section.cat-* más abajo,
+                       así cada categoría (Actividad uterina, Fetal, Tacto, Monitoreo, Oxitocina) se ve
+                       con un color distinto al llenar un dato, sin duplicar todo el bloque por categoría. --- */
+                    .category-section {
+                        --accent: #10b981;
+                        --accent-bg: #ecfdf5;
+                        --accent-dark: #065f46;
+                        --accent-shadow: rgba(16, 185, 129, 0.16);
+                    }
+                    .category-section.cat-uterina   { --accent: #4f46e5; --accent-bg: #eef2ff; --accent-dark: #3730a3; --accent-shadow: rgba(79, 70, 229, 0.18); }
+                    .category-section.cat-fetal     { --accent: #db2777; --accent-bg: #fdf2f8; --accent-dark: #9d174d; --accent-shadow: rgba(219, 39, 119, 0.18); }
+                    .category-section.cat-tacto     { --accent: #0891b2; --accent-bg: #ecfeff; --accent-dark: #155e75; --accent-shadow: rgba(8, 145, 178, 0.18); }
+                    .category-section.cat-monitoreo { --accent: #d97706; --accent-bg: #fffbeb; --accent-dark: #92400e; --accent-shadow: rgba(217, 119, 6, 0.18); }
+                    .category-section.cat-oxitocina { --accent: #059669; --accent-bg: #ecfdf5; --accent-dark: #065f46; --accent-shadow: rgba(5, 150, 105, 0.18); }
+
+                    .btn-parametro.tiene-datos {
+                        border-color: var(--accent) !important;
+                        border-left: 4px solid var(--accent) !important;
+                        background: var(--accent-bg) !important;
+                        color: var(--accent-dark) !important;
+                        box-shadow: 0 2px 8px var(--accent-shadow) !important;
+                    }
+                    .btn-parametro.tiene-datos .status-indicator { background-color: var(--accent) !important; }
+                    .btn-parametro.tiene-datos .btn-parametro-value {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 6px;
+                        font-style: normal;
+                        font-weight: 800;
+                        font-size: 1.05em;
+                        color: var(--accent-dark);
+                        background: rgba(255, 255, 255, 0.65);
+                        border-radius: 7px;
+                        padding: 7px 10px;
+                        text-align: center;
+                        line-height: 1.3;
+                    }
+                    .btn-parametro.tiene-datos .btn-parametro-value::before {
+                        content: "✓";
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                        width: 16px;
+                        height: 16px;
+                        border-radius: 50%;
+                        background: var(--accent);
+                        color: #fff;
+                        font-size: 0.72em;
+                        font-weight: 900;
+                    }
+
+                    /* --- Selects dentro de los modales de parámetro: se reemplaza la flecha
+                       nativa del navegador por una propia (coherente con el resto del sistema)
+                       y se refuerza hover/focus, para que sea más práctico elegir una opción
+                       que con un <select> plano sin ningún indicio visual de que es desplegable. --- */
+                    .modal-parametro select.data-input-modal {
+                        appearance: none;
+                        -webkit-appearance: none;
+                        background-color: #f8fafc;
+                        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 12 12'%3E%3Cpath fill='%230891b2' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+                        background-repeat: no-repeat;
+                        background-position: right 14px center;
+                        padding-right: 40px !important;
+                        cursor: pointer;
+                        transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+                    }
+                    .modal-parametro select.data-input-modal:hover {
+                        border-color: #5eead4 !important;
+                        background-color: #ffffff;
+                    }
+                    .modal-parametro .data-input-modal:focus {
+                        outline: none;
+                        border-color: #0891b2 !important;
+                        box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.15);
+                        background-color: #ffffff;
+                    }
+                </style>
+                {% for item in items %}
+                    {% for parametro in item.parametros.all %}
+                    <div class="modal-parametro" id="modal-parametro-{{ parametro.id }}" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px);">
+                    <div class="modal-content" style="background: #fff; padding: 0; border-radius: 12px; width: 95%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; animation: modalFadeIn 0.3s ease;">
+                        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; background: linear-gradient(120deg, #0e7490 0%, #0891b2 100%); color: white; padding: 15px 20px;">
+                                <h3 style="margin: 0; font-size: 1.25em;">{{ parametro.nombre|upper }}</h3>
+                                <button type="button" onclick="cerrarModalParametro({{ parametro.id }})" style="background: none; border: none; color: white; font-size: 1.8em; cursor: pointer; line-height: 1;">&times;</button>
+                        </div>
+                        <div class="modal-body" style="padding: 20px;">
+                                <div class="cell-inputs" style="display: flex; flex-direction: column; gap: 15px;">
+                                    {% for campo in parametro.campos.all %}
+                                    <div class="input-group" style="display: flex; flex-direction: column; gap: 8px;">
+                                        {% if parametro.campos.count > 1 %}
+                                        <label class="field-label" style="font-weight: 600; font-size: 0.95em; color: #475569;">{{ campo.nombre }}</label>
+                                        {% endif %}
+                                        {% if parametro.id == 1 and campo.id == 1 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="70">70</option><option value="80">80</option><option value="90">90</option><option value="100">100</option><option value="110">110</option><option value="120">120</option><option value="130">130</option><option value="140">140</option><option value="150">150</option><option value="160">160</option><option value="170">170</option><option value="180">180</option><option value="190">190</option><option value="200">200</option><option value="210">210</option><option value="220">220</option>
+                                        </select>
+                                        {% elif parametro.id == 1 and campo.id == 2 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="40">40</option><option value="50">50</option><option value="60">60</option><option value="70">70</option><option value="80">80</option><option value="90">90</option><option value="100">100</option><option value="110">110</option><option value="120">120</option><option value="130">130</option><option value="140">140</option>
+                                        </select>
+                                        {% elif parametro.id == 2 and campo.id == 3 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="<40">< 40 Bradicardia severa</option><option value="40-59">40 – 59 Bradicardia</option><option value="60-100">60 – 100 Normal</option><option value="101-120">101 – 120 Taquicardia leve</option><option value="121-150">121 – 150 Taquicardia</option><option value=">150">> 150 Taquicardia severa</option>
+                                        </select>
+                                        {% elif parametro.id == 3 and campo.id == 4 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="<8">< 8 Bradipnea</option><option value="8-11">8 – 11 FR baja</option><option value="12-20">12 – 20 Normal</option><option value="21-30">21 – 30 Taquipnea</option><option value=">30">> 30 Distrés respiratorio</option>
+                                        </select>
+                                        {% elif parametro.id == 4 and campo.id == 5 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="<32.0">< 32.0 Hipotermia profunda</option><option value="32.0-34.9">32.0 – 34.9 Hipotermia moderada</option><option value="35.0-35.9">35.0 – 35.9 Hipotermia leve</option><option value="36.0-37.4">36.0 – 37.4 Normotermia</option><option value="37.5-37.9">37.5 – 37.9 Febrícula</option><option value="38.0-38.9">38.0 – 38.9 Fiebre</option><option value="39.0-40.9">39.0 – 40.9 Hipertermia</option><option value=">=41.0">≥ 41.0 Emergencia vital</option>
+                                        </select>
+                                        {% elif parametro.id == 5 and campo.id == 16 %}
+                                        <input type="number" min="0" max="20" step="1" inputmode="numeric" pattern="[0-9]*" class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Contracciones en 10 min" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onkeypress="return event.charCode >= 48 && event.charCode <= 57;" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        {% elif parametro.id == 6 and campo.id == 17 %}
+                                        <input type="number" min="0" max="600" step="1" inputmode="numeric" pattern="[0-9]*" class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Duración en segundos" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onkeypress="return event.charCode >= 48 && event.charCode <= 57;" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        {% elif parametro.id == 7 and campo.id == 9 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="0">0 Ausente</option><option value="1">1 Leve (+)</option><option value="2">2 Moderada (++)</option><option value="3">3 Fuerte (+++)</option><option value="4">4 Hipertónica</option>
+                                        </select>
+                                        {% elif parametro.id == 8 and campo.id == 6 %}
+                                        <input type="number" min="0" max="300" step="1" inputmode="numeric" pattern="[0-9]*" class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Frecuencia cardiaca fetal (lpm)" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onkeypress="return event.charCode >= 48 && event.charCode <= 57;" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        {% elif parametro.id == 9 and campo.id == 10 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="0">0 - Ausentes</option><option value="1">1 - Disminuidos</option><option value="2">2 - Presentes</option><option value="3">3 - Exagerados</option>
+                                        </select>
+                                        {% elif parametro.id == 10 and campo.id == 11 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="Cefálica">Cefálica</option><option value="Podálica">Podálica</option><option value="Transversa">Transversa</option><option value="Oblicua">Oblicua</option><option value="Compuesta">Compuesta</option>
+                                        </select>
+                                        {% elif parametro.id == 11 and campo.id == 14 %}
+                                        <select id="select-membranas" class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" onchange="toggleHoraRupturaMembranas(this)" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="Integras">Íntegras</option><option value="Rotas">Rotas</option>
+                                        </select>
+                                        <div id="grupo-hora-ruptura-membranas" style="display: none; margin-top: 12px;">
+                                            <label style="font-weight: 600; font-size: 0.95em; color: #475569; display: block; width: auto; min-width: 0; text-align: left; background: none; border: none; box-shadow: none; padding: 0; text-transform: none; margin-bottom: 8px;">Hora de la ruptura</label>
+                                            <div style="display: flex; gap: 6px; align-items: center;">
+                                                <select id="hora-ruptura-horas" onchange="actualizarHoraRupturaMembranas()" style="flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;" aria-label="Hora"></select>
+                                                <span style="font-weight: 700; color: #6c757d;">:</span>
+                                                <select id="hora-ruptura-minutos" onchange="actualizarHoraRupturaMembranas()" style="flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;" aria-label="Minutos"></select>
+                                                <select id="hora-ruptura-periodo" onchange="actualizarHoraRupturaMembranas()" style="flex: 0 0 85px; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;" aria-label="AM o PM">
+                                                    <option value="AM">AM</option>
+                                                    <option value="PM">PM</option>
+                                                </select>
+                                            </div>
+                                            <input type="hidden" id="input-hora-ruptura-membranas" class="data-input-modal" data-parametro-id="14" data-campo-id="18" data-tipo-valor="text">
+                                        </div>
+                                        {% elif parametro.id == 12 and campo.id == 15 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="No - Membranas aún íntegras">No - Membranas aún íntegras</option><option value="Sí – Espontánea o artificial">Sí – Espontánea o artificial</option>
+                                        </select>
+                                        {% elif parametro.id == 13 and campo.id == 12 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="Claro">Claro</option><option value="Meconio leve">Meconio leve</option><option value="Meconio espeso">Meconio espeso</option><option value="Hemático">Hemático</option><option value="Turbio">Turbio</option><option value="Fétido">Fétido</option>
+                                        </select>
+                                        {% elif parametro.id == 14 and campo.id == 18 %}
+                                        <input type="time" class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Tiempo" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        {% elif parametro.id == 15 and campo.id == 7 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                                        </select>
+                                        {% elif parametro.id == 16 and campo.id == 8 %}
+                                        <input type="number" min="0" max="100" step="1" inputmode="numeric" pattern="[0-9]*" class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Borramiento (%)" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onkeypress="return event.charCode >= 48 && event.charCode <= 57;" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        {% elif parametro.id == 17 and campo.id == 19 %}
+                                        <div style="display: flex; gap: 6px; align-items: center;">
+                                            <select id="hora-monitoreo-horas" onchange="actualizarHoraMonitoreoSelects()" style="flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;" aria-label="Hora"></select>
+                                            <span style="font-weight: 700; color: #6c757d;">:</span>
+                                            <select id="hora-monitoreo-minutos" onchange="actualizarHoraMonitoreoSelects()" style="flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;" aria-label="Minutos"></select>
+                                            <select id="hora-monitoreo-periodo" onchange="actualizarHoraMonitoreoSelects()" style="flex: 0 0 85px; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;" aria-label="AM o PM">
+                                                <option value="AM">AM</option>
+                                                <option value="PM">PM</option>
+                                            </select>
+                                        </div>
+                                        <input type="hidden" id="input-hora-monitoreo" class="data-input-modal" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}">
+                                        {% elif parametro.id == 18 and campo.id == 13 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="Categoría I (Normal)">Categoría I (Normal)</option><option value="Categoría II (Indeterminada)">Categoría II (Indeterminada)</option><option value="Categoría III (Patológica)">Categoría III (Patológica)</option><option value="No evaluable">No evaluable</option>
+                                        </select>
+                                        {% elif parametro.id == 19 and campo.id == 20 %}
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="0 No uso">0 No uso</option><option value="1 – 5 Dosis baja">1 – 5 Dosis baja</option><option value="6 – 20 Terapéutica">6 – 20 Terapéutica</option><option value="> 20 Riesgo">> 20 Riesgo</option>
+                                        </select>
+                                        {% elif campo.id == 24 %}
+                                        <!-- Oxitocina 3 Unidades en 500cc: tabla de equivalencia mUI/min -> cc/h -->
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="4 mUI/min: 40 cc/h">4 mUI/min: 40 cc/h</option><option value="8 mUI/min: 80 cc/h">8 mUI/min: 80 cc/h</option><option value="12 mUI/min: 120 cc/h">12 mUI/min: 120 cc/h</option><option value="16 mUI/min: 160 cc/h">16 mUI/min: 160 cc/h</option><option value="20 mUI/min: 200 cc/h">20 mUI/min: 200 cc/h</option><option value="24 mUI/min: 240 cc/h">24 mUI/min: 240 cc/h</option>
+                                        </select>
+                                        {% elif campo.id == 26 %}
+                                        <!-- Oxitocina 6 Unidades en 500cc: tabla de equivalencia mUI/min -> cc/h -->
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="4 mUI/min: 20 cc/h">4 mUI/min: 20 cc/h</option><option value="8 mUI/min: 40 cc/h">8 mUI/min: 40 cc/h</option><option value="12 mUI/min: 60 cc/h">12 mUI/min: 60 cc/h</option><option value="16 mUI/min: 80 cc/h">16 mUI/min: 80 cc/h</option><option value="20 mUI/min: 100 cc/h">20 mUI/min: 100 cc/h</option><option value="24 mUI/min: 120 cc/h">24 mUI/min: 120 cc/h</option>
+                                        </select>
+                                        {% elif campo.id == 25 %}
+                                        <!-- Oxitocina 5 Unidades en 500cc: tabla de equivalencia mUI/min -> cc/h -->
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="4 mUI/min: 24 cc/h">4 mUI/min: 24 cc/h</option><option value="8 mUI/min: 48 cc/h">8 mUI/min: 48 cc/h</option><option value="12 mUI/min: 72 cc/h">12 mUI/min: 72 cc/h</option><option value="16 mUI/min: 96 cc/h">16 mUI/min: 96 cc/h</option><option value="20 mUI/min: 120 cc/h">20 mUI/min: 120 cc/h</option><option value="24 mUI/min: 144 cc/h">24 mUI/min: 144 cc/h</option>
+                                        </select>
+                                        {% elif campo.id == 27 %}
+                                        <!-- Oxitocina 10 Unidades en 500cc: tabla de equivalencia mUI/min -> cc/h -->
+                                        <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <option value="">Seleccione...</option>
+                                            <option value="4 mUI/min: 12 cc/h">4 mUI/min: 12 cc/h</option><option value="8 mUI/min: 24 cc/h">8 mUI/min: 24 cc/h</option><option value="12 mUI/min: 36 cc/h">12 mUI/min: 36 cc/h</option><option value="16 mUI/min: 48 cc/h">16 mUI/min: 48 cc/h</option><option value="20 mUI/min: 60 cc/h">20 mUI/min: 60 cc/h</option><option value="24 mUI/min: 72 cc/h">24 mUI/min: 72 cc/h</option>
+                                        </select>
+                                        {% else %}
+                                        <input type="text" class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="{{ campo.nombre }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        {% endif %}
+                        </div>
+                                    {% endfor %}
+                    </div>
+                        </div>
+                        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; padding: 15px 20px; border-top: 1px solid #e2e8f0;">
+                                <button type="button" class="btn btn-primary" onclick="cerrarModalParametro({{ parametro.id }})" style="padding: 10px 20px; background: #0891b2; color: white; border: none; border-radius: 6px; cursor: pointer;">Cerrar</button>
+                        </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endfor %}
+                </div>
+
+            <!-- SECCIÓN DE FIRMA DEL RESPONSABLE -->
+            <style>
+            .firma-card {
+                margin: 24px 0;
+                width: 100%;
+                background: linear-gradient(135deg, #b0b6bd 0%, #e2e6ea 45%, #ced3d9 100%);
+                border-radius: 20px;
+                border: 2px solid #0891b2;
+                box-shadow: 0 14px 34px -12px rgba(15, 23, 42, 0.18), 0 2px 8px rgba(15,23,42,0.05);
+                overflow: hidden;
+            }
+            .firma-card-header {
+                display: flex;
+                align-items: center;
+                gap: 18px;
+                padding: 24px 32px;
+                background: #64748b;
+                border-bottom: 1px solid #aab0b8;
+            }
+            .firma-card-header-icon {
+                flex-shrink: 0;
+                width: 54px; height: 54px;
+                border-radius: 16px;
+                background: rgba(255,255,255,0.18);
+                color: #fff;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 1.6em;
+                box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+            }
+            .firma-card-header-text h3 {
+                margin: 0 0 3px 0;
+                font-size: 1.25em;
+                font-weight: 800;
+                color: #ffffff;
+                letter-spacing: 0.01em;
+            }
+            .firma-card-header-text p {
+                margin: 0;
+                font-size: 0.86em;
+                font-weight: 600;
+                color: rgba(255,255,255,0.85);
+            }
+            .firma-card-body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 56px;
+                padding: 36px 48px;
+            }
+            .firma-preview-frame {
+                flex: 0 0 auto;
+                position: relative;
+                padding-right: 40px;
+            }
+            .firma-preview-frame::after {
+                content: '';
+                position: absolute;
+                top: 6px; bottom: 6px; right: 0;
+                width: 1px;
+                background: linear-gradient(180deg, transparent, #e2e8f0 15%, #e2e8f0 85%, transparent);
+            }
+            .firma-preview-box {
+                position: relative;
+                min-height: 220px;
+                min-width: 420px;
+                display: flex; align-items: center; justify-content: center;
+                border-radius: 16px;
+                border: 2px solid #0891b2;
+                background: linear-gradient(150deg, #f8fafc 0%, #eef0f2 100%);
+                box-shadow: inset 0 2px 10px rgba(15,23,42,0.06);
+                padding: 16px;
+                overflow: hidden;
+            }
+            .firma-preview-empty {
+                position: absolute; inset: 0;
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+                gap: 10px;
+                color: #94a3b8;
+            }
+            .firma-preview-empty-icon { font-size: 2.6em; opacity: 0.6; }
+            .firma-preview-empty-text { font-size: 0.85em; font-weight: 700; letter-spacing: 0.01em; }
+            #imgFirma {
+                position: relative; z-index: 1;
+                max-height: 190px; max-width: 380px;
+                border-radius: 8px;
+                box-shadow: 0 4px 14px rgba(30,27,75,0.12);
+                background: #fff;
+            }
+            .firma-info-panel {
+                flex: 1 1 260px;
+                min-width: 240px;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 14px;
+            }
+            .firma-panel-kicker {
+                margin: 0;
+                font-size: 0.72em;
+                font-weight: 800;
+                letter-spacing: 0.09em;
+                text-transform: uppercase;
+                color: #94a3b8;
+            }
+            .firma-status-badge {
+                display: inline-flex; align-items: center; gap: 9px;
+                padding: 8px 18px 8px 14px;
+                border-radius: 999px;
+                background: #e2e8f0;
+                color: #475569;
+                font-weight: 800;
+                font-size: 0.9em;
+            }
+            .firma-status-badge::before {
+                content: '';
+                width: 9px; height: 9px;
+                border-radius: 50%;
+                background: #64748b;
+                box-shadow: 0 0 0 4px rgba(100,116,139,0.18);
+                flex-shrink: 0;
+            }
+            .firma-panel-hint {
+                margin: 0;
+                font-size: 0.86em;
+                line-height: 1.6;
+                color: #64748b;
+                max-width: 380px;
+            }
+            .firma-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                margin-top: 4px;
+            }
+            .firma-btn {
+                display: inline-flex; align-items: center; gap: 10px;
+                height: 46px;
+                padding: 0 20px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 0.92em;
+                cursor: pointer;
+                border: none;
+                transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+            }
+            .firma-btn-icon {
+                width: 26px; height: 26px;
+                border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 0.95em;
+                flex-shrink: 0;
+            }
+            .firma-btn-primary {
+                background: linear-gradient(135deg, #0891b2 0%, #155e75 100%);
+                color: #fff;
+                box-shadow: 0 10px 20px -8px rgba(8,145,178,0.6);
+            }
+            .firma-btn-primary .firma-btn-icon { background: rgba(255,255,255,0.22); }
+            .firma-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 24px -8px rgba(8,145,178,0.65); }
+            .firma-btn-secondary {
+                background: #fff;
+                color: #0891b2;
+                border: 1.5px solid #0891b2;
+            }
+            .firma-btn-secondary .firma-btn-icon { background: #ecfeff; }
+            .firma-btn-secondary:hover { background: #ecfeff; border-color: #155e75; transform: translateY(-1px); }
+            @media (max-width: 768px) {
+                .firma-card-body { justify-content: center; text-align: center; }
+                .firma-preview-frame { padding-right: 0; }
+                .firma-preview-frame::after { display: none; }
+                .firma-info-panel { align-items: center; }
+                .firma-panel-hint { max-width: 100%; }
+            }
+            </style>
+            <div class="firma-card">
+                <div class="firma-card-header">
+                    <div class="firma-card-header-icon">✍️</div>
+                    <div class="firma-card-header-text">
+                        <h3>Firma del Responsable</h3>
+                        <p>Captura digital requerida para completar el registro</p>
+                    </div>
+                </div>
+                <div class="firma-card-body">
+                    <div id="firma-container" class="firma-preview-frame">
+                        <div class="firma-preview-box">
+                            <div class="firma-preview-empty">
+                                <span class="firma-preview-empty-icon">✒️</span>
+                                <span class="firma-preview-empty-text">Sin firma registrada</span>
+                            </div>
+                            <img id="imgFirma" src="" alt="Firma" style="display:none;">
+                        </div>
+                    </div>
+                    <div class="firma-info-panel">
+                        <p class="firma-panel-kicker">Estado de la firma</p>
+                        <div id="estadoFirma" class="firma-status-badge">✍️ Pendiente de firma...</div>
+                        <p class="firma-panel-hint">La firma queda asociada al responsable de este registro y se incluye en el PDF del formulario.</p>
+                        <div class="firma-actions">
+                            <button type="button" id="btnCapturarFirma" class="firma-btn firma-btn-primary" onclick="abrirModalFirma()">
+                                <span class="firma-btn-icon">✍️</span> Firmar aquí
+                            </button>
+                            <button type="button" id="btnRefrescarBiometriaFirma" class="firma-btn firma-btn-secondary" onclick="refrescarBiometriaAhora()">
+                                <span class="firma-btn-icon">🔄</span> Refrescar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+<!-- Pie del Formulario -->
+            <style>
+                #footer-parto .responsible-field { border-color: #0891b2 !important; box-shadow: 0 4px 12px rgba(8, 145, 178, 0.2) !important; }
+                #footer-parto .responsible-field::before { background: linear-gradient(180deg, #0891b2 0%, #155e75 100%) !important; box-shadow: 2px 0 8px rgba(8, 145, 178, 0.4) !important; }
+                #footer-parto .responsible-field label { color: #0891b2 !important; text-shadow: 0 1px 2px rgba(8, 145, 178, 0.2) !important; }
+                #footer-parto .responsible-input:not([readonly]) { border-color: #0891b2 !important; box-shadow: 0 2px 8px rgba(8, 145, 178, 0.2), inset 0 1px 2px rgba(0,0,0,0.05) !important; }
+                #btn-guardar { background: linear-gradient(135deg, #0891b2 0%, #155e75 100%) !important; box-shadow: 0 4px 15px rgba(8, 145, 178, 0.35) !important; }
+                #btn-guardar:hover { background: linear-gradient(135deg, #155e75 0%, #0891b2 100%) !important; box-shadow: 0 6px 24px rgba(8, 145, 178, 0.45) !important; }
+            </style>
+            <div class="form-footer" id="footer-parto">
+                <div class="responsible-field">
+                    <label>RESPONSABLE:</label>
+                    <input type="text" id="responsable" name="responsable"
+                           class="responsible-input" required maxlength="255"
+                           placeholder="Nombre del profesional responsable"
+                           title="Se precarga con el profesional que inició sesión; si queda vacío, diligéncielo manualmente"
+                           value="{{ profesional_nombre_sesion|default:'' }}">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" id="btn-guardar" class="btn btn-primary">Guardar Formulario</button>
+                    <br>
+                    <button type="button" id="btn-descargar-pdf" class="btn btn-pdf" onclick="descargarPDF()" style="display: none; background: #dc2626; color: #ffffff; padding: 12px 24px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">📄 Descargar PDF Reporte</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    </div>
+
+    <!-- Modal de captura de firma (PC) -->
+    <div id="modalFirma" class="modal-firma-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+        <div class="modal-firma-content" style="background: #fff; border-radius: 14px; max-width: 820px; width: 94%; box-shadow: 0 20px 40px rgba(0,0,0,0.2); overflow: hidden;">
+            <div class="modal-firma-header" style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                <h3 style="margin: 0; font-size: 1.25em; color: #334155;">✍️ Capturar Firma del Responsable</h3>
+                <button type="button" class="close-modal-btn" onclick="cerrarModalFirma()" style="background: none; border: none; font-size: 1.6em; cursor: pointer; color: #64748b; padding: 0 8px;">&times;</button>
+            </div>
+            <div class="modal-firma-body" style="padding: 24px;">
+                <p style="margin: 0 0 14px 0; color: #64748b; font-size: 1em;">Por favor, firme dentro del recuadro:</p>
+                <div class="signature-pad-wrapper" style="border: 2px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;">
+                    <canvas id="signature-pad" class="signature-pad-canvas" style="width: 100%; height: 340px; touch-action: none; cursor: crosshair;"></canvas>
+                </div>
+            </div>
+            <div class="modal-firma-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 18px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+                <button type="button" onclick="limpiarFirma()" style="padding: 10px 20px; font-size: 0.95em; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;">Limpiar</button>
+                <button type="button" onclick="guardarFirmaDigital()" style="padding: 10px 20px; font-size: 0.95em; background: #2563eb; color: #fff; border: none; border-radius: 8px; cursor: pointer;">Guardar Firma</button>
+            </div>
+    </div>
+    </div>
+
+    <!-- Estructura Item → Parámetro (solo activos), fuente única para la grilla
+         de Vista Previa en JS: evita mantener a mano una lista de categorías/
+         nombres que se desactualiza cada vez que cambian los parámetros. -->
+    {{ estructura_grid|json_script:"estructura-items-data" }}
+    <script>
+        window.ESTRUCTURA_ITEMS = JSON.parse(document.getElementById('estructura-items-data').textContent);
+    </script>
+
+    <!-- Configuración de la aplicación (debe cargarse antes de main.js) -->
+    <script src="{% static 'js/config.js' %}"></script>
+    <!-- 
+        Opcional: Puedes configurar manualmente la URL base del backend:
+        <meta name="api-base-url" content="">
+        O definiendo una variable global antes de cargar config.js:
+        <script>window.API_BASE_URL = 'http://TU_HOST:8000/api';</script>
+        Si no defines nada, config.js la infiere automáticamente con window.location.hostname.
+    -->
+    <script src="{% static 'js/main.js' %}"></script>
+    <script>
+    (function() {
+      const docFromCard = "{{ documento|default:''|escapejs }}".trim();
+      if (!docFromCard) return;
+      function runWhenReady() {
+        if (document.readyState !== 'complete') {
+          setTimeout(runWhenReady, 50);
+          return;
+        }
+        const numIdent = document.getElementById('num_identificacion');
+        if (numIdent) numIdent.value = docFromCard;
+
+        // Identificación automática y completa del paciente: reutiliza la misma consulta
+        // consolidada (paciente + formulario + mediciones + biometría) que antes solo se
+        // disparaba con el botón manual "Buscar Paciente". Es indispensable llamar a
+        // llenarFormularioDesdePaciente aquí porque, entre otras cosas, rellena
+        // #paciente_id — sin eso, guardarPaciente() no sabe que el paciente ya existe e
+        // intenta crearlo de nuevo (error "num identificacion already exists").
+        (async function () {
+          try {
+            const data = await buscarPacienteCompleto(docFromCard);
+            if (!data || !data.encontrado) return;
+            await llenarFormularioDesdePaciente(data);
+
+            // Sugerencia de G/P/C/A/V/M según palabras clave del diagnóstico, solo cuando
+            // aún no existe un formulario guardado con un estado ya confirmado por el personal.
+            if (!data.formulario) {
+              const estadoSelect = document.getElementById('estado');
+              const diagnostico = (data.paciente && data.paciente.diagnostico) || data.diagnostico || '';
+              const texto = diagnostico.toUpperCase();
+              let sugerido = '';
+              if (texto.includes('MUERTE MATERNA')) sugerido = 'm';
+              else if (texto.includes('ABORTO')) sugerido = 'a';
+              else if (texto.includes('CESAREA') || texto.includes('CESÁREA')) sugerido = 'c';
+              else if (texto.includes('PUERPERAL') || texto.includes('PUERPERIO') || texto.includes('POSPARTO') || texto.includes('POST PARTO')) sugerido = 'p';
+              else if (texto.includes('PARTO VAGINAL')) sugerido = 'v';
+              else if (texto) sugerido = 'g'; // diagnóstico obstétrico sin más señas: gestante (caso más común al ingreso)
+
+              if (estadoSelect && sugerido) {
+                estadoSelect.value = sugerido;
+                const badge = document.getElementById('estado-sugerido-badge');
+                if (badge) badge.style.display = 'inline-block';
+              }
+            }
+          } catch (error) {
+            console.error('Error al identificar al paciente automáticamente:', error);
+          }
+        })();
+      }
+      if (document.readyState === 'complete') runWhenReady();
+      else window.addEventListener('load', runWhenReady);
+    })();
+    </script>
+    <script>
+        /* El script embebido en obstetricia/sidebar.html llama a lucide.createIcons()
+           en el punto en que se incluye, antes de que exista el resto del contenido
+           de esta página en el DOM (los íconos de las cards de esta vista). Se
+           reinvoca aquí, al final, para que también se rendericen esos íconos. */
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,345 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario MEOWS - Sistema de Alerta Temprana Obstétrico</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260814b">
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
+    <style>
+        /* Esta vista usa el shell de encabezado + sidebar a borde completo (.app-layout-sidebar);
+           el padding por defecto del body (definido en meows-form.css para páginas simples) deja
+           un espacio muerto en blanco alrededor del encabezado y el sidebar. Se anula aquí. */
+        body { margin: 0 !important; padding: 0 !important; }
+    </style>
+</head>
+
+<body>
+{% include 'obstetricia/header_formatos.html' with current_module='meows' documento=documento|default:paciente.numero_documento|default:'' modulo_titulo='Sistema de Alerta Temprana Obstétrico' modulo_subtitulo='Formulario MEOWS' %}
+<div class="app-layout-sidebar">
+    {% include 'obstetricia/sidebar.html' with is_panel=False atencion_id=atencion_id documento=documento|default:paciente.numero_documento|default:'' current_module='meows' %}
+    <div class="sidebar-main-content">
+    <div class="container">
+        {% if messages %}
+        <section class="section" style="padding: 12px 16px;">
+            {% for message in messages %}
+            <div style="margin-bottom: 8px; border-radius: 8px; padding: 10px 12px; font-weight: 600; {% if message.tags == 'success' %}background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;{% elif message.tags == 'error' %}background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;{% else %}background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- SECCIÓN: INFORMACIÓN DEL PACIENTE -->
+        <section class="section patient-section patient-section-redesigned">
+            <div class="info-section">
+                <h3 class="info-section-title">
+                    <span class="info-section-title-icon"><i data-lucide="user"></i></span>
+                    Información del Paciente
+                </h3>
+                <div class="info-section-row">
+                    <div class="info-field size-lg">
+                        <label class="info-field-label" for="nombre_completo"><span class="info-field-label-icon"><i data-lucide="user"></i></span>Nombre Completo *</label>
+                        <input type="text" id="nombre_completo" name="nombre_completo" class="patient-input"
+                            placeholder="Ingrese nombre y apellidos" value="{% if paciente %}{{ paciente.nombres }} {{ paciente.apellidos }}{% endif %}" required readonly tabindex="-1">
+                    </div>
+                    <div class="info-field size-sm">
+                        <label class="info-field-label" for="numero_documento"><span class="info-field-label-icon"><i data-lucide="file-text"></i></span>Número Documento *</label>
+                        <input type="text" id="numero_documento" name="numero_documento" class="patient-input"
+                            placeholder="Ingrese número de documento" value="{{ paciente.numero_documento|default:'' }}" required readonly tabindex="-1">
+                    </div>
+                    <div class="info-field size-sm">
+                        <label class="info-field-label" for="fecha_nacimiento"><span class="info-field-label-icon"><i data-lucide="calendar"></i></span>Fecha Nacimiento</label>
+                        <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" class="patient-input"
+                            value="{% if paciente.fecha_nacimiento %}{{ paciente.fecha_nacimiento|date:'Y-m-d' }}{% endif %}" readonly tabindex="-1">
+                    </div>
+                    <div class="info-field size-xs">
+                        <label class="info-field-label" for="edad"><span class="info-field-label-icon"><i data-lucide="user"></i></span>Edad</label>
+                        <input type="number" id="edad" name="edad" class="patient-input"
+                            value="{{ paciente.edad|default:'' }}" min="0" max="150" placeholder="Años" readonly tabindex="-1">
+                    </div>
+                    <div class="info-field size-lg">
+                        <label class="info-field-label" for="aseguradora"><span class="info-field-label-icon"><i data-lucide="shield"></i></span>Aseguradora</label>
+                        <input type="text" id="aseguradora" name="aseguradora" class="patient-input"
+                            list="aseguradora-list" value="{{ paciente.aseguradora|default:'' }}"
+                            placeholder="Nombre de la aseguradora" autocomplete="off" readonly tabindex="-1">
+                        <datalist id="aseguradora-list"></datalist>
+                    </div>
+                    <div class="info-field size-xs">
+                        <label class="info-field-label" for="cama"><span class="info-field-label-icon"><i data-lucide="bed"></i></span>Cama</label>
+                        <input type="text" id="cama" name="cama" class="patient-input"
+                            value="{{ paciente.cama|default:'' }}" placeholder="Número o código de cama" readonly tabindex="-1">
+                    </div>
+                    <div class="info-field size-sm">
+                        <label class="info-field-label" for="fecha_ingreso"><span class="info-field-label-icon"><i data-lucide="calendar"></i></span>Fecha de Ingreso</label>
+                        <input type="date" id="fecha_ingreso" name="fecha_ingreso" class="patient-input"
+                            value="{% if paciente.fecha_ingreso %}{{ paciente.fecha_ingreso|date:'Y-m-d' }}{% endif %}" readonly tabindex="-1">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: PARÁMETROS VITALES -->
+        <section class="section parameters-section">
+            <h3 class="section-title">
+                <span class="section-icon-badge"><i data-lucide="activity"></i></span>
+                Parámetros Vitales
+            </h3>
+            <p class="section-description">Ingrese los valores clínicos. El sistema calculará automáticamente los
+                puntajes MEOWS.</p>
+
+            <form method="post" id="meows-form" class="meows-form">
+                {% csrf_token %}
+
+                <!-- Campos del paciente incluidos en el formulario MEOWS -->
+                <input type="hidden" name="nombre_completo" id="hidden-nombre_completo">
+                <input type="hidden" name="numero_documento" id="hidden-numero_documento">
+                <input type="hidden" name="fecha_nacimiento" id="hidden-fecha_nacimiento">
+                <input type="hidden" name="edad" id="hidden-edad">
+                <input type="hidden" name="aseguradora" id="hidden-aseguradora">
+                <input type="hidden" name="cama" id="hidden-cama">
+                <input type="hidden" name="fecha_ingreso" id="hidden-fecha_ingreso">
+                <input type="hidden" name="responsable" id="hidden-responsable">
+                <input type="hidden" name="atencion" value="{{ atencion_id|default:'' }}">
+
+                <!-- Fecha y hora del monitoreo (registro manual, obligatorio entre 2 minutos y 4 horas antes de guardar) -->
+                <div class="patient-info-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 1rem;">
+                    <div class="info-item">
+                        <label class="info-label" for="fecha_monitoreo">Fecha del Monitoreo *</label>
+                        <input type="date" id="fecha_monitoreo" name="fecha_monitoreo" class="patient-input"
+                            value="{% now 'Y-m-d' %}" required>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label" for="hora_monitoreo_horas">Hora del Monitoreo *</label>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <select id="hora_monitoreo_horas" class="patient-input" style="flex:1;" aria-label="Hora"></select>
+                            <span style="font-weight:700; color:#6c757d;">:</span>
+                            <select id="hora_monitoreo_minutos" class="patient-input" style="flex:1;" aria-label="Minutos"></select>
+                            <select id="hora_monitoreo_periodo" class="patient-input patient-input-compact" style="flex:0 0 92px;" aria-label="AM o PM">
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                        </div>
+                        <input type="hidden" id="hora_monitoreo" name="hora_monitoreo" required>
+                        <div class="validation-message" id="message-hora_monitoreo"></div>
+                    </div>
+                </div>
+
+                <div class="parametros-resumen-layout">
+                <div class="parameters-grid">
+                    {% for parametro in parametros %}
+                    <div class="parameter-card" data-param="{{ parametro.codigo }}">
+                        <div class="parameter-header">
+                            <label class="parameter-label" for="{{ parametro.codigo }}">
+                                {{ parametro.nombre }}
+                                <span class="parameter-unit">({{ parametro.unidad }})</span>
+                            </label>
+                        </div>
+
+                        <div class="input-wrapper">
+                            {% if parametro.codigo == 'glasgow' %}
+                            <select id="{{ parametro.codigo }}" name="{{ parametro.codigo }}"
+                                class="parameter-input parameter-select" data-param="{{ parametro.codigo }}"
+                                data-unidad="{{ parametro.unidad }}">
+                                <option value="">seleccione</option>
+                                <option value="15">ALERTA (Glasgow = 15)</option>
+                                <option value="14">NO ALERTA (Glasgow &lt; 15)</option>
+                            </select>
+                            <span class="input-unit">{{ parametro.unidad }}</span>
+                            {% else %}
+                            <input type="number" id="{{ parametro.codigo }}" name="{{ parametro.codigo }}"
+                                class="parameter-input"
+                                step="{% if parametro.codigo == 'temp' %}0.1{% else %}1{% endif %}"
+                                placeholder="Ingrese valor" data-param="{{ parametro.codigo }}"
+                                data-unidad="{{ parametro.unidad }}">
+                            <span class="input-unit">{{ parametro.unidad }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Feedback visual del score -->
+                        <div class="score-feedback" id="feedback-{{ parametro.codigo }}">
+                            <div class="score-indicator">
+                                <span class="score-label">Puntaje:</span>
+                                <span class="score-value" id="score-{{ parametro.codigo }}">-</span>
+                            </div>
+                            <div class="score-bar">
+                                <div class="score-fill" id="fill-{{ parametro.codigo }}"></div>
+                            </div>
+                        </div>
+
+                        <!-- Mensaje de validación -->
+                        <div class="validation-message" id="message-{{ parametro.codigo }}"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- SECCIÓN: RESUMEN PREVIEW -->
+                <section class="section summary-section summary-section-lateral">
+                    <h3 class="section-title">
+                        <span class="icon">📋</span>
+                        Resumen
+                    </h3>
+                    <div class="summary-card">
+                        <div class="summary-item">
+                            <label class="summary-label">Puntaje Total MEOWS</label>
+                            <div class="summary-value" id="total-score">0</div>
+                        </div>
+                        <div class="summary-item">
+                            <label class="summary-label">Nivel de Riesgo</label>
+                            <div class="summary-risk" id="risk-level">
+                                <span class="risk-badge risk-verde">VERDE</span>
+                            </div>
+                        </div>
+                        <div class="summary-item">
+                            <label class="summary-label">GRADO DE RESPUESTA</label>
+                            <div class="summary-conducta" id="conducta-text">
+                                Esperando valores...
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                </div>
+
+                <!-- BOTONES DE ACCIÓN PROFESIONALES -->
+                <div class="form-actions">
+                    <!-- Card unificada: Responsable del registro + Firma -->
+                    <div class="responsable-firma-card">
+                        <div class="responsable-firma-header">
+                            <span class="responsable-firma-header-icon">🖊️</span>
+                            <div>
+                                <h4>Responsable y Firma del Registro</h4>
+                                <p class="responsable-firma-subtitle">Validación e identificación del profesional a cargo de esta medición</p>
+                            </div>
+                        </div>
+
+                        <!-- Módulo de Firma del Responsable -->
+                        <div class="biometric-module">
+                            <div class="biometric-module-label">
+                                <span class="icon">✍️</span> Firma del Responsable
+                            </div>
+
+                            <div class="biometric-capture-zone">
+                                <div class="capture-button-group">
+                                    <button type="button" class="btn btn-biometric btn-biometric-main" id="btn-capturar-huella">
+                                        <span class="btn-icon" style="font-size: 2.5rem; margin: 0;">✍️</span>
+                                        <span>Capturar Firma</span>
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-biometric-refresh" id="btn-refrescar-firma">
+                                        <span class="btn-icon">🔄</span>
+                                        Refrescar firma
+                                    </button>
+                                </div>
+
+                                <!-- Columna: card de firma (se oculta hasta que exista firma) + Responsable,
+                                     que debe permanecer siempre visible/editable. -->
+                                <div class="signature-column">
+                                    <div id="firma-container-preview" class="biometric-card signature-card">
+                                        <div class="biometric-card-header">
+                                            Firma del responsable: <span id="nombre-firma-paciente" style="margin-left: 5px; color: #2c3e50;">—</span>
+                                        </div>
+                                        <div class="biometric-card-img-wrapper">
+                                            <img id="imgFirma" src="" alt="Firma" class="huella-img">
+                                        </div>
+                                        <span id="estadoFirma" class="biometric-card-status">Sin firmar</span>
+                                    </div>
+
+                                    <!-- Responsable del Registro: ubicado bajo la firma, como dato que la identifica -->
+                                    <div class="responsable-field responsable-field-inline">
+                                        <label for="responsable" class="responsable-label">
+                                            <span class="icon">👤</span> Responsable del Registro
+                                        </label>
+                                        <input type="text" id="responsable" name="responsable" class="responsable-input"
+                                            placeholder="Nombre del profesional responsable" value="{{ paciente.responsable|default:profesional_nombre_sesion|default:'' }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción Final -->
+                    <div class="footer-actions">
+                        {% if paciente.id %}
+                        <a href="{% url 'historial_meows' paciente_id=paciente.id %}{% if atencion_id %}?atencion={{ atencion_id }}{% if documento %}&doc={{ documento|urlencode }}{% endif %}{% elif documento %}?doc={{ documento|urlencode }}{% endif %}" class="btn btn-info" id="btn-ver-historial">
+                            <span class="btn-icon">📊</span>
+                            Ver Historial Clínico
+                        </a>
+                        {% endif %}
+                        <button type="button" class="btn btn-secondary" id="btn-limpiar">
+                            <span class="btn-icon">🗑️</span>
+                            Limpiar Formulario
+                        </button>
+                        <button type="button" class="btn btn-pdf" id="btn-generar-pdf">
+                            <span class="btn-icon">📄</span>
+                            Generar PDF
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="btn-guardar">
+                            <span class="btn-icon">💾</span>
+                            Guardar Registro MEOWS
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <!-- Scripts -->
+    <!-- MODAL DE CAPTURA DE FIRMA -->
+    <div id="modal-biometria" class="modal-biometria" style="display: none;">
+        <div class="modal-content-biometria">
+            <div class="modal-header-biometria">
+                <h3>Firma del Responsable</h3>
+                <button type="button" class="btn-close-modal" id="btn-cerrar-modal-biometria">&times;</button>
+            </div>
+            <div class="modal-body-biometria">
+                <div class="capture-grid">
+                    <!-- Sección de Firma -->
+                    <div class="capture-item">
+                        <h4><span class="icon">✍️</span> Firma del Responsable</h4>
+                        <p>El responsable debe firmar dentro del recuadro</p>
+                        <div class="canvas-wrapper">
+                            <canvas id="firma-canvas" width="400" height="200"></canvas>
+                        </div>
+                        <div class="canvas-actions">
+                            <button type="button" class="btn btn-secondary" id="btn-limpiar-firma">Limpiar</button>
+                            <button type="button" class="btn btn-success" id="btn-guardar-firma">Guardar Firma</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer-biometria">
+                <button type="button" class="btn btn-info" id="btn-finalizar-biometria">Finalizar y Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.MEOWS_URLS = {
+            apiRangos: "{% url 'api_rangos_meows' %}",
+            apiCalcularScore: "{% url 'api_calcular_score' %}",
+            apiBuscarPaciente: "{% url 'api_buscar_paciente' %}",
+            apiPacientesActivos: "{% url 'api_pacientes_activos' %}",
+            pdfTemplate: "{% url 'generar_pdf_meows' paciente_id=0 %}",
+            historialTemplate: "{% url 'historial_meows' paciente_id=0 %}",
+            nuevoTemplate: "{% url 'crear_meows' paciente_id=0 %}",
+            resultadoTemplate: "{% url 'ver_meows' medicion_id=0 %}"
+        };
+    </script>
+    <script src="{% static 'js/meows-form.js' %}?v=20260811e"></script>
+    <script>
+        /* El script embebido en obstetricia/sidebar.html llama a lucide.createIcons()
+           en el punto en que se incluye, antes de que exista el resto del contenido
+           de esta página en el DOM (los íconos de las cards de esta vista). Se
+           reinvoca aquí, al final, para que también se rendericen esos íconos. */
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
+    </div>
+</div>
+</body>
+
+</html>

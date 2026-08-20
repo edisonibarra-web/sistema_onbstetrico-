@@ -1,0 +1,688 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTROL DE TRABAJO DE PARTO</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/vendor/toastify.min.css' %}">
+</head>
+
+<body>
+    {% include 'obstetricia/header_formatos.html' %}
+    <form id="formulario-clinico" method="post">
+        <div class="form-container">
+            <!-- Encabezado del Formulario -->
+            <div class="meta-box">
+                <!-- Campos ocultos para IDs -->
+                <input type="hidden" id="paciente_id" name="paciente_id">
+                <input type="hidden" id="formulario_id" name="formulario_id">
+
+                <!-- Búsqueda de Paciente -->
+                <div class="patient-search-inline">
+                    <input type="text" id="documento" placeholder="Documento del paciente"
+                        class="patient-search-inline-input">
+                    <button type="button" id="btnBuscarPaciente" class="patient-search-inline-btn">
+                        BUSCAR PACIENTE
+                    </button>
+                    <button type="button" id="btnEmbarazosActivos"
+                        class="patient-search-inline-btn btn-embarazos-activos"
+                        title="Solo actualmente internas en el hospital">
+                        Embarazos activos
+                    </button>
+                    <div id="resultadoPaciente"></div>
+                </div>
+
+                <!-- Información del Paciente -->
+                <div class="patient-info-section">
+                    <table class="patient-table">
+                        <!-- Fila 1: Identificación del Paciente -->
+                        <tr>
+                            <td class="label-cell">CC. IDENTIFICACIÓN</td>
+                            <td class="input-cell">
+                                <div class="buscar-cedula-container">
+                                    <input type="text" id="num_identificacion" name="num_identificacion"
+                                        class="form-input" maxlength="255" required>
+                                </div>
+                            </td>
+                            <td class="label-cell">NOMBRE Y APELLIDO</td>
+                            <td class="input-cell" colspan="3">
+                                <input type="text" id="nombres" name="nombres" class="form-input" maxlength="255"
+                                    required>
+                            </td>
+                        </tr>
+                        <!-- Fila 2: Información Clínica Básica -->
+                        <tr>
+                            <td class="label-cell">N° HISTORIA CLÍNICA</td>
+                            <td class="input-cell">
+                                <input type="text" id="num_historia_clinica" name="num_historia_clinica"
+                                    class="form-input" maxlength="255" required>
+                            </td>
+                            <td class="label-cell">DD/MM/AA</td>
+                            <td class="input-cell">
+                                <input type="date" id="fecha_elabora_paciente" name="fecha_elabora_paciente"
+                                    class="form-input">
+                            </td>
+                            <td class="label-cell">EDAD</td>
+                            <td class="input-cell">
+                                <input type="number" id="edad_snapshot" name="edad_snapshot" class="form-input" min="0"
+                                    step="1">
+                            </td>
+                        </tr>
+                        <!-- Fila 3: Información Obstétrica -->
+                        <tr>
+                            <td class="label-cell">EDAD GESTACIONAL</td>
+                            <td class="input-cell">
+                                <input type="number" id="edad_gestion" name="edad_gestion" class="form-input" min="0"
+                                    step="1">
+                            </td>
+                            <td class="label-cell">G_P_C_A_V_M_</td>
+                            <td class="input-cell">
+                                <select id="estado" name="estado" class="form-input" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="g">G</option>
+                                    <option value="p">P</option>
+                                    <option value="c">C</option>
+                                    <option value="a">A</option>
+                                    <option value="v">V</option>
+                                    <option value="m">M</option>
+                                </select>
+                            </td>
+                            <td class="label-cell label-cell-center">N° CONTROLES PRENATALES</td>
+                            <td class="input-cell">
+                                <input type="number" id="n_controles_prenatales" name="n_controles_prenatales"
+                                    class="form-input" min="0" step="1">
+                            </td>
+                        </tr>
+                        <!-- Fila 4: Información Administrativa y Clínica -->
+                        <tr>
+                            <td class="label-cell">ASEGURADORA</td>
+                            <td class="input-cell">
+                                <input type="text" id="aseguradora_nombre" name="aseguradora_nombre" class="form-input"
+                                    list="aseguradora-list" placeholder="Ej. Sura EPS, Nueva EPS" autocomplete="off">
+                                <datalist id="aseguradora-list"></datalist>
+                            </td>
+                            <td class="label-cell">GRUPO SANGUÍNEO</td>
+                            <td class="input-cell">
+                                <select id="tipo_sangre" name="tipo_sangre" class="form-input">
+                                    <option value="">Seleccione...</option>
+                                    <option value="O+">O+</option>
+                                    <option value="O-">O-</option>
+                                    <option value="A+">A+</option>
+                                    <option value="A-">A-</option>
+                                    <option value="B+">B+</option>
+                                    <option value="B-">B-</option>
+                                    <option value="AB+">AB+</option>
+                                    <option value="AB-">AB-</option>
+                                </select>
+                            </td>
+                            <td class="label-cell">DIAGNÓSTICO</td>
+                            <td class="input-cell">
+                                <textarea id="diagnostico" name="diagnostico" class="form-input" rows="2"
+                                    placeholder="Ingrese el diagnóstico"></textarea>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Selector Global de Hora -->
+            <div class="global-time-selector"
+                style="margin-top: 20px; margin-bottom: 20px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid var(--color-primario);">
+                <div
+                    style="display: flex; align-items: center; justify-content: flex-start; gap: 15px; flex-wrap: wrap;">
+                    <label for="hora_registro_actual"
+                        style="font-weight: 600; font-size: 1.1em; color: var(--color-primario);">🕒 Hora del Control
+                        Actual:</label>
+                    <input type="datetime-local" id="hora_registro_actual" class="form-input"
+                        style="max-width: 280px; font-size: 1.1em; padding: 10px;">
+                    <span id="hora-seleccionada-feedback"
+                        style="display: none; color: #10b981; font-weight: bold; font-size: 0.9em;">¡Hora fijada!</span>
+                </div>
+                <p style="color: #666; font-size: 0.9em; margin-top: 10px; margin-bottom: 0;">Seleccione la hora para la
+                    cual va a registrar los datos. Luego haga clic en los parámetros abajo para diligenciarlos.</p>
+            </div>
+
+            <!-- Botones de Parámetros (Alineación Horizontal) -->
+            <!-- Panel Clínico de Parámetros (Alineación Horizontal Premium) -->
+            <div class="parameter-buttons-section"
+                style="background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); margin-bottom: 32px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; border: 1px solid #f1f5f9;">
+                {% for item in items %}
+                <div class="category-section"
+                    style="border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; overflow: hidden; display: flex; flex-direction: column; transition: all 0.3s ease;">
+                    <h3 class="category-title"
+                        style="
+                        background: {% if item.nombre|upper == 'CONTROLES MATERNOS' %}#2563eb
+                                    {% elif item.nombre|upper == 'CONTRACCIONES UTERINAS' %}#6366f1
+                                    {% elif item.nombre|upper == 'CONTROL FETAL' %}#e11d48
+                                    {% elif item.nombre|upper == 'TACTO VAGINAL' %}#d97706
+                                    {% elif item.nombre|upper == 'MONITOREO FETAL' %}#10b981
+                                    {% elif item.nombre|upper == 'OXITOCINA' %}#9333ea
+                                    {% else %}#64748b{% endif %};
+                        color: #fff; padding: 10px 12px; margin: 0; font-size: 0.82em; font-weight: 800; text-align: center; letter-spacing: 0.5px; text-transform: uppercase;">
+                        {% if item.nombre|upper == "CONTROLES MATERNOS" %}🫀 MATERNOS
+                        {% elif item.nombre|upper == "CONTRACCIONES UTERINAS" %}📉 UTERINAS
+                        {% elif item.nombre|upper == "CONTROL FETAL" %}👶 FETAL
+                        {% elif item.nombre|upper == "TACTO VAGINAL" %}🩹 TACTO
+                        {% elif item.nombre|upper == "MONITOREO FETAL" %}📟 MONITOREO
+                        {% elif item.nombre|upper == "OXITOCINA" %}💉 MEDICACIÓN
+                        {% else %}{{ item.nombre|upper }}{% endif %}
+                    </h3>
+                    <div class="buttons-container"
+                        style="padding: 12px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; background: {% if item.nombre|upper == 'CONTROLES MATERNOS' %}#f8fafc{% elif item.nombre|upper == 'CONTROL FETAL' %}#fff5f5{% else %}#fff{% endif %};">
+                        {% for parametro in item.parametros.all %}
+                        <button type="button" class="btn-parametro" id="btn-parametro-{{ parametro.id }}"
+                            data-parametro-id="{{ parametro.id }}" data-parametro-nombre="{{ parametro.nombre|upper }}"
+                            onclick="abrirModalParametro(this)"
+                            style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="status-indicator" id="indicator-{{ parametro.id }}"
+                                style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            {% if "TENSIÓN" in parametro.nombre|upper %}💓 T. ARTERIAL
+                            {% elif "PULSO" in parametro.nombre|upper %}🩺 PULSO
+                            {% elif "RESPIRACIÓN" in parametro.nombre|upper %}🌬️ RESP.
+                            {% elif "TEMPERATURA" in parametro.nombre|upper %}🌡️ TEMP.
+                            {% elif "FRECUENCIA CARDIACA FETAL" in parametro.nombre|upper %}❤️ F.C.F.
+                            {% elif "MOVIMIENTOS" in parametro.nombre|upper %}🦶 MOV. FETAL
+                            {% elif "DILATACIÓN" in parametro.nombre|upper %}⭕ DILATACIÓN
+                            {% elif "BORRAMIENTO" in parametro.nombre|upper %}⬇️ BORRAM.
+                            {% else %}{{ parametro.nombre|upper }}{% endif %}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Modales para cada parámetro (Ocultos por defecto) -->
+            <div id="modales-parametros">
+                <style>
+                    @keyframes modalFadeIn {
+                        from {
+                            opacity: 0;
+                            transform: translateY(-20px);
+                        }
+
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+
+                    .btn-parametro:hover {
+                        border-color: var(--color-primario) !important;
+                        color: var(--color-primario) !important;
+                        background: #fff !important;
+                    }
+
+                    .btn-parametro.tiene-datos {
+                        border-color: #10b981 !important;
+                        background: #ecfdf5 !important;
+                        color: #047857 !important;
+                    }
+
+                    .btn-parametro.tiene-datos .status-indicator {
+                        background-color: #10b981 !important;
+                    }
+                </style>
+                {% for item in items %}
+                {% for parametro in item.parametros.all %}
+                <div class="modal-parametro" id="modal-parametro-{{ parametro.id }}"
+                    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px);">
+                    <div class="modal-content"
+                        style="background: #fff; padding: 0; border-radius: 12px; width: 95%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; animation: modalFadeIn 0.3s ease;">
+                        <div class="modal-header"
+                            style="display: flex; justify-content: space-between; align-items: center; background: var(--color-primario, #8b5cf6); color: white; padding: 15px 20px;">
+                            <h3 style="margin: 0; font-size: 1.25em;">{{ parametro.nombre|upper }}</h3>
+                            <button type="button" onclick="cerrarModalParametro({{ parametro.id }})"
+                                style="background: none; border: none; color: white; font-size: 1.8em; cursor: pointer; line-height: 1;">&times;</button>
+                        </div>
+                        <div class="modal-body" style="padding: 20px;">
+                            <div class="cell-inputs" style="display: flex; flex-direction: column; gap: 15px;">
+                                {% for campo in parametro.campos.all %}
+                                <div class="input-group" style="display: flex; flex-direction: column; gap: 8px;">
+                                    {% if parametro.campos.count > 1 %}
+                                    <label class="field-label"
+                                        style="font-weight: 600; font-size: 0.95em; color: #475569;">{{ campo.nombre
+                                        }}</label>
+                                    {% endif %}
+
+                                    {% if parametro.id == 1 and campo.id == 1 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="70">70</option>
+                                        <option value="80">80</option>
+                                        <option value="90">90</option>
+                                        <option value="100">100</option>
+                                        <option value="110">110</option>
+                                        <option value="120">120</option>
+                                        <option value="130">130</option>
+                                        <option value="140">140</option>
+                                        <option value="150">150</option>
+                                        <option value="160">160</option>
+                                        <option value="170">170</option>
+                                        <option value="180">180</option>
+                                        <option value="190">190</option>
+                                        <option value="200">200</option>
+                                        <option value="210">210</option>
+                                        <option value="220">220</option>
+                                    </select>
+                                    {% elif parametro.id == 1 and campo.id == 2 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="40">40</option>
+                                        <option value="50">50</option>
+                                        <option value="60">60</option>
+                                        <option value="70">70</option>
+                                        <option value="80">80</option>
+                                        <option value="90">90</option>
+                                        <option value="100">100</option>
+                                        <option value="110">110</option>
+                                        <option value="120">120</option>
+                                        <option value="130">130</option>
+                                        <option value="140">140</option>
+                                    </select>
+                                    {% elif parametro.id == 7 and campo.id == 9 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="0">0 Ausente</option>
+                                        <option value="1">1 Leve (+)</option>
+                                        <option value="2">2 Moderada (++)</option>
+                                        <option value="3">3 Fuerte (+++)</option>
+                                        <option value="4">4 Hipertónica</option>
+                                    </select>
+                                    {% elif parametro.id == 4 and campo.id == 5 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="<32.0">
+                                            < 32.0 Hipotermia profunda</option>
+                                        <option value="32.0-34.9">32.0 – 34.9 Hipotermia moderada</option>
+                                        <option value="35.0-35.9">35.0 – 35.9 Hipotermia leve</option>
+                                        <option value="36.0-37.4">36.0 – 37.4 Normotermia</option>
+                                        <option value="37.5-37.9">37.5 – 37.9 Febrícula</option>
+                                        <option value="38.0-38.9">38.0 – 38.9 Fiebre</option>
+                                        <option value="39.0-40.9">39.0 – 40.9 Hipertermia</option>
+                                        <option value=">=41.0">≥ 41.0 Emergencia vital</option>
+                                    </select>
+                                    {% elif parametro.id == 2 and campo.id == 3 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="<40">
+                                            < 40 Bradicardia severa</option>
+                                        <option value="40-59">40 – 59 Bradicardia</option>
+                                        <option value="60-100">60 – 100 Normal</option>
+                                        <option value="101-120">101 – 120 Taquicardia leve</option>
+                                        <option value="121-150">121 – 150 Taquicardia</option>
+                                        <option value=">150">> 150 Taquicardia severa</option>
+                                    </select>
+                                    {% elif parametro.id == 3 and campo.id == 4 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="<8">
+                                            < 8 Bradipnea</option>
+                                        <option value="8-11">8 – 11 FR baja</option>
+                                        <option value="12-20">12 – 20 Normal</option>
+                                        <option value="21-30">21 – 30 Taquipnea</option>
+                                        <option value=">30">> 30 Distrés respiratorio</option>
+                                    </select>
+                                    {% elif parametro.id == 5 and campo.id == 16 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="0">0 Sin dinámica</option>
+                                        <option value="1-2">1–2 Fase latente</option>
+                                        <option value="3-5">3–5 Trabajo activo</option>
+                                        <option value=">5">> 5 Taquisistolia</option>
+                                    </select>
+                                    {% elif parametro.id == 6 and campo.id == 17 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="<30">
+                                            < 30 Ineficaz</option>
+                                        <option value="30-60">30 – 60 Normal</option>
+                                        <option value="61-90">61 – 90 Fuerte</option>
+                                        <option value=">90">> 90 Riesgo fetal</option>
+                                    </select>
+                                    {% elif parametro.id == 8 and campo.id == 6 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="<100">
+                                            < 100 Bradicardia severa</option>
+                                        <option value="100-109">100 – 109 Bradicardia</option>
+                                        <option value="110-160">110 – 160 Normal</option>
+                                        <option value="161-180">161 – 180 Taquicardia</option>
+                                        <option value=">180">> 180 Taquicardia severa</option>
+                                    </select>
+                                    {% elif parametro.id == 9 and campo.id == 10 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="0">0 - Ausentes</option>
+                                        <option value="1">1 - Disminuidos</option>
+                                        <option value="2">2 - Presentes</option>
+                                        <option value="3">3 - Exagerados</option>
+                                    </select>
+                                    {% elif parametro.id == 10 and campo.id == 11 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="Cefálica">Cefálica</option>
+                                        <option value="Podálica">Podálica</option>
+                                        <option value="Transversa">Transversa</option>
+                                        <option value="Oblicua">Oblicua</option>
+                                        <option value="Compuesta">Compuesta</option>
+                                    </select>
+                                    {% elif parametro.id == 13 and campo.id == 12 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="Claro">Claro</option>
+                                        <option value="Meconio leve">Meconio leve</option>
+                                        <option value="Meconio espeso">Meconio espeso</option>
+                                        <option value="Hemático">Hemático</option>
+                                        <option value="Turbio">Turbio</option>
+                                        <option value="Fétido">Fétido</option>
+                                    </select>
+                                    {% elif parametro.id == 11 and campo.id == 14 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="Sí - Bolsa amniótica íntegra">Sí - Bolsa amniótica íntegra
+                                        </option>
+                                        <option value="No - Ya hubo ruptura">No - Ya hubo ruptura</option>
+                                    </select>
+                                    {% elif parametro.id == 12 and campo.id == 15 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="No - Membranas aún íntegras">No - Membranas aún íntegras</option>
+                                        <option value="Sí – Espontánea o artificial">Sí – Espontánea o artificial
+                                        </option>
+                                    </select>
+                                    {% elif parametro.id == 14 and campo.id == 18 %}
+                                    <input type="time" class="data-input-modal form-input"
+                                        data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}"
+                                        data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Tiempo"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                    {% elif parametro.id == 15 and campo.id == 7 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="0–3 Latente">0–3 Latente</option>
+                                        <option value="4–6 Activa">4–6 Activa</option>
+                                        <option value="7–9 Transición">7–9 Transición</option>
+                                        <option value="10 Completa">10 Completa</option>
+                                    </select>
+                                    {% elif parametro.id == 17 and campo.id == 19 %}
+                                    <input type="time" class="data-input-modal form-input"
+                                        data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}"
+                                        data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Tiempo"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                    {% elif parametro.id == 18 and campo.id == 13 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="Categoría I (Normal)">Categoría I (Normal)</option>
+                                        <option value="Categoría II (Indeterminada)">Categoría II (Indeterminada)
+                                        </option>
+                                        <option value="Categoría III (Patológica)">Categoría III (Patológica)</option>
+                                        <option value="No evaluable">No evaluable</option>
+                                    </select>
+                                    {% elif parametro.id == 19 and campo.id == 20 %}
+                                    <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}"
+                                        data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <option value="">Seleccione...</option>
+                                        <option value="0 No uso">0 No uso</option>
+                                        <option value="1 – 5 Dosis baja">1 – 5 Dosis baja</option>
+                                        <option value="6 – 20 Terapéutica">6 – 20 Terapéutica</option>
+                                        <option value="> 20 Riesgo">> 20 Riesgo</option>
+                                    </select>
+                                    {% else %}
+                                    <input type="text" class="data-input-modal form-input"
+                                        data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}"
+                                        data-tipo-valor="{{ campo.tipo_valor }}" placeholder="{{ campo.nombre }}"
+                                        style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="modal-footer"
+                            style="display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; padding: 15px 20px; border-top: 1px solid #e2e8f0;">
+                            <button type="button" class="btn btn-secondary"
+                                onclick="cerrarModalParametro({{ parametro.id }})"
+                                style="padding: 10px 20px;">Cerrar</button>
+                            <button type="button" class="btn btn-primary"
+                                onclick="guardarTemporalParametro({{ parametro.id }})"
+                                style="padding: 10px 20px;">Guardar Dato</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endfor %}
+            </div>
+
+            <!-- Pie del Formulario -->
+            <div class="form-footer">
+                <div class="responsible-field">
+                    <label>RESPONSABLE:</label>
+                    <input type="text" id="responsable" name="responsable" class="responsible-input" required
+                        maxlength="255">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" id="btn-guardar" class="btn btn-primary">Guardar Formulario</button>
+                    <button type="button" id="btnGenerarPDF" class="btn btn-secondary"
+                        onclick="descargarPDF()">Descargar PDF</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Sección Colapsable -->
+    <div class="collapsible-section">
+        <button class="collapsible-btn" onclick="toggleCollapsible()">
+            <span class="collapsible-icon" id="collapsible-icon">▼</span>
+            <span>Datos guardados en el formulario</span>
+        </button>
+        <div class="collapsible-content" id="collapsible-content" style="display: none;">
+            <div class="collapsible-body">
+                <!-- Información del Paciente -->
+                <div class="patient-info-section">
+                    <table class="patient-table">
+                        <tr>
+                            <td class="label-cell">DD/MM/AA</td>
+                            <td class="input-cell">
+                                <span class="info-value"></span>
+                            </td>
+                            <td class="label-cell">ASEGURADORA</td>
+                            <td class="input-cell">
+                                <span class="info-value"></span>
+                            </td>
+                            <td class="label-cell">N° HISTORIA CLÍNICA</td>
+                            <td class="input-cell">
+                                <span class="info-value"></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell">CC. IDENTIFICACIÓN</td>
+                            <td class="input-cell">
+                                <span class="info-value"></span>
+                            </td>
+                            <td class="label-cell">NOMBRE Y APELLIDO</td>
+                            <td class="input-cell wide-input" colspan="3">
+                                <span class="info-value"></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell">DIAGNÓSTICO</td>
+                            <td class="input-cell" colspan="2">
+                                <span class="info-value"></span>
+                            </td>
+                            <td class="label-cell">EDAD</td>
+                            <td class="input-cell">
+                                <span class="info-value"></span>
+                            </td>
+                            <td class="label-cell">GRUPO SANGUÍNEO</td>
+                            <td class="input-cell">
+                                <span class="info-value"></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell">EDAD GESTACIONAL</td>
+                            <td class="input-cell">
+                                <span class="info-value"></span>
+                            </td>
+                            <td class="label-cell">G_P_C_A_V_M_</td>
+                            <td class="input-cell">
+                                <span class="info-value"></span>
+                            </td>
+                            <td class="label-cell label-cell-center">N° CONTROLES PRENATALES</td>
+                            <td class="input-cell">
+                                <span class="info-value"></span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Tabla Principal de Control -->
+                <div class="main-control-table">
+                    <table class="control-grid">
+                        <thead>
+                            <tr>
+                                <th rowspan="2" class="item-col">ITEM</th>
+                                <th rowspan="2" class="param-col">PARÁMETRO</th>
+                                <th colspan="10" class="time-header">HORA</th>
+                            </tr>
+                            <tr class="time-row">
+                                <th class="time-cell">
+                                    <span class="info-time">15/12/2024 08:00</span>
+                                </th>
+                                <th class="time-cell">
+                                    <span class="info-time">15/12/2024 09:00</span>
+                                </th>
+                                <th class="time-cell">
+                                    <span class="info-time">15/12/2024 10:00</span>
+                                </th>
+                                <th class="time-cell">
+                                    <span class="info-time">15/12/2024 11:00</span>
+                                </th>
+                                <th class="time-cell">
+                                    <span class="info-time">15/12/2024 12:00</span>
+                                </th>
+                                <th class="time-cell">
+                                    <span class="info-time">15/12/2024 13:00</span>
+                                </th>
+                                <th class="time-cell">
+                                    <span class="info-time">15/12/2024 14:00</span>
+                                </th>
+                                <th class="time-cell">
+                                    <span class="info-time">15/12/2024 15:00</span>
+                                </th>
+                                <th class="time-cell">
+                                    <span class="info-time">15/12/2024 16:00</span>
+                                </th>
+                                <th class="time-cell">
+                                    <span class="info-time">15/12/2024 17:00</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <!-- {{ item.nombre|upper }} -->
+                            <tr class="section-header">
+                                <td colspan="12" class="section-title">{{ item.nombre|upper }}</td>
+                            </tr>
+                            {% for parametro in item.parametros.all %}
+                            <tr>
+                                {% if forloop.first %}
+                                <td class="item-num" data-item-id="{{ item.id }}" rowspan="{{ item.parametros.count }}">
+                                    {{ item.nombre }}</td>
+                                {% endif %}
+                                <td class="param-name" data-parametro-id="{{ parametro.id }}"
+                                    data-parametro-nombre="{{ parametro.nombre|upper }}">{{ parametro.nombre|upper }}
+                                </td>
+                                {% for hora_index in "0123456789"|make_list|slice:":10" %}
+                                <td class="data-cell">
+                                    <div class="cell-inputs">
+                                        {% for campo in parametro.campos.all %}
+                                        <div class="input-group">
+                                            {% if parametro.campos.count > 1 %}
+                                            <span class="field-label">{{ campo.nombre|slice:":3" }}</span>
+                                            {% endif %}
+                                            <span class="info-value" data-parametro-id="{{ parametro.id }}"
+                                                data-campo-id="{{ campo.id }}"
+                                                data-hora-index="{{ forloop.parentloop.counter0 }}">-</span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pie del Formulario -->
+                <div class="form-footer"
+                    style="border-top: 2px solid var(--color-borde, #e5e7eb); margin-top: 1rem; padding-top: 1rem;">
+                    <div class="responsible-field">
+                        <label>RESPONSABLE:</label>
+                        <span class="info-value"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        function toggleCollapsible() {
+            const content = document.getElementById('collapsible-content');
+            const icon = document.getElementById('collapsible-icon');
+
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.classList.remove('rotated');
+            } else {
+                content.style.display = 'none';
+                icon.classList.add('rotated');
+            }
+        }
+    </script>
+
+    <!-- Configuración de la aplicación (debe cargarse antes de main.js) -->
+    <script src="{% static 'js/config.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/vendor/toastify.min.js' %}"></script>
+</body>
+
+</html>

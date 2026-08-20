@@ -1,0 +1,1025 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+<script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
+<style>
+/* Estilos específicos de detalle.html (Panel Clínico) */
+:root {
+    --panel-bg: #f8fafc;
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    --primary-gradient: linear-gradient(135deg, #0f4c81 0%, #1e3a5f 100%);
+    --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--panel-bg);
+    color: #1e293b;
+}
+
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.main-content {
+    flex: 1;
+    overflow-x: hidden;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 32px auto;
+    padding: 0 24px 48px;
+}
+
+.header {
+    background: var(--primary-gradient);
+    color: #fff;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 10px 30px rgba(15, 76, 129, 0.2);
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+}
+
+.header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.header h1 {
+    margin: 0 0 12px 0;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.header p {
+    margin: 6px 0;
+    opacity: 0.9;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.stat {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    transition: transform 0.2s ease;
+}
+
+.stat:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.stat span {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+}
+
+.stat strong {
+    display: block;
+    font-size: 28px;
+    margin-top: 4px;
+    font-weight: 700;
+}
+
+.panel {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    padding: 24px;
+    margin-top: 24px;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.panel-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #334155;
+}
+
+.record {
+    border: 1px solid #f1f5f9;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: #f8fafc;
+    transition: all 0.2s ease;
+}
+
+.record:hover {
+    border-color: #cbd5e1;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+/* Card Paciente Unificado */
+.card-paciente-unificado {
+    display: none;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    margin-bottom: 32px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.card-paciente-unificado.visible {
+    display: block;
+    animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.card-paciente-header {
+    padding: 20px 24px;
+    background: var(--primary-gradient);
+    color: #fff;
+}
+
+.card-paciente-header h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.card-paciente-subtitle {
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+.card-paciente-body {
+    padding: 24px;
+}
+
+.card-paciente-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.card-paciente-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.card-paciente-grid input,
+.card-paciente-grid select {
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: #f8fafc;
+    transition: all 0.2s ease;
+    width: 100%;
+    outline: none;
+}
+
+.card-paciente-grid input:focus,
+.card-paciente-grid select:focus {
+    border-color: #3b82f6;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.card-paciente-section h4 {
+    margin: 24px 0 16px 0;
+    font-size: 0.85rem;
+    color: #3b82f6;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+}
+
+.card-paciente-section:first-child h4 { margin-top: 0; }
+
+.btn-guardar-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 28px;
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(15, 76, 129, 0.25);
+    transition: all 0.2s ease;
+}
+
+.btn-guardar-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(15, 76, 129, 0.35);
+}
+
+/* Modal styles simplified */
+.modal-preview-paciente {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.modal-preview-paciente.activo { display: flex; }
+
+.modal-content {
+    background: #fff;
+    border-radius: 20px;
+    max-width: 550px;
+    width: 100%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 20px 24px;
+    background: var(--accent-gradient);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.empty {
+    padding: 32px;
+    text-align: center;
+    border: 2px dashed #e2e8f0;
+    border-radius: 16px;
+    color: #94a3b8;
+    background: #f8fafc;
+}
+
+/* Vertical Timeline */
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20px;
+    height: 100%;
+    width: 2px;
+    background: #e2e8f0;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 32px;
+    padding-left: 54px;
+}
+
+.timeline-icon {
+    position: absolute;
+    left: 0;
+    top: 4px;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 2;
+}
+
+.timeline-content {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 20px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.timeline-content:hover {
+    transform: translateX(4px);
+    box-shadow: var(--card-shadow);
+    border-color: #cbd5e1;
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 10px;
+}
+
+.timeline-type {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: #fff;
+}
+
+.timeline-date {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.timeline-body {
+    font-size: 0.95rem;
+    color: #334155;
+    line-height: 1.5;
+}
+
+.timeline-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.timeline-detail-item {
+    background: #f8fafc;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #f1f5f9;
+}
+
+.timeline-detail-label {
+    display: block;
+    font-size: 0.7rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.timeline-detail-value {
+    font-weight: 600;
+    color: #1e293b;
+}
+</style>
+
+{% include 'obstetricia/header_formatos.html' %}
+
+{% if messages %}
+<div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;">
+    {% for message in messages %}
+    <div class="toast-notification toast-{{ message.tags }}" style="
+        background: {% if message.tags == 'success' %}#d1fae5{% elif message.tags == 'error' %}#fee2e2{% else %}#f1f5f9{% endif %};
+        color: {% if message.tags == 'success' %}#065f46{% elif message.tags == 'error' %}#991b1b{% else %}#1e293b{% endif %};
+        border-left: 4px solid {% if message.tags == 'success' %}#10b981{% elif message.tags == 'error' %}#ef4444{% else %}#64748b{% endif %};
+        padding: 16px 20px;
+        border-radius: 8px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-width: 300px;
+        animation: slideInRight 0.3s ease-out forwards;
+        font-family: 'Inter', system-ui, sans-serif;
+        font-weight: 500;
+        font-size: 14px;
+    ">
+        <span>{{ message }}</span>
+        <button onclick="this.parentElement.remove()" style="background: none; border: none; color: inherit; font-size: 20px; cursor: pointer; opacity: 0.7; padding: 0 0 0 15px;">&times;</button>
+    </div>
+    {% endfor %}
+</div>
+<style>
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeOutUp {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(-20px); opacity: 0; }
+}
+</style>
+<script>
+    setTimeout(function() {
+        const toasts = document.querySelectorAll('.toast-notification');
+        toasts.forEach(toast => {
+            toast.style.animation = 'fadeOutUp 0.3s ease-out forwards';
+            setTimeout(() => toast.remove(), 300);
+        });
+    }, 4000);
+</script>
+{% endif %}
+
+<div class="app-layout" id="app-layout">
+    {% include 'obstetricia/sidebar.html' with is_panel=True atencion_id=atencion.id documento=atencion.paciente current_module='panel' %}
+
+    <main class="main-content">
+
+<div class="container">
+{% if has_paciente %}
+    <div id="timeline" class="panel tab-content">
+        <div class="panel-header" style="margin-bottom: 24px;">
+            <h2 style="display:flex; align-items:center; gap:10px;">
+                <i data-lucide="history" size="24"></i> Línea de Vida Clínica
+            </h2>
+        </div>
+
+        <!-- 🧩 PASO 3.4 — LÍNEA VISUAL (TIMELINE REAL) -->
+        <div style="position:relative; padding-left:24px; border-left: 2px solid #e2e8f0; margin-left: 10px;">
+            {% for item in timeline %}
+            <div style="position:relative; margin-bottom:32px;">
+                <!-- punto indicador -->
+                <div style="
+                    position:absolute;
+                    left:-30px;
+                    top:12px;
+                    width:12px;
+                    height:12px;
+                    border-radius:50%;
+                    border: 3px solid #fff;
+                    box-shadow: 0 0 0 4px 
+                    {% if item.tipo == 'MEOWS' %}#0d6efd
+                    {% elif item.tipo == 'FETAL' %}#e83e8c
+                    {% elif item.tipo == 'PARTO' %}#20c997
+                    {% endif %};
+                    background:
+                    {% if item.tipo == 'MEOWS' %}#0d6efd
+                    {% elif item.tipo == 'FETAL' %}#e83e8c
+                    {% elif item.tipo == 'PARTO' %}#20c997
+                    {% endif %}
+                "></div>
+
+                <!-- 🧩 PASO 3.1 & 3.2 — CARD Y ICONOS -->
+                <div style="
+                    border-left: 6px solid 
+                    {% if item.tipo == 'MEOWS' %}#0d6efd
+                    {% elif item.tipo == 'FETAL' %}#e83e8c
+                    {% elif item.tipo == 'PARTO' %}#20c997
+                    {% endif %};
+                    background:white;
+                    border-radius:14px;
+                    padding:20px;
+                    box-shadow:0 4px 15px rgba(0,0,0,0.05);
+                    border: 1px solid #f1f5f9;
+                    border-left-width: 6px;
+                ">
+                    <div class="timeline-header" style="border:none; padding:0; margin-bottom:15px;">
+                        <h4 style="margin:0; font-size:1.1rem; color:#1e293b; display:flex; align-items:center; gap:10px;">
+                            {% if item.tipo == "MEOWS" %}
+                                🩺 MEOWS
+                            {% elif item.tipo == "FETAL" %}
+                                ❤️ FETAL
+                            {% elif item.tipo == "PARTO" %}
+                                👶 PARTO
+                            {% endif %}
+                        </h4>
+                        <span class="timeline-date">
+                            <i data-lucide="clock" size="14"></i>
+                            {{ item.fecha|date:"d M Y, H:i" }}
+                        </span>
+                    </div>
+
+                    <div class="timeline-body">
+                        {% if item.tipo == "MEOWS" %}
+                            <div class="timeline-detail-grid">
+                                <div class="timeline-detail-item">
+                                    <span class="timeline-detail-label">Paciente</span>
+                                    <span class="timeline-detail-value">{{ item.obj.paciente.numero_documento }}</span>
+                                </div>
+                                <div class="timeline-detail-item">
+                                    <span class="timeline-detail-label">Puntaje Total</span>
+                                    <span class="timeline-detail-value" style="color: 
+                                        {% if item.obj.meows_riesgo == 'ROJO' %}#dc3545
+                                        {% elif item.obj.meows_riesgo == 'AMARILLO' %}#ffc107
+                                        {% else %}#0d6efd{% endif %}">
+                                        {{ item.obj.meows_total|default:"0" }}
+                                        ({{ item.obj.meows_riesgo|default:"-" }})
+                                    </span>
+                                </div>
+                                <div class="timeline-detail-item">
+                                    <span class="timeline-detail-label">Responsable</span>
+                                    <span class="timeline-detail-value">{{ item.obj.paciente.responsable|truncatechars:20|default:"-" }}</span>
+                                </div>
+                            </div>
+                        {% elif item.tipo == "FETAL" %}
+                            <div class="timeline-detail-grid">
+                                <div class="timeline-detail-item">
+                                    <span class="timeline-detail-label">Paciente</span>
+                                    <span class="timeline-detail-value">{{ item.obj.nombre_paciente|truncatechars:25 }}</span>
+                                </div>
+                                <div class="timeline-detail-item">
+                                    <span class="timeline-detail-label">Edad Gestacional</span>
+                                    <span class="timeline-detail-value">{{ item.obj.edad_gestacional }} Semanas</span>
+                                </div>
+                            </div>
+                        {% elif item.tipo == "PARTO" %}
+                            <div class="timeline-detail-grid">
+                                <div class="timeline-detail-item">
+                                    <span class="timeline-detail-label">Diagnóstico</span>
+                                    <span class="timeline-detail-value">{{ item.obj.diagnostico|truncatechars:40|default:"-" }}</span>
+                                </div>
+                                <div class="timeline-detail-item">
+                                    <span class="timeline-detail-label">Responsable</span>
+                                    <span class="timeline-detail-value">{{ item.obj.responsable|truncatechars:20 }}</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty">No hay registros cronológicos para esta atención.</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div id="meows" class="panel tab-content" style="display:none;">
+        <div class="panel-header">
+            <h2>MEOWS</h2>
+        </div>
+
+        <!-- Card: Datos básicos y clínicos compartidos (MEOWS, Frecuencia Fetal, Trabajo de Parto) -->
+        <div class="card-paciente-unificado" id="cardPacienteUnificado">
+            <div class="card-paciente-header">
+                <h3>Datos del Paciente</h3>
+                <span class="card-paciente-subtitle">Básicos y clínicos compartidos</span>
+            </div>
+            <div class="card-paciente-body">
+                <div class="card-paciente-section">
+                    <h4>Datos básicos</h4>
+                    <div class="card-paciente-grid">
+                        <label>Identificación <input type="text" id="inp-num-identificacion" placeholder="Cédula / documento" autocomplete="off"></label>
+                        <label>Nombres <input type="text" id="inp-nombres" placeholder="Nombres completos" autocomplete="off"></label>
+                        <label>Historia clínica <input type="text" id="inp-historia-clinica" placeholder="N° historia" autocomplete="off"></label>
+                        <label>Fecha nacimiento <input type="date" id="inp-fecha-nacimiento" placeholder="YYYY-MM-DD" autocomplete="off"></label>
+                        <label>Edad (años) <input type="number" id="inp-edad" placeholder="Edad" min="0" max="120" autocomplete="off"></label>
+                        <label>Sexo <select id="inp-sexo" autocomplete="off"><option value="">--</option><option value="F">Femenino</option><option value="M">Masculino</option></select></label>
+                        <label>Tipo sangre <select id="inp-tipo-sangre" autocomplete="off"><option value="">--</option><option value="O+">O+</option><option value="O-">O-</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option></select></label>
+                        <label>Nombre del acompañante <input type="text" id="inp-acompanante" placeholder="Nombre del acompañante" autocomplete="off"></label>
+                    </div>
+                </div>
+                <div class="card-paciente-section">
+                    <h4>Campos clínicos compartidos</h4>
+                    <div class="card-paciente-grid">
+                        <label>Aseguradora <input type="text" id="inp-aseguradora" placeholder="Aseguradora" autocomplete="off"></label>
+                        <label>Responsable <input type="text" id="inp-responsable" placeholder="Responsable" autocomplete="off"></label>
+                        <label>Diagnóstico <input type="text" id="inp-diagnostico" placeholder="Diagnóstico" autocomplete="off"></label>
+                        <label>Edad gestacional (semanas) <input type="number" id="inp-edad-gestacional" placeholder="Semanas" min="20" max="45" autocomplete="off"></label>
+                        <label>Gestas <input type="number" id="inp-gestas" placeholder="Gestas" min="0" autocomplete="off"></label>
+                        <label>N° controles prenatales <input type="number" id="inp-controles-prenatales" placeholder="Controles" min="0" autocomplete="off"></label>
+                        <label>Cama <input type="text" id="inp-cama" placeholder="Cama" autocomplete="off"></label>
+                        <label>Fecha ingreso <input type="date" id="inp-fecha-ingreso" placeholder="Fecha ingreso" autocomplete="off"></label>
+                    </div>
+                </div>
+                <div class="card-paciente-actions">
+                    <button type="button" id="btn-guardar-card-paciente" class="btn-guardar-card">
+                        <span class="btn-icon">💾</span> Guardar datos del paciente
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registros MEOWS ocultos por solicitud -->
+    </div>
+
+    <div id="fetal" class="panel tab-content" style="display:none;">
+        <div class="panel-header">
+            <h2>Frecuencia Fetal</h2>
+        </div>
+
+        {% for f in fetal %}
+            <div class="record">
+                <strong>Registro {{ forloop.counter }}</strong>
+                <p>{{ f }}</p>
+            </div>
+        {% empty %}
+            <div class="empty">No hay registros fetales para esta atención.</div>
+        {% endfor %}
+    </div>
+
+    <div id="parto" class="panel tab-content" style="display:none;">
+        <div class="panel-header">
+            <h2>Trabajo de Parto</h2>
+        </div>
+
+        {% for p in parto %}
+            <div class="record" data-record-id="{{ p.id }}">
+                <strong>Registro {{ forloop.counter }}</strong>
+                <p>{{ p }}</p>
+            </div>
+        {% empty %}
+            <div class="empty">No hay registros de trabajo de parto para esta atención.</div>
+        {% endfor %}
+    </div>
+</div>
+    </main>
+</div>
+
+<div style="display:none">{% csrf_token %}</div>
+<!-- Modal vista previa paciente (solo visible en Sala de Partos / tab Parto) -->
+<div id="modalPreviewPaciente" class="modal-preview-paciente">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 style="margin:0;">Datos del Paciente</h3>
+            <button type="button" onclick="cerrarModalPreviewPaciente()" style="background:none;border:none;color:white;font-size:1.5em;cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body" id="modalPreviewPacienteBody">
+            <p style="color:#64748b;">Cargando...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? v[2] : null;
+}
+
+function calcularEdadDesdeFecha(fechaNacimientoStr) {
+    if (!fechaNacimientoStr) return '';
+    var nacimiento = new Date(fechaNacimientoStr + 'T00:00:00');
+    if (isNaN(nacimiento.getTime())) return '';
+    var hoy = new Date();
+    var edad = hoy.getFullYear() - nacimiento.getFullYear();
+    var mes = hoy.getMonth() - nacimiento.getMonth();
+    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+        edad -= 1;
+    }
+    if (edad < 0) return '';
+    return edad;
+}
+
+function sincronizarEdadConFechaNacimiento() {
+    var fechaInput = document.getElementById('inp-fecha-nacimiento');
+    var edadInput = document.getElementById('inp-edad');
+    if (!fechaInput || !edadInput) return;
+    var edadCalculada = calcularEdadDesdeFecha(fechaInput.value);
+    edadInput.value = (edadCalculada === '' ? '' : edadCalculada);
+}
+
+function inicializarCalculoAutomaticoEdad() {
+    var fechaInput = document.getElementById('inp-fecha-nacimiento');
+    if (!fechaInput) return;
+    fechaInput.addEventListener('change', sincronizarEdadConFechaNacimiento);
+    fechaInput.addEventListener('input', sincronizarEdadConFechaNacimiento);
+}
+
+
+
+function poblarCardPacienteUnificado(p, f) {
+    var setVal = function(id, val) {
+        var el = document.getElementById(id);
+        if (el && val != null && val !== '') el.value = val;
+    };
+    p = p || {};
+    f = f || {};
+    setVal('inp-num-identificacion', p.num_identificacion);
+    setVal('inp-nombres', p.nombres);
+    setVal('inp-historia-clinica', p.num_historia_clinica);
+    setVal('inp-fecha-nacimiento', p.fecha_nacimiento ? (p.fecha_nacimiento.split('T')[0] || p.fecha_nacimiento) : '');
+    setVal('inp-edad', p.edad || f.edad_snapshot || f.edad_gestion);
+    setVal('inp-sexo', p.sexo);
+    setVal('inp-tipo-sangre', p.tipo_sangre);
+    setVal('inp-acompanante', p.nombre_acompanante || p.acompanante || f.nombre_acompanante || f.acompanante || '');
+    setVal('inp-aseguradora', (p.aseguradora && p.aseguradora.nombre) ? p.aseguradora.nombre : (p.aseguradora || (f.aseguradora && f.aseguradora.nombre) || ''));
+    setVal('inp-responsable', f.responsable || p.responsable);
+    setVal('inp-diagnostico', f.diagnostico || p.diagnostico);
+    setVal('inp-edad-gestacional', p.edad_gestacional || f.edad_gestion);
+    setVal('inp-gestas', p.gestas);
+    setVal('inp-controles-prenatales', p.n_controles_prenatales || f.n_controles_prenatales);
+    setVal('inp-cama', p.cama);
+    setVal('inp-fecha-ingreso', p.fecha_ingreso ? (p.fecha_ingreso.split('T')[0] || p.fecha_ingreso) : '');
+    // Mantener edad coherente con fecha de nacimiento cuando exista fecha.
+    sincronizarEdadConFechaNacimiento();
+}
+
+async function consultarPacienteDesdeSidebar() {
+    var input = document.getElementById('cedula-consulta-sidebar');
+    var cedula = input ? input.value.trim() : '';
+
+    if (!cedula) {
+        alert('Ingrese un número de cédula para consultar');
+        return;
+    }
+
+    var modal = document.getElementById('modalPreviewPaciente');
+    var body = document.getElementById('modalPreviewPacienteBody');
+    var btn = document.querySelector('.btn-consultar-sidebar');
+
+    if (modal) modal.classList.add('activo');
+    if (body) body.innerHTML = '<p style="color:#64748b;">Buscando paciente...</p>';
+    if (btn) btn.disabled = true;
+
+    try {
+        var url = '/api/pacientes/buscar-completo/?num_identificacion=' + encodeURIComponent(cedula);
+        var resp = await fetch(url);
+        var data = await resp.json();
+        console.log("Consulta Sidebar - Respuesta:", data);
+
+        if (data && data.encontrado && data.paciente) {
+            var p = data.paciente;
+            var f = data.formulario || {};
+            var html = '';
+            html += '<div class="preview-row"><strong>Identificación:</strong><span>' + (p.num_identificacion || '-') + '</span></div>';
+            html += '<div class="preview-row"><strong>Nombres:</strong><span>' + (p.nombres || '-') + '</span></div>';
+            html += '<div class="preview-row"><strong>Historia clínica:</strong><span>' + (p.num_historia_clinica || '-') + '</span></div>';
+            html += '<div class="preview-row"><strong>Tipo sangre:</strong><span>' + (p.tipo_sangre || '-') + '</span></div>';
+            if (data.formulario) {
+                html += '<div class="preview-row"><strong>Diagnóstico:</strong><span>' + (f.diagnostico || '-') + '</span></div>';
+                html += '<div class="preview-row"><strong>Responsable:</strong><span>' + (f.responsable || '-') + '</span></div>';
+            }
+            if (body) body.innerHTML = html;
+
+            poblarCardPacienteUnificado(p, f);
+            var card = document.getElementById('cardPacienteUnificado');
+            if (card) {
+                card.classList.add('visible');
+                mostrarTab('meows');
+            }
+        } else {
+            console.warn("Paciente no encontrado o datos incompletos:", data);
+            var msg = (data && data.mensaje) ? data.mensaje : 'Paciente nuevo - No se encontró registro con esa cédula.';
+            if (body) body.innerHTML = '<p style="color:#64748b;">' + msg + '</p>';
+            var card = document.getElementById('cardPacienteUnificado');
+            if (card) card.classList.remove('visible');
+            alert('Paciente no creado, proceda con su diligenciamiento');
+        }
+    } catch (err) {
+        console.error("Error en consultarPacienteDesdeSidebar:", err);
+        if (body) body.innerHTML = '<p style="color:#dc2626;">Error al consultar: ' + err.message + '</p>';
+        var card = document.getElementById('cardPacienteUnificado');
+        if (card) card.classList.remove('visible');
+        alert('Error al consultar el paciente. Proceda con su diligenciamiento.');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+function mostrarTab(tab) {
+    // Si el módulo está deshabilitado, no permitir el cambio de pestañas
+    var appLayout = document.getElementById('app-layout');
+    if (appLayout && appLayout.classList.contains('sala-partos-deshabilitado')) {
+        console.warn('Acceso bloqueado: Guarde los datos del paciente primero.');
+        return;
+    }
+    const tabs = ["timeline", "meows", "fetal", "parto"];
+    tabs.forEach((id) => {
+        const section = document.getElementById(id);
+        const button = document.getElementById("tab-btn-" + id);
+        if (section) section.style.display = "none";
+        if (button) button.classList.remove("active");
+    });
+
+    const currentSection = document.getElementById(tab);
+    const currentButton = document.getElementById("tab-btn-" + tab);
+    if (currentSection) currentSection.style.display = "block";
+    if (currentButton) currentButton.classList.add("active");
+}
+
+function cerrarModalPreviewPaciente() {
+    var modal = document.getElementById('modalPreviewPaciente');
+    if (modal) modal.classList.remove('activo');
+}
+
+async function consultarPacientePorCedula(btn) {
+    if (!btn) return;
+    var record = btn.closest('.record');
+    var input = record ? record.querySelector('.input-cedula-consulta') : null;
+    var cedula = input ? input.value.trim() : '';
+
+    if (!cedula) {
+        alert('Ingrese un número de cédula para consultar');
+        return;
+    }
+
+    var modal = document.getElementById('modalPreviewPaciente');
+    var body = document.getElementById('modalPreviewPacienteBody');
+    if (modal) modal.classList.add('activo');
+    if (body) body.innerHTML = '<p style="color:#64748b;">Buscando paciente...</p>';
+    if (btn) btn.disabled = true;
+
+    try {
+        var url = '/api/pacientes/buscar-completo/?num_identificacion=' + encodeURIComponent(cedula);
+        var resp = await fetch(url);
+        var data = await resp.json();
+        console.log("Consulta Cédula - Respuesta:", data);
+
+        if (data && data.encontrado && data.paciente) {
+            var p = data.paciente;
+            var html = '';
+            html += '<div class="preview-row"><strong>Identificación:</strong><span>' + (p.num_identificacion || '-') + '</span></div>';
+            html += '<div class="preview-row"><strong>Nombres:</strong><span>' + (p.nombres || '-') + '</span></div>';
+            html += '<div class="preview-row"><strong>Historia clínica:</strong><span>' + (p.num_historia_clinica || '-') + '</span></div>';
+            html += '<div class="preview-row"><strong>Tipo sangre:</strong><span>' + (p.tipo_sangre || '-') + '</span></div>';
+            if (data.formulario) {
+                var f = data.formulario;
+                html += '<div class="preview-row"><strong>Diagnóstico:</strong><span>' + (f.diagnostico || '-') + '</span></div>';
+                html += '<div class="preview-row"><strong>Responsable:</strong><span>' + (f.responsable || '-') + '</span></div>';
+            }
+            if (body) body.innerHTML = html;
+            poblarCardPacienteUnificado(p, data.formulario);
+        } else {
+            console.warn("Paciente no encontrado (por cédula):", data);
+            var msg = (data && data.mensaje) ? data.mensaje : 'Paciente nuevo - No se encontró registro con esa cédula.';
+            if (body) body.innerHTML = '<p style="color:#64748b;">' + msg + '</p>';
+            alert('Paciente no creado, proceda con su diligenciamiento');
+        }
+    } catch (err) {
+        console.error("Error en consultarPacientePorCedula:", err);
+        if (body) body.innerHTML = '<p style="color:#dc2626;">Error al consultar: ' + err.message + '</p>';
+        alert('Error al consultar el paciente. Proceda con su diligenciamiento.');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+document.getElementById('modalPreviewPaciente').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModalPreviewPaciente();
+});
+
+mostrarTab("meows");
+
+// Deshabilitar módulos Sala de Partos hasta que se guarden los datos del paciente
+(function() {
+    var identificador = "{{ atencion.paciente.id|default:'' }}".trim();
+    console.log("Estado de identificación del paciente:", identificador ? "Presente (" + identificador + ")" : "Ausente");
+    var layout = document.getElementById('app-layout');
+    if (!identificador && layout) {
+        layout.classList.add('sala-partos-deshabilitado');
+    }
+})();
+
+// Limpiar todos los campos de la card (evita datos pegados al recargar)
+function limpiarCardPaciente() {
+    var ids = ['inp-num-identificacion','inp-nombres','inp-historia-clinica','inp-fecha-nacimiento','inp-edad','inp-sexo','inp-tipo-sangre','inp-acompanante','inp-aseguradora','inp-responsable','inp-diagnostico','inp-edad-gestacional','inp-gestas','inp-controles-prenatales','inp-cama','inp-fecha-ingreso'];
+    ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) { el.value = ''; }
+    });
+}
+
+// Al cargar/recargar: campos de la card siempre en blanco
+(function() {
+    var card = document.getElementById('cardPacienteUnificado');
+    if (!card) return;
+    card.classList.add('visible');
+    limpiarCardPaciente();
+    inicializarCalculoAutomaticoEdad();
+})();
+
+// --- Guardar datos de la card y navegación por tabs del sidebar ---
+(function() {
+    var atencionId = "{{ atencion.id|default:'0' }}";
+    var docGuardado = "{{ atencion.paciente.num_identificacion|default:''|escapejs }}".trim();
+
+    function getVal(id) {
+        var el = document.getElementById(id);
+        return el ? (el.value || '').trim() : '';
+    }
+
+    document.getElementById('btn-guardar-card-paciente').addEventListener('click', async function() {
+        var btn = this;
+        var doc = getVal('inp-num-identificacion');
+        if (!doc) {
+            alert('La identificación (cédula/documento) es obligatoria. Ingrese el dato y guarde.');
+            return;
+        }
+        btn.disabled = true;
+        btn.innerHTML = '<span class="btn-icon">⏳</span> Guardando...';
+        try {
+            var data = {
+                num_identificacion: doc,
+                nombres: getVal('inp-nombres'),
+                num_historia_clinica: getVal('inp-historia-clinica'),
+                fecha_nacimiento: getVal('inp-fecha-nacimiento') || null,
+                edad: getVal('inp-edad') || null,
+                sexo: getVal('inp-sexo'),
+                tipo_sangre: getVal('inp-tipo-sangre'),
+                nombre_acompanante: getVal('inp-acompanante'),
+                aseguradora: getVal('inp-aseguradora'),
+                responsable: getVal('inp-responsable'),
+                diagnostico: getVal('inp-diagnostico'),
+                edad_gestacional: getVal('inp-edad-gestacional') || null,
+                gestas: getVal('inp-gestas') || null,
+                n_controles_prenatales: getVal('inp-controles-prenatales') || null,
+                cama: getVal('inp-cama'),
+                fecha_ingreso: getVal('inp-fecha-ingreso') || null
+            };
+            var csrf = getCookie('csrftoken');
+            var r = await fetch('/atencion/' + atencionId + '/guardar-datos-paciente/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrf || '',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(data)
+            });
+            var resp = await r.json();
+            if (resp.ok) {
+                // Habilitar tabs: quitar clase deshabilitado y habilitar botones físicamente
+                var layout = document.getElementById('app-layout');
+                if (layout) {
+                    layout.classList.remove('sala-partos-deshabilitado');
+                    // Habilitar todos los botones con clase tab-modulo
+                    document.querySelectorAll('.tab-modulo').forEach(function(b) {
+                        b.disabled = false;
+                    });
+                }
+                docGuardado = doc;
+                alert('Datos guardados correctamente. Los módulos MEOWS, Frecuencia Fetal y Trabajo de Parto están habilitados.');
+            } else {
+                alert('Error: ' + (resp.error || 'No se pudo guardar'));
+            }
+        } catch (e) {
+            alert('Error al guardar: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="btn-icon">💾</span> Guardar datos del paciente';
+        }
+    });
+
+    // Tabs del sidebar: cuando están habilitados, redirigen a los formularios
+    function irAFormulario(modulo) {
+        var doc = docGuardado || getVal('inp-num-identificacion');
+        if (!doc) {
+            alert('Ingrese y guarde primero los datos del paciente (identificación) en la card.');
+            return;
+        }
+        if (modulo === 'meows') {
+            window.location.href = '/meows/crear/' + encodeURIComponent(doc) + '/?atencion=' + atencionId;
+        } else if (modulo === 'fetal') {
+            window.location.href = '/fetal/?atencion=' + atencionId + '&doc=' + encodeURIComponent(doc);
+        } else if (modulo === 'parto') {
+            window.location.href = '/parto/?atencion=' + atencionId + '&doc=' + encodeURIComponent(doc);
+        }
+    }
+
+    document.querySelectorAll('.tab-modulo').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            if (document.getElementById('app-layout').classList.contains('sala-partos-deshabilitado')) return;
+            irAFormulario(this.getAttribute('data-modulo'));
+        });
+    });
+})();
+</script>
+
+<script>
+    // Inicializar iconos de Lucide al cargar la página (incluyendo el timeline)
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    });
+</script>

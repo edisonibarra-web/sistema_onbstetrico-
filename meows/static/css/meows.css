@@ -1,0 +1,43 @@
+/**
+ * Estilos para el sistema MEOWS
+ */
+
+.meows {
+    padding: 1.5rem;
+    border-radius: 8px;
+    font-weight: bold;
+    margin: 20px 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.meows h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.meows p {
+    margin: 10px 0;
+    font-size: 16px;
+}
+
+.meows.verde {
+    background-color: #e6f4ea;
+    color: #1b5e20;
+    border-left: 4px solid #4CAF50;
+}
+
+.meows.amarillo {
+    background-color: #fff8e1;
+    color: #8d6e00;
+    border-left: 4px solid #FFC107;
+}
+
+.meows.rojo {
+    background-color: #fdecea;
+    color: #b71c1c;
+    border-left: 4px solid #f44336;
+}
+
+
+
+

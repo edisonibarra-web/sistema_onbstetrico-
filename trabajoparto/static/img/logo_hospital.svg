@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" role="img" aria-label="Logo Hospital">
+  <rect width="320" height="120" rx="12" fill="#0f172a"/>
+  <rect x="16" y="16" width="88" height="88" rx="10" fill="#1d4ed8"/>
+  <path d="M60 34v52M34 60h52" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+  <text x="122" y="55" fill="#e2e8f0" font-family="Arial, sans-serif" font-size="20" font-weight="700">HOSPITAL</text>
+  <text x="122" y="83" fill="#93c5fd" font-family="Arial, sans-serif" font-size="18">OBSTETRICO</text>
+</svg>

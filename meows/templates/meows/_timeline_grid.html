@@ -1,0 +1,339 @@
+{% comment %}
+Cuadrícula clínica MEOWS (Línea de Tiempo Clínica), extraída como partial para poder
+incluirse tanto en meows/historial.html como en otras vistas del sistema (p.ej. Control
+Posparto Inmediato de frecuenciafetal/formulario.html), siempre mostrando el estado más
+reciente de mediciones al momento de renderizar la página.
+
+Variables de contexto esperadas:
+  - grid_parametros, columnas: armados por meows.services.grid.construir_grid_meows()
+  - meows_paciente: instancia de meows.Paciente (puede ser None si aún no existe)
+  - documento: número de documento del paciente (para resolver/crear el Paciente MEOWS)
+  - mostrar_link_volver (bool, opcional): si se muestra "Regresar a Trabajo de Parto"
+    (True en meows/historial.html) o un acceso directo al módulo MEOWS (False, embebido)
+{% endcomment %}
+<section class="section timeline-section">
+    <h3 class="section-title">
+        <span class="section-icon-badge"><i data-lucide="line-chart"></i></span>
+        {% if mostrar_link_volver %}Línea de Tiempo Clínica{% else %}Control Posparto Inmediato{% endif %}
+        {% if mostrar_link_volver %}
+        <a href="{% url 'parto_home' %}?atencion={{ atencion_id|default:'' }}&doc={{ documento|default:meows_paciente.numero_documento|urlencode }}" class="btn-volver-parto">
+            <span>↩️</span> Regresar a Trabajo de Parto
+        </a>
+        {% if meows_paciente %}
+        <a href="{% url 'crear_meows' paciente_id=meows_paciente.id %}" class="btn-volver-parto">
+            <span>➕</span> Nueva Medición
+        </a>
+        {% endif %}
+        {% elif meows_paciente %}
+        <a href="{% url 'historial_meows' paciente_id=meows_paciente.id %}?atencion={{ atencion_id|default:'' }}&doc={{ documento|default:'' }}" class="btn-volver-parto">
+            <span>📈</span> Ver historial MEOWS completo
+        </a>
+        <a href="{% url 'crear_meows' paciente_id=meows_paciente.id %}" class="btn-volver-parto">
+            <span>➕</span> Nueva medición MEOWS
+        </a>
+        {% else %}
+        <a href="{% url 'abrir_meows_desde_atencion_doc' doc=documento %}" class="btn-volver-parto">
+            <span>➕</span> Nueva medición MEOWS
+        </a>
+        {% endif %}
+        <button type="button" class="btn-toggle-timeline" id="meows-toggle-btn" onclick="toggleMeowsGrid()" title="Mostrar u ocultar la línea de tiempo clínica">
+            <span id="meows-toggle-icon">➖</span> <span id="meows-toggle-label">Ocultar</span>
+        </button>
+    </h3>
+
+    <div id="meows-grid-body" class="meows-grid-body">
+    <div class="meows-grid-body-inner">
+    {% if columnas %}
+    <div class="grid-legend">
+        <span class="grid-legend-item"><span class="grid-legend-swatch score-0"></span>Normal <strong>· 0 puntos</strong></span>
+        <span class="grid-legend-item"><span class="grid-legend-swatch score-1"></span>Moderado <strong>· 1 punto</strong></span>
+        <span class="grid-legend-item"><span class="grid-legend-swatch score-2"></span>Moderado-alto <strong>· 2 puntos</strong></span>
+        <span class="grid-legend-item"><span class="grid-legend-swatch score-3"></span>Crítico <strong>· 3 puntos</strong></span>
+        <span class="grid-legend-item"><span class="grid-legend-marca">●</span>Valor registrado</span>
+        <button type="button" class="btn-meows-referencia" onclick="abrirMeowsReferencia()">
+            <span>🔎</span> Guía Técnica MEOWS
+        </button>
+    </div>
+
+    <div id="meows-referencia-overlay" class="meows-referencia-overlay" onclick="if(event.target===this) cerrarMeowsReferencia()">
+        <div class="meows-referencia-modal">
+            <div class="meows-referencia-header">
+                <span>Guía de referencia MEOWS</span>
+                <span class="meows-referencia-close" onclick="cerrarMeowsReferencia()" title="Cerrar">&times;</span>
+            </div>
+            <div class="meows-referencia-body">
+                <p class="meows-referencia-intro">
+                    Sistema de alerta temprana para desarrollar a la cabecera del paciente.
+                    Utiliza un código de colores de acuerdo a los signos identificados como de alarma y sus variaciones.
+                    Los signos son documentados por el personal de enfermería.
+                </p>
+
+                <div class="meows-referencia-scroll">
+                    <table class="meows-referencia-table">
+                        <thead>
+                            <tr>
+                                <th class="ref-th-parametro">Parámetros</th>
+                                <th class="ref-th-score score-3">3</th>
+                                <th class="ref-th-score score-2">2</th>
+                                <th class="ref-th-score score-1">1</th>
+                                <th class="ref-th-score score-0">0</th>
+                                <th class="ref-th-score score-1">1</th>
+                                <th class="ref-th-score score-2">2</th>
+                                <th class="ref-th-score score-3">3</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="ref-td-parametro">Presión Arterial Sistólica<br><span class="ref-unidad">(PAS) mmHg</span></td>
+                                <td class="score-3">&lt; 80</td>
+                                <td class="score-2">80 - 90</td>
+                                <td class="score-1"></td>
+                                <td class="score-0">90 - 139</td>
+                                <td class="score-1">140 - 149</td>
+                                <td class="score-2">150 - 159</td>
+                                <td class="score-3">≥ 160</td>
+                            </tr>
+                            <tr>
+                                <td class="ref-td-parametro">Presión Arterial Diastólica<br><span class="ref-unidad">(PAD) mmHg</span></td>
+                                <td class="score-3"></td>
+                                <td class="score-2"></td>
+                                <td class="score-1"></td>
+                                <td class="score-0">&lt; 90</td>
+                                <td class="score-1">90 - 99</td>
+                                <td class="score-2">100 - 109</td>
+                                <td class="score-3">≥ 110</td>
+                            </tr>
+                            <tr>
+                                <td class="ref-td-parametro">Frecuencia respiratoria<br><span class="ref-unidad">(FR) minutos</span></td>
+                                <td class="score-3">&lt; 10</td>
+                                <td class="score-2"></td>
+                                <td class="score-1"></td>
+                                <td class="score-0">10 - 17</td>
+                                <td class="score-1">18 - 24</td>
+                                <td class="score-2">25 - 29</td>
+                                <td class="score-3">≥ 30</td>
+                            </tr>
+                            <tr>
+                                <td class="ref-td-parametro">Frecuencia cardiaca<br><span class="ref-unidad">(FC) minutos</span></td>
+                                <td class="score-3">&lt; 60</td>
+                                <td class="score-2"></td>
+                                <td class="score-1"></td>
+                                <td class="score-0">60 - 110</td>
+                                <td class="score-1"></td>
+                                <td class="score-2">111 - 149</td>
+                                <td class="score-3">≥ 150</td>
+                            </tr>
+                            <tr>
+                                <td class="ref-td-parametro">% de O<sub>2</sub> requerido para mantener una Saturación<br><span class="ref-unidad">&gt; 95%</span></td>
+                                <td class="score-3"></td>
+                                <td class="score-2"></td>
+                                <td class="score-1"></td>
+                                <td class="score-0">Aire ambiente</td>
+                                <td class="score-1">24 - 39%</td>
+                                <td class="score-2"></td>
+                                <td class="score-3">≥40 %</td>
+                            </tr>
+                            <tr>
+                                <td class="ref-td-parametro">Temperatura<br><span class="ref-unidad">°C</span></td>
+                                <td class="score-3">&lt; 34</td>
+                                <td class="score-2"></td>
+                                <td class="score-1">34 - 35</td>
+                                <td class="score-0">35.1 - 37.9</td>
+                                <td class="score-1">38 - 38.9</td>
+                                <td class="score-2"></td>
+                                <td class="score-3">≥ 39</td>
+                            </tr>
+                            <tr>
+                                <td class="ref-td-parametro">Estado de conciencia</td>
+                                <td class="score-3"></td>
+                                <td class="score-2"></td>
+                                <td class="score-1"></td>
+                                <td class="score-0">Alerta<br>Glasgow 15</td>
+                                <td class="score-1"></td>
+                                <td class="score-2"></td>
+                                <td class="score-3">No alerta<br>Glasgow &lt;15</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="meows-referencia-intro">
+                    Para la interpretación se realiza la sumatoria de cada uno de los valores registrados para cada
+                    parámetro, con determinación de riesgo y de la respuesta frente a la alerta.
+                </p>
+
+                <div class="meows-referencia-scroll">
+                    <table class="meows-referencia-respuesta-table">
+                        <thead>
+                            <tr>
+                                <th>Puntuación (sumatoria)</th>
+                                <th>Grado de respuesta</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="riesgo-fila-blanco">
+                                <td class="ref-puntuacion">0</td>
+                                <td>
+                                    <strong>RUTINA</strong><br>
+                                    OBSERVACIÓN - Mínimo cada 12 horas de observación
+                                </td>
+                            </tr>
+                            <tr class="riesgo-fila-verde">
+                                <td class="ref-puntuacion">1 - 3 (Sumatoria)</td>
+                                <td>
+                                    <strong>RIESGO BAJO</strong><br>
+                                    OBSERVACIÓN - Mínimo cada 4 hs.<br>
+                                    LLAMADO - Enfermera a cargo
+                                </td>
+                            </tr>
+                            <tr class="riesgo-fila-amarillo">
+                                <td class="ref-puntuacion">Un parámetro con puntuación 3 o SUMATORIA de ≥ 4</td>
+                                <td>
+                                    <strong>RIESGO INTERMEDIO</strong><br>
+                                    OBSERVACIÓN - mínimo cada hora<br>
+                                    LLAMADO - Urgente al equipo médico o de la paciente con las competencias para manejo de la emergencia obstétrica (Equipo de Respuesta Rápida)
+                                </td>
+                            </tr>
+                            <tr class="riesgo-fila-rojo">
+                                <td class="ref-puntuacion">≥ 6 (Sumatoria)</td>
+                                <td>
+                                    <strong>RIESGO ALTO</strong><br>
+                                    OBSERVACIÓN - Monitoreo continuo de signos vitales<br>
+                                    LLAMADO - Emergente al equipo con competencias en cuidado crítico y habilidades para el diagnóstico (Equipo de Respuesta Rápida)
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="meows-referencia-recuerde">
+                    <strong>RECUERDE</strong>
+                    <p>Un valor extremo para cualquiera de los parámetros, que le asigne a éste una puntuación MEOWS = 3,
+                        requiere una valoración por parte del equipo médico a cargo de la paciente.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="meows-grid-scroll">
+        <table class="meows-grid-table">
+            <thead>
+                <tr>
+                    <th class="grid-th-parametro" rowspan="2">Parámetro</th>
+                    <th class="grid-th-fila" rowspan="2">Valor</th>
+                    <th class="grid-th-tiempo" colspan="{{ columnas|length }}">Fecha / Hora de la toma</th>
+                    <th class="grid-th-puntaje" rowspan="2">Puntaje</th>
+                </tr>
+                <tr>
+                    {% for columna in columnas %}
+                    <th class="grid-th-columna">
+                        <span class="col-fecha">{{ columna.hora|date:"d/m/y" }}</span>
+                        <span class="col-hora">{{ columna.hora|date:"H:i" }}</span>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for parametro in grid_parametros %}
+                {% for fila in parametro.filas %}
+                <tr>
+                    {% if forloop.first %}
+                    <td class="grid-td-parametro" rowspan="{{ parametro.filas|length }}">
+                        {{ parametro.nombre }}
+                        <span class="grid-unidad">({{ parametro.unidad }})</span>
+                    </td>
+                    {% endif %}
+                    <td class="grid-td-fila">{{ fila.label }}</td>
+                    {% for celda in fila.celdas %}
+                    <td class="grid-td-celda score-{{ fila.score }}{% if celda.marcado %} celda-marcada{% endif %}">
+                        {% if celda.marcado %}<span class="grid-marca">●</span>{% endif %}
+                    </td>
+                    {% endfor %}
+                    <td class="grid-td-puntaje score-{{ fila.score }}">{{ fila.score }}</td>
+                </tr>
+                {% endfor %}
+                {% endfor %}
+
+                <!-- Fila de resumen: puntaje total y riesgo por cada toma -->
+                <tr class="grid-row-total">
+                    <td class="grid-td-parametro grid-td-total-label" colspan="2">Puntaje total MEOWS</td>
+                    {% for columna in columnas %}
+                    <td class="grid-td-total riesgo-bg-{{ columna.riesgo|lower|default:'none' }}">
+                        <a href="{% url 'ver_meows' medicion_id=columna.medicion_id %}" class="grid-total-link" title="Ver detalle completo">
+                            <strong>{{ columna.score_total|default:"-" }}</strong>
+                            <span class="grid-total-riesgo">{{ columna.riesgo|default:"-" }}</span>
+                        </a>
+                    </td>
+                    {% endfor %}
+                    <td class="grid-td-total-puntaje"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-title">No hay mediciones registradas</div>
+        <div class="empty-text">Este paciente aún no tiene mediciones MEOWS registradas.</div>
+        {% if meows_paciente %}
+        <a href="{% url 'crear_meows' paciente_id=meows_paciente.id %}" class="btn btn-primary">
+            <span class="btn-icon">➕</span>
+            Crear Primera Medición
+        </a>
+        {% else %}
+        <a href="{% url 'abrir_meows_desde_atencion_doc' doc=documento %}" class="btn btn-primary">
+            <span class="btn-icon">➕</span>
+            Crear Primera Medición
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+    </div>
+    </div>
+</section>
+<script>
+(function() {
+    var STORAGE_KEY = 'meows-grid-collapsed-{{ documento|default:"na"|escapejs }}';
+    var body = document.getElementById('meows-grid-body');
+    var icon = document.getElementById('meows-toggle-icon');
+    var label = document.getElementById('meows-toggle-label');
+    if (!body) return;
+
+    function applyState(collapsed, instant) {
+        if (instant) body.style.transition = 'none';
+        body.classList.toggle('is-collapsed', collapsed);
+        if (instant) {
+            void body.offsetHeight; /* fuerza reflow antes de reactivar la transición */
+            body.style.transition = '';
+        }
+        if (icon) icon.textContent = collapsed ? '➕' : '➖';
+        if (label) label.textContent = collapsed ? 'Mostrar' : 'Ocultar';
+    }
+
+    window.toggleMeowsGrid = function() {
+        var collapsed = !body.classList.contains('is-collapsed');
+        applyState(collapsed);
+        try { localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0'); } catch (e) {}
+    };
+
+    var saved = null;
+    try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+    if (saved === '1') applyState(true, true);
+})();
+
+window.abrirMeowsReferencia = function() {
+    var overlay = document.getElementById('meows-referencia-overlay');
+    if (overlay) overlay.classList.add('show');
+};
+
+window.cerrarMeowsReferencia = function() {
+    var overlay = document.getElementById('meows-referencia-overlay');
+    if (overlay) overlay.classList.remove('show');
+};
+
+document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    var overlay = document.getElementById('meows-referencia-overlay');
+    if (overlay && overlay.classList.contains('show')) window.cerrarMeowsReferencia();
+});
+</script>

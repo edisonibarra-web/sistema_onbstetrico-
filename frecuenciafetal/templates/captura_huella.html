@@ -1,0 +1,146 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Captura Huella del Pie</title>
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap5.3.0/bootstrap.min.css' %}">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            text-align: center;
+            padding-top: 50px;
+        }
+
+        video {
+            width: 100%;
+            max-width: 500px;
+            border-radius: 10px;
+            border: 3px solid #0d6efd;
+            background: #000;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .btn-custom {
+            margin: 10px;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2 class="mb-4 text-primary">Captura Huella del Pie del Bebé</h2>
+
+        <video id="video" autoplay playsinline></video>
+
+        <br><br>
+
+        <div class="d-flex justify-content-center flex-wrap">
+            <button class="btn btn-primary btn-custom" onclick="capturarHuella('derecho')">
+                👣 Capturar Pie Derecho
+            </button>
+
+            <button class="btn btn-warning btn-custom" onclick="capturarHuella('izquierdo')">
+                👣 Capturar Pie Izquierdo
+            </button>
+        </div>
+
+        <canvas id="canvas"></canvas>
+
+        <div id="preview-area" class="mt-4" style="display:none;">
+            <h4>Previsualización guardada:</h4>
+            <img id="preview-img" class="img-thumbnail" style="max-width: 300px;">
+        </div>
+    </div>
+
+    <script>
+        async function iniciarCamara() {
+            const video = document.getElementById("video");
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" }
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Error al acceder a la cámara: ", err);
+                alert("No se pudo acceder a la cámara. Revisa los permisos y Chrome Flags.");
+            }
+        }
+
+        function capturarHuella(tipo) {
+            const video = document.getElementById("video");
+            const canvas = document.getElementById("canvas");
+            const previewArea = document.getElementById("preview-area");
+            const previewImg = document.getElementById("preview-img");
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imagen = canvas.toDataURL("image/png");
+
+            // Mostrar previsualización
+            previewImg.src = imagen;
+            previewArea.style.display = "block";
+
+            enviarHuella(imagen, tipo);
+        }
+
+        async function enviarHuella(imagen, tipo) {
+            const data = {
+                imagen: imagen,
+                tipo: tipo,
+                bebe_id: 1 // Cambiar por ID real según sea necesario
+            };
+
+            try {
+                const response = await fetch("/fetal/api/guardar-huella-bebe/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken")
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert("Huella del pie " + tipo + " guardada con éxito.");
+                } else {
+                    alert("Error en el servidor al guardar la huella.");
+                }
+            } catch (error) {
+                console.error("Error al enviar huella:", error);
+                alert("Error de conexión con el servidor.");
+            }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        iniciarCamara();
+    </script>
+</body>
+
+</html>

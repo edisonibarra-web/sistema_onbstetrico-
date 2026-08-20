@@ -1,0 +1,1253 @@
+/* ============================================================================
+   HISTORIAL MEOWS - TIMELINE CLÍNICO (diseño compacto)
+   ============================================================================ */
+
+/* Insignia de ícono plateada para los títulos de sección (reemplaza los
+   emojis sueltos por un ícono lucide dentro de una placa metálica). */
+.section-icon-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #b0b6bd 0%, #e8ebee 45%, #ced3d9 100%);
+    border: 1px solid #aab0b8;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    color: #4338ca;
+}
+
+.section-icon-badge svg {
+    width: 21px;
+    height: 21px;
+    stroke-width: 2.4;
+}
+
+.patient-section .patient-info-grid {
+    display: flex;
+    flex-wrap: nowrap;
+}
+
+.patient-section .patient-info-grid .info-item {
+    /* Ancho proporcional al contenido (no columnas forzadas a igual tamaño):
+       campos cortos como Documento/Edad/Cama ocupan solo lo que necesitan,
+       dejando más espacio a Nombre Completo/Aseguradora que suelen ser largos. */
+    flex: 1 1 auto;
+    min-width: 185px;
+}
+
+@media (max-width: 900px) {
+    .patient-section .patient-info-grid {
+        flex-wrap: wrap;
+    }
+
+    .patient-section .patient-info-grid .info-item {
+        flex: 1 1 160px;
+    }
+}
+
+.timeline-section {
+    background: linear-gradient(135deg, #b0b6bd 0%, #e2e6ea 45%, #ced3d9 100%);
+    padding: 1.75rem 2rem;
+    border: 1px solid #aab0b8;
+    border-radius: 18px;
+    margin: 1.5rem 0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04),
+                0 20px 40px rgba(67, 56, 202, 0.06);
+}
+
+.timeline-section .section-title {
+    padding: 0.75rem 1.1rem;
+    background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+    border: 1px solid #e0e7ff;
+    font-size: 1.05rem;
+}
+
+.btn-volver-parto {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 10px 20px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+    color: #ffffff;
+    font-size: 0.92rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    border: 1px solid #8b5cf6;
+    box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);
+    transition: all 0.2s ease;
+}
+
+/* Solo el primer botón del grupo (el que sigue al título) empuja el resto
+   hacia el borde derecho; si hay un segundo botón (p.ej. "Nueva Medición"),
+   antes también tenía margin-left:auto propio y se abría un hueco entre ambos. */
+.section-title a.btn-volver-parto:first-of-type {
+    margin-left: auto;
+}
+
+.btn-volver-parto:hover {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(139, 92, 246, 0.4);
+}
+
+.btn-toggle-timeline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 10px 20px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%);
+    color: #ffffff;
+    font-size: 0.92rem;
+    font-weight: 700;
+    white-space: nowrap;
+    border: 1px solid #8b5cf6;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);
+    transition: all 0.2s ease;
+}
+
+.btn-toggle-timeline:hover {
+    background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(139, 92, 246, 0.4);
+}
+
+.timeline-container {
+    position: relative;
+    padding-left: 26px;
+    margin-top: 0.75rem;
+}
+
+/* ============================================================================
+   COLAPSO SUAVE DE LA CUADRÍCULA CLÍNICA (Mostrar/Ocultar)
+   Anima la altura real del contenido (grid-template-rows 1fr -> 0fr) en vez de
+   alternar display:none, que aparecía/desaparecía de golpe.
+   ============================================================================ */
+
+.meows-grid-body {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.meows-grid-body.is-collapsed {
+    grid-template-rows: 0fr;
+}
+
+.meows-grid-body-inner {
+    overflow: hidden;
+    min-height: 0;
+    transition: opacity 0.22s ease;
+    opacity: 1;
+}
+
+.meows-grid-body.is-collapsed .meows-grid-body-inner {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+/* ============================================================================
+   ITEM DEL TIMELINE
+   ============================================================================ */
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.85rem;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.timeline-item:last-child .timeline-line {
+    display: none;
+}
+
+/* Línea vertical del timeline */
+.timeline-line {
+    position: absolute;
+    left: -18px;
+    top: 16px;
+    bottom: -14px;
+    width: 2px;
+    background: #e2e8f0;
+    border-radius: 2px;
+}
+
+/* Punto del timeline */
+.timeline-dot {
+    position: absolute;
+    left: -22px;
+    top: 10px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.timeline-dot.riesgo-blanco { background: #adb5bd; }
+.timeline-dot.riesgo-verde { background: #28a745; }
+.timeline-dot.riesgo-amarillo { background: #ffc107; }
+.timeline-dot.riesgo-rojo { background: #dc3545; }
+
+/* ============================================================================
+   CONTENIDO DE LA MEDICIÓN
+   ============================================================================ */
+
+.timeline-content {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e9ecef;
+    border-left: 3px solid #ced4da;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.timeline-content.riesgo-blanco { border-left-color: #6c757d; }
+.timeline-content.riesgo-verde { border-left-color: #28a745; }
+.timeline-content.riesgo-amarillo { border-left-color: #ffc107; }
+.timeline-content.riesgo-rojo { border-left-color: #dc3545; }
+
+.timeline-item:hover .timeline-content {
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================================================
+   HEADER DE LA MEDICIÓN
+   ============================================================================ */
+
+.medicion-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid #f0f0f0;
+    flex-wrap: wrap;
+}
+
+.medicion-time {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1 1 auto;
+    min-width: 130px;
+    padding: 4px 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.time-icon {
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 50%;
+}
+
+.time-text {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #212529;
+    font-variant-numeric: tabular-nums;
+}
+
+.time-date {
+    font-size: 0.72rem;
+    color: #6c757d;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 2px 8px;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    font-variant-numeric: tabular-nums;
+}
+
+.medicion-score {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 4px 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.score-label {
+    font-size: 0.68rem;
+    color: #6c757d;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.score-value {
+    font-size: 0.95rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    min-width: 26px;
+    text-align: center;
+    padding: 2px 8px;
+    border-radius: 8px;
+}
+
+.score-value.score-0 {
+    background: #f1f3f5;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.score-value.score-1 {
+    background: #28a745;
+    color: white;
+}
+
+.score-value.score-2 {
+    background: #ff9800;
+    color: white;
+}
+
+.score-value.score-3 {
+    background: #dc3545;
+    color: white;
+}
+
+.score-value.score-4,
+.score-value.score-5,
+.score-value.score-6,
+.score-value.score-7,
+.score-value.score-8,
+.score-value.score-9,
+.score-value[class*="score-"]:not(.score-0):not(.score-1):not(.score-2):not(.score-3) {
+    background: #dc3545;
+    color: white;
+}
+
+.medicion-riesgo {
+    flex: 0 0 auto;
+}
+
+.riesgo-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+}
+
+.riesgo-badge.riesgo-blanco {
+    background: #eceeef;
+    color: #495057;
+    border-color: #ced4da;
+}
+
+.riesgo-badge.riesgo-verde {
+    background: #e6f6ea;
+    color: #1e7e34;
+    border-color: #a9dfb4;
+}
+
+.riesgo-badge.riesgo-amarillo {
+    background: #fff6dd;
+    color: #8a6400;
+    border-color: #ffe08a;
+}
+
+.riesgo-badge.riesgo-rojo {
+    background: #fdecec;
+    color: #a71d2a;
+    border-color: #f3b6bb;
+}
+
+/* ============================================================================
+   VALORES DE PARÁMETROS
+   ============================================================================ */
+
+.medicion-valores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+}
+
+.valor-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    border-left: 3px solid #dee2e6;
+    transition: box-shadow 0.15s ease;
+}
+
+.valor-item:hover {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Colores según el score */
+.valor-item.item-score-0 { border-left-color: #ced4da; }
+.valor-item.item-score-1 { border-left-color: #28a745; background: #f1faf3; }
+.valor-item.item-score-2 { border-left-color: #ff9800; background: #fff7ec; }
+.valor-item.item-score-3 { border-left-color: #dc3545; background: #fdf1f2; }
+
+.valor-label {
+    font-weight: 700;
+    color: #495057;
+    font-size: 0.76rem;
+}
+
+.valor-number {
+    font-weight: 700;
+    color: #212529;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.valor-unit {
+    font-size: 0.7rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.valor-score {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 19px;
+    height: 19px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.68rem;
+    margin-left: auto;
+}
+
+.valor-score.score-0 {
+    background: #ffffff;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.valor-score.score-1 { background: #28a745; color: white; }
+.valor-score.score-2 { background: #ff9800; color: white; }
+.valor-score.score-3 { background: #dc3545; color: white; }
+
+/* ============================================================================
+   MENSAJE DE CONDUCTA
+   ============================================================================ */
+
+.medicion-mensaje {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 8px 12px;
+    background: #f4f7ff;
+    border-radius: 8px;
+    border: 1px solid #c9d6f5;
+    border-left: 3px solid #667eea;
+    margin-bottom: 0.6rem;
+}
+
+.mensaje-icon {
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+}
+
+.mensaje-text {
+    color: #495057;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    font-weight: 500;
+}
+
+/* Colores según el riesgo */
+.medicion-mensaje.riesgo-blanco {
+    background: #f4f5f6;
+    border-color: #cfd4d8;
+    border-left-color: #6c757d;
+}
+
+.medicion-mensaje.riesgo-verde {
+    background: #eefaf0;
+    border-color: #a9dfb4;
+    border-left-color: #28a745;
+}
+.medicion-mensaje.riesgo-verde .mensaje-text { color: #155724; }
+
+.medicion-mensaje.riesgo-amarillo {
+    background: #fffaea;
+    border-color: #ffe08a;
+    border-left-color: #ffc107;
+}
+.medicion-mensaje.riesgo-amarillo .mensaje-text { color: #856404; }
+
+.medicion-mensaje.riesgo-rojo {
+    background: #fdf1f2;
+    border-color: #f3b6bb;
+    border-left-color: #dc3545;
+}
+.medicion-mensaje.riesgo-rojo .mensaje-text { color: #721c24; font-weight: 600; }
+
+/* ============================================================================
+   ACCIONES
+   ============================================================================ */
+
+.medicion-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.4rem;
+    border-top: 1px solid #f1f3f5;
+}
+
+.btn-detalle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 5px 12px;
+    background: #667eea;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.78rem;
+    transition: background 0.15s ease;
+}
+
+.btn-detalle:hover {
+    background: #5a67d8;
+}
+
+/* ============================================================================
+   ESTADO VACÍO
+   ============================================================================ */
+
+.empty-state {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px dashed #dee2e6;
+}
+
+.empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+}
+
+.empty-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #212529;
+    margin-bottom: 0.4rem;
+}
+
+.empty-text {
+    font-size: 0.88rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+/* ============================================================================
+   SECCIÓN DE ACCIONES
+   ============================================================================ */
+
+.acciones-section {
+    background: #ffffff;
+    border-top: 1px solid #e9ecef;
+}
+
+.acciones-buttons {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 9px 20px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    box-shadow: 0 3px 8px rgba(108, 117, 125, 0.3);
+}
+
+.btn-icon {
+    font-size: 0.95rem;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .timeline-section {
+        padding: 1rem 0.85rem;
+        border-radius: 10px;
+        margin: 0.75rem 0;
+    }
+
+    .timeline-section .section-title {
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .timeline-container {
+        padding-left: 20px;
+    }
+
+    .timeline-dot {
+        left: -18px;
+        width: 9px;
+        height: 9px;
+    }
+
+    .timeline-line {
+        left: -14px;
+    }
+
+    .medicion-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .medicion-time {
+        width: 100%;
+    }
+
+    .medicion-score {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .medicion-riesgo {
+        width: 100%;
+    }
+
+    .riesgo-badge {
+        width: 100%;
+        text-align: center;
+    }
+
+    .medicion-valores {
+        flex-direction: column;
+    }
+
+    .valor-item {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .acciones-buttons {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ============================================================================
+   CUADRÍCULA CLÍNICA (reemplaza la línea de tiempo de cards)
+   Una fila por cada banda de valores posibles de cada parámetro —coloreada
+   según el puntaje configurado en RangoParametro— y una columna por cada
+   medición registrada, marcando la celda del valor realmente tomado.
+   ============================================================================ */
+
+.grid-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.6rem;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    font-size: 1.02rem;
+    color: #334155;
+}
+
+.grid-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.grid-legend-swatch {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.grid-legend-swatch.score-0 { background: #f1f5f9; }
+.grid-legend-swatch.score-1 { background: #22c55e; }
+.grid-legend-swatch.score-2 { background: #eab308; }
+.grid-legend-swatch.score-3 { background: #ef4444; }
+
+.grid-legend-marca {
+    color: #1e293b;
+    font-weight: 900;
+    font-size: 1.2rem;
+}
+
+.grid-legend-item strong {
+    color: #1e293b;
+    font-weight: 800;
+}
+
+/* ============================================================================
+   BOTÓN Y MODAL: GUÍA DE REFERENCIA MEOWS
+   Reproduce la tabla oficial de parámetros/puntajes y el cuadro de respuesta,
+   para consulta rápida sin salir de la línea de tiempo clínica.
+   ============================================================================ */
+
+.btn-meows-referencia {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: auto;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: #64748b;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border: 1px solid #64748b;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(100, 116, 139, 0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-meows-referencia:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 12px rgba(100, 116, 139, 0.4);
+}
+
+.meows-referencia-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    z-index: 3000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.meows-referencia-overlay.show { display: flex; }
+
+.meows-referencia-modal {
+    background: #fff;
+    border-radius: 16px;
+    max-width: 980px;
+    width: 100%;
+    max-height: 92vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+}
+
+.meows-referencia-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: #64748b;
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+}
+
+.meows-referencia-close {
+    cursor: pointer;
+    font-size: 1.6rem;
+    line-height: 1;
+    opacity: 0.85;
+}
+
+.meows-referencia-close:hover { opacity: 1; }
+
+.meows-referencia-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.meows-referencia-intro {
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 10px;
+    padding: 0.85rem 1.1rem;
+    font-size: 0.85rem;
+    color: #334155;
+    text-align: center;
+    margin: 0 0 1rem;
+    line-height: 1.5;
+}
+
+.meows-referencia-scroll {
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+.meows-referencia-table,
+.meows-referencia-respuesta-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.78rem;
+}
+
+.meows-referencia-table th,
+.meows-referencia-table td {
+    border: 1px solid #cbd5e1;
+    padding: 8px 10px;
+    text-align: center;
+}
+
+.ref-th-parametro {
+    background: #64748b;
+    color: #fff;
+    min-width: 150px;
+}
+
+.ref-th-score {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 900;
+    min-width: 70px;
+}
+
+.ref-th-score.score-3 { background: #ef4444; }
+.ref-th-score.score-2 { background: #eab308; }
+.ref-th-score.score-1 { background: #22c55e; }
+.ref-th-score.score-0 { background: #94a3b8; }
+
+.ref-td-parametro {
+    background: #f1f5f9;
+    font-weight: 700;
+    text-align: left;
+    color: #1e293b;
+}
+
+.ref-unidad {
+    font-weight: 500;
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+.meows-referencia-table td.score-3 { background: #fca5a5; color: #7f1d1d; font-weight: 700; }
+.meows-referencia-table td.score-2 { background: #fcd34d; color: #78350f; font-weight: 700; }
+.meows-referencia-table td.score-1 { background: #86efac; color: #14532d; font-weight: 700; }
+.meows-referencia-table td.score-0 { background: #eef1f5; color: #475569; font-weight: 700; }
+
+.meows-referencia-respuesta-table th,
+.meows-referencia-respuesta-table td {
+    border: 1px solid #cbd5e1;
+    padding: 12px 14px;
+    vertical-align: top;
+}
+
+.meows-referencia-respuesta-table thead th {
+    background: #64748b;
+    color: #fff;
+    text-align: center;
+    font-size: 0.82rem;
+}
+
+.ref-puntuacion {
+    text-align: center;
+    font-weight: 800;
+    width: 220px;
+}
+
+.riesgo-fila-blanco td { background: #f1f5f9; color: #334155; }
+.riesgo-fila-verde td { background: #86efac; color: #14532d; }
+.riesgo-fila-amarillo td { background: #fde68a; color: #78350f; }
+.riesgo-fila-rojo td { background: #fca5a5; color: #7f1d1d; }
+
+.riesgo-fila-blanco .ref-puntuacion { background: #cbd5e1; }
+.riesgo-fila-verde .ref-puntuacion { background: #4ade80; }
+.riesgo-fila-amarillo .ref-puntuacion { background: #fcd34d; }
+.riesgo-fila-rojo .ref-puntuacion { background: #f87171; }
+
+.meows-referencia-recuerde {
+    border: 2px solid #ef4444;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fef2f2;
+}
+
+.meows-referencia-recuerde strong {
+    display: block;
+    background: #ef4444;
+    color: #fff;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+}
+
+.meows-referencia-recuerde p {
+    margin: 0;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    color: #7f1d1d;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.meows-grid-scroll {
+    overflow-x: auto;
+    border: 1px solid #e2e5e9;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06),
+                0 16px 32px rgba(67, 56, 202, 0.1);
+    margin: 0.25rem 0 1.5rem;
+}
+
+.meows-grid-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    min-width: 640px;
+    font-size: 0.78rem;
+}
+
+.meows-grid-table th,
+.meows-grid-table td {
+    border-right: 1px solid #e9ecef;
+    border-bottom: 1px solid #e9ecef;
+    padding: 11px 14px;
+    text-align: center;
+}
+
+.grid-th-parametro,
+.grid-td-parametro {
+    position: sticky;
+    left: 0;
+    width: 175px;
+    min-width: 175px;
+    max-width: 175px;
+    background: #ffffff;
+    z-index: 3;
+    text-align: left;
+    white-space: normal;
+    font-weight: 700;
+    color: #1e293b;
+    padding-left: 16px;
+}
+
+.grid-unidad {
+    display: block;
+    font-size: 0.66rem;
+    font-weight: 500;
+    color: #94a3b8;
+}
+
+.grid-th-fila,
+.grid-td-fila {
+    position: sticky;
+    left: 175px;
+    width: 68px;
+    min-width: 68px;
+    max-width: 68px;
+    background: #f8f9fc;
+    z-index: 2;
+    font-weight: 800;
+    color: #475569;
+    white-space: nowrap;
+    box-shadow: 3px 0 8px -3px rgba(15, 23, 42, 0.15);
+}
+
+.grid-th-parametro,
+.grid-th-fila {
+    background: #64748b;
+    color: #ffffff;
+    z-index: 4;
+}
+
+.grid-th-tiempo,
+.grid-th-columna {
+    background: #64748b;
+    color: #ffffff;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.meows-grid-table thead th {
+    padding-top: 11px;
+    padding-bottom: 11px;
+    border-right-color: rgba(255, 255, 255, 0.18);
+    border-bottom-color: rgba(255, 255, 255, 0.18);
+}
+
+.grid-th-columna {
+    min-width: 70px;
+}
+
+/* Columna lateral de puntaje: repite en números el mismo puntaje que
+   representa el color de la fila, para que quede explícito sin adivinar.
+   Angosta (no necesita ser ancha) y visualmente separada del resto de la
+   tabla con un borde/sombra propios, como si fuera una franja aparte. */
+.grid-th-puntaje {
+    background: #64748b;
+    color: #ffffff;
+    width: 56px;
+    min-width: 56px;
+    max-width: 56px;
+    border-left: 4px solid #475569;
+    box-shadow: -6px 0 12px -6px rgba(15, 23, 42, 0.35);
+}
+
+.grid-td-puntaje {
+    width: 56px;
+    min-width: 56px;
+    max-width: 56px;
+    font-size: 0.95rem;
+    font-weight: 900;
+    text-align: center;
+    border-left: 4px solid #ffffff;
+    box-shadow: -6px 0 12px -6px rgba(15, 23, 42, 0.25);
+}
+
+.grid-td-puntaje.score-0 { background: #e2e8f0; color: #475569; }
+.grid-td-puntaje.score-1 { background: #16a34a; color: #ffffff; }
+.grid-td-puntaje.score-2 { background: #ca8a04; color: #ffffff; }
+.grid-td-puntaje.score-3 { background: #dc2626; color: #ffffff; }
+
+.col-fecha,
+.col-hora {
+    display: block;
+}
+
+.col-fecha {
+    font-size: 0.64rem;
+    opacity: 0.85;
+}
+
+.col-hora {
+    font-weight: 800;
+    font-size: 0.85rem;
+}
+
+.grid-td-celda {
+    min-width: 70px;
+    white-space: nowrap;
+    transition: filter 0.15s ease;
+}
+
+/* Bandas de referencia: color con presencia real (no un pastel casi
+   invisible), pero un escalón por debajo de la celda marcada para que el
+   dato real siga siendo lo primero que salta a la vista. */
+.grid-td-celda.score-0 { background: #eef1f5; color: #64748b; }
+.grid-td-celda.score-1 { background: #86efac; color: #14532d; font-weight: 700; }
+.grid-td-celda.score-2 { background: #fcd34d; color: #78350f; font-weight: 700; }
+.grid-td-celda.score-3 { background: #fca5a5; color: #7f1d1d; font-weight: 700; }
+
+.meows-grid-table tbody tr:hover .grid-td-celda:not(.celda-marcada) {
+    filter: brightness(0.96);
+}
+
+/* Celda con el valor realmente tomado: esquinas redondeadas + sombra propia,
+   para que se lea como una "ficha" resaltada y no solo un rectángulo más. */
+.grid-td-celda.celda-marcada {
+    position: relative;
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7),
+                0 3px 8px rgba(15, 23, 42, 0.22);
+}
+.grid-td-celda.score-0.celda-marcada {
+    background: #e2e8f0;
+    color: #1e293b;
+    font-weight: 700;
+    box-shadow: inset 0 0 0 2px #64748b,
+                0 2px 6px rgba(15, 23, 42, 0.12);
+}
+.grid-td-celda.score-1.celda-marcada { background: #16a34a; color: #ffffff; font-weight: 700; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.7), 0 3px 10px rgba(22, 163, 74, 0.45); }
+.grid-td-celda.score-2.celda-marcada { background: #d97706; color: #ffffff; font-weight: 700; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.7), 0 3px 10px rgba(217, 119, 6, 0.45); }
+.grid-td-celda.score-3.celda-marcada { background: #dc2626; color: #ffffff; font-weight: 700; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.7), 0 3px 10px rgba(220, 38, 38, 0.45); }
+
+.grid-marca {
+    display: inline-block;
+    font-size: 1.15rem;
+    line-height: 1;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.grid-td-celda.score-0.celda-marcada .grid-marca {
+    color: #64748b;
+    text-shadow: none;
+}
+
+/* Divisor visual entre cada bloque de parámetro (Presión sistólica, Presión
+   diastólica, FC...), para que la tabla se lea como secciones ordenadas en
+   vez de 40 filas corridas sin jerarquía. */
+.meows-grid-table tbody tr:has(> .grid-td-parametro) td {
+    border-top: 3px solid #94a3b8;
+}
+
+.grid-row-total td {
+    background: #eef2ff;
+    font-weight: 700;
+    border-top: 3px solid #64748b;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.grid-td-total-label {
+    position: sticky;
+    left: 0;
+    background: #eef2ff;
+    z-index: 3;
+    text-align: left;
+    padding-left: 16px;
+    font-size: 0.82rem;
+    letter-spacing: 0.01em;
+}
+
+.grid-total-link {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-decoration: none;
+    color: #475569;
+    background: #eef0f2;
+    border: 1px solid #dde1e6;
+    border-radius: 999px;
+    padding: 6px 16px;
+    position: relative;
+    z-index: 4;
+    transition: transform 0.15s ease;
+}
+
+.grid-total-link:hover {
+    transform: translateY(-2px);
+}
+
+.grid-total-link strong {
+    font-size: 1.15rem;
+    font-weight: 900;
+}
+
+.grid-total-riesgo {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 800;
+}
+
+/* El <td> ya no se pinta completo: solo el "botón" (.grid-total-link) que
+   envuelve el resultado toma el color de riesgo, como una insignia. */
+.grid-td-total.riesgo-bg-blanco .grid-total-link { background: #94a3b8; border-color: #94a3b8; color: #ffffff; }
+.grid-td-total.riesgo-bg-verde .grid-total-link { background: #22c55e; border-color: #22c55e; color: #ffffff; }
+.grid-td-total.riesgo-bg-amarillo .grid-total-link { background: #eab308; border-color: #eab308; color: #ffffff; }
+.grid-td-total.riesgo-bg-rojo .grid-total-link { background: #ef4444; border-color: #ef4444; color: #ffffff; }
+
+/* Botón palpitante: la velocidad del latido sube con el riesgo
+   (blanco/verde calmos, rojo el más rápido), como un monitor de signos vitales. */
+.grid-td-total.riesgo-bg-blanco .grid-total-link { animation: total-heartbeat-blanco 2.2s ease-in-out infinite; }
+.grid-td-total.riesgo-bg-verde .grid-total-link { animation: total-heartbeat-verde 2s ease-in-out infinite; }
+.grid-td-total.riesgo-bg-amarillo .grid-total-link { animation: total-heartbeat-amarillo 1.3s ease-in-out infinite; }
+.grid-td-total.riesgo-bg-rojo .grid-total-link { animation: total-heartbeat-rojo 0.85s ease-in-out infinite; }
+
+@keyframes total-heartbeat-blanco {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(148, 163, 184, 0.75); transform: scale(1); filter: brightness(1); }
+    50% { box-shadow: 0 0 0 16px rgba(148, 163, 184, 0); transform: scale(1.08); filter: brightness(1.18); }
+}
+@keyframes total-heartbeat-verde {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.75); transform: scale(1); filter: brightness(1); }
+    50% { box-shadow: 0 0 0 16px rgba(34, 197, 94, 0); transform: scale(1.08); filter: brightness(1.18); }
+}
+@keyframes total-heartbeat-amarillo {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.8); transform: scale(1); filter: brightness(1); }
+    50% { box-shadow: 0 0 0 18px rgba(234, 179, 8, 0); transform: scale(1.1); filter: brightness(1.22); }
+}
+@keyframes total-heartbeat-rojo {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.85); transform: scale(1); filter: brightness(1); }
+    50% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); transform: scale(1.12); filter: brightness(1.28); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .grid-td-total.riesgo-bg-blanco .grid-total-link,
+    .grid-td-total.riesgo-bg-verde .grid-total-link,
+    .grid-td-total.riesgo-bg-amarillo .grid-total-link,
+    .grid-td-total.riesgo-bg-rojo .grid-total-link {
+        animation: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .meows-grid-table {
+        font-size: 0.7rem;
+    }
+
+    .grid-th-parametro,
+    .grid-td-parametro {
+        width: 120px;
+        min-width: 120px;
+        max-width: 120px;
+    }
+
+    .grid-th-fila,
+    .grid-td-fila {
+        left: 120px;
+        width: 48px;
+        min-width: 48px;
+        max-width: 48px;
+    }
+}

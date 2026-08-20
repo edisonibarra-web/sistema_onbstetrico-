@@ -1,0 +1,142 @@
+{% extends "registros/formulario.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Captura de Huella del Pie del Bebé</h3>
+        </div>
+        <div class="card-body text-center">
+            <div class="row justify-content-center mb-3">
+                <div class="col-md-8">
+                    <div class="video-container border rounded bg-dark position-relative" style="min-height: 480px; display: flex; align-items: center; justify-content: center;">
+                        <video id="video" autoplay playsinline class="w-100 rounded" style="max-height: 500px;"></video>
+                        <canvas id="canvas" style="display:none;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3 mb-4">
+                <button class="btn btn-info btn-lg" onclick="capturarHuella('derecho')">
+                    <i class="fas fa-print"></i> Capturar Pie Derecho
+                </button>
+                <button class="btn btn-warning btn-lg" onclick="capturarHuella('izquierdo')">
+                    <i class="fas fa-print"></i> Capturar Pie Izquierdo
+                </button>
+            </div>
+
+            <div id="preview-container" class="row justify-content-center" style="display: none;">
+                <div class="col-md-4">
+                    <h5>Previsualización:</h5>
+                    <img id="preview-img" class="img-fluid border rounded shadow-sm" src="" alt="Previsualización">
+                    <p id="label-tipo" class="mt-2 font-weight-bold"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function iniciarCamara(){
+    const video = document.getElementById("video");
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video:{
+                facingMode:"environment",
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        });
+        video.srcObject = stream;
+    } catch (err) {
+        console.error("Error al acceder a la cámara: ", err);
+        alert("No se pudo acceder a la cámara. Por favor asegúrese de tener permisos y estar en una conexión segura (HTTPS).");
+    }
+}
+
+function capturarHuella(tipo){
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const previewImg = document.getElementById("preview-img");
+    const previewContainer = document.getElementById("preview-container");
+    const labelTipo = document.getElementById("label-tipo");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0);
+
+    const imagenBase64 = canvas.toDataURL("image/png");
+    
+    // Mostrar preview local
+    previewImg.src = imagenBase64;
+    previewContainer.style.display = "flex";
+    labelTipo.innerText = "Pie " + (tipo === 'derecho' ? 'Derecho' : 'Izquierdo');
+
+    // Preguntar antes de enviar
+    if(confirm("¿Desea guardar la captura del pie " + tipo + "?")){
+        enviarHuella(imagenBase64, tipo);
+    }
+}
+
+async function enviarHuella(imagen, tipo){
+    // Nota: El bebe_id debería venir de la sesión o context, aquí usamos 1 como ejemplo según tu solicitud
+    const bebe_id = 1; 
+
+    try {
+        const response = await fetch("/fetal/api/guardar-huella/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({
+                imagen: imagen,
+                tipo: tipo,
+                bebe_id: bebe_id
+            })
+        });
+
+        const result = await response.json();
+        if(result.ok){
+            alert("Huella del pie " + tipo + " guardada correctamente.");
+        } else {
+            alert("Error al guardar: " + result.error);
+        }
+    } catch (err) {
+        console.error("Error Ajax:", err);
+        alert("Error de conexión al servidor.");
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Iniciar cámara al cargar
+document.addEventListener("DOMContentLoaded", iniciarCamara);
+</script>
+
+<style>
+.video-container {
+    background-color: #000;
+    overflow: hidden;
+}
+#video {
+    object-fit: cover;
+}
+</style>
+{% endblock %}

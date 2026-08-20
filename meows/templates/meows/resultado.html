@@ -1,0 +1,147 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultado MEOWS - Sistema de Alerta Temprana Obstétrico</title>
+    <link rel="stylesheet" href="{% static 'css/meows-resultado.css' %}?v=20260707c">
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
+    <style>
+        /* Esta vista usa el shell de encabezado + sidebar a borde completo (.app-layout-sidebar);
+           el padding por defecto del body (definido en meows-resultado.css para páginas simples)
+           deja un espacio muerto en blanco alrededor del encabezado y el sidebar. Se anula aquí. */
+        body { margin: 0 !important; padding: 0 !important; }
+    </style>
+</head>
+<body>
+{% include 'obstetricia/header_formatos.html' with current_module='meows' documento=medicion.paciente.numero_documento modulo_titulo='Resultado de Evaluación MEOWS' modulo_subtitulo='Sistema de Alerta Temprana Obstétrico' %}
+<div class="app-layout-sidebar">
+    {% include 'obstetricia/sidebar.html' with is_panel=False atencion_id=atencion_id documento=documento current_module='meows' %}
+    <div class="sidebar-main-content">
+    <div class="container">
+        <!-- SECCIÓN: INFORMACIÓN DEL PACIENTE -->
+        <section class="section patient-section">
+            <h3 class="section-title">
+                <span class="icon">👤</span>
+                Información del Paciente
+            </h3>
+            <div class="patient-info-grid">
+                <div class="info-item">
+                    <label class="info-label">Nombre Completo</label>
+                    <div class="info-value">{{ medicion.paciente.nombres }} {{ medicion.paciente.apellidos }}</div>
+                </div>
+                <div class="info-item">
+                    <label class="info-label">Documento</label>
+                    <div class="info-value">{{ medicion.paciente.numero_documento }}</div>
+                </div>
+                <div class="info-item">
+                    <label class="info-label">Fecha de Ingreso</label>
+                    <div class="info-value">{% if medicion.paciente.fecha_ingreso %}{{ medicion.paciente.fecha_ingreso|date:"d/m/Y" }}{% else %}-{% endif %}</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: RESULTADO MEOWS -->
+        <section class="section resultado-section">
+            <h3 class="section-title">
+                <span class="icon">📊</span>
+                Evaluación MEOWS
+            </h3>
+            
+            <div class="resultado-card resultado-{{ medicion.meows_riesgo|lower }}">
+                <div class="resultado-header">
+                    <div class="resultado-badge riesgo-{{ medicion.meows_riesgo|lower }}">
+                        <span class="badge-dot" aria-hidden="true"></span>
+                        <span class="badge-text">{{ medicion.meows_riesgo }}</span>
+                    </div>
+                    <div class="resultado-score">
+                        <span class="score-label">Puntaje total MEOWS</span>
+                        <span class="score-value">{{ medicion.meows_total }}</span>
+                    </div>
+                </div>
+
+                <div class="resultado-body">
+                    <div class="resultado-mensaje">
+                        <h4 class="mensaje-title">Grado de respuesta recomendada</h4>
+                        <p class="mensaje-text">{{ medicion.meows_mensaje }}</p>
+                    </div>
+                    <div class="resultado-meta">
+                        <span class="meta-label">Fecha y hora de la medición</span>
+                        <strong class="meta-value">{{ medicion.fecha_hora|date:"d/m/Y H:i" }}</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: DETALLE DE PARÁMETROS -->
+        <section class="section detalle-section">
+            <h3 class="section-title">
+                <span class="icon">📋</span>
+                Detalle de Parámetros
+            </h3>
+            
+            <div class="parametros-table">
+                <div class="table-header">
+                    <div class="col-parametro">Parámetro</div>
+                    <div class="col-valor">Valor</div>
+                    <div class="col-puntaje">Puntaje</div>
+                    <div class="col-estado">Estado</div>
+                </div>
+                
+                <div class="table-body">
+                    {% for valor in valores %}
+                    <div class="table-row score-{{ valor.puntaje|default:0 }}">
+                        <div class="col-parametro">
+                            <span class="param-name">{{ valor.parametro.nombre }}</span>
+                            <span class="param-unit">({{ valor.parametro.unidad }})</span>
+                        </div>
+                        <div class="col-valor">
+                            <span class="valor-number">{{ valor.valor }}</span>
+                            <span class="valor-unit">{{ valor.parametro.unidad }}</span>
+                        </div>
+                        <div class="col-puntaje">
+                            {% if valor.puntaje is not None %}
+                                <span class="puntaje-badge score-{{ valor.puntaje }}">{{ valor.puntaje }}</span>
+                            {% else %}
+                                <span class="puntaje-badge score-none">-</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-estado">
+                            {% if valor.puntaje == 0 %}
+                                <span class="estado-badge estado-verde">Normal</span>
+                            {% elif valor.puntaje == 1 %}
+                                <span class="estado-badge estado-amarillo">Moderado</span>
+                            {% elif valor.puntaje == 2 %}
+                                <span class="estado-badge estado-naranja">Moderado-Alto</span>
+                            {% elif valor.puntaje == 3 %}
+                                <span class="estado-badge estado-rojo">Crítico</span>
+                            {% else %}
+                                <span class="estado-badge estado-none">-</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: ACCIONES -->
+        <section class="section acciones-section">
+            <div class="acciones-buttons">
+                <a href="{% url 'historial_meows' paciente_id=medicion.paciente.id %}" class="btn btn-info">
+                    <span class="btn-icon">📊</span>
+                    Ver Historial del Paciente
+                </a>
+                <a href="{% url 'crear_meows' paciente_id=medicion.paciente.id %}" class="btn btn-primary">
+                    <span class="btn-icon">➕</span>
+                    Nueva Medición
+                </a>
+            </div>
+        </section>
+    </div>
+    </div>
+</div>
+</body>
+</html>

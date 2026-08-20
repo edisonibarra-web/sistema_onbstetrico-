@@ -1,0 +1,194 @@
+{% comment %}
+Sidebar unificado - mismo diseño que el panel (detalle.html).
+Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|parto)
+{% endcomment %}
+<aside class="sidebar" id="app-sidebar">
+    <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle-btn" onclick="toggleSidebarCollapse()" title="Colapsar/expandir menú">
+        <i data-lucide="chevron-left" class="nav-icon" id="sidebar-toggle-icon"></i>
+    </button>
+
+    <!-- Navegación de Módulos -->
+    <!-- Navegación de Sistema -->
+    <div class="sidebar-module">
+        <div class="sidebar-module-header expanded" title="Inicio">
+            <div class="icon-container">
+                <i data-lucide="monitor" class="nav-icon"></i>
+            </div>
+            <div class="sidebar-module-info">
+                <div class="sidebar-module-title">Sistema</div>
+                <div class="sidebar-module-name">Inicio</div>
+            </div>
+        </div>
+        <div class="sidebar-module-dropdown expanded" style="margin-top: 0; padding-top: 0;">
+            <nav class="tabs">
+                <a href="/atencion/" class="tabs-link {% if is_dashboard %}active{% endif %}" title="Dashboard">
+                    <span class="tab-icon-badge badge-dashboard"><i data-lucide="layout-dashboard" class="nav-icon"></i></span> <span class="tabs-link-text">Dashboard</span>
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Navegación de Módulos Clínicos -->
+    <div class="sidebar-module">
+        {% if atencion_id %}
+        <a href="#" id="modulo-clinico-header" class="sidebar-module-header" style="text-decoration: none; color: inherit; cursor: pointer;" onclick="toggleModuloClinicoDropdown(event)" title="Sala de Partos">
+            <div class="icon-container">
+                <i data-lucide="layers" class="nav-icon"></i>
+            </div>
+            <div class="sidebar-module-info">
+                <div class="sidebar-module-title">Módulo</div>
+                <div class="sidebar-module-name">Sala de Partos</div>
+            </div>
+        </a>
+        <div id="modulo-clinico-dropdown" class="sidebar-module-dropdown" style="margin-top: 0; padding-top: 0;">
+            <nav class="tabs">
+                <a href="/meows/crear/{{ documento|urlencode }}/?atencion={{ atencion_id }}" class="tabs-link {% if current_module == 'meows' %}active{% endif %}" title="MEOWS">
+                    <span class="tab-icon-badge badge-meows"><i data-lucide="activity" class="nav-icon"></i></span> <span class="tabs-link-text">MEOWS</span>
+                </a>
+                <a href="/fetal/?doc={{ documento|urlencode }}&atencion={{ atencion_id }}" class="tabs-link {% if current_module == 'fetal' %}active{% endif %}" title="Frecuencia Fetal">
+                    <span class="tab-icon-badge badge-fetal"><i data-lucide="heart-pulse" class="nav-icon"></i></span> <span class="tabs-link-text">Frecuencia Fetal</span>
+                </a>
+                <a href="/parto/?doc={{ documento|urlencode }}&atencion={{ atencion_id }}" class="tabs-link {% if current_module == 'parto' %}active{% endif %}" title="Trabajo de Parto">
+                    <span class="tab-icon-badge badge-parto"><i data-lucide="clipboard-list" class="nav-icon"></i></span> <span class="tabs-link-text">Trabajo de Parto</span>
+                </a>
+            </nav>
+        </div>
+        {% else %}
+        <a href="/atencion/sala-de-partos/" id="link-sala-partos-plain" class="sidebar-module-header" style="text-decoration: none; color: inherit;" title="Sala de Partos" onclick="return mantenerContextoSalaPartos(event)">
+            <div class="icon-container">
+                <i data-lucide="layers" class="nav-icon"></i>
+            </div>
+            <div class="sidebar-module-info">
+                <div class="sidebar-module-title">Módulo</div>
+                <div class="sidebar-module-name">Sala de Partos</div>
+            </div>
+        </a>
+        <div class="sidebar-module-dropdown" style="display: none;">
+            <nav class="tabs">
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="sidebar-watermark" aria-hidden="true">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="sbWatermarkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#7dd3fc"/>
+                    <stop offset="100%" stop-color="#22d3ee"/>
+                </linearGradient>
+            </defs>
+            <circle cx="100" cy="100" r="94" fill="none" stroke="url(#sbWatermarkGrad)" stroke-width="1" opacity="0.4"/>
+            <circle cx="100" cy="100" r="74" fill="none" stroke="url(#sbWatermarkGrad)" stroke-width="1" opacity="0.55"/>
+            <path d="M100,152 C58,120 28,94 28,66 C28,44 46,28 67,28 C82,28 94,37 100,51 C106,37 118,28 133,28 C154,28 172,44 172,66 C172,94 142,120 100,152 Z"
+                  fill="url(#sbWatermarkGrad)" opacity="0.92"/>
+            <polyline points="36,100 62,100 72,78 88,122 102,58 113,100 164,100"
+                      fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+        </svg>
+    </div>
+
+    <!-- El módulo de consulta se ha movido a la vista Sala de Partos -->
+</aside>
+<script>
+    // Inicializar iconos de Lucide
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+
+    /**
+     * Si ya estamos en Sala de Partos con un paciente cargado (?num_identificacion=...
+     * en la URL), conserva ese contexto al hacer clic en "Sala de Partos" en vez de
+     * navegar a la página en blanco y perder al paciente que se estaba viendo.
+     */
+    function mantenerContextoSalaPartos(event) {
+        const qs = window.location.search;
+        if (qs && window.location.pathname.replace(/\/$/, '') === '/atencion/sala-de-partos') {
+            event.preventDefault();
+            window.location.href = '/atencion/sala-de-partos/' + qs;
+        }
+        return true;
+    }
+
+    /**
+     * Muestra/oculta el desplegable de módulos clínicos (MEOWS / Fetal / Parto)
+     * al hacer clic en "Sala de Partos". Solo existe cuando hay atencion_id.
+     */
+    function toggleModuloClinicoDropdown(event) {
+        event.preventDefault();
+        const sidebar = document.getElementById('app-sidebar');
+        if (sidebar && sidebar.classList.contains('collapsed')) return; // en modo icono no hay desplegable
+        const header = document.getElementById('modulo-clinico-header');
+        const dropdown = document.getElementById('modulo-clinico-dropdown');
+        if (header && dropdown) {
+            header.classList.toggle('expanded');
+            dropdown.classList.toggle('expanded');
+        }
+    }
+
+    /**
+     * Colapsa/expande el sidebar a un riel de solo íconos.
+     * Recuerda la preferencia del usuario entre sesiones (localStorage).
+     */
+    function toggleSidebarCollapse() {
+        const sidebar = document.getElementById('app-sidebar');
+        if (!sidebar) return;
+        const collapsed = sidebar.classList.toggle('collapsed');
+        try { localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0'); } catch (e) { /* ignore */ }
+        applySidebarToggleIcon(collapsed);
+        if (collapsed) {
+            // Cierra cualquier desplegable abierto para dejar un riel de íconos limpio
+            const header = document.getElementById('modulo-clinico-header');
+            const dropdown = document.getElementById('modulo-clinico-dropdown');
+            if (header) header.classList.remove('expanded');
+            if (dropdown) dropdown.classList.remove('expanded');
+        }
+    }
+
+    function applySidebarToggleIcon(collapsed) {
+        const icon = document.getElementById('sidebar-toggle-icon');
+        if (!icon) return;
+        icon.setAttribute('data-lucide', collapsed ? 'chevron-right' : 'chevron-left');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    (function restoreSidebarCollapseState() {
+        let saved = null;
+        try { saved = localStorage.getItem('sidebarCollapsed'); } catch (e) { /* ignore */ }
+        if (saved === '1') {
+            const sidebar = document.getElementById('app-sidebar');
+            if (sidebar) sidebar.classList.add('collapsed');
+            applySidebarToggleIcon(true);
+        }
+    })();
+
+    /**
+     * Función universal para consultar paciente desde el sidebar
+     * Funciona en todas las vistas del sistema.
+     */
+    async function consultarPacienteDesdeSidebar() {
+        const input = document.getElementById('cedula-consulta-sidebar');
+        if (!input) return;
+        
+        const cedula = input.value.trim();
+        if (!cedula) {
+            alert("Por favor ingrese una cédula.");
+            return;
+        }
+
+        try {
+            // Buscamos al paciente/atención
+            const response = await fetch(`/atencion/api/datos-paciente-unificado/?num_identificacion=${cedula}`);
+            const data = await response.json();
+
+            if (data.ok && data.atencion_id) {
+                // Redirigimos al panel de atención encontrado
+                window.location.href = `/atencion/${data.atencion_id}/`;
+            } else {
+                alert("Paciente no encontrado en el sistema.");
+            }
+        } catch (error) {
+            console.error("Error al consultar paciente:", error);
+            alert("Error de conexión al buscar paciente.");
+        }
+    }
+</script>

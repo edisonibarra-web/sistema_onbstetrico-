@@ -1,0 +1,138 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualización de Huella Biométrica</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0e7490;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #1e293b;
+            --secondary: #64748b;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .card {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        .header {
+            margin-bottom: 25px;
+        }
+        h1 {
+            font-size: 1.25rem;
+            margin: 0;
+            color: var(--primary);
+        }
+        p {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            margin: 5px 0 0;
+        }
+        .huella-container {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+        .huella-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .no-huella {
+            color: #ef4444;
+            font-weight: 600;
+        }
+        .info {
+            text-align: left;
+            font-size: 0.85rem;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .label {
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        .btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <h1>Huella Biométrica</h1>
+            <p>Registro de Captura del Sistema</p>
+        </div>
+
+        <div class="huella-container">
+            {% if huella and huella.imagen_huella %}
+                <img src="{{ huella.imagen_huella.url }}" alt="Huella de {{ huella.documento }}">
+            {% else %}
+                <div class="no-huella">No se encontró imagen de huella</div>
+            {% endif %}
+        </div>
+
+        {% if huella %}
+        <div class="info">
+            <div class="info-row">
+                <span class="label">Documento:</span>
+                <span>{{ huella.documento }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Fecha:</span>
+                <span>{{ huella.fecha|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Usuario:</span>
+                <span>{{ huella.usuario }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <a href="javascript:window.location.reload()" class="btn">Refrescar</a>
+    </div>
+</body>
+</html>
