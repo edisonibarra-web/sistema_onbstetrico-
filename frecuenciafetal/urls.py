@@ -4,7 +4,7 @@ from . import views
 from .views import (
     FormularioRegistroView,
     RegistroPartoViewSet, ControlFetocardiaViewSet,
-    ControlRecienNacidoViewSet, ControlPostpartoViewSet
+    ControlRecienNacidoViewSet, ControlPostpartoViewSet, ControlSangradoViewSet
 )
 
 # Router principal
@@ -16,6 +16,7 @@ registros_router = routers.NestedDefaultRouter(router, r'registros', lookup='reg
 registros_router.register(r'fetocardia', ControlFetocardiaViewSet, basename='fetocardia')
 registros_router.register(r'recien-nacido', ControlRecienNacidoViewSet, basename='recien-nacido')
 registros_router.register(r'postparto', ControlPostpartoViewSet, basename='postparto')
+registros_router.register(r'sangrado', ControlSangradoViewSet, basename='sangrado')
 
 urlpatterns = [
     path('', FormularioRegistroView.as_view(), name='home'),
@@ -41,3 +42,4 @@ urlpatterns = [
 # GET/POST   /api/registros/{id}/fetocardia/
 # GET/POST   /api/registros/{id}/recien-nacido/
 # GET/POST   /api/registros/{id}/postparto/
+# GET/POST/PUT/PATCH/DELETE /api/registros/{id}/sangrado/[{id}/]

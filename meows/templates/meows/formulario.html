@@ -87,13 +87,21 @@
         <section class="section parameters-section">
             <h3 class="section-title">
                 <span class="section-icon-badge"><i data-lucide="activity"></i></span>
-                Parámetros Vitales
+                {% if medicion %}Editar Medición MEOWS{% else %}Parámetros Vitales{% endif %}
             </h3>
+            {% if medicion %}
+            <p class="section-description" style="color:#b45309;font-weight:600;">
+                ✏️ Estás corrigiendo la medición del {{ medicion.fecha_hora|date:"d/m/Y H:i" }}. Al guardar se
+                actualizará este mismo registro (no se creará uno nuevo).
+            </p>
+            {% else %}
             <p class="section-description">Ingrese los valores clínicos. El sistema calculará automáticamente los
                 puntajes MEOWS.</p>
+            {% endif %}
 
             <form method="post" id="meows-form" class="meows-form">
                 {% csrf_token %}
+                <input type="hidden" name="medicion_id" value="{{ medicion.id|default:'' }}">
 
                 <!-- Campos del paciente incluidos en el formulario MEOWS -->
                 <input type="hidden" name="nombre_completo" id="hidden-nombre_completo">
@@ -111,7 +119,7 @@
                     <div class="info-item">
                         <label class="info-label" for="fecha_monitoreo">Fecha del Monitoreo *</label>
                         <input type="date" id="fecha_monitoreo" name="fecha_monitoreo" class="patient-input"
-                            value="{% now 'Y-m-d' %}" required>
+                            value="{% if medicion %}{{ medicion.fecha_hora|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}" required>
                     </div>
                     <div class="info-item">
                         <label class="info-label" for="hora_monitoreo_horas">Hora del Monitoreo *</label>
@@ -146,8 +154,8 @@
                                 class="parameter-input parameter-select" data-param="{{ parametro.codigo }}"
                                 data-unidad="{{ parametro.unidad }}">
                                 <option value="">seleccione</option>
-                                <option value="15">ALERTA (Glasgow = 15)</option>
-                                <option value="14">NO ALERTA (Glasgow &lt; 15)</option>
+                                <option value="15" {% if parametro.valor_actual == '15' %}selected{% endif %}>ALERTA (Glasgow = 15)</option>
+                                <option value="14" {% if parametro.valor_actual == '14' %}selected{% endif %}>NO ALERTA (Glasgow &lt; 15)</option>
                             </select>
                             <span class="input-unit">{{ parametro.unidad }}</span>
                             {% else %}
@@ -155,7 +163,7 @@
                                 class="parameter-input"
                                 step="{% if parametro.codigo == 'temp' %}0.1{% else %}1{% endif %}"
                                 placeholder="Ingrese valor" data-param="{{ parametro.codigo }}"
-                                data-unidad="{{ parametro.unidad }}">
+                                data-unidad="{{ parametro.unidad }}" value="{{ parametro.valor_actual|default:'' }}">
                             <span class="input-unit">{{ parametro.unidad }}</span>
                             {% endif %}
                         </div>
@@ -327,6 +335,10 @@
             nuevoTemplate: "{% url 'crear_meows' paciente_id=0 %}",
             resultadoTemplate: "{% url 'ver_meows' medicion_id=0 %}"
         };
+        {% if medicion %}
+        // Modo edición: preselecciona la hora ya guardada en vez de "ahora" (ver inicializarSelectorHoraMonitoreo en meows-form.js)
+        window.MEOWS_HORA_INICIAL = "{{ medicion.fecha_hora|time:'H:i' }}";
+        {% endif %}
     </script>
     <script src="{% static 'js/meows-form.js' %}?v=20260811e"></script>
     <script>

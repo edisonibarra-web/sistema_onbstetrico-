@@ -395,14 +395,25 @@ function inicializarSelectorHoraMonitoreo() {
     poblarSelectHorasMonitoreo();
     poblarSelectMinutosMonitoreo();
 
-    // Preseleccionar la hora actual como punto de partida práctico (el usuario ajusta si hace falta)
-    const ahora = new Date();
-    const horas24Actual = ahora.getHours();
+    // Punto de partida: la hora actual, salvo que se esté editando una
+    // medición existente (window.MEOWS_HORA_INICIAL, fijado por
+    // formulario.html en formato 24h "HH:MM"), en cuyo caso se preselecciona
+    // la hora ya guardada para poder corregirla.
+    let horas24Actual, minutosActual;
+    if (window.MEOWS_HORA_INICIAL) {
+        const [h, m] = window.MEOWS_HORA_INICIAL.split(':');
+        horas24Actual = parseInt(h, 10);
+        minutosActual = parseInt(m, 10);
+    } else {
+        const ahora = new Date();
+        horas24Actual = ahora.getHours();
+        minutosActual = ahora.getMinutes();
+    }
     let horas12Actual = horas24Actual % 12;
     if (horas12Actual === 0) horas12Actual = 12;
 
     horasSel.value = String(horas12Actual).padStart(2, '0');
-    minutosSel.value = String(ahora.getMinutes()).padStart(2, '0');
+    minutosSel.value = String(minutosActual).padStart(2, '0');
     periodoSel.value = horas24Actual >= 12 ? 'PM' : 'AM';
 
     actualizarHoraMonitoreoOculta();
@@ -1359,6 +1370,16 @@ async function inicializar() {
                 }
             }
         });
+    });
+
+    // Modo edición: los inputs ya vienen con "value" prellenado desde el
+    // servidor (formulario.html los rellena con los valores de la medición
+    // que se está corrigiendo), pero eso no dispara 'change' por sí solo, así
+    // que aquí se fuerza el recálculo de puntaje/resumen para cada uno.
+    document.querySelectorAll('.parameter-input').forEach(input => {
+        if (input.value !== '') {
+            input.dispatchEvent(new Event('change'));
+        }
     });
 
     // Botón limpiar

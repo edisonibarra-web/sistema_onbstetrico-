@@ -22,11 +22,26 @@ import time
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.http import JsonResponse
 from django.core.cache import cache
 from sistema_obstetrico.auth_utils import login_required_if_enabled
 
 logger = logging.getLogger(__name__)
+
+
+def _mas_reciente_con_archivo(queryset, campo):
+    """
+    Devuelve el registro más reciente (por -fecha) cuyo archivo en `campo`
+    exista realmente en el storage, saltando referencias huérfanas (filas
+    cuyo ImageField apunta a una ruta cuyo archivo físico ya no está,
+    p.ej. datos importados de otro entorno sin copiar el media completo).
+    """
+    for registro in queryset.order_by('-fecha'):
+        archivo = getattr(registro, campo)
+        if archivo and default_storage.exists(archivo.name):
+            return registro
+    return None
 
 
 @never_cache
@@ -1602,10 +1617,10 @@ class PacienteViewSet(viewsets.ModelViewSet):
                 # Buscar por ID (OID) o por Cédula (num_identificacion)
                 base_query = Q(paciente_id=str(paciente.id)) | Q(paciente_id=paciente.num_identificacion)
                 
-                # Obtener la captura más reciente que tenga huella
-                reg_huella = Huella.objects.filter(base_query).exclude(imagen='').order_by('-fecha').first()
-                # Obtener la captura más reciente que tenga firma
-                reg_firma = Huella.objects.filter(base_query).exclude(imagen_firma='').order_by('-fecha').first()
+                # Obtener la captura más reciente que tenga huella (con archivo real en disco)
+                reg_huella = _mas_reciente_con_archivo(Huella.objects.filter(base_query).exclude(imagen=''), 'imagen')
+                # Obtener la captura más reciente que tenga firma (con archivo real en disco)
+                reg_firma = _mas_reciente_con_archivo(Huella.objects.filter(base_query).exclude(imagen_firma=''), 'imagen_firma')
                 
                 if reg_huella or reg_firma:
                     huella_data = {
@@ -2089,8 +2104,8 @@ def vista_impresion_formulario(request, formulario_id):
     if ident.isdigit():
         query_biometria |= Q(paciente_id=str(int(ident)))
     
-    reg_huella = Huella.objects.filter(query_biometria).exclude(imagen__exact='').exclude(imagen__isnull=True).order_by('-fecha').first()
-    reg_firma = Huella.objects.filter(query_biometria).exclude(imagen_firma__exact='').exclude(imagen_firma__isnull=True).order_by('-fecha').first()
+    reg_huella = _mas_reciente_con_archivo(Huella.objects.filter(query_biometria).exclude(imagen__exact='').exclude(imagen__isnull=True), 'imagen')
+    reg_firma = _mas_reciente_con_archivo(Huella.objects.filter(query_biometria).exclude(imagen_firma__exact='').exclude(imagen_firma__isnull=True), 'imagen_firma')
     
     # Preparar URLs de logos y biometría (Absolutas)
     base_url = request.build_absolute_uri('/')[:-1]
@@ -2441,8 +2456,8 @@ def generar_pdf_paciente(request, paciente_id):
     if ident.isdigit():
         query_biometria |= Q(paciente_id=str(int(ident)))
         
-    reg_huella = Huella.objects.filter(query_biometria).exclude(imagen__exact='').exclude(imagen__isnull=True).order_by('-fecha').first()
-    reg_firma = Huella.objects.filter(query_biometria).exclude(imagen_firma__exact='').exclude(imagen_firma__isnull=True).order_by('-fecha').first()
+    reg_huella = _mas_reciente_con_archivo(Huella.objects.filter(query_biometria).exclude(imagen__exact='').exclude(imagen__isnull=True), 'imagen')
+    reg_firma = _mas_reciente_con_archivo(Huella.objects.filter(query_biometria).exclude(imagen_firma__exact='').exclude(imagen_firma__isnull=True), 'imagen_firma')
     
     if reg_huella or reg_firma:
         y -= 20
@@ -2544,8 +2559,8 @@ def consulta_huella(request, paciente_id):
             
         # Consolidar la huella más reciente y la firma más reciente
         # (pueden venir en registros diferentes o en el mismo)
-        reg_huella = Huella.objects.filter(query).exclude(imagen='').order_by('-fecha').first()
-        reg_firma = Huella.objects.filter(query).exclude(imagen_firma='').order_by('-fecha').first()
+        reg_huella = _mas_reciente_con_archivo(Huella.objects.filter(query).exclude(imagen=''), 'imagen')
+        reg_firma = _mas_reciente_con_archivo(Huella.objects.filter(query).exclude(imagen_firma=''), 'imagen_firma')
         
         if reg_huella or reg_firma:
             data = {

@@ -606,6 +606,98 @@
       font-size: 0.85rem;
     }
 
+    .btn-pp-trace {
+      background: linear-gradient(135deg, #0ea5a4 0%, #0c6b7d 100%);
+    }
+
+    .btn-pp-trace:hover {
+      background: linear-gradient(135deg, #0c9291 0%, #0a5a69 100%);
+    }
+
+    .fc-trace-empty {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .fc-trace-svg-wrap {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      overflow-x: auto;
+    }
+
+    .fc-trace-svg-wrap svg {
+      display: block;
+      min-width: 100%;
+    }
+
+    .fc-trace-legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+
+    .fc-trace-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .fc-trace-legend .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .fc-trace-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    .fc-trace-table th {
+      background: #f1f5f9;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .fc-trace-table td {
+      padding: 0.45rem 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .fc-trace-table .fc-trace-badge {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .fc-trace-badge.normal {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .fc-trace-badge.anormal {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
     .btn-add-row {
       margin-top: 12px;
       background: linear-gradient(135deg, #ccfbf1, #99f6e4);
@@ -700,16 +792,16 @@
       border: 2px solid transparent;
       border-radius: 8px;
       cursor: pointer;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
       color: white;
       transition: all 0.2s ease;
-      box-shadow: 0 2px 6px rgba(14, 116, 144, 0.25);
+      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
     }
 
     .btn-pp-quick:hover {
-      background: linear-gradient(135deg, #5f56d8 0%, #6c4f9d 100%);
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(14, 116, 144, 0.35);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
     }
 
     .btn-pp-quick:active {
@@ -717,7 +809,7 @@
     }
 
     .btn-pp-quick:focus-visible {
-      outline: 2px solid #667eea;
+      outline: 2px solid #ef4444;
       outline-offset: 2px;
     }
 
@@ -802,14 +894,35 @@
       vertical-align: middle;
     }
 
+    /* Valores ya guardados: siguen siendo editables (para poder corregir un
+       error de digitación), solo se marcan con un tinte distinto para que se
+       note que ya están persistidos y no son una fila nueva sin guardar. */
     .pp-table td input[data-pp-saved="1"],
-    .pp-table td select[data-pp-saved="1"],
+    .pp-table td select[data-pp-saved="1"] {
+      background: #f0f9ff;
+      border-color: #bae6fd;
+    }
+
+    .pp-table td input[data-pp-saved="1"]:focus,
+    .pp-table td select[data-pp-saved="1"]:focus {
+      background: #ffffff;
+    }
+
     .pp-table td input.pp-input:disabled,
     .pp-table td select.pp-input:disabled {
       background: #f1f5f9;
       color: var(--text-secondary);
       cursor: not-allowed;
       border-color: #e2e8f0;
+    }
+
+    .fc-row-guardada input {
+      background: #f0f9ff;
+      border-color: #bae6fd;
+    }
+
+    .fc-row-guardada input:focus {
+      background: #ffffff;
     }
 
     .huella-section-label {
@@ -881,6 +994,16 @@
       font-size: 1rem;
     }
 
+    #submit-btn {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 10px rgba(220, 38, 38, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    }
+
+    #submit-btn:hover {
+      box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4) !important;
+    }
+
     .btn:disabled {
       opacity: 0.55;
       cursor: not-allowed;
@@ -944,6 +1067,46 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+    }
+
+    .btn-vista-previa-fija {
+      position: fixed;
+      top: 158px;
+      right: 32px;
+      z-index: 150;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-vista-previa-fija:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      box-shadow: 0 10px 22px rgba(220, 38, 38, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-vista-previa-fija i {
+      width: 16px;
+      height: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .btn-vista-previa-fija {
+        top: 128px;
+        right: 16px;
+        padding: 8px 14px;
+        font-size: 0.8rem;
+      }
     }
 
     .toast {
@@ -1241,11 +1404,15 @@
 
     .sangrado-modal {
       max-width: 1240px;
+      border-radius: 20px;
     }
 
     .sangrado-modal .preview-modal-header {
-      padding: 1.25rem 2rem;
+      padding: 1.35rem 2rem;
       font-size: 1.1rem;
+      background: linear-gradient(135deg, var(--success-color) 0%, var(--success-dark) 55%, #065f46 100%);
+      position: relative;
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.12);
     }
 
     .sangrado-modal-header {
@@ -1256,27 +1423,35 @@
     .sangrado-modal-header-title {
       flex: 1 1 auto;
       min-width: 220px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.05rem;
+      letter-spacing: 0.01em;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
     .sangrado-modal .preview-modal-body {
       padding: 1.75rem 2rem;
+      background: #fbfcfe;
     }
 
     .sangrado-hora-manual-row {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 14px;
-      background: rgba(255, 255, 255, 0.16);
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      border-radius: 10px;
+      padding: 7px 14px 7px 16px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 30px;
+      backdrop-filter: blur(2px);
     }
 
     .sangrado-hora-manual-row label {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 700;
       color: #fff;
       white-space: nowrap;
@@ -1285,134 +1460,299 @@
     .sangrado-hora-manual-row label i {
       width: 15px;
       height: 15px;
+      opacity: 0.9;
     }
 
     .sangrado-hora-manual-row input {
-      width: 120px;
-      padding: 5px 9px;
+      width: 112px;
+      padding: 5px 10px;
       font-size: 0.85rem;
       font-weight: 700;
       background: #fff;
       border: none;
+      border-radius: 20px;
+      color: var(--success-dark);
     }
 
     .sangrado-modal-intro {
-      margin-bottom: 20px;
-      color: var(--text-secondary);
-      font-size: 0.9rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 22px;
+      color: #7a4a1f;
+      font-size: 0.86rem;
       line-height: 1.6;
-      padding: 12px 16px;
-      background: #f8fafc;
-      border-left: 3px solid var(--danger-color);
-      border-radius: 6px;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, #fff7ed 0%, #fef3e2 100%);
+      border: 1px solid #fde7c6;
+      border-radius: 12px;
+    }
+
+    .sangrado-modal-intro::before {
+      content: '💡';
+      font-size: 1.1rem;
+      line-height: 1;
+      flex: none;
+      margin-top: 1px;
     }
 
     .sangrado-modal-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 22px;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 18px;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid #f1f5f9;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
     }
 
+    /* Cada material se pinta como las tarjetas de categoría de Trabajo de
+       Parto (fondo gris degradado + borde y estados de "diligenciado" con
+       color de acento), para que el sistema se vea coherente entre módulos. */
     .sangrado-item-card {
+      --accent: #10b981;
+      --accent-bg: #ecfdf5;
+      --accent-dark: #065f46;
+      --accent-shadow: rgba(16, 185, 129, 0.16);
+      position: relative;
       display: flex;
-      gap: 16px;
-      align-items: flex-start;
-      background: #fff;
-      border: 1px solid var(--border-color);
-      border-radius: 18px;
-      padding: 22px;
+      flex-direction: column;
+      border-radius: 14px;
+      border: 2px solid var(--accent);
+      background: linear-gradient(135deg, #b0b6bd 0%, #e2e6ea 45%, #ced3d9 100%);
+      overflow: hidden;
       box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-      transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
     }
 
     .sangrado-item-card:hover {
-      box-shadow: 0 10px 24px rgba(220, 38, 38, 0.12);
-      border-color: rgba(220, 38, 38, 0.3);
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14);
       transform: translateY(-2px);
     }
 
-    .sangrado-item-icon {
-      width: 60px;
-      height: 60px;
-      min-width: 60px;
-      border-radius: 16px;
-      background: linear-gradient(145deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+    .sangrado-item-title {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.9rem;
-      box-shadow: 0 4px 10px rgba(220, 38, 38, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      gap: 6px;
+      background: #64748b;
+      color: #fff;
+      margin: 0;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-align: center;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      line-height: 1.3;
+    }
+
+    .sangrado-item-title-icon {
+      font-size: 1.3em;
+      line-height: 1;
+      display: inline-flex;
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+    }
+
+    .sangrado-item-title-icon svg {
+      width: 20px;
+      height: 20px;
+      display: block;
     }
 
     .sangrado-item-body {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .sangrado-item-title {
-      font-weight: 800;
-      font-size: 1rem;
-      color: var(--text-primary);
-      margin-bottom: 10px;
-      letter-spacing: 0.01em;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-grow: 1;
     }
 
     .sangrado-item-basal {
-      display: inline-block;
+      align-self: center;
       font-style: normal;
-      font-size: 0.76rem;
+      font-size: 0.66rem;
       font-weight: 700;
       color: #475569;
-      background: #f1f5f9;
-      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(100, 116, 139, 0.25);
       border-radius: 20px;
-      padding: 4px 12px;
-      margin-bottom: 12px;
+      padding: 3px 10px;
       letter-spacing: 0.02em;
+    }
+
+    /* "Fila" de captura: es el equivalente a un .btn-parametro individual —
+       blanca en reposo, y con el color de --accent cuando ya tiene datos. */
+    .sangrado-item-row {
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+      transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .sangrado-item-row:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-shadow);
+    }
+
+    .sangrado-item-row-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sangrado-item-dot {
+      width: 8px;
+      height: 8px;
+      min-width: 8px;
+      border-radius: 50%;
+      background-color: #cbd5e1;
+      transition: background-color 0.15s ease;
     }
 
     .sangrado-item-input-label {
       display: block;
-      font-size: 0.72rem;
+      font-size: 0.6rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
       color: #94a3b8;
-      margin-bottom: 6px;
+      margin-bottom: 3px;
     }
 
     .sangrado-item-fields {
       display: flex;
-      gap: 12px;
-      margin-bottom: 12px;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
     }
 
     .sangrado-item-field {
-      flex: 1;
       min-width: 0;
+    }
+
+    .sangrado-item-field:has(.sangrado-item-cantidad) {
+      flex: 0 0 54px;
+    }
+
+    .sangrado-item-field:has(.sangrado-item-input) {
+      flex: 1;
     }
 
     .sangrado-item-cantidad,
     .sangrado-item-input {
       width: 100%;
-      padding: 9px 12px;
-      font-size: 0.92rem;
-      font-weight: 600;
+      padding: 6px 8px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #334155;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+    }
+
+    .sangrado-item-cantidad:focus,
+    .sangrado-item-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: #fff;
     }
 
     .sangrado-item-result-row {
-      display: flex;
-      justify-content: flex-end;
+      margin-top: 8px;
     }
 
     .sangrado-item-result {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 5px 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-style: italic;
+      color: #94a3b8;
+      transition: color 0.15s ease;
+    }
+
+    /* Estado "diligenciado" — mismo lenguaje visual que .btn-parametro.tiene-datos:
+       borde y franja izquierda de --accent, fondo --accent-bg y valor resaltado
+       con marca de verificación. */
+    .sangrado-item-row.has-value {
+      border-color: var(--accent);
+      border-left: 4px solid var(--accent);
+      background: var(--accent-bg);
+      box-shadow: 0 2px 8px var(--accent-shadow);
+    }
+
+    .sangrado-item-row.has-value .sangrado-item-dot {
+      background-color: var(--accent);
+    }
+
+    .sangrado-item-row.has-value .sangrado-item-result {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-style: normal;
       font-weight: 800;
-      font-size: 0.9rem;
-      color: var(--danger-dark);
-      background: rgba(220, 38, 38, 0.08);
-      border-radius: 20px;
-      padding: 6px 14px;
-      white-space: nowrap;
+      font-size: 0.92rem;
+      color: var(--accent-dark);
+      background: rgba(255, 255, 255, 0.65);
+      border-radius: 7px;
+      padding: 6px 10px;
+    }
+
+    .sangrado-item-row.has-value .sangrado-item-result::before {
+      content: '✓';
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.72em;
+      font-weight: 900;
+    }
+
+    /* Botón que abre el panel independiente de pesajes de pañal — evita que la
+       tarjeta crezca con cada pesaje agregado (antes se listaban ahí mismo). */
+    .sangrado-panal-open-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 7px 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #334155;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .sangrado-panal-open-btn:hover {
+      border-color: var(--accent);
+      background: #fff;
+    }
+
+    .sangrado-panal-count-badge {
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 800;
+      border-radius: 999px;
+      padding: 1px 7px;
+      min-width: 16px;
+      text-align: center;
     }
 
     .sangrado-panal-rows {
@@ -1420,24 +1760,33 @@
       flex-direction: column;
       gap: 8px;
       margin-bottom: 10px;
+      max-height: 340px;
+      overflow-y: auto;
+      padding-right: 4px;
     }
 
     .sangrado-panal-row {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       flex-wrap: wrap;
       background: #f8fafc;
-      border: 1px solid var(--border-color);
+      border: 1.5px solid var(--border-color);
       border-radius: 10px;
-      padding: 6px 8px;
+      padding: 7px 9px;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .sangrado-panal-row:focus-within {
+      border-color: var(--accent);
+      background: #fff;
     }
 
     .sangrado-panal-peso {
-      width: 78px;
-      padding: 5px 7px;
+      width: 82px;
+      padding: 5px 8px;
       font-size: 0.78rem;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .sangrado-panal-nuevo-label {
@@ -1452,7 +1801,7 @@
     }
 
     .sangrado-panal-nuevo-label input {
-      accent-color: var(--danger-color);
+      accent-color: var(--accent);
       width: 13px;
       height: 13px;
     }
@@ -1460,7 +1809,10 @@
     .sangrado-panal-cc {
       font-weight: 800;
       font-size: 0.75rem;
-      color: var(--danger-dark);
+      color: var(--accent-dark);
+      background: var(--accent-bg);
+      border-radius: 20px;
+      padding: 2px 9px;
       margin-left: auto;
       white-space: nowrap;
     }
@@ -1472,12 +1824,14 @@
     }
 
     .btn-panal-add {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 100%;
-      background: linear-gradient(135deg, #ccfbf1, #99f6e4);
-      border: 1.5px solid rgba(14, 116, 144, 0.4);
+      background: #fff;
+      border: 1.5px dashed rgba(14, 116, 144, 0.45);
       color: #0c6b7d;
-      padding: 6px 10px;
+      padding: 7px 10px;
       border-radius: 8px;
       cursor: pointer;
       font-size: 0.72rem;
@@ -1487,64 +1841,79 @@
     }
 
     .btn-panal-add:hover {
-      background: linear-gradient(135deg, #a7f3d0, #6ee7b7);
+      background: #ecfeff;
+      border-style: solid;
       transform: translateY(-1px);
     }
 
     .sangrado-modal-footer {
       justify-content: space-between !important;
       align-items: center;
-      padding: 1.15rem 1.75rem !important;
+      padding: 1.1rem 1.75rem !important;
       background: #f8fafc;
+      border-top: 1px solid var(--border-color);
+      gap: 16px;
     }
 
     .sangrado-modal-total-label {
-      font-weight: 800;
-      font-size: 1rem;
-      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
       display: flex;
-      flex-direction: column;
-      gap: 2px;
+      align-items: center;
+      gap: 14px;
     }
 
     .sangrado-modal-total-label #sangrado-modal-total {
-      color: var(--danger-dark);
-      font-size: 1.15rem;
+      color: var(--success-dark);
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-left: 4px;
     }
 
     .sangrado-modal-proximo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-size: 0.72rem;
       font-weight: 700;
       color: var(--text-secondary);
       text-transform: uppercase;
       letter-spacing: 0.03em;
+      padding-left: 14px;
+      border-left: 1px solid var(--border-color);
     }
 
     .sangrado-modal-proximo #sangrado-proximo-control {
       color: var(--warning-dark);
+      background: rgba(217, 119, 6, 0.1);
+      border-radius: 20px;
+      padding: 2px 9px;
+      font-size: 0.72rem;
     }
 
     .sangrado-modal-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-      border-bottom: 2px solid var(--border-color);
+      display: inline-flex;
+      gap: 3px;
+      margin-bottom: 18px;
+      background: #eef1f6;
+      border-radius: 12px;
+      padding: 4px;
     }
 
     .sangrado-tab-btn {
       background: none;
       border: none;
-      border-bottom: 3px solid transparent;
-      padding: 8px 4px 10px;
-      font-size: 0.85rem;
+      border-radius: 9px;
+      padding: 8px 16px;
+      font-size: 0.83rem;
       font-weight: 700;
       color: var(--text-secondary);
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
-      margin-bottom: -2px;
-      transition: color 0.15s ease, border-color 0.15s ease;
+      transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
     }
 
     .sangrado-tab-btn:hover {
@@ -1552,12 +1921,13 @@
     }
 
     .sangrado-tab-btn.active {
-      color: var(--danger-dark);
-      border-bottom-color: var(--danger-color);
+      color: var(--success-dark);
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
     }
 
     .sangrado-tab-badge {
-      background: var(--danger-color);
+      background: var(--success-color);
       color: #fff;
       font-size: 0.68rem;
       font-weight: 800;
@@ -1567,6 +1937,11 @@
       text-align: center;
     }
 
+    .sangrado-tab-btn:not(.active) .sangrado-tab-badge {
+      background: #cbd5e1;
+      color: #475569;
+    }
+
     .sangrado-registros-list {
       display: flex;
       flex-direction: column;
@@ -1574,40 +1949,94 @@
     }
 
     .sangrado-registro-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: auto auto auto 1fr auto;
       align-items: center;
       gap: 14px;
-      padding: 10px 14px;
+      padding: 12px 16px;
       background: #fff;
       border: 1px solid var(--border-color);
+      border-left: 3px solid var(--success-color);
       border-radius: 10px;
       box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
       font-size: 0.82rem;
-      flex-wrap: wrap;
+    }
+
+    .sangrado-registro-row:hover {
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+
+    .sangrado-registro-editando {
+      border-left-color: var(--warning-color, #d97706);
+      background: #fffbeb;
+    }
+
+    .sangrado-registro-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      justify-self: end;
+    }
+
+    .btn-icon-editar {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.95rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-icon-editar:hover {
+      background: #f1f5f9;
+    }
+
+    .btn-icon-guardar {
+      background: var(--success-color);
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .btn-icon-guardar:hover {
+      background: var(--success-dark);
+    }
+
+    .sangrado-edit-hora,
+    .sangrado-edit-cc {
+      padding: 5px 8px;
+      font-size: 0.8rem;
     }
 
     .sangrado-registro-min {
       font-weight: 800;
       color: var(--text-primary);
-      min-width: 60px;
+      min-width: 56px;
     }
 
     .sangrado-registro-hora {
       color: var(--text-secondary);
-      min-width: 55px;
+      min-width: 50px;
     }
 
     .sangrado-registro-cc {
       font-weight: 800;
-      color: var(--danger-dark);
-      background: rgba(220, 38, 38, 0.08);
+      color: var(--success-dark);
+      background: rgba(16, 185, 129, 0.08);
       border-radius: 20px;
       padding: 3px 10px;
       white-space: nowrap;
+      justify-self: start;
     }
 
     .sangrado-registro-acum {
-      margin-left: auto;
+      justify-self: end;
       color: var(--text-secondary);
       font-weight: 600;
       font-size: 0.78rem;
@@ -1617,8 +2046,11 @@
     .sangrado-registros-empty {
       text-align: center;
       color: var(--text-secondary);
-      padding: 30px 10px;
+      padding: 40px 10px;
       font-size: 0.85rem;
+      background: #f8fafc;
+      border: 1.5px dashed var(--border-color);
+      border-radius: 12px;
     }
 
     @media (max-width: 900px) {
@@ -1638,8 +2070,17 @@
         gap: 10px;
       }
 
+      .sangrado-modal-total-label {
+        justify-content: space-between;
+      }
+
+      .sangrado-registro-row {
+        grid-template-columns: auto auto;
+        row-gap: 6px;
+      }
+
       .sangrado-registro-acum {
-        margin-left: 0;
+        justify-self: start;
       }
     }
 
@@ -1958,6 +2399,10 @@
 
   {% include 'obstetricia/header_formatos.html' with current_module='fetal' documento=documento %}
 
+  <button type="button" class="btn-vista-previa-fija" onclick="abrirVistaPreviaFetocardia()" title="Ver el trazo de fetocardia diligenciado">
+    <i data-lucide="line-chart"></i> Vista previa
+  </button>
+
   <div class="page-with-sidebars">
     {% include 'obstetricia/sidebar.html' with is_panel=False atencion_id=atencion_id documento=documento current_module='fetal' %}
     <aside class="sidebar-decor">
@@ -1978,6 +2423,20 @@
               <button type="button" class="btn btn-secondary btn-sm" onclick="cerrarVistaPrevia()">Cerrar</button>
               <button type="button" class="btn btn-primary btn-sm" id="preview-btn-cargar"
                 onclick="cargarDesdePreview()">Cargar en formulario</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="fc-trace-modal-overlay" class="preview-modal-overlay"
+          onclick="if(event.target===this) cerrarVistaPreviaFetocardia()">
+          <div class="preview-modal" style="max-width:820px;">
+            <div class="preview-modal-header">
+              <span><i data-lucide="line-chart" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"></i>Trazo de fetocardia diligenciada</span>
+              <span class="preview-modal-close" onclick="cerrarVistaPreviaFetocardia()" title="Cerrar">&times;</span>
+            </div>
+            <div class="preview-modal-body" id="fc-trace-modal-body"></div>
+            <div class="preview-modal-footer">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="cerrarVistaPreviaFetocardia()">Cerrar</button>
             </div>
           </div>
         </div>
@@ -2095,14 +2554,14 @@
                    esta página se ajusta al cian que usa el resto de Frecuencia Fetal. */
                 .timeline-section .btn-volver-parto,
                 .timeline-section .btn-toggle-timeline {
-                    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;
-                    border-color: #0e7490 !important;
-                    box-shadow: 0 4px 10px rgba(8, 145, 178, 0.35) !important;
+                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+                    border-color: #dc2626 !important;
+                    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.35) !important;
                 }
                 .timeline-section .btn-volver-parto:hover,
                 .timeline-section .btn-toggle-timeline:hover {
-                    background: linear-gradient(135deg, #0e7490 0%, #155e75 100%) !important;
-                    box-shadow: 0 6px 14px rgba(8, 145, 178, 0.45) !important;
+                    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+                    box-shadow: 0 6px 14px rgba(220, 38, 38, 0.45) !important;
                 }
             </style>
             {% include 'meows/_timeline_grid.html' with mostrar_link_volver=False %}
@@ -2544,6 +3003,23 @@
               </div>
             </div>
 
+            <div id="sangrado-panal-modal-overlay" class="preview-modal-overlay" onclick="if(event.target===this) cerrarPanalPesajesModal()">
+              <div class="preview-modal" style="max-width:480px;--accent:#db2777;--accent-bg:#fdf2f8;--accent-dark:#9d174d;--accent-shadow:rgba(219, 39, 119, 0.18);">
+                <div class="preview-modal-header">
+                  <span>👶 Pesajes de pañal <span style="opacity:.75;font-weight:600;font-size:.85em;">— PESO BASAL: 115 gr</span></span>
+                  <span class="preview-modal-close" onclick="cerrarPanalPesajesModal()" title="Cerrar">&times;</span>
+                </div>
+                <div class="preview-modal-body">
+                  <div class="sangrado-panal-rows" id="sangrado-panal-rows"></div>
+                  <button type="button" class="btn-panal-add" onclick="agregarPesajePanal()">➕ Agregar pesaje</button>
+                </div>
+                <div class="preview-modal-footer" style="justify-content: space-between;">
+                  <span style="font-weight:800;color:var(--text-primary);">Total pañal: <span id="sangrado-panal-modal-total" style="color:#9d174d;">0 cc</span></span>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="cerrarPanalPesajesModal()">Cerrar</button>
+                </div>
+              </div>
+            </div>
+
             <div class="doc-section-title" id="panel-huella"><i data-lucide="pen-tool"></i> Firma del Responsable</div>
             <div class="doc-firma-panel" style="border:1px solid #cbd5e1;border-top:none;padding:18px;background:#fff">
               <div class="huella-signature-section" style="max-width:900px;width:100%;margin:0 auto">
@@ -2767,18 +3243,24 @@
           }
 
           // --- Control de Fetocardia: filas repetibles cada N minutos ---
-          function crearFilaFetocardia(fecha, hora, fetocardia, saved) {
+          // Las filas ya guardadas quedan editables (no "disabled"): se marcan
+          // con data-fc-saved/data-fc-id para poder corregirlas por PATCH en
+          // vez de reenviarlas como filas nuevas al guardar.
+          function crearFilaFetocardia(fecha, hora, fetocardia, saved, fcId) {
             const tbody = document.getElementById('fc-table-body');
             const tr = document.createElement('tr');
-            tr.className = 'fc-row';
-            const dis = saved ? 'disabled' : '';
+            tr.className = saved ? 'fc-row fc-row-guardada' : 'fc-row';
             tr.innerHTML = `
-              <td><input type="date" class="form-control" data-param="fecha" value="${fecha || ''}" ${dis}></td>
-              <td><input type="time" class="form-control" data-param="hora" value="${hora || ''}" ${dis}></td>
-              <td><input type="number" class="form-control" data-param="fetocardia" min="0" max="300" placeholder="lpm" value="${fetocardia != null ? fetocardia : ''}" ${dis}></td>
+              <td><input type="date" class="form-control" data-param="fecha" value="${fecha || ''}"></td>
+              <td><input type="time" class="form-control" data-param="hora" value="${hora || ''}"></td>
+              <td><input type="number" class="form-control" data-param="fetocardia" min="0" max="300" placeholder="lpm" value="${fetocardia != null ? fetocardia : ''}"></td>
               <td>${saved ? '' : '<button type="button" class="btn-remove-row" onclick="eliminarFilaFetocardia(this)" title="Eliminar control">&times;</button>'}</td>
             `;
-            if (saved) tr.querySelector('[data-param="fecha"]').setAttribute('data-fc-saved', '1');
+            if (saved) {
+              const fechaEl = tr.querySelector('[data-param="fecha"]');
+              fechaEl.setAttribute('data-fc-saved', '1');
+              fechaEl.setAttribute('data-fc-id', fcId);
+            }
             tbody.appendChild(tr);
           }
 
@@ -2822,18 +3304,197 @@
             return data;
           }
 
-          function marcarFilasFetocardiaGuardadas() {
+          // Controles ya guardados que el usuario corrigió (se envían por PATCH
+          // al endpoint de ese control específico, en vez de crear uno nuevo).
+          function buildPostpartoEdits() {
+            const data = [];
+            for (let col = 0; col < 13; col++) {
+              const firstInput = document.querySelector(`.pp-input[data-param="fecha"][data-col="${col}"]`);
+              const ppId = firstInput?.getAttribute('data-pp-id');
+              if (!ppId) continue;
+              const getVal = (param) => {
+                const el = document.querySelector(`.pp-input[data-param="${param}"][data-col="${col}"]`);
+                return el ? el.value : '';
+              };
+              data.push({
+                id: ppId,
+                minuto_control: PP_MINUTOS[col],
+                fecha: getVal('fecha') || null,
+                hora: getVal('hora') || null,
+                tension_arterial: getVal('ta') || null,
+                temperatura: getVal('temp') ? parseFloat(getVal('temp')) : null,
+                pulso: getVal('pulso') ? parseInt(getVal('pulso')) : null,
+                respiracion: getVal('resp') ? parseInt(getVal('resp')) : null,
+                sangrado_vaginal: getVal('sangrado') || null,
+                cuantificacion_gravimetrica_vaginal: getVal('cgv') ? parseInt(getVal('cgv')) : null,
+                involucion_uterina: getVal('invol') || null,
+                responsable: getVal('responsable') || null,
+              });
+            }
+            return data;
+          }
+
+          function buildFetocardiaEdits() {
+            const data = [];
             document.querySelectorAll('#fc-table-body .fc-row').forEach(row => {
               const fechaEl = row.querySelector('[data-param="fecha"]');
-              const horaEl = row.querySelector('[data-param="hora"]');
-              const fcEl = row.querySelector('[data-param="fetocardia"]');
-              if (fechaEl.value && horaEl.value && fcEl.value) {
-                fechaEl.setAttribute('data-fc-saved', '1');
-                [fechaEl, horaEl, fcEl].forEach(el => el.disabled = true);
-                const removeBtn = row.querySelector('.btn-remove-row');
-                if (removeBtn) removeBtn.remove();
-              }
+              const fcId = fechaEl.getAttribute('data-fc-id');
+              if (!fcId) return;
+              const fetoVal = row.querySelector('[data-param="fetocardia"]').value;
+              data.push({
+                id: fcId,
+                fecha: fechaEl.value || null,
+                hora: row.querySelector('[data-param="hora"]').value || null,
+                fetocardia: fetoVal ? parseInt(fetoVal) : null,
+              });
             });
+            return data;
+          }
+
+          // Tras el primer guardado (creación), el registro y sus controles
+          // anidados quedan persistidos en una sola llamada; esta función
+          // enlaza cada fila/columna visible con el id que el backend le
+          // asignó, para que quede marcada como "guardada" (editable, no
+          // deshabilitada) y las próximas correcciones se envíen por PATCH
+          // en vez de crear controles duplicados.
+          function marcarControlesGuardados(data) {
+            if (data.controles_postparto && data.controles_postparto.length > 0) {
+              data.controles_postparto.forEach((cp) => {
+                const colIdx = PP_MINUTOS.indexOf(cp.minuto_control);
+                if (colIdx === -1) return;
+                document.querySelectorAll(`.pp-input[data-col="${colIdx}"]`).forEach(el => {
+                  el.setAttribute('data-pp-saved', '1');
+                  el.setAttribute('data-pp-id', cp.id);
+                });
+              });
+            }
+            if (data.controles_fetocardia && data.controles_fetocardia.length > 0) {
+              const filas = Array.from(document.querySelectorAll('#fc-table-body .fc-row'));
+              data.controles_fetocardia.forEach((fc) => {
+                const fd = fc.fecha ? String(fc.fecha).split('T')[0] : '';
+                const ho = fc.hora ? String(fc.hora).substring(0, 5) : '';
+                const fila = filas.find(row => {
+                  const fechaEl = row.querySelector('[data-param="fecha"]');
+                  if (fechaEl.getAttribute('data-fc-id')) return false; // ya enlazada
+                  const horaEl = row.querySelector('[data-param="hora"]');
+                  const fcEl = row.querySelector('[data-param="fetocardia"]');
+                  return fechaEl.value === fd && horaEl.value === ho && String(fcEl.value) === String(fc.fetocardia);
+                });
+                if (fila) {
+                  const fechaEl = fila.querySelector('[data-param="fecha"]');
+                  fechaEl.setAttribute('data-fc-saved', '1');
+                  fechaEl.setAttribute('data-fc-id', fc.id);
+                  fila.querySelector('.btn-remove-row')?.remove();
+                }
+              });
+            }
+            if (data.controles_sangrado && data.controles_sangrado.length > 0) {
+              data.controles_sangrado.forEach((sc) => {
+                const control = sangradoRegistros.find(r => !r.id && r.minuto === sc.minuto_control);
+                if (control) control.id = sc.id;
+              });
+            }
+          }
+
+          // --- Vista previa: trazo de fetocardia diligenciada tiempo a tiempo ---
+          const FC_RANGO_NORMAL = { min: 110, max: 160 };
+
+          function recolectarFetocardiaCronologica() {
+            const registros = [];
+            document.querySelectorAll('#fc-table-body .fc-row').forEach(row => {
+              const fecha = row.querySelector('[data-param="fecha"]').value;
+              const hora = row.querySelector('[data-param="hora"]').value;
+              const fcVal = row.querySelector('[data-param="fetocardia"]').value;
+              if (!fecha || !hora || fcVal === '') return;
+              registros.push({ fecha, hora, fc: parseInt(fcVal), ts: `${fecha}T${hora}` });
+            });
+            registros.sort((a, b) => a.ts.localeCompare(b.ts));
+            return registros;
+          }
+
+          function abrirVistaPreviaFetocardia() {
+            const registros = recolectarFetocardiaCronologica();
+            const body = document.getElementById('fc-trace-modal-body');
+            body.innerHTML = renderTrazoFetocardia(registros);
+            document.getElementById('fc-trace-modal-overlay').classList.add('show');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          }
+
+          function cerrarVistaPreviaFetocardia() {
+            document.getElementById('fc-trace-modal-overlay').classList.remove('show');
+          }
+
+          function renderTrazoFetocardia(registros) {
+            if (registros.length === 0) {
+              return '<div class="fc-trace-empty"><i data-lucide="inbox" style="width:28px;height:28px;display:block;margin:0 auto 10px;opacity:0.5"></i>Aún no hay controles de fetocardia diligenciados con fecha, hora y lpm.</div>';
+            }
+
+            const svg = renderTrazoSvg(registros);
+
+            const filas = registros.map(r => {
+              const normal = r.fc >= FC_RANGO_NORMAL.min && r.fc <= FC_RANGO_NORMAL.max;
+              const horaFmt = r.hora;
+              const fechaFmt = r.fecha.split('-').reverse().join('/');
+              return `
+                <tr>
+                  <td>${fechaFmt}</td>
+                  <td>${horaFmt}</td>
+                  <td>${r.fc} lpm</td>
+                  <td><span class="fc-trace-badge ${normal ? 'normal' : 'anormal'}">${normal ? 'Normal' : 'Fuera de rango'}</span></td>
+                </tr>`;
+            }).join('');
+
+            return `
+              <div class="fc-trace-svg-wrap">${svg}</div>
+              <div class="fc-trace-legend">
+                <span><span class="dot" style="background:#0ea5a4"></span>Fetocardia (lpm)</span>
+                <span><span class="dot" style="background:#bbf7d0"></span>Rango normal 110–160 lpm</span>
+                <span><span class="dot" style="background:#dc2626"></span>Fuera de rango</span>
+              </div>
+              <table class="fc-trace-table">
+                <thead><tr><th>Fecha</th><th>Hora</th><th>Fetocardia</th><th>Estado</th></tr></thead>
+                <tbody>${filas}</tbody>
+              </table>`;
+          }
+
+          function renderTrazoSvg(registros) {
+            const W = Math.max(560, registros.length * 70);
+            const H = 220;
+            const padL = 42, padR = 16, padT = 16, padB = 30;
+            const plotW = W - padL - padR;
+            const plotH = H - padT - padB;
+
+            const valores = registros.map(r => r.fc);
+            let yMin = Math.min(FC_RANGO_NORMAL.min, ...valores) - 10;
+            let yMax = Math.max(FC_RANGO_NORMAL.max, ...valores) + 10;
+            if (yMax === yMin) yMax += 10;
+
+            const xFor = (i) => registros.length === 1 ? padL + plotW / 2 : padL + (plotW * i) / (registros.length - 1);
+            const yFor = (v) => padT + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+
+            const bandY1 = yFor(FC_RANGO_NORMAL.max);
+            const bandY2 = yFor(FC_RANGO_NORMAL.min);
+
+            const points = registros.map((r, i) => `${xFor(i)},${yFor(r.fc)}`).join(' ');
+
+            const dots = registros.map((r, i) => {
+              const normal = r.fc >= FC_RANGO_NORMAL.min && r.fc <= FC_RANGO_NORMAL.max;
+              return `<circle cx="${xFor(i)}" cy="${yFor(r.fc)}" r="4" fill="${normal ? '#0ea5a4' : '#dc2626'}" stroke="#fff" stroke-width="1.5"></circle>
+                <text x="${xFor(i)}" y="${yFor(r.fc) - 10}" font-size="10" text-anchor="middle" fill="#334155">${r.fc}</text>
+                <text x="${xFor(i)}" y="${H - 10}" font-size="9" text-anchor="middle" fill="#64748b">${r.hora}</text>`;
+            }).join('');
+
+            const yTicks = [yMin, (yMin + yMax) / 2, yMax].map(v => Math.round(v));
+            const yLabels = yTicks.map(v => `<text x="${padL - 8}" y="${yFor(v) + 3}" font-size="9" text-anchor="end" fill="#64748b">${v}</text>
+              <line x1="${padL}" y1="${yFor(v)}" x2="${W - padR}" y2="${yFor(v)}" stroke="#e2e8f0" stroke-width="1"></line>`).join('');
+
+            return `
+              <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+                <rect x="${padL}" y="${bandY1}" width="${plotW}" height="${Math.max(0, bandY2 - bandY1)}" fill="#dcfce7" opacity="0.6"></rect>
+                ${yLabels}
+                <polyline points="${points}" fill="none" stroke="#0ea5a4" stroke-width="2"></polyline>
+                ${dots}
+              </svg>`;
           }
 
           // --- Guía de Parámetros y Semáforo de Alerta ---
@@ -2901,8 +3562,25 @@
           }
 
           // --- Cuantificación gravimétrica del sangrado (modal de 10 materiales) ---
+          const ICONO_COMPRESA = `<svg viewBox="0 0 64 64" width="34" height="34" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="compresaBowlGrad" x1="6" y1="8" x2="58" y2="56" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#f1f5f9"/>
+                <stop offset="1" stop-color="#94a3b8"/>
+              </linearGradient>
+              <linearGradient id="compresaGrad" x1="16" y1="14" x2="46" y2="48" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#dc2626"/>
+                <stop offset="1" stop-color="#7f1d1d"/>
+              </linearGradient>
+            </defs>
+            <path d="M50 14C60 22 60 42 50 50C40 58 22 58 13 50C6 44 8 36 16 36C22 36 24 40 30 40C40 40 34 24 42 16C45 13 48 12 50 14Z" fill="url(#compresaBowlGrad)" stroke="#64748b" stroke-width="1.5"/>
+            <path d="M46 18C53 25 52 40 44 46C36 52 23 51 17 45C13 41 15 37 19 37C23 37 25 40 30 40C38 40 32 26 39 19C41 17 44 16 46 18Z" fill="url(#compresaGrad)"/>
+            <path d="M23 30C27 24 34 21 40 24" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" opacity="0.55" fill="none"/>
+            <path d="M25 38C29 40 34 40 38 37" stroke="#450a0a" stroke-width="1.5" stroke-linecap="round" opacity="0.35" fill="none"/>
+          </svg>`;
+
           const SANGRADO_ITEMS = [
-            { id: 'compresa', nombre: 'Compresa de 30x20 cm', basal: 20, icon: '🩹' },
+            { id: 'compresa', nombre: 'Compresa de 30x20 cm', basal: 20, icon: ICONO_COMPRESA },
             { id: 'toalla_higienica', nombre: 'Toalla Higiénica', basal: 4, icon: '🧻' },
             { id: 'toalla_materna', nombre: 'Toalla Materna', basal: 19, icon: '🧺' },
             { id: 'gasa', nombre: 'Gasa de 7.5x7.5cm', basal: 1, icon: '🧵' },
@@ -2914,47 +3592,69 @@
             { id: 'bolsa', nombre: 'Bolsa Recolectora (1cm = 57.6 cc)', basal: 12, icon: '🩸' },
           ];
 
+          // Misma paleta de --accent que las tarjetas de categoría de Trabajo de
+          // Parto (uterina, fetal, tacto, monitoreo, oxitocina), rotada entre los
+          // 10 materiales para que cada tarjeta se distinga visualmente.
+          const SANGRADO_ACCENTS = [
+            { accent: '#4f46e5', bg: '#eef2ff', dark: '#3730a3', shadow: 'rgba(79, 70, 229, 0.18)' },
+            { accent: '#db2777', bg: '#fdf2f8', dark: '#9d174d', shadow: 'rgba(219, 39, 119, 0.18)' },
+            { accent: '#0891b2', bg: '#ecfeff', dark: '#155e75', shadow: 'rgba(8, 145, 178, 0.18)' },
+            { accent: '#d97706', bg: '#fffbeb', dark: '#92400e', shadow: 'rgba(217, 119, 6, 0.18)' },
+            { accent: '#059669', bg: '#ecfdf5', dark: '#065f46', shadow: 'rgba(5, 150, 105, 0.18)' },
+          ];
+
           function renderSangradoModalItems() {
             const grid = document.getElementById('sangrado-modal-grid');
             if (!grid || grid.dataset.rendered === '1') return;
-            grid.innerHTML = SANGRADO_ITEMS.map(item => {
+            grid.innerHTML = SANGRADO_ITEMS.map((item, index) => {
+              const acc = SANGRADO_ACCENTS[index % SANGRADO_ACCENTS.length];
+              const accentStyle = `--accent:${acc.accent};--accent-bg:${acc.bg};--accent-dark:${acc.dark};--accent-shadow:${acc.shadow};`;
               if (item.id === 'panal') {
                 return `
-                  <div class="sangrado-item-card">
-                    <div class="sangrado-item-icon">${item.icon}</div>
+                  <div class="sangrado-item-card" style="${accentStyle}">
+                    <h3 class="sangrado-item-title"><span class="sangrado-item-title-icon">${item.icon}</span>${item.nombre}</h3>
                     <div class="sangrado-item-body">
-                      <div class="sangrado-item-title">${item.nombre}</div>
                       <div class="sangrado-item-basal">PESO BASAL: ${item.basal} gr</div>
-                      <div class="sangrado-panal-rows" id="sangrado-panal-rows"></div>
-                      <button type="button" class="btn-panal-add" onclick="agregarPesajePanal()">➕ Agregar pesaje</button>
-                      <div class="sangrado-item-result-row">
-                        <span class="sangrado-item-result" id="sangrado-result-panal">0 cc</span>
+                      <div class="sangrado-item-row" id="sangrado-row-panal">
+                        <div class="sangrado-item-row-top">
+                          <span class="sangrado-item-dot"></span>
+                          <button type="button" class="sangrado-panal-open-btn" onclick="abrirPanalPesajesModal()">
+                            📋 Ver pesajes <span class="sangrado-panal-count-badge" id="sangrado-panal-count">1</span>
+                          </button>
+                        </div>
+                        <div class="sangrado-item-result-row">
+                          <span class="sangrado-item-result" id="sangrado-result-panal">0 cc</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 `;
               }
               return `
-                <div class="sangrado-item-card">
-                  <div class="sangrado-item-icon">${item.icon}</div>
+                <div class="sangrado-item-card" style="${accentStyle}">
+                  <h3 class="sangrado-item-title"><span class="sangrado-item-title-icon">${item.icon}</span>${item.nombre}</h3>
                   <div class="sangrado-item-body">
-                    <div class="sangrado-item-title">${item.nombre}</div>
                     <div class="sangrado-item-basal">PESO BASAL: ${item.basal} gr</div>
-                    <div class="sangrado-item-fields">
-                      <div class="sangrado-item-field">
-                        <label class="sangrado-item-input-label" for="sangrado-cantidad-${item.id}">Cantidad</label>
-                        <input type="number" id="sangrado-cantidad-${item.id}" min="1" step="1" value="1" class="form-control sangrado-item-cantidad"
-                          data-item="${item.id}" oninput="recalcularSangradoItem(this)">
+                    <div class="sangrado-item-row" id="sangrado-row-${item.id}">
+                      <div class="sangrado-item-row-top">
+                        <span class="sangrado-item-dot"></span>
+                        <div class="sangrado-item-fields">
+                          <div class="sangrado-item-field">
+                            <label class="sangrado-item-input-label" for="sangrado-cantidad-${item.id}">Cant.</label>
+                            <input type="number" id="sangrado-cantidad-${item.id}" min="1" step="1" value="1" class="sangrado-item-cantidad"
+                              data-item="${item.id}" oninput="recalcularSangradoItem(this)">
+                          </div>
+                          <div class="sangrado-item-field">
+                            <label class="sangrado-item-input-label" for="sangrado-input-${item.id}">Peso húmedo (gr)</label>
+                            <input type="number" id="sangrado-input-${item.id}" min="0" step="1" class="sangrado-item-input"
+                              data-basal="${item.basal}" data-item="${item.id}" placeholder="0"
+                              oninput="recalcularSangradoItem(this)">
+                          </div>
+                        </div>
                       </div>
-                      <div class="sangrado-item-field">
-                        <label class="sangrado-item-input-label" for="sangrado-input-${item.id}">Peso húmedo (gr)</label>
-                        <input type="number" id="sangrado-input-${item.id}" min="0" step="1" class="form-control sangrado-item-input"
-                          data-basal="${item.basal}" data-item="${item.id}" placeholder="0"
-                          oninput="recalcularSangradoItem(this)">
+                      <div class="sangrado-item-result-row">
+                        <span class="sangrado-item-result" id="sangrado-result-${item.id}">0 cc</span>
                       </div>
-                    </div>
-                    <div class="sangrado-item-result-row">
-                      <span class="sangrado-item-result" id="sangrado-result-${item.id}">0 cc</span>
                     </div>
                   </div>
                 </div>
@@ -3020,7 +3720,22 @@
             });
             const resultEl = document.getElementById('sangrado-result-panal');
             if (resultEl) resultEl.textContent = `${total.toFixed(0)} cc`;
+            resultEl?.closest('.sangrado-item-row')?.classList.toggle('has-value', total > 0);
+
+            const countEl = document.getElementById('sangrado-panal-count');
+            if (countEl) countEl.textContent = String(document.querySelectorAll('#sangrado-panal-rows .sangrado-panal-row').length);
+            const modalTotalEl = document.getElementById('sangrado-panal-modal-total');
+            if (modalTotalEl) modalTotalEl.textContent = `${total.toFixed(0)} cc`;
+
             recalcularTotalSangrado();
+          }
+
+          function abrirPanalPesajesModal() {
+            document.getElementById('sangrado-panal-modal-overlay')?.classList.add('show');
+          }
+
+          function cerrarPanalPesajesModal() {
+            document.getElementById('sangrado-panal-modal-overlay')?.classList.remove('show');
           }
 
           function calcularSangradoItemCc(itemId) {
@@ -3036,6 +3751,7 @@
             const cc = Math.max(0, humedo - (basal * cantidad));
             const resultEl = document.getElementById(`sangrado-result-${itemId}`);
             if (resultEl) resultEl.textContent = `${cc.toFixed(0)} cc`;
+            humedoEl?.closest('.sangrado-item-row')?.classList.toggle('has-value', humedo > 0);
             return cc;
           }
 
@@ -3069,6 +3785,7 @@
 
           function cerrarModalSangrado() {
             document.getElementById('sangrado-modal-overlay').classList.remove('show');
+            cerrarPanalPesajesModal();
           }
 
           function cambiarTabSangrado(tab) {
@@ -3082,10 +3799,16 @@
           // --- Controles periódicos de sangrado: cada 15' (0-2h), cada 30' (2-3h) y
           // cada 60' (3-6h) — mismo cronograma de PP_MINUTOS. Cada lectura guardada se
           // acumula en "Registros" y su suma alimenta el campo sangrado_cuantificado_cc.
+          // Cada control persiste individualmente en el backend (tabla ControlSangrado)
+          // vía /registros/{id}/sangrado/, con su propio "id" una vez guardado, para
+          // poder corregirlo después en vez de solo poder borrarlo y rehacerlo.
           let sangradoRegistros = [];
+          // Índice del control que se está corrigiendo en este momento (fila en modo
+          // edición dentro de la pestaña "Registros"), o null si ninguno.
+          let sangradoEditandoIdx = null;
           // Total ya guardado en el backend antes de abrir el modal en esta sesión
-          // (p.ej. al editar un registro existente), para no perderlo al sumar
-          // los nuevos controles periódicos.
+          // (solo aplica a registros anteriores a que existiera esta tabla, donde no
+          // hay detalle por control, solo el total acumulado histórico).
           let sangradoBaseAnterior = 0;
 
           function proximoControlSangrado() {
@@ -3107,6 +3830,7 @@
           function resetCalculadoraSangrado() {
             document.querySelectorAll('.sangrado-item-cantidad').forEach(el => { el.value = '1'; });
             document.querySelectorAll('.sangrado-item-input').forEach(el => { el.value = ''; });
+            document.querySelectorAll('.sangrado-item-row.has-value').forEach(el => { el.classList.remove('has-value'); });
             SANGRADO_ITEMS.forEach(item => {
               if (item.id === 'panal') return;
               const resultEl = document.getElementById(`sangrado-result-${item.id}`);
@@ -3116,6 +3840,7 @@
             if (panalRows) panalRows.innerHTML = '';
             panalRowSeq = 0;
             agregarPesajePanal();
+            cerrarPanalPesajesModal();
             recalcularTotalSangrado();
           }
 
@@ -3134,11 +3859,8 @@
             const ahora = new Date();
             const horaAutomatica = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
             const horaGuardada = horaInput?.value || horaAutomatica;
-            sangradoRegistros.push({
-              minuto: proximo,
-              cc: total,
-              hora: horaGuardada,
-            });
+            const nuevoControl = { minuto: proximo, cc: total, hora: horaGuardada };
+            sangradoRegistros.push(nuevoControl);
             renderRegistrosSangrado();
             resetCalculadoraSangrado();
             actualizarProximoControlSangrado();
@@ -3152,13 +3874,99 @@
 
             cambiarTabSangrado('registros');
             showToast(`Control de ${proximo} min guardado: ${total.toFixed(0)} cc`, 'success');
+
+            // Si el registro principal ya existe, persistir este control de
+            // inmediato (le asigna un id, necesario para poder corregirlo o
+            // borrarlo después). Si aún no existe, viaja en el payload de
+            // creación (ver buildPayload/controles_sangrado) o, como respaldo,
+            // en el flujo de actualización (ver submitForm).
+            if (savedRegistroId) {
+              persistirControlSangrado(nuevoControl, 'crear');
+            }
           }
 
-          function eliminarRegistroSangrado(idx) {
+          async function persistirControlSangrado(control, accion) {
+            try {
+              const url = accion === 'crear'
+                ? `${API_BASE}/registros/${savedRegistroId}/sangrado/`
+                : `${API_BASE}/registros/${savedRegistroId}/sangrado/${control.id}/`;
+              const res = await fetch(url, {
+                method: accion === 'crear' ? 'POST' : 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify({ minuto_control: control.minuto, hora: control.hora, cc: Math.round(control.cc) }),
+              });
+              if (!res.ok) return false;
+              if (accion === 'crear') {
+                const creado = await res.json();
+                control.id = creado.id;
+              }
+              return true;
+            } catch (e) {
+              console.warn('No se pudo sincronizar el control de sangrado con el servidor:', e);
+              return false;
+            }
+          }
+
+          async function eliminarRegistroSangrado(idx) {
+            const control = sangradoRegistros[idx];
+            if (control?.id && savedRegistroId) {
+              const res = await fetch(`${API_BASE}/registros/${savedRegistroId}/sangrado/${control.id}/`, {
+                method: 'DELETE',
+                headers: getHeaders(),
+              }).catch(() => null);
+              if (!res || !res.ok) {
+                showToast('No se pudo eliminar el control en el servidor. Intente de nuevo.', 'error');
+                return;
+              }
+            }
             sangradoRegistros.splice(idx, 1);
+            if (sangradoEditandoIdx === idx) sangradoEditandoIdx = null;
             renderRegistrosSangrado();
             actualizarProximoControlSangrado();
             aplicarTotalAcumuladoSangrado();
+          }
+
+          function editarRegistroSangrado(idx) {
+            sangradoEditandoIdx = idx;
+            renderRegistrosSangrado();
+          }
+
+          function cancelarEdicionRegistroSangrado() {
+            sangradoEditandoIdx = null;
+            renderRegistrosSangrado();
+          }
+
+          async function guardarEdicionRegistroSangrado(idx) {
+            const row = document.querySelector(`.sangrado-registro-row[data-idx="${idx}"]`);
+            const control = sangradoRegistros[idx];
+            if (!row || !control) return;
+            const nuevaHora = row.querySelector('.sangrado-edit-hora')?.value;
+            const nuevoCc = parseFloat(row.querySelector('.sangrado-edit-cc')?.value);
+            if (!nuevaHora || isNaN(nuevoCc) || nuevoCc < 0) {
+              showToast('Ingrese una hora y una cantidad válidas.', 'error');
+              return;
+            }
+            const ccAnterior = control.cc;
+            const horaAnterior = control.hora;
+            control.hora = nuevaHora;
+            control.cc = nuevoCc;
+
+            if (control.id && savedRegistroId) {
+              const ok = await persistirControlSangrado(control, 'editar');
+              if (!ok) {
+                control.cc = ccAnterior;
+                control.hora = horaAnterior;
+                showToast('No se pudo guardar la corrección en el servidor.', 'error');
+                sangradoEditandoIdx = null;
+                renderRegistrosSangrado();
+                return;
+              }
+            }
+
+            sangradoEditandoIdx = null;
+            renderRegistrosSangrado();
+            aplicarTotalAcumuladoSangrado();
+            showToast('Control corregido correctamente.', 'success');
           }
 
           function renderRegistrosSangrado() {
@@ -3176,13 +3984,30 @@
             let acumulado = sangradoBaseAnterior;
             list.innerHTML = sangradoRegistros.map((r, idx) => {
               acumulado += r.cc;
+              if (idx === sangradoEditandoIdx) {
+                return `
+                  <div class="sangrado-registro-row sangrado-registro-editando" data-idx="${idx}">
+                    <span class="sangrado-registro-min">${r.minuto} min</span>
+                    <input type="time" class="form-control sangrado-edit-hora" value="${r.hora}">
+                    <span><input type="number" min="0" step="1" class="form-control sangrado-edit-cc" value="${r.cc.toFixed(0)}" style="width:80px;display:inline-block;"> cc</span>
+                    <span class="sangrado-registro-acum">Acumulado: ${acumulado.toFixed(0)} cc</span>
+                    <span class="sangrado-registro-actions">
+                      <button type="button" class="btn-icon-guardar" onclick="guardarEdicionRegistroSangrado(${idx})" title="Guardar corrección">✔ Guardar</button>
+                      <button type="button" class="btn-remove-row" onclick="cancelarEdicionRegistroSangrado()" title="Cancelar">&times;</button>
+                    </span>
+                  </div>
+                `;
+              }
               return `
-                <div class="sangrado-registro-row">
+                <div class="sangrado-registro-row" data-idx="${idx}">
                   <span class="sangrado-registro-min">${r.minuto} min</span>
                   <span class="sangrado-registro-hora">${r.hora}</span>
                   <span class="sangrado-registro-cc">${r.cc.toFixed(0)} cc</span>
                   <span class="sangrado-registro-acum">Acumulado: ${acumulado.toFixed(0)} cc</span>
-                  <button type="button" class="btn-remove-row" onclick="eliminarRegistroSangrado(${idx})" title="Eliminar control">&times;</button>
+                  <span class="sangrado-registro-actions">
+                    <button type="button" class="btn-icon-editar" onclick="editarRegistroSangrado(${idx})" title="Editar control">✏️</button>
+                    <button type="button" class="btn-remove-row" onclick="eliminarRegistroSangrado(${idx})" title="Eliminar control">&times;</button>
+                  </span>
                 </div>
               `;
             }).join('');
@@ -3216,6 +4041,12 @@
               sutura_heridas: val('sutura_heridas') || null,
               controles_postparto: buildPostpartoData(),
               controles_fetocardia: buildFetocardiaData(),
+              // Solo viaja en la creación inicial (ver submitForm: se borra en
+              // update). Únicamente los controles sin id de backend todavía
+              // (persistencia inmediata pendiente o registro recién creado).
+              controles_sangrado: sangradoRegistros.filter(r => !r.id).map(r => ({
+                minuto_control: r.minuto, hora: r.hora, cc: Math.round(r.cc),
+              })),
               // Firma Profesional DGH
               profesional_nombre: val('profesional_nombre') || null,
               profesional_identificacion: val('profesional_identificacion_hidden') || null,
@@ -3358,6 +4189,7 @@
               const method = isUpdate ? 'PUT' : 'POST';
               if (isUpdate) delete payload.controles_postparto;
               if (isUpdate) delete payload.controles_fetocardia;
+              if (isUpdate) delete payload.controles_sangrado;
 
               const res = await fetch(url, {
                 method,
@@ -3419,12 +4251,25 @@
                     body: JSON.stringify(cp),
                   });
                   if (resPp.ok) {
+                    const creado = await resPp.json();
                     const colIdx = PP_MINUTOS.indexOf(cp.minuto_control);
                     if (colIdx !== -1) document.querySelectorAll(`.pp-input[data-col="${colIdx}"]`).forEach(el => {
                       el.setAttribute('data-pp-saved', '1');
-                      el.disabled = true;
+                      el.setAttribute('data-pp-id', creado.id);
                     });
                   } else showToast('Algunos controles postparto nuevos no se pudieron guardar.', 'error');
+                }
+
+                // Controles postparto ya guardados que el usuario corrigió.
+                const editsPp = buildPostpartoEdits();
+                for (const cp of editsPp) {
+                  const { id, ...campos } = cp;
+                  const resPpEdit = await fetch(`${API_BASE}/registros/${savedRegistroId}/postparto/${id}/`, {
+                    method: 'PATCH',
+                    headers: getHeaders(),
+                    body: JSON.stringify(campos),
+                  });
+                  if (!resPpEdit.ok) showToast('No se pudo guardar la corrección de un control postparto.', 'error');
                 }
 
                 const newFc = buildFetocardiaData();
@@ -3436,9 +4281,32 @@
                   });
                   if (!resFc.ok) showToast('Algunos controles de fetocardia nuevos no se pudieron guardar.', 'error');
                 }
-              }
 
-              marcarFilasFetocardiaGuardadas();
+                // Controles de fetocardia ya guardados que el usuario corrigió.
+                const editsFc = buildFetocardiaEdits();
+                for (const fc of editsFc) {
+                  const { id, ...campos } = fc;
+                  const resFcEdit = await fetch(`${API_BASE}/registros/${savedRegistroId}/fetocardia/${id}/`, {
+                    method: 'PATCH',
+                    headers: getHeaders(),
+                    body: JSON.stringify(campos),
+                  });
+                  if (!resFcEdit.ok) showToast('No se pudo guardar la corrección de un control de fetocardia.', 'error');
+                }
+
+                // Red de seguridad: controles de sangrado que no se pudieron
+                // persistir en el momento (guardarRegistroSangrado/edición ya
+                // lo intentan de inmediato); se reintenta aquí al guardar.
+                for (const control of sangradoRegistros.filter(r => !r.id)) {
+                  await persistirControlSangrado(control, 'crear');
+                }
+              } else {
+                // Primer guardado: el registro se creó junto con sus controles
+                // anidados (postparto/fetocardia/sangrado) en una sola llamada,
+                // así que aquí solo hace falta enlazar los id devueltos por el
+                // backend a cada fila/columna para que quede editable de inmediato.
+                marcarControlesGuardados(data);
+              }
 
               // Guardar automáticamente la firma del responsable, si ya fue dibujada
               await persistSignatureIfPresent();
@@ -3502,8 +4370,25 @@
               actualizarSemaforoSelect(suturaSel, 'sutura-hint');
               document.getElementById('sangrado_cuantificado_cc').value = (data.sangrado_cuantificado_cc != null) ? String(data.sangrado_cuantificado_cc) : '';
               actualizarSemaforoSangrado();
-              sangradoBaseAnterior = parseFloat(data.sangrado_cuantificado_cc) || 0;
-              sangradoRegistros = [];
+              // Reconstruir el detalle de controles de sangrado ya guardados
+              // (cada uno con su id de backend, para poder corregirlos), en
+              // vez de solo conservar el total acumulado. Si el registro es
+              // anterior a que existiera esta tabla, no habrá detalle: se
+              // conserva el total como "sangradoBaseAnterior" para no perderlo.
+              if (data.controles_sangrado && data.controles_sangrado.length > 0) {
+                sangradoRegistros = data.controles_sangrado.map(sc => ({
+                  id: sc.id,
+                  minuto: sc.minuto_control,
+                  hora: String(sc.hora || '').length > 5 ? String(sc.hora).substring(0, 5) : (sc.hora || ''),
+                  cc: parseFloat(sc.cc) || 0,
+                })).sort((a, b) => a.minuto - b.minuto);
+                sangradoBaseAnterior = 0;
+              } else {
+                sangradoRegistros = [];
+                sangradoBaseAnterior = parseFloat(data.sangrado_cuantificado_cc) || 0;
+              }
+              renderRegistrosSangrado();
+              actualizarProximoControlSangrado();
 
               const pName = (data.nombre_paciente != null && data.nombre_paciente !== '') ? String(data.nombre_paciente) : '';
               savedRegistroId = data.id;
@@ -3563,7 +4448,7 @@
 
 
               if (data.controles_postparto && data.controles_postparto.length > 0) {
-                document.querySelectorAll('.pp-input').forEach(el => { el.removeAttribute('data-pp-saved'); el.disabled = false; });
+                document.querySelectorAll('.pp-input').forEach(el => { el.removeAttribute('data-pp-saved'); el.removeAttribute('data-pp-id'); el.disabled = false; });
                 data.controles_postparto.forEach((cp) => {
                   const colIdx = PP_MINUTOS.indexOf(cp.minuto_control);
                   if (colIdx === -1) return;
@@ -3583,9 +4468,12 @@
                   setVal('cgv', cp.cuantificacion_gravimetrica_vaginal);
                   setVal('invol', cp.involucion_uterina);
                   setVal('responsable', cp.responsable);
+                  // Se marca como "guardado" (data-pp-id) para poder actualizarlo
+                  // en el backend en vez de reenviarlo como fila nueva, pero
+                  // queda editable: así se puede corregir un error humano.
                   document.querySelectorAll(`.pp-input[data-col="${colIdx}"]`).forEach(el => {
                     el.setAttribute('data-pp-saved', '1');
-                    el.disabled = true;
+                    el.setAttribute('data-pp-id', cp.id);
                   });
                 });
               }
@@ -3595,7 +4483,7 @@
                 data.controles_fetocardia.forEach((fc) => {
                   const fd = fc.fecha ? String(fc.fecha).split('T')[0] : '';
                   const ho = fc.hora ? (String(fc.hora).length > 5 ? String(fc.hora).substring(0, 5) : fc.hora) : '';
-                  crearFilaFetocardia(fd, ho, fc.fetocardia, true);
+                  crearFilaFetocardia(fd, ho, fc.fetocardia, true, fc.id);
                 });
               }
 
@@ -3678,7 +4566,9 @@
             document.addEventListener('keydown', e => {
               if (e.key === 'Escape') {
                 if (document.getElementById('preview-modal-overlay').classList.contains('show')) cerrarVistaPrevia();
-                if (document.getElementById('sangrado-modal-overlay').classList.contains('show')) cerrarModalSangrado();
+                if (document.getElementById('sangrado-panal-modal-overlay').classList.contains('show')) cerrarPanalPesajesModal();
+                else if (document.getElementById('sangrado-modal-overlay').classList.contains('show')) cerrarModalSangrado();
+                if (document.getElementById('fc-trace-modal-overlay').classList.contains('show')) cerrarVistaPreviaFetocardia();
               }
             });
 

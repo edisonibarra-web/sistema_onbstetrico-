@@ -130,6 +130,10 @@
         <!-- SECCIÓN: ACCIONES -->
         <section class="section acciones-section">
             <div class="acciones-buttons">
+                <a href="{% url 'editar_meows' medicion_id=medicion.id %}{% if atencion_id %}?atencion={{ atencion_id }}{% endif %}" class="btn btn-warning">
+                    <span class="btn-icon">✏️</span>
+                    Editar este Registro
+                </a>
                 <a href="{% url 'historial_meows' paciente_id=medicion.paciente.id %}" class="btn btn-info">
                     <span class="btn-icon">📊</span>
                     Ver Historial del Paciente

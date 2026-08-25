@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (
     RegistroParto, ControlFetocardia, ControlRecienNacido,
-    GlucometriaRecienNacido, ControlPostpartoInmediato, FirmaPaciente, Huella
+    GlucometriaRecienNacido, ControlPostpartoInmediato, ControlSangrado,
+    FirmaPaciente, Huella
 )
 
 
@@ -79,10 +80,18 @@ class ControlPostpartoSerializer(serializers.ModelSerializer):
         read_only_fields = ['registro']
 
 
+class ControlSangradoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ControlSangrado
+        fields = '__all__'
+        read_only_fields = ['registro']
+
+
 class RegistroPartoSerializer(serializers.ModelSerializer):
     controles_fetocardia = ControlFetocardiaSerializer(many=True, required=False)
     control_recien_nacido = ControlRecienNacidoSerializer(required=False)
     controles_postparto = ControlPostpartoSerializer(many=True, required=False)
+    controles_sangrado = ControlSangradoSerializer(many=True, required=False)
     huella_biometrica = serializers.SerializerMethodField()
     firma_paciente = serializers.SerializerMethodField()
 
@@ -94,6 +103,7 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
         fetocardia_data = validated_data.pop('controles_fetocardia', []) or []
         rn_data = validated_data.pop('control_recien_nacido', None)
         postparto_data = validated_data.pop('controles_postparto', []) or []
+        sangrado_data = validated_data.pop('controles_sangrado', []) or []
 
         registro = RegistroParto.objects.create(**validated_data)
 
@@ -116,6 +126,9 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
 
         for cp in postparto_data:
             ControlPostpartoInmediato.objects.create(registro=registro, **cp)
+
+        for sc in sangrado_data:
+            ControlSangrado.objects.create(registro=registro, **sc)
 
         return registro
 
@@ -148,13 +161,16 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
         fetocardia_data = validated_data.pop('controles_fetocardia', None)
         rn_data = validated_data.pop('control_recien_nacido', None)
         postparto_data = validated_data.pop('controles_postparto', None)
+        sangrado_data = validated_data.pop('controles_sangrado', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
         if fetocardia_data is not None:
-            # No modificar fetocardia en update: una vez guardados no se editan (solo se pueden agregar nuevos)
+            # El PUT principal del registro nunca reemplaza los controles de
+            # fetocardia en bloque; se agregan/corrigen uno por uno a través
+            # del endpoint anidado dedicado (ControlFetocardiaViewSet).
             pass
         if rn_data is not None:
             glucometrias = rn_data.pop('glucometrias', [])
@@ -166,7 +182,15 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
                 GlucometriaRecienNacido.objects.create(control_rn=rn, **g)
 
         if postparto_data is not None:
-            # No modificar postparto en update: una vez guardados no se editan (solo se pueden agregar nuevos)
+            # El PUT principal del registro nunca reemplaza los controles
+            # postparto en bloque; se agregan/corrigen uno por uno a través
+            # del endpoint anidado dedicado (ControlPostpartoViewSet).
+            pass
+
+        if sangrado_data is not None:
+            # Igual que fetocardia/postparto: los controles de sangrado se
+            # agregan/corrigen uno por uno vía ControlSangradoViewSet, nunca
+            # reemplazando todo el conjunto desde el PUT principal.
             pass
 
         return instance

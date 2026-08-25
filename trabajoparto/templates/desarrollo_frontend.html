@@ -186,13 +186,13 @@
             margin-top: 18px;
             margin-bottom: 22px;
             background: #ffffff;
-            border: 1px solid #99f6e4;
+            border: 1px solid #dcedc2;
             border-radius: 14px;
-            box-shadow: 0 6px 18px rgba(8, 145, 178, 0.1);
+            box-shadow: 0 6px 18px rgba(104, 159, 56, 0.1);
             overflow: hidden;
         }
         .preview-card-header {
-            background: linear-gradient(120deg, #0e7490 0%, #0891b2 100%);
+            background: linear-gradient(120deg, #7cb342 0%, #9ccc65 100%);
             color: #ffffff;
             padding: 12px 16px;
             display: flex;
@@ -227,14 +227,14 @@
             overflow-y: hidden;
             padding-bottom: 8px;
             scroll-behavior: smooth;
-            border: 1px solid #99f6e4;
+            border: 1px solid #dcedc2;
             border-radius: 12px;
         }
         .preview-mediciones-scroll::-webkit-scrollbar {
             height: 7px;
         }
         .preview-mediciones-scroll::-webkit-scrollbar-thumb {
-            background: #5eead4;
+            background: #aed581;
             border-radius: 999px;
         }
         /* Grilla Item -> Parámetro x Hora, misma estructura que el PDF FRSPA-022 */
@@ -293,7 +293,7 @@
         .preview-grid-th-item,
         .preview-grid-th-param,
         .preview-grid-th-hora {
-            background: linear-gradient(120deg, #0e7490 0%, #0891b2 100%);
+            background: linear-gradient(120deg, #7cb342 0%, #9ccc65 100%);
             color: #ffffff;
             font-weight: 800;
             z-index: 4;
@@ -319,8 +319,8 @@
             font-weight: 700;
         }
         .preview-grid-td-valor.tiene-valor {
-            background: #ecfdf5;
-            color: #047857;
+            background: #f4f9e8;
+            color: #558b2f;
         }
         .preview-empty-state {
             min-width: 100%;
@@ -364,6 +364,17 @@
                 min-width: 128px;
                 max-width: 128px;
             }
+        }
+        #btn-vista-previa,
+        #btn-vista-previa-meows {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.35);
+        }
+        #btn-vista-previa:hover,
+        #btn-vista-previa-meows:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+            box-shadow: 0 6px 24px rgba(220, 38, 38, 0.45);
         }
     </style>
 </head>
@@ -532,19 +543,19 @@
             <!-- Selector Global de Hora -->
             <div class="global-time-selector" style="margin: 14px 0 18px; width: 100%; background: linear-gradient(135deg, #b0b6bd 0%, #e2e6ea 45%, #ced3d9 100%); padding: 18px 20px; border-radius: 14px; box-shadow: 0 6px 20px rgba(15,23,42,0.10); border: 1px solid #aab0b8; border-left: 5px solid #0891b2;">
                 <style>
-                    #btn-hora-ahora { background: linear-gradient(135deg, #0891b2 0%, #155e75 100%) !important; box-shadow: 0 4px 15px rgba(8, 145, 178, 0.35) !important; }
-                    #btn-hora-ahora:hover { background: linear-gradient(135deg, #155e75 0%, #0891b2 100%) !important; box-shadow: 0 6px 24px rgba(8, 145, 178, 0.45) !important; }
+                    #btn-hora-ahora { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.35) !important; }
+                    #btn-hora-ahora:hover { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important; box-shadow: 0 6px 24px rgba(220, 38, 38, 0.45) !important; }
                     #btn-vista-previa, #btn-vista-previa-meows {
-                        background: linear-gradient(135deg, #0891b2 0%, #155e75 100%) !important;
+                        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
                         color: #fff !important;
                         font-weight: 700 !important;
-                        box-shadow: 0 4px 15px rgba(8, 145, 178, 0.35) !important;
+                        box-shadow: 0 4px 15px rgba(220, 38, 38, 0.35) !important;
                         border: none !important;
                     }
                     #btn-vista-previa:hover, #btn-vista-previa-meows:hover {
-                        background: linear-gradient(135deg, #155e75 0%, #0891b2 100%) !important;
+                        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
                         transform: translateY(-2px);
-                        box-shadow: 0 6px 24px rgba(8, 145, 178, 0.45) !important;
+                        box-shadow: 0 6px 24px rgba(220, 38, 38, 0.45) !important;
                     }
                 </style>
                 <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">

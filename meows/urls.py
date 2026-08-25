@@ -9,6 +9,7 @@ urlpatterns = [
     path("crear/<str:doc>/", views.abrir_meows_desde_atencion, name="abrir_meows_desde_atencion_doc"),
     path("historial-doc/<str:doc>/", views.abrir_historial_meows_desde_documento, name="historial_meows_doc"),
     path("nuevo/<int:paciente_id>/", views.crear_medicion_meows, name="crear_meows"),
+    path("editar/<int:medicion_id>/", views.crear_medicion_meows, name="editar_meows"),
     path("resultado/<int:medicion_id>/", views.ver_meows, name="ver_meows"),
     path("historial/<int:paciente_id>/", views.historial_meows_paciente, name="historial_meows"),
     path("pdf/<int:paciente_id>/", views.generar_pdf_meows_paciente, name="generar_pdf_meows"),

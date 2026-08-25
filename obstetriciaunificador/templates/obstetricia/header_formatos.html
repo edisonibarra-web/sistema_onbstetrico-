@@ -77,8 +77,12 @@
     position: relative;
     z-index: 2;
 }
-/* Botón Integrado de Regreso a Módulos */
+/* Botón Integrado de Regreso a Módulos — flotante, fuera del encabezado */
 .btn-back-modules {
+    position: fixed;
+    top: 108px;
+    right: 32px;
+    z-index: 500;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -111,6 +115,12 @@
 }
 
 @media (max-width: 900px) {
+    .btn-back-modules {
+        top: 84px;
+        right: 16px;
+        padding: 7px 14px;
+        font-size: 0.75rem;
+    }
     .header-formatos-institucional-texto { display: none; }
 }
 </style>
@@ -133,9 +143,11 @@
         <img src="{% static 'img/logo_acreditacion.png' %}" alt="Logo Acreditación">
     </div>
     <div class="header-formatos-logo-right">
+        {% if not ocultar_btn_regresar %}
         <a href="/atencion/sala-de-partos/{% if documento %}?num_identificacion={{ documento|urlencode }}{% elif atencion and atencion.paciente %}?num_identificacion={{ atencion.paciente|urlencode }}{% endif %}" class="btn-back-modules" title="Volver a los Módulos">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-grid"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
             REGRESA A LOS MÓDULOS
         </a>
+        {% endif %}
     </div>
 </header>

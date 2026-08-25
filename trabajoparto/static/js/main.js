@@ -1171,11 +1171,15 @@ async function guardarTodoElControl() {
 
         await Promise.all(promesas);
 
-        // Limpiar pendientes de esta hora
-        window.medicionesPendientes = window.medicionesPendientes.filter(m => m.hora !== horaRegistro);
+        // Sincronizar con lo que el backend realmente guardó (en vez de solo
+        // vaciar el arreglo local), para que los botones sigan mostrando el
+        // valor guardado y el modal se pueda reabrir para corregir un error
+        // de digitación en lugar de aparecer vacío.
+        await sincronizarMedicionesGuardadas(formularioId, horaRegistro);
 
-        // Actualizar UI de botones
-        document.querySelectorAll('.btn-parametro-premium').forEach(btn => {
+        // Actualizar UI de todos los botones (incluye los que quedaron sin
+        // dato pendiente, si el usuario borró un valor antes de guardar).
+        document.querySelectorAll('.btn-parametro').forEach(btn => {
             const id = btn.getAttribute('data-parametro-id');
             if (id) actualizarBotonUI(id);
         });
@@ -1195,6 +1199,80 @@ async function guardarTodoElControl() {
             liveBtnSave.disabled = false;
             liveBtnSave.innerHTML = originalContent;
         }
+    }
+}
+
+/**
+ * Refresca window.medicionesPendientes con lo que el backend realmente tiene
+ * guardado para una hora dada, en vez de solo vaciar el arreglo local tras
+ * guardar. El backend ya es "edit-safe" (get_or_create/update_or_create por
+ * formulario+parámetro+hora en MedicionCreateSerializer), así que guardar de
+ * nuevo sobrescribe en vez de duplicar — lo que faltaba era que el frontend
+ * reflejara ese valor guardado para poder verlo y corregirlo, en lugar de
+ * dejar el botón/modal en blanco después de guardar o al recargar la página.
+ */
+async function sincronizarMedicionesGuardadas(formularioId, horaRegistro) {
+    if (!formularioId || !horaRegistro) return;
+    try {
+        const timestamp = new Date().getTime();
+        const mediciones = await apiRequest(`/formularios/${formularioId}/mediciones/?_=${timestamp}`);
+        if (!Array.isArray(mediciones)) return;
+
+        const formatearComoInputHora = (isoString) => {
+            const d = new Date(isoString);
+            const y = d.getFullYear();
+            const mo = (d.getMonth() + 1).toString().padStart(2, '0');
+            const da = d.getDate().toString().padStart(2, '0');
+            const h = d.getHours().toString().padStart(2, '0');
+            const mi = d.getMinutes().toString().padStart(2, '0');
+            return `${y}-${mo}-${da}T${h}:${mi}`;
+        };
+
+        const parametrosActualizados = new Set();
+
+        mediciones.forEach(medicion => {
+            if (formatearComoInputHora(medicion.tomada_en) !== horaRegistro) return;
+            const parametroId = medicion.parametro ? medicion.parametro.id : medicion.parametro;
+            if (!parametroId) return;
+
+            (medicion.valores || []).forEach(v => {
+                const campoId = v.campo ? v.campo.id : v.campo;
+                if (!campoId) return;
+
+                let valor = '';
+                let tipoValor;
+                if (v.valor_boolean !== null && v.valor_boolean !== undefined) {
+                    valor = v.valor_boolean ? 'SÍ' : 'NO';
+                    tipoValor = 'boolean';
+                } else if (v.valor_text !== null && v.valor_text !== undefined) {
+                    valor = v.valor_text;
+                } else if (v.valor_number !== null && v.valor_number !== undefined) {
+                    valor = v.valor_number.toString();
+                }
+
+                const nuevaMedicion = {
+                    parametro_id: parametroId,
+                    campo_id: campoId,
+                    tipo_valor: tipoValor,
+                    valor: valor,
+                    valor_texto: valor,
+                    hora: horaRegistro
+                };
+                const indiceExistente = window.medicionesPendientes.findIndex(m =>
+                    m.parametro_id == parametroId && m.campo_id == campoId && m.hora == horaRegistro
+                );
+                if (indiceExistente >= 0) {
+                    window.medicionesPendientes[indiceExistente] = nuevaMedicion;
+                } else {
+                    window.medicionesPendientes.push(nuevaMedicion);
+                }
+                parametrosActualizados.add(String(parametroId));
+            });
+        });
+
+        parametrosActualizados.forEach(id => actualizarBotonUI(id));
+    } catch (e) {
+        console.warn('No se pudo sincronizar mediciones guardadas para permitir su edición:', e);
     }
 }
 
@@ -1306,7 +1384,7 @@ function establecerHoraActual() {
     }
     // El campo es de solo lectura (no dispara 'change' al fijarse por JS),
     // así que refrescamos manualmente el estado de los botones de parámetro.
-    document.querySelectorAll('.btn-parametro-premium').forEach(btn => {
+    document.querySelectorAll('.btn-parametro').forEach(btn => {
         const id = btn.getAttribute('data-parametro-id');
         if (id) actualizarBotonUI(id);
     });

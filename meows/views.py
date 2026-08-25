@@ -79,13 +79,22 @@ def abrir_historial_meows_desde_documento(request, doc=None):
 
 @never_cache
 @login_required_if_enabled
-def crear_medicion_meows(request, paciente_id):
+def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
     """
-    Vista para crear una nueva medición MEOWS para un paciente.
+    Vista para crear una nueva medición MEOWS para un paciente, o para editar
+    una medición ya guardada (cuando se llega con medicion_id, vía la URL
+    'editar_meows') y así poder corregir un error humano sin crear un
+    registro duplicado.
     """
     atencion_id = request.GET.get("atencion")
-    paciente = get_object_or_404(Paciente, id=paciente_id)
-    
+
+    medicion_editar = None
+    if medicion_id:
+        medicion_editar = get_object_or_404(Medicion, id=medicion_id)
+        paciente = medicion_editar.paciente
+    else:
+        paciente = get_object_or_404(Paciente, id=paciente_id)
+
     # Obtener o crear formulario MEOWS
     formulario, _ = Formulario.objects.get_or_create(
         codigo="MEOWS",
@@ -98,6 +107,20 @@ def crear_medicion_meows(request, paciente_id):
     
     parametros = Parametro.objects.filter(activo=True).order_by("orden")
 
+    # En modo edición, prellenar cada parámetro con su valor ya guardado
+    # (usado por formulario.html vía parametro.valor_actual) para poder
+    # revisarlo y corregirlo en vez de reingresarlo todo desde cero.
+    if medicion_editar:
+        valores_existentes = {
+            v.parametro_id: v.valor
+            for v in medicion_editar.valores.all()
+        }
+        for p in parametros:
+            p.valor_actual = valores_existentes.get(p.id, '')
+    else:
+        for p in parametros:
+            p.valor_actual = ''
+
     if request.method == "POST":
         atencion_id = (request.POST.get("atencion") or request.GET.get("atencion") or "").strip()
         # Obtener el número de documento del formulario
@@ -106,7 +129,8 @@ def crear_medicion_meows(request, paciente_id):
             messages.error(request, 'El número de documento es requerido.')
             return render(request, "meows/formulario.html", {
                 "paciente": paciente,
-                "parametros": parametros
+                "parametros": parametros,
+                "medicion": medicion_editar,
             })
 
         # Fecha y hora del monitoreo (registro manual).
@@ -117,7 +141,8 @@ def crear_medicion_meows(request, paciente_id):
             messages.error(request, 'La fecha y hora del monitoreo son requeridas.')
             return render(request, "meows/formulario.html", {
                 "paciente": paciente,
-                "parametros": parametros
+                "parametros": parametros,
+                "medicion": medicion_editar,
             })
 
         try:
@@ -128,7 +153,8 @@ def crear_medicion_meows(request, paciente_id):
             messages.error(request, 'La fecha u hora del monitoreo no tienen un formato válido.')
             return render(request, "meows/formulario.html", {
                 "paciente": paciente,
-                "parametros": parametros
+                "parametros": parametros,
+                "medicion": medicion_editar,
             })
 
         fecha_hora_monitoreo = timezone.make_aware(
@@ -181,9 +207,10 @@ def crear_medicion_meows(request, paciente_id):
             messages.error(request, 'Error al guardar los datos del paciente. El número de documento ya existe.')
             return render(request, "meows/formulario.html", {
                 "paciente": paciente,
-                "parametros": parametros
+                "parametros": parametros,
+                "medicion": medicion_editar,
             })
-        
+
         atencion = None
         if atencion_id:
             try:
@@ -191,26 +218,50 @@ def crear_medicion_meows(request, paciente_id):
             except Exception:
                 atencion = None
 
-        # Crear la medición
-        medicion = Medicion.objects.create(
-            paciente=paciente,
-            formulario=formulario,
-            atencion=atencion,
-            fecha_hora=fecha_hora_monitoreo,
-        )
-
-        # Crear los valores de medición
         from meows.services.meows import calcular_meows
         valores_dict = {}
-        for parametro in parametros:
-            valor = request.POST.get(parametro.codigo)
-            if valor:
-                MedicionValor.objects.create(
-                    medicion=medicion,
-                    parametro=parametro,
-                    valor=valor
-                )
-                valores_dict[parametro.codigo] = valor
+
+        if medicion_editar:
+            # Editar: se corrige el mismo registro (no se crea uno nuevo).
+            medicion = medicion_editar
+            medicion.paciente = paciente
+            medicion.atencion = atencion
+            medicion.fecha_hora = fecha_hora_monitoreo
+            medicion.save()
+
+            codigos_enviados = []
+            for parametro in parametros:
+                valor = request.POST.get(parametro.codigo)
+                if valor:
+                    MedicionValor.objects.update_or_create(
+                        medicion=medicion,
+                        parametro=parametro,
+                        defaults={"valor": valor},
+                    )
+                    valores_dict[parametro.codigo] = valor
+                    codigos_enviados.append(parametro.id)
+            # Si un parámetro que antes tenía valor se dejó en blanco al
+            # corregir, se elimina su valor anterior en vez de dejarlo obsoleto.
+            medicion.valores.exclude(parametro_id__in=codigos_enviados).delete()
+        else:
+            # Crear la medición
+            medicion = Medicion.objects.create(
+                paciente=paciente,
+                formulario=formulario,
+                atencion=atencion,
+                fecha_hora=fecha_hora_monitoreo,
+            )
+
+            # Crear los valores de medición
+            for parametro in parametros:
+                valor = request.POST.get(parametro.codigo)
+                if valor:
+                    MedicionValor.objects.create(
+                        medicion=medicion,
+                        parametro=parametro,
+                        valor=valor
+                    )
+                    valores_dict[parametro.codigo] = valor
 
         # Calcular score total, riesgo y mensaje
         resultados_meows = calcular_meows(valores_dict)
@@ -218,6 +269,12 @@ def crear_medicion_meows(request, paciente_id):
         medicion.meows_riesgo = resultados_meows["meows_riesgo"]
         medicion.meows_mensaje = resultados_meows["meows_mensaje"]
         medicion.save(update_fields=["meows_total", "meows_riesgo", "meows_mensaje"])
+
+        if medicion_editar:
+            # Al corregir un registro existente, volver a su detalle para
+            # confirmar visualmente el valor ya corregido.
+            messages.success(request, 'Registro MEOWS actualizado exitosamente.')
+            return redirect("ver_meows", medicion_id=medicion.id)
 
         # Notificar éxito
         messages.success(request, 'Registro MEOWS guardado exitosamente.')
@@ -235,8 +292,9 @@ def crear_medicion_meows(request, paciente_id):
     return render(request, "meows/formulario.html", {
         "paciente": paciente,
         "parametros": parametros,
-        "atencion_id": request.GET.get("atencion"),
-        "documento": request.GET.get("doc"),
+        "medicion": medicion_editar,
+        "atencion_id": request.GET.get("atencion") or (medicion_editar.atencion_id if medicion_editar else None),
+        "documento": request.GET.get("doc") or paciente.numero_documento,
         "profesional_nombre_sesion": request.session.get('dgh_info', {}).get('nombre_completo') or '',
     })
 

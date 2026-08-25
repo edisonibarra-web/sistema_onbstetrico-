@@ -62,14 +62,17 @@ def _get_local_ip():
         return None
 
 _CSRF_EXTRA = os.environ.get('CSRF_TRUSTED_ORIGIN', '').strip()
+# Puertos con los que se ha corrido `runserver` en este proyecto (backend y frontend
+# separados según el equipo). Se listan todos para no tener que recordar actualizar
+# este archivo cada vez que se cambia el puerto de arranque.
+_DEV_PORTS = ['8000', '8001', '8002']
+_DEV_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
-    'http://0.0.0.0:8000',
+    f'http://{host}:{port}' for host in _DEV_HOSTS for port in _DEV_PORTS
 ]
 _local_ip = _get_local_ip()
 if _local_ip:
-    CSRF_TRUSTED_ORIGINS.append(f'http://{_local_ip}:8000')
+    CSRF_TRUSTED_ORIGINS += [f'http://{_local_ip}:{port}' for port in _DEV_PORTS]
 if _CSRF_EXTRA:
     CSRF_TRUSTED_ORIGINS.append(_CSRF_EXTRA)
 

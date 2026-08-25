@@ -118,6 +118,34 @@ class ControlFetocardia(models.Model):
         return f"Fetocardia {self.fetocardia} lpm - {self.fecha} {self.hora}"
 
 
+class ControlSangrado(models.Model):
+    """
+    Control periódico de cuantificación gravimétrica del sangrado postparto
+    (cada 15 min las primeras 2h, cada 30 min la hora siguiente y cada hora
+    hasta completar 6h). Persistido individualmente para poder consultarlo y
+    corregirlo después de guardado, en vez de solo conservar la suma total.
+    """
+    registro = models.ForeignKey(
+        RegistroParto,
+        on_delete=models.CASCADE,
+        related_name='controles_sangrado'
+    )
+    minuto_control = models.PositiveSmallIntegerField(
+        verbose_name="Minuto del control (cronograma 15/30/60)"
+    )
+    hora = models.TimeField(verbose_name="Hora del control")
+    cc = models.PositiveIntegerField(verbose_name="Sangrado cuantificado en este control (c.c.)")
+
+    class Meta:
+        verbose_name = "Control de Sangrado"
+        verbose_name_plural = "Controles de Sangrado"
+        ordering = ['minuto_control']
+        unique_together = ('registro', 'minuto_control')
+
+    def __str__(self):
+        return f"Sangrado {self.cc}cc - min {self.minuto_control}"
+
+
 class ControlRecienNacido(models.Model):
     """Datos del recién nacido"""
     GENERO_CHOICES = [('M', 'Masculino'), ('F', 'Femenino'), ('I', 'Indeterminado')]

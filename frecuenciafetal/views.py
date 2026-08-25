@@ -15,12 +15,12 @@ from django.core.files.base import ContentFile
 from .models import (
     RegistroParto, ControlFetocardia,
     ControlRecienNacido, GlucometriaRecienNacido,
-    ControlPostpartoInmediato, HuellaBebe, FirmaPaciente, Huella
+    ControlPostpartoInmediato, ControlSangrado, HuellaBebe, FirmaPaciente, Huella
 )
 from .serializers import (
     RegistroPartoSerializer, RegistroPartoListSerializer,
     ControlFetocardiaSerializer, ControlRecienNacidoSerializer,
-    ControlPostpartoSerializer, GlucometriaSerializer, FirmaPacienteSerializer
+    ControlPostpartoSerializer, ControlSangradoSerializer, GlucometriaSerializer, FirmaPacienteSerializer
 )
 from .pdf_generator import generar_pdf_registro
 from .sala_partos_db import listar_pacientes_sala_partos
@@ -317,17 +317,11 @@ class ControlFetocardiaViewSet(viewsets.ModelViewSet):
             response.data["redirect_url"] = f"/atencion/{atencion_id}/"
         return response
 
-    def update(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'No se permite editar registros de fetocardia ya guardados. Solo se puede agregar nuevos.'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
-
-    def partial_update(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'No se permite editar registros de fetocardia ya guardados. Solo se puede agregar nuevos.'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # Nota: antes esta vista bloqueaba update/partial_update con un 405
+    # ("solo se puede agregar nuevos"). Se permite editar deliberadamente
+    # para poder corregir un error humano en un control ya guardado; el
+    # comportamiento por defecto de ModelViewSet (PUT/PATCH actualiza la
+    # fila existente) ya hace exactamente eso.
 
 
 @method_decorator(never_cache, name='dispatch')
@@ -407,17 +401,31 @@ class ControlPostpartoViewSet(viewsets.ModelViewSet):
             response.data["redirect_url"] = f"/atencion/{atencion_id}/"
         return response
 
-    def update(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'No se permite editar controles postparto ya guardados. Solo se puede agregar nuevos.'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # Nota: antes esta vista bloqueaba update/partial_update con un 405
+    # ("solo se puede agregar nuevos"). Se permite editar deliberadamente
+    # para poder corregir un error humano en un control ya guardado; el
+    # comportamiento por defecto de ModelViewSet (PUT/PATCH actualiza la
+    # fila existente) ya hace exactamente eso.
 
-    def partial_update(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'No se permite editar controles postparto ya guardados. Solo se puede agregar nuevos.'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+
+@method_decorator(never_cache, name='dispatch')
+class ControlSangradoViewSet(viewsets.ModelViewSet):
+    """
+    Controles periódicos de cuantificación gravimétrica del sangrado. A
+    diferencia de fetocardia/postparto, nace ya "edit-safe": el
+    comportamiento por defecto de ModelViewSet permite PATCH/PUT para
+    corregir un control guardado.
+    """
+    serializer_class = ControlSangradoSerializer
+
+    def get_queryset(self):
+        registro_id = self.kwargs.get('registro_pk')
+        return ControlSangrado.objects.filter(registro_id=registro_id)
+
+    def perform_create(self, serializer):
+        registro = get_object_or_404(RegistroParto, pk=self.kwargs['registro_pk'])
+        serializer.save(registro=registro)
+
 
 @login_required_if_enabled
 def guardar_huella_bebe(request):
