@@ -153,33 +153,37 @@
 .sidebar-toggle-btn {
     position: absolute;
     top: 22px;
-    right: -13px;
-    width: 26px;
-    height: 26px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     background: var(--sidebar-accent);
     color: #fff;
-    border: 3px solid var(--sidebar-bg);
+    border: 3px solid #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     z-index: 60;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-    transition: all 0.2s ease;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(15, 23, 42, 0.1);
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
     padding: 0;
 }
 
 .sidebar-toggle-btn:hover {
     background: #155e75;
-    transform: scale(1.08);
-    box-shadow: 0 4px 12px rgba(8, 145, 178, 0.45);
+    transform: scale(1.12);
+    box-shadow: 0 5px 14px rgba(8, 145, 178, 0.5), 0 0 0 1px rgba(15, 23, 42, 0.1);
+}
+
+.sidebar-toggle-btn:active {
+    transform: scale(0.96);
 }
 
 .sidebar-toggle-btn .nav-icon {
-    width: 14px;
-    height: 14px;
-    stroke-width: 2.75;
+    width: 16px;
+    height: 16px;
+    stroke-width: 3;
 }
 
 .sidebar.collapsed .sidebar-module {
