@@ -1,0 +1,684 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Usuario | Sistema Obstétrico Unificado</title>
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
+    <style>
+        :root {
+            --primary-blue: #1e3a5f;
+            --panel-bg: #f4f7fc;
+            --c-manual: #059669;
+            --c-meows: #7c3aed;
+            --c-fetal: #0d9488;
+            --c-parto: #db2777;
+            --c-sala: #2563eb;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--panel-bg);
+            color: #1e293b;
+        }
+        .app-layout { display: flex; min-height: 100vh; }
+        .main-content {
+            flex: 1;
+            padding: 40px 32px 80px;
+            display: flex;
+            justify-content: center;
+        }
+        .manual-wrap { width: 100%; max-width: 1720px; }
+
+        /* Encabezado */
+        .manual-header {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            padding: 40px 44px;
+            box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .manual-header::before {
+            content: "";
+            position: absolute;
+            top: -120px; right: -100px;
+            width: 300px; height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(5,150,105,0.10) 0%, rgba(5,150,105,0) 70%);
+        }
+        .manual-eyebrow {
+            position: relative;
+            font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--c-manual); margin-bottom: 10px;
+        }
+        .manual-header h1 {
+            position: relative;
+            font-size: 32px; font-weight: 800; margin: 0 0 12px; color: var(--primary-blue); letter-spacing: -0.01em;
+        }
+        .manual-header p {
+            position: relative;
+            font-size: 16px; color: #64748b; line-height: 1.6; margin: 0 0 24px; max-width: 780px;
+        }
+        .manual-icon {
+            position: relative;
+            width: 60px; height: 60px; border-radius: 16px;
+            background: linear-gradient(145deg, #d1fae5 0%, #a7f3d0 100%);
+            color: var(--c-manual);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 0 1px #6ee7b7;
+        }
+        .pdf-download-btn {
+            position: absolute;
+            top: 28px; right: 28px;
+            display: flex; align-items: center; gap: 8px;
+            background: #0f172a; color: #fff;
+            border: none; border-radius: 999px;
+            padding: 11px 20px;
+            font-size: 13.5px; font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.22);
+            transition: transform .15s ease, background .15s ease;
+        }
+        .pdf-download-btn:hover { background: #1e293b; transform: translateY(-1px); }
+
+        /* Índice / navegación rápida */
+        .toc {
+            position: relative;
+            display: flex; flex-wrap: wrap; gap: 10px;
+        }
+        .toc a {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+            font-size: 13.5px; font-weight: 700;
+            text-decoration: none;
+            transition: all .15s ease;
+        }
+        .toc a:hover { background: #e2e8f0; transform: translateY(-1px); }
+        .toc a .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+        /* Secciones */
+        .section-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 22px;
+            padding: 36px 40px;
+            margin-bottom: 22px;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+            scroll-margin-top: 24px;
+        }
+        .section-head {
+            display: flex; align-items: center; gap: 16px;
+            margin-bottom: 8px;
+        }
+        .section-icon {
+            width: 46px; height: 46px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; flex-shrink: 0;
+        }
+        .section-head h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--primary-blue); }
+        .section-sub { margin: 0 0 22px; color: #64748b; font-size: 14.5px; line-height: 1.6; max-width: 900px; }
+
+        /* El texto se mantiene a un ancho cómodo de lectura aunque la tarjeta
+           sea más ancha; las capturas de pantalla sí usan todo el ancho. */
+        .section-card > p, .section-card > ol.steps, .section-card > ul.plain, h3.step-title {
+            max-width: 900px;
+        }
+
+        .section-card.c-manual .section-icon { background: linear-gradient(135deg,#34d399,#059669); }
+        .section-card.c-sala .section-icon   { background: linear-gradient(135deg,#60a5fa,#2563eb); }
+        .section-card.c-meows .section-icon  { background: linear-gradient(135deg,#a78bfa,#7c3aed); }
+        .section-card.c-fetal .section-icon  { background: linear-gradient(135deg,#2dd4bf,#0d9488); }
+        .section-card.c-parto .section-icon  { background: linear-gradient(135deg,#f472b6,#db2777); }
+
+        h3.step-title {
+            font-size: 15.5px; font-weight: 800; color: #0f172a;
+            margin: 26px 0 12px; padding-top: 18px; border-top: 1px dashed #e2e8f0;
+        }
+        h3.step-title:first-of-type { border-top: none; padding-top: 0; margin-top: 6px; }
+
+        ol.steps { margin: 0; padding-left: 0; list-style: none; counter-reset: step; }
+        ol.steps > li {
+            counter-increment: step;
+            position: relative;
+            padding: 4px 0 14px 40px;
+            font-size: 14.5px; line-height: 1.65; color: #334155;
+        }
+        ol.steps > li::before {
+            content: counter(step);
+            position: absolute; left: 0; top: 2px;
+            width: 26px; height: 26px; border-radius: 50%;
+            background: #eef2ff; color: #4338ca;
+            font-size: 12.5px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .c-meows ol.steps > li::before { background:#ede9fe; color:#6d28d9; }
+        .c-fetal ol.steps > li::before { background:#ccfbf1; color:#0f766e; }
+        .c-parto ol.steps > li::before { background:#fce7f3; color:#be185d; }
+        .c-sala ol.steps > li::before  { background:#dbeafe; color:#1d4ed8; }
+        .c-manual ol.steps > li::before{ background:#d1fae5; color:#047857; }
+
+        ul.plain { margin: 0; padding-left: 20px; }
+        ul.plain li { font-size: 14.5px; line-height: 1.6; color: #334155; margin-bottom: 6px; }
+
+        code.btnname {
+            display: inline-block;
+            background: #0f172a; color: #f8fafc;
+            padding: 2px 9px; border-radius: 6px;
+            font-family: inherit; font-size: 13px; font-weight: 700;
+        }
+
+        .callout {
+            display: flex; gap: 12px;
+            border-radius: 14px;
+            padding: 14px 18px;
+            margin: 16px 0;
+            font-size: 13.8px; line-height: 1.55;
+            max-width: 900px;
+        }
+        .callout i { flex-shrink: 0; margin-top: 1px; }
+        .callout.tip { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+        .callout.warn { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+        .callout.danger { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+        /* Semáforo MEOWS */
+        .risk-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin: 14px 0 6px; max-width: 900px; }
+        .risk-chip {
+            border-radius: 12px; padding: 12px 14px; color: #fff; font-size: 13px;
+        }
+        .risk-chip b { display:block; font-size: 14px; margin-bottom: 2px; }
+        .risk-blanco { background: linear-gradient(135deg,#94a3b8,#64748b); }
+        .risk-verde  { background: linear-gradient(135deg,#4ade80,#16a34a); }
+        .risk-amarillo { background: linear-gradient(135deg,#fbbf24,#d97706); }
+        .risk-rojo   { background: linear-gradient(135deg,#f87171,#dc2626); }
+
+        /* Capturas de pantalla reales */
+        .screenshot-frame {
+            max-width: 1040px;
+            margin: 18px 0 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10);
+            background: #0f172a;
+        }
+        .screenshot-frame img { display: block; width: 100%; height: auto; }
+        .screenshot-caption {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12.5px; color: #64748b; margin: 0 0 20px; max-width: 1040px;
+        }
+        .screenshot-caption i { color: #94a3b8; flex-shrink: 0; }
+
+        @media (max-width: 900px) {
+            .main-content { padding: 24px 16px; }
+            .manual-header, .section-card { padding: 26px 22px; border-radius: 18px; }
+            .risk-grid { grid-template-columns: repeat(2,1fr); }
+            .pdf-download-btn { position: static; margin-bottom: 18px; }
+        }
+
+        /* Impresión / "Descargar PDF" (usa el diálogo de impresión del navegador) */
+        @media print {
+            #app-sidebar, .pdf-download-btn, .toc { display: none !important; }
+            body { background: #fff; }
+            .app-layout { display: block; }
+            .main-content { padding: 0; display: block; }
+            .manual-wrap { max-width: 100%; }
+            .manual-header, .section-card {
+                box-shadow: none; border: none; border-radius: 0;
+                padding: 0 0 18px; margin-bottom: 18px;
+                break-inside: avoid;
+            }
+            .manual-header::before { display: none; }
+            .screenshot-frame { box-shadow: none; break-inside: avoid; }
+            h3.step-title { break-after: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        {% include "obstetricia/sidebar.html" with is_manual=True %}
+
+        <main class="main-content">
+            <div class="manual-wrap">
+
+                <div class="manual-header">
+                    <button type="button" class="pdf-download-btn" onclick="window.print()" title="Descargar este manual como PDF">
+                        <i data-lucide="file-down" size="16"></i> Descargar PDF
+                    </button>
+                    <div class="manual-icon"><i data-lucide="book-open" size="30"></i></div>
+                    <div class="manual-eyebrow">Guía para el personal asistencial</div>
+                    <h1>Manual de Usuario del Sistema Obstétrico Unificado</h1>
+                    <p>
+                        Esta guía explica, paso a paso y sin tecnicismos, cómo usar cada pantalla del sistema:
+                        cómo encontrar a la paciente, cómo registrar los signos vitales (MEOWS), la frecuencia
+                        cardíaca fetal y el trabajo de parto, y cómo firmar y descargar los formatos en PDF.
+                        Úsela como referencia rápida cada vez que tenga una duda sobre qué botón presionar.
+                    </p>
+                    <div class="toc">
+                        <a href="#sec-inicio"><span class="dot" style="background:var(--c-manual)"></span>1. Primeros pasos</a>
+                        <a href="#sec-sala"><span class="dot" style="background:var(--c-sala)"></span>2. Sala de Partos</a>
+                        <a href="#sec-meows"><span class="dot" style="background:var(--c-meows)"></span>3. Módulo MEOWS</a>
+                        <a href="#sec-fetal"><span class="dot" style="background:var(--c-fetal)"></span>4. Frecuencia Fetal</a>
+                        <a href="#sec-parto"><span class="dot" style="background:var(--c-parto)"></span>5. Trabajo de Parto</a>
+                        <a href="#sec-pdf"><span class="dot" style="background:var(--c-sala)"></span>6. PDF unificado</a>
+                        <a href="#sec-faq"><span class="dot" style="background:var(--c-manual)"></span>7. Preguntas frecuentes</a>
+                    </div>
+                </div>
+
+                <!-- 1. PRIMEROS PASOS -->
+                <section class="section-card c-manual" id="sec-inicio">
+                    <div class="section-head">
+                        <div class="section-icon"><i data-lucide="log-in"></i></div>
+                        <h2>1. Primeros pasos</h2>
+                    </div>
+                    <p class="section-sub">Cómo ingresar al sistema y qué encuentra apenas entra.</p>
+
+                    <h3 class="step-title">Iniciar sesión</h3>
+                    <ol class="steps">
+                        <li>Abra el sistema en su navegador. Si no tiene una sesión iniciada, verá la pantalla de inicio de sesión.</li>
+                        <li>Escriba su <b>usuario</b> (el mismo código que usa en Dinámica Gerencial) y su <b>contraseña</b>.</li>
+                        <li>Presione <code class="btnname">Ingresar al Sistema</code>.</li>
+                        <li>Si el usuario o la contraseña no son correctos, el sistema le mostrará el mensaje
+                            "Usuario o contraseña incorrectos en Dinámica Gerencial." Verifique los datos e intente de nuevo.</li>
+                    </ol>
+                    <div class="callout tip">
+                        <i data-lucide="info" size="18"></i>
+                        <span>Su nombre completo (tomado de su usuario) se usará luego para completar automáticamente el campo
+                        "Responsable" en los formularios que diligencie, para que no tenga que escribirlo cada vez.</span>
+                    </div>
+
+                    <h3 class="step-title">Pantalla de Inicio (Dashboard)</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 6px;">
+                        Al ingresar llega a la pantalla de bienvenida. Es solo informativa: le recuerda los tres
+                        módulos clínicos disponibles (MEOWS, Control Fetal y Trabajo de Parto). Desde aquí no se
+                        registra ningún dato todavía — el punto de partida real para atender a una paciente es
+                        <b>Sala de Partos</b>, en el menú de la izquierda.
+                    </p>
+
+                    <h3 class="step-title">El menú lateral (siempre visible)</h3>
+                    <ul class="plain">
+                        <li><b>Dashboard</b>: vuelve a la pantalla de bienvenida.</li>
+                        <li><b>Manual de Usuario</b>: esta guía, disponible desde cualquier pantalla del sistema.</li>
+                        <li><b>Sala de Partos</b>: al hacer clic aquí, si ya tiene una paciente abierta, se despliegan
+                            los accesos directos a <b>MEOWS</b>, <b>Frecuencia Fetal</b> y <b>Trabajo de Parto</b> de esa paciente.</li>
+                        <li>El botón con la flecha (arriba del todo) colapsa el menú a solo íconos, útil en pantallas pequeñas.</li>
+                    </ul>
+                </section>
+
+                <!-- 2. SALA DE PARTOS -->
+                <section class="section-card c-sala" id="sec-sala">
+                    <div class="section-head">
+                        <div class="section-icon"><i data-lucide="bed-double"></i></div>
+                        <h2>2. Sala de Partos — Buscar y abrir una paciente</h2>
+                    </div>
+                    <p class="section-sub">
+                        Este es el punto de partida de todo: aquí identifica a la paciente y desde aquí se
+                        habilitan los tres módulos clínicos para ella.
+                    </p>
+
+                    <h3 class="step-title">Buscar a la paciente</h3>
+                    <ol class="steps">
+                        <li>En el menú lateral, haga clic en <b>Sala de Partos</b>. Verá la lista de
+                            "Pacientes activos en Sala de Partos" (las que están actualmente hospitalizadas en las
+                            áreas obstétricas del hospital).</li>
+                        <li>Use las <b>pestañas de área</b> (Todas / Sala de Partos / Ginecobstetricia / Cuidado
+                            Intermedio Gineco / Otra área) para filtrar rápidamente por ubicación.</li>
+                        <li>O escriba el <b>nombre o número de documento</b> de la paciente en el buscador; la
+                            lista se filtra automáticamente mientras escribe.</li>
+                        <li>Si necesita refrescar la lista (por ejemplo, si acaba de ingresar una paciente nueva
+                            al hospital), presione <code class="btnname">Actualizar</code>.</li>
+                    </ol>
+
+                    <h3 class="step-title">Abrir la atención de la paciente</h3>
+                    <ol class="steps">
+                        <li>Haga clic sobre la tarjeta de la paciente que necesita atender.</li>
+                        <li>El sistema abre automáticamente su ficha clínica unificada (no necesita llenar ningún
+                            formulario para esto: si es la primera vez que se usa el sistema con ella, se crea sola).</li>
+                        <li>Aparece una tarjeta con su nombre, número de identificación y un indicador de estado:
+                            <b>ESTABLE</b>, <b>ALERTA</b> o <b>CRÍTICO</b> (calculado automáticamente según sus
+                            registros de MEOWS más recientes).</li>
+                        <li>Debajo verá tres tarjetas grandes: <b>MODULO MEOWS</b>, <b>FRECUENCIA FETAL</b> y
+                            <b>TRABAJO DE PARTO</b>. Haga clic en la que necesite para empezar a registrar datos.</li>
+                        <li>Más abajo, la sección <b>"Línea de Vida del Paciente"</b> le permite ver, sin salir de
+                            esta pantalla, un resumen de todo lo registrado hasta ahora en los tres módulos. Use
+                            los botones <code class="btnname">Ver registros</code> / <code class="btnname">Ocultar registros</code>
+                            para expandir o contraer cada grupo.</li>
+                    </ol>
+
+                    <h3 class="step-title">Terminar o cambiar de paciente</h3>
+                    <ul class="plain">
+                        <li>Para dejar de trabajar con la paciente actual y volver al buscador, use el botón
+                            <code class="btnname">Salir de la Atención</code>.</li>
+                        <li>Para imprimir o guardar en PDF todo lo registrado de esta paciente en los tres
+                            módulos, use el botón <code class="btnname">PDF Unificado</code> (ver sección 6).
+                            Este botón solo aparece activo si ya hay al menos un registro guardado.</li>
+                    </ul>
+
+                    <div class="callout tip">
+                        <i data-lucide="lightbulb" size="18"></i>
+                        <span>Desde cualquier formato (MEOWS, Fetal o Parto) puede volver aquí en cualquier momento
+                        con el botón <code class="btnname">REGRESA A LOS MÓDULOS</code>, ubicado en la parte
+                        superior derecha del encabezado.</span>
+                    </div>
+                </section>
+
+                <!-- 3. MEOWS -->
+                <section class="section-card c-meows" id="sec-meows">
+                    <div class="section-head">
+                        <div class="section-icon"><i data-lucide="activity"></i></div>
+                        <h2>3. Módulo MEOWS — Alerta Temprana Obstétrica</h2>
+                    </div>
+                    <p class="section-sub">
+                        Aquí se registran los signos vitales de la paciente. El sistema calcula automáticamente un
+                        puntaje y le indica el nivel de riesgo con un color, igual que el formato físico FRSPA-026.
+                    </p>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/meows_formulario.png' %}?v=4" alt="Pantalla del formulario MEOWS">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Vista real del formulario MEOWS: parámetros vitales a la izquierda y el panel "Resumen" con el puntaje y color de riesgo a la derecha.</span>
+                    </div>
+
+                    <h3 class="step-title">Registrar una nueva medición</h3>
+                    <ol class="steps">
+                        <li>Desde Sala de Partos, entre a la tarjeta <b>MODULO MEOWS</b> de la paciente (o, si ya
+                            está dentro de una atención, use el menú lateral: Sala de Partos → MEOWS).</li>
+                        <li>Los datos de la paciente (nombre, documento, aseguradora, cama, etc.) se completan solos.</li>
+                        <li>Indique la <b>fecha y hora</b> en que se tomaron los signos vitales.</li>
+                        <li>Diligencie cada signo vital disponible: presión arterial, frecuencia cardíaca,
+                            frecuencia respiratoria, temperatura, saturación de oxígeno, estado de conciencia
+                            (Glasgow) y, si aplica, frecuencia cardíaca fetal. No es obligatorio llenarlos todos —
+                            solo los que haya tomado.</li>
+                        <li>A medida que ingresa cada valor, la tarjeta de ese parámetro le muestra si está
+                            <b>Normal</b>, <b>Moderado</b>, <b>Moderado-Alto</b> o <b>Crítico</b>, y el panel
+                            "Resumen" (a un lado) actualiza en vivo el <b>Puntaje Total</b> y el <b>Nivel de Riesgo</b>.</li>
+                        <li>Escriba su nombre en <b>"Responsable del Registro"</b> y, si lo desea, presione
+                            <code class="btnname">Capturar Firma</code> para firmar en el recuadro que aparece.</li>
+                        <li>Presione <code class="btnname">Guardar Registro MEOWS</code>. El sistema guarda la
+                            medición y lo deja listo para registrar la siguiente toma.</li>
+                    </ol>
+
+                    <h3 class="step-title">Cómo interpretar el resultado</h3>
+                    <div class="risk-grid">
+                        <div class="risk-chip risk-blanco"><b>BLANCO</b>Rutina. Observación de referencia.</div>
+                        <div class="risk-chip risk-verde"><b>VERDE</b>Riesgo bajo. Vigilar cada 4 horas.</div>
+                        <div class="risk-chip risk-amarillo"><b>AMARILLO</b>Riesgo intermedio. Avisar al médico.</div>
+                        <div class="risk-chip risk-rojo"><b>ROJO</b>Riesgo alto. Llamado urgente / emergente.</div>
+                    </div>
+                    <div class="callout warn">
+                        <i data-lucide="alert-triangle" size="18"></i>
+                        <span>Si un solo signo vital sale en estado <b>Crítico</b>, el sistema sube el riesgo a
+                        <b>AMARILLO como mínimo</b>, aunque los demás valores estén normales. Si el riesgo llega a
+                        <b>ROJO</b>, el sistema emite un sonido de alerta.</span>
+                    </div>
+
+                    <h3 class="step-title">Otras acciones del formulario</h3>
+                    <ul class="plain">
+                        <li><code class="btnname">Ver Historial Clínico</code>: muestra todas las mediciones
+                            anteriores de la paciente en una sola cuadrícula (línea de tiempo).</li>
+                        <li><code class="btnname">Limpiar Formulario</code>: borra lo que haya escrito en la
+                            pantalla actual (pide confirmación antes de borrar).</li>
+                        <li><code class="btnname">Generar PDF</code>: descarga el formato oficial MEOWS con todas
+                            las mediciones de la paciente.</li>
+                    </ul>
+
+                    <h3 class="step-title">Ver e interpretar el historial</h3>
+                    <ol class="steps">
+                        <li>Cada toma queda como una columna en la cuadrícula; cada fila representa un rango
+                            posible de un signo vital. Un punto (●) marca el valor real registrado.</li>
+                        <li>Al final de cada columna aparece el <b>puntaje total</b> de esa toma, coloreado según
+                            el riesgo. Haga clic sobre él para ver el detalle completo de esa medición.</li>
+                        <li>Use el botón <code class="btnname">Guía Técnica MEOWS</code> si necesita consultar la
+                            tabla oficial de puntajes por signo vital.</li>
+                        <li>El botón <code class="btnname">Ocultar</code> / <code class="btnname">Mostrar</code>
+                            le permite contraer la cuadrícula cuando ya tiene muchas tomas registradas.</li>
+                    </ol>
+                </section>
+
+                <!-- 4. FRECUENCIA FETAL -->
+                <section class="section-card c-fetal" id="sec-fetal">
+                    <div class="section-head">
+                        <div class="section-icon"><i data-lucide="heart-pulse"></i></div>
+                        <h2>4. Módulo Frecuencia Fetal</h2>
+                    </div>
+                    <p class="section-sub">
+                        Formato de Control de Fetocardia y Postparto (FRSPA-007): datos de la paciente, control
+                        de la frecuencia cardíaca fetal por horario, características del parto, control del
+                        sangrado y firma del responsable.
+                    </p>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/frecuencia_fetal_formulario.png' %}?v=2" alt="Pantalla del formulario de Frecuencia Fetal">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Vista real de la pantalla de Frecuencia Fetal, en blanco (sin paciente seleccionada aún).</span>
+                    </div>
+
+                    <h3 class="step-title">Completar los datos de la paciente</h3>
+                    <ol class="steps">
+                        <li>Entre al módulo desde la tarjeta <b>FRECUENCIA FETAL</b> en Sala de Partos.</li>
+                        <li>Revise/complete: nombre de la paciente, número de identificación, edad gestacional,
+                            gestas y nombre del acompañante.</li>
+                    </ol>
+
+                    <h3 class="step-title">Registrar el control de fetocardia</h3>
+                    <ol class="steps">
+                        <li>En la sección <b>"Control de Fetocardia"</b>, indique cada cuántos minutos se toma el
+                            control (por defecto cada 15 minutos).</li>
+                        <li>Presione <code class="btnname">Agregar control</code> para crear una nueva fila con
+                            fecha y hora sugeridas; solo debe escribir el valor de la frecuencia cardíaca fetal (lpm).</li>
+                        <li>Repita el proceso por cada toma que realice durante el trabajo de parto.</li>
+                        <li>Use el botón <code class="btnname">Vista previa</code> (arriba, siempre visible) para
+                            ver la gráfica del comportamiento de la frecuencia fetal en el tiempo, con la franja
+                            de valores normales resaltada.</li>
+                    </ol>
+
+                    <h3 class="step-title">Características del parto</h3>
+                    <ul class="plain">
+                        <li>Seleccione el <b>tipo de parto</b> (Vaginal, Instrumentado o Cesárea), si hubo
+                            <b>episiotomía</b> y el <b>tipo de alumbramiento</b>.</li>
+                        <li>Justo debajo puede consultar la <b>Línea de Tiempo Clínica MEOWS</b> de la misma
+                            paciente sin salir de esta pantalla.</li>
+                    </ul>
+
+                    <h3 class="step-title">Guía de parámetros y semáforo de alerta</h3>
+                    <ol class="steps">
+                        <li><b>Globo de seguridad</b>: seleccione si el útero está firme y contraído (Normal) o
+                            blando/relajado (Alerta). El campo se pinta de verde o rojo automáticamente.</li>
+                        <li><b>Sangrado cuantificado</b>: haga clic sobre esta tarjeta para abrir la
+                            <b>calculadora de sangrado</b>. Allí indique cuántas compresas, gasas, apósitos, toallas,
+                            pañales, campos, etc. se usaron y su peso; el sistema calcula automáticamente los
+                            centímetros cúbicos (cc) de sangrado y le muestra un semáforo: <b>Normal</b>,
+                            <b>Vigilar</b> o <b>Alerta</b> (el umbral cambia según si el parto fue vaginal o por
+                            cesárea). Presione <code class="btnname">Guardar control</code> para dejar constancia
+                            de esa lectura; puede editarla o eliminarla después desde la pestaña
+                            <b>"Registros"</b> del mismo modal.</li>
+                        <li><b>Sutura y heridas</b>: seleccione Normal, Hematoma o Infección; también se colorea
+                            automáticamente.</li>
+                    </ol>
+                    <div class="callout danger">
+                        <i data-lucide="siren" size="18"></i>
+                        <span>Si el semáforo de sangrado marca <b>Alerta</b>, actúe de inmediato según el protocolo
+                        de hemorragia obstétrica del hospital.</span>
+                    </div>
+
+                    <h3 class="step-title">Firmar y guardar</h3>
+                    <ol class="steps">
+                        <li>En <b>"Firma del Responsable"</b>, dibuje la firma con el mouse o el dedo (en tablet)
+                            sobre el recuadro, y escriba su nombre completo (ya viene sugerido con su nombre de sesión).</li>
+                        <li>No necesita un botón aparte para guardar la firma: se guarda automáticamente al
+                            presionar <code class="btnname">Guardar Registro Completo</code>.</li>
+                        <li>Presione <code class="btnname">Guardar Registro Completo</code>. El sistema exige como
+                            mínimo el nombre de la paciente, su identificación y la edad gestacional.</li>
+                        <li>Al guardar con la firma lista, el PDF del formato se descarga automáticamente.
+                            También puede descargarlo cuando quiera con el botón <code class="btnname">Descargar PDF</code>.</li>
+                    </ol>
+
+                    <h3 class="step-title">Capturar la huella plantar del bebé</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 6px;">
+                        Esta captura se hace desde una pantalla aparte, con la cámara del computador o tablet:
+                    </p>
+                    <ol class="steps">
+                        <li>Abra la pantalla de "Captura de Huella" (enlace que le indicará el personal de sistemas
+                            o que llega enlazada desde el registro del recién nacido).</li>
+                        <li>Autorice el uso de la cámara cuando el navegador se lo solicite.</li>
+                        <li>Ubique el pie del bebé frente a la cámara y presione <code class="btnname">👣 Capturar
+                            Pie Derecho</code> o <code class="btnname">👣 Capturar Pie Izquierdo</code> según
+                            corresponda. La foto se guarda automáticamente.</li>
+                    </ol>
+                </section>
+
+                <!-- 5. TRABAJO DE PARTO -->
+                <section class="section-card c-parto" id="sec-parto">
+                    <div class="section-head">
+                        <div class="section-icon"><i data-lucide="clipboard-list"></i></div>
+                        <h2>5. Módulo Trabajo de Parto (Partograma)</h2>
+                    </div>
+                    <p class="section-sub">
+                        Formato de Control de Trabajo de Parto (FRSPA-022): datos generales, antecedentes
+                        obstétricos y registro por hora de la actividad uterina, el estado fetal, el tacto vaginal,
+                        el monitoreo y la oxitocina.
+                    </p>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/trabajo_parto_formulario.png' %}?v=2" alt="Pantalla del formulario de Trabajo de Parto">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Vista real de la pantalla de Trabajo de Parto, en blanco (sin paciente seleccionada aún).</span>
+                    </div>
+
+                    <h3 class="step-title">Buscar / identificar a la paciente</h3>
+                    <ol class="steps">
+                        <li>Entre desde la tarjeta <b>TRABAJO DE PARTO</b> en Sala de Partos (los datos de la
+                            paciente ya llegan cargados), o escriba el número de identificación en el campo
+                            <b>"CC. Identificación"</b> y presione <b>Enter</b> para buscarla manualmente.</li>
+                        <li>El sistema completa automáticamente nombre, historia clínica, edad, aseguradora, grupo
+                            sanguíneo y diagnóstico. Estos campos quedan bloqueados para evitar modificarlos por error.</li>
+                        <li>Complete el número de <b>controles prenatales</b> y verifique el estado
+                            <b>G_P_C_A_V_M</b> (Gestante, Puerperal, Cesárea, Aborto, Parto Vaginal o Muerte
+                            materna) — el sistema le sugiere uno según el diagnóstico, pero siempre revíselo.</li>
+                        <li>Complete los antecedentes: <b>Gestas, Partos, Cesáreas, Abortos</b> (G/P/C/A).</li>
+                    </ol>
+
+                    <h3 class="step-title">Registrar los parámetros por hora</h3>
+                    <ol class="steps">
+                        <li>Antes de registrar un valor, fije la hora del control con el botón
+                            <code class="btnname">⟳ Ahora</code> (toma la hora actual del computador).</li>
+                        <li>Haga clic en el botón del parámetro que va a registrar. Están agrupados por categoría:
+                            <b>Actividad Uterina</b> (Frecuencia, Duración, Intensidad), <b>Fetal</b> (Frecuencia
+                            Cardíaca Fetal, Movimiento Fetal, Presentación), <b>Tacto</b> (Membranas, Líquido
+                            Amniótico, Dilatación, Borramiento), <b>Monitoreo</b> (Hora, Categoría) y
+                            <b>Oxitocina</b> (según la concentración usada).</li>
+                        <li>Se abre una ventana pequeña (modal) con el campo correspondiente; escriba o seleccione
+                            el valor. En la mayoría de los casos la ventana se cierra sola al terminar de elegir el
+                            dato y el botón queda marcado en verde con el valor registrado.</li>
+                        <li>Repita este paso con cada parámetro que necesite registrar para esa hora del control.</li>
+                        <li>Use <code class="btnname">Vista Previa</code> para revisar, en una sola tabla, todo lo
+                            registrado hasta el momento (requiere haber guardado el formulario al menos una vez).</li>
+                        <li>Use <code class="btnname">Vista Previa MEOWS</code> para abrir, en una pestaña nueva,
+                            el historial de signos vitales de la misma paciente sin perder lo que está diligenciando aquí.</li>
+                    </ol>
+
+                    <h3 class="step-title">Firmar y guardar el formulario</h3>
+                    <ol class="steps">
+                        <li>En la tarjeta de firma, presione <code class="btnname">✍️ Firmar aquí</code>, dibuje su
+                            firma en el recuadro y presione <code class="btnname">Guardar Firma</code>. Puede
+                            <code class="btnname">Limpiar</code> el trazo si se equivoca.</li>
+                        <li>Escriba su nombre en el campo <b>RESPONSABLE</b> (ya viene sugerido con su nombre de sesión).</li>
+                        <li>Presione <code class="btnname">Guardar Formulario</code>. El sistema le pedirá completar
+                            "Estado" y "Responsable" si faltan.</li>
+                        <li>Si el formulario ya existía y lo está corrigiendo, el sistema le preguntará
+                            "¿En verdad desea modificar la información?" antes de sobrescribir los datos.</li>
+                        <li>Una vez guardado, aparece el botón <code class="btnname">📄 Descargar PDF Reporte</code>
+                            para obtener el formato de trabajo de parto en PDF.</li>
+                    </ol>
+                    <div class="callout tip">
+                        <i data-lucide="repeat" size="18"></i>
+                        <span>Puede volver a este formulario cuantas veces necesite durante la evolución del
+                        trabajo de parto: cada vez que guarda, los nuevos controles se agregan a la línea de
+                        tiempo sin perder lo ya registrado.</span>
+                    </div>
+                </section>
+
+                <!-- 6. PDF UNIFICADO -->
+                <section class="section-card c-sala" id="sec-pdf">
+                    <div class="section-head">
+                        <div class="section-icon"><i data-lucide="file-down"></i></div>
+                        <h2>6. Generar el PDF unificado de la atención</h2>
+                    </div>
+                    <p class="section-sub">
+                        Un solo archivo con los tres formatos completos de la paciente (MEOWS + Frecuencia Fetal +
+                        Trabajo de Parto), listo para imprimir o adjuntar a la historia clínica.
+                    </p>
+                    <ol class="steps">
+                        <li>Abra la atención de la paciente desde <b>Sala de Partos</b>.</li>
+                        <li>Presione el botón <code class="btnname">PDF Unificado</code>, ubicado en la tarjeta
+                            de la paciente.</li>
+                        <li>El PDF se abre en una pestaña nueva del navegador, listo para guardar o imprimir.</li>
+                    </ol>
+                    <div class="callout warn">
+                        <i data-lucide="info" size="18"></i>
+                        <span>El botón aparece deshabilitado si la paciente todavía no tiene ningún registro
+                        guardado en ninguno de los tres módulos. Registre al menos una medición y vuelva a intentarlo.</span>
+                    </div>
+                </section>
+
+                <!-- 7. FAQ -->
+                <section class="section-card c-manual" id="sec-faq">
+                    <div class="section-head">
+                        <div class="section-icon"><i data-lucide="help-circle"></i></div>
+                        <h2>7. Preguntas frecuentes</h2>
+                    </div>
+
+                    <h3 class="step-title">No encuentro a mi paciente en Sala de Partos, ¿qué hago?</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
+                        Verifique que su documento esté bien escrito y presione <code class="btnname">Actualizar</code>
+                        para refrescar la lista contra el sistema del hospital. Si aun así no aparece, puede que la
+                        paciente todavía no esté registrada como hospitalizada en un área obstétrica.
+                    </p>
+
+                    <h3 class="step-title">Guardé un dato equivocado, ¿puedo corregirlo?</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
+                        Sí. En MEOWS, abra el registro desde el historial y use <code class="btnname">Editar este
+                        Registro</code>. En Frecuencia Fetal y Trabajo de Parto, vuelva a abrir el formulario de la
+                        paciente, corrija el valor y presione nuevamente el botón de guardar correspondiente.
+                    </p>
+
+                    <h3 class="step-title">¿Necesito firmar cada registro?</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
+                        La firma queda asociada al profesional responsable y respalda el documento clínico. Se
+                        recomienda firmar siempre que el formato quede completo y listo para imprimir o archivar.
+                    </p>
+
+                    <h3 class="step-title">¿Qué significa el color del estado de la paciente en Sala de Partos?</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
+                        Es un resumen automático basado en su último registro de MEOWS:
+                        <b>ESTABLE</b> (sin alertas), <b>ALERTA</b> (algún signo vital en riesgo intermedio) o
+                        <b>CRÍTICO</b> (riesgo alto). Consulte el módulo MEOWS para ver el detalle.
+                    </p>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

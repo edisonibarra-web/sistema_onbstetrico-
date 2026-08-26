@@ -4488,23 +4488,27 @@
                 sigDisplay.style.display = 'none';
               }
 
-              // Datos del Profesional (DGH)
-              if (data.firma_profesional_base64) {
-                document.getElementById('profesional-firma-img').src = data.firma_profesional_base64;
-                document.getElementById('profesional-firma-img').style.display = 'block';
-                document.getElementById('profesional-firma-placeholder').style.display = 'none';
-                document.getElementById('profesional-nombre-label').innerText = data.profesional_nombre || '—';
-                document.getElementById('profesional-id-label').innerText = data.profesional_identificacion || '—';
-                document.getElementById('profesional-tp-label').innerText = data.profesional_tarjeta_pro || '—';
+              // Datos del Profesional (DGH) — sección removida del HTML actual;
+              // se protege con este guard para no interrumpir el resto de
+              // cargarRegistro() (fetocardia, etc.) si los elementos no existen.
+              if (document.getElementById('profesional-firma-placeholder')) {
+                if (data.firma_profesional_base64) {
+                  document.getElementById('profesional-firma-img').src = data.firma_profesional_base64;
+                  document.getElementById('profesional-firma-img').style.display = 'block';
+                  document.getElementById('profesional-firma-placeholder').style.display = 'none';
+                  document.getElementById('profesional-nombre-label').innerText = data.profesional_nombre || '—';
+                  document.getElementById('profesional-id-label').innerText = data.profesional_identificacion || '—';
+                  document.getElementById('profesional-tp-label').innerText = data.profesional_tarjeta_pro || '—';
 
-                // Set hidden fields
-                document.getElementById('profesional_nombre').value = data.profesional_nombre || '';
-                document.getElementById('profesional_identificacion_hidden').value = data.profesional_identificacion || '';
-                document.getElementById('profesional_tarjeta_pro').value = data.profesional_tarjeta_pro || '';
-                document.getElementById('firma_profesional_base64').value = data.firma_profesional_base64 || '';
-              } else {
-                // Si es un registro previo sin firma guardada, intentar cargar la del usuario actual
-                loadMiFirmaDGH();
+                  // Set hidden fields
+                  document.getElementById('profesional_nombre').value = data.profesional_nombre || '';
+                  document.getElementById('profesional_identificacion_hidden').value = data.profesional_identificacion || '';
+                  document.getElementById('profesional_tarjeta_pro').value = data.profesional_tarjeta_pro || '';
+                  document.getElementById('firma_profesional_base64').value = data.firma_profesional_base64 || '';
+                } else {
+                  // Si es un registro previo sin firma guardada, intentar cargar la del usuario actual
+                  loadMiFirmaDGH();
+                }
               }
 
 

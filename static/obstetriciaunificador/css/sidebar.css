@@ -373,11 +373,13 @@
 .tab-icon-badge.badge-fetal { background: linear-gradient(135deg, #2dd4bf, #0d9488); box-shadow: 0 2px 8px rgba(13, 148, 136, 0.45); color: #fff; }
 .tab-icon-badge.badge-parto { background: linear-gradient(135deg, #f472b6, #db2777); box-shadow: 0 2px 8px rgba(219, 39, 119, 0.45); color: #fff; }
 .tab-icon-badge.badge-dashboard { background: linear-gradient(135deg, #60a5fa, #2563eb); box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45); color: #fff; }
+.tab-icon-badge.badge-manual { background: linear-gradient(135deg, #34d399, #059669); box-shadow: 0 2px 8px rgba(5, 150, 105, 0.45); color: #fff; }
 
 .tabs-link.active .tab-icon-badge.badge-meows,
 .tabs-link.active .tab-icon-badge.badge-fetal,
 .tabs-link.active .tab-icon-badge.badge-parto,
-.tabs-link.active .tab-icon-badge.badge-dashboard {
+.tabs-link.active .tab-icon-badge.badge-dashboard,
+.tabs-link.active .tab-icon-badge.badge-manual {
     color: #fff;
 }
 

@@ -282,6 +282,17 @@ def dashboard(request):
 
 
 @login_required_if_enabled
+def manual_usuario(request):
+    """
+    Manual de Usuario: guía paso a paso de cómo usar cada módulo del sistema.
+    """
+    return render(request, "obstetricia/manual_usuario.html", {
+        "is_manual": True,
+        "title": "Manual de Usuario | Sistema Obstétrico Unificado"
+    })
+
+
+@login_required_if_enabled
 def atencion_detalle(request, id):
     atencion = get_object_or_404(AtencionParto, id=id)
 

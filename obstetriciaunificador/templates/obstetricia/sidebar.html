@@ -24,6 +24,9 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                 <a href="/atencion/" class="tabs-link {% if is_dashboard %}active{% endif %}" title="Dashboard">
                     <span class="tab-icon-badge badge-dashboard"><i data-lucide="layout-dashboard" class="nav-icon"></i></span> <span class="tabs-link-text">Dashboard</span>
                 </a>
+                <a href="/atencion/manual/" class="tabs-link {% if is_manual %}active{% endif %}" title="Manual de Usuario">
+                    <span class="tab-icon-badge badge-manual"><i data-lucide="book-open" class="nav-icon"></i></span> <span class="tabs-link-text">Manual de Usuario</span>
+                </a>
             </nav>
         </div>
     </div>
@@ -96,15 +99,16 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
     }
 
     /**
-     * Si ya estamos en Sala de Partos con un paciente cargado (?num_identificacion=...
-     * en la URL), conserva ese contexto al hacer clic en "Sala de Partos" en vez de
-     * navegar a la página en blanco y perder al paciente que se estaba viendo.
+     * Si ya estamos en Sala de Partos (con un paciente cargado por querystring
+     * o seleccionado desde la lista vía AJAX, que no actualiza la URL), el clic
+     * en "Sala de Partos" del sidebar no debe recargar la página ni volver a la
+     * búsqueda en blanco: eso es responsabilidad exclusiva del botón
+     * "Salir de la Atención" (nuevaBusqueda()). Aquí simplemente no navegamos.
      */
     function mantenerContextoSalaPartos(event) {
-        const qs = window.location.search;
-        if (qs && window.location.pathname.replace(/\/$/, '') === '/atencion/sala-de-partos') {
+        if (window.location.pathname.replace(/\/$/, '') === '/atencion/sala-de-partos') {
             event.preventDefault();
-            window.location.href = '/atencion/sala-de-partos/' + qs;
+            return false;
         }
         return true;
     }
