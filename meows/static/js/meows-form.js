@@ -55,16 +55,15 @@ let riesgoAnterior = null;
 // Rangos fallback (por si falla la carga desde el backend)
 const MEOWS_RANGOS_FALLBACK = {
     'fc': [
-        { min: 0, max: 49, score: 3 },
-        { min: 50, max: 59, score: 3 },
-        { min: 60, max: 109, score: 0 },
-        { min: 110, max: 150, score: 2 },
-        { min: 151, max: 999, score: 3 }
+        { min: 0, max: 59, score: 3 },
+        { min: 60, max: 110, score: 0 },
+        { min: 111, max: 149, score: 2 },
+        { min: 150, max: 999, score: 3 }
     ],
     'ta_sys': [
-        { min: 0, max: 89, score: 3 },
-        { min: 90, max: 99, score: 2 },
-        { min: 100, max: 139, score: 0 },
+        { min: 0, max: 79, score: 3 },
+        { min: 80, max: 89, score: 2 },
+        { min: 90, max: 139, score: 0 },
         { min: 140, max: 149, score: 1 },
         { min: 150, max: 159, score: 2 },
         { min: 160, max: 999, score: 3 }
@@ -87,18 +86,16 @@ const MEOWS_RANGOS_FALLBACK = {
     ],
     'temp': [
         { min: 0, max: 33.9, score: 3 },
-        { min: 34.0, max: 34.9, score: 3 },
-        { min: 35.0, max: 35.9, score: 1 },
-        { min: 36.0, max: 37.4, score: 0 },
-        { min: 37.5, max: 38.9, score: 1 },
-        { min: 39.0, max: 39.9, score: 3 },
-        { min: 40.0, max: 999, score: 3 }
+        { min: 34.0, max: 35.0, score: 1 },
+        { min: 35.1, max: 37.9, score: 0 },
+        { min: 38.0, max: 38.9, score: 1 },
+        { min: 39.0, max: 999, score: 3 }
     ],
     'spo2': [
-        { min: 0, max: 89, score: 3 },
-        { min: 90, max: 92, score: 2 },
-        { min: 93, max: 94, score: 1 },
-        { min: 95, max: 100, score: 0 }
+        // % de O2 requerido para mantener Saturación > 95% (FiO2 suplementario), no SpO2 directo.
+        { min: 0, max: 23, score: 0 },
+        { min: 24, max: 39, score: 1 },
+        { min: 40, max: 100, score: 3 }
     ],
     'glasgow': [
         { min: 0, max: 14, score: 3 },
@@ -167,10 +164,7 @@ function calcularScore(parametro, valor) {
         if (valorNum < 40 || valorNum > 170) {
             return null; // Retorna null para indicar que está fuera de rango válido
         }
-        // Valores mayores a 150 tienen score rojo (3)
-        if (valorNum > 150) {
-            return 3;
-        }
+        // El score en sí (incluido >=150 -> rojo) ya lo resuelve MEOWS_RANGOS.fc más abajo.
     }
 
     // Validación especial para frecuencia cardíaca fetal: solo se descartan valores
@@ -964,8 +958,13 @@ function convertirFcfASelect() {
 }
 
 /**
- * Convierte el input de SpO2 a select con valores válidos (80-100, de 1 en 1)
+ * Convierte el input de SpO2 a select con los valores de % de O2 requerido
+ * para mantener Saturación > 95% (FiO2 suplementario) — tal cual la tabla
+ * oficial MEOWS, NO el valor de SpO2 del oxímetro. Ver el comentario en
+ * MEOWS_RANGOS_FALLBACK.spo2 más arriba y meows/services/dinamica_signos_vitales.py.
  */
+const OPCIONES_SPO2 = [21, 24, 28, 31, 35, 40, 50, 60, 80, 100];
+
 function convertirSpo2ASelect() {
     const spo2Input = document.getElementById('spo2');
     if (!spo2Input || spo2Input.tagName === 'SELECT') {
@@ -975,11 +974,11 @@ function convertirSpo2ASelect() {
     const valorActual = spo2Input.value;
     const unidad = spo2Input.dataset.unidad || '%';
 
-    // Generar opciones desde 80 hasta 100
     let opciones = '<option value="">seleccione</option>';
-    for (let valor = 80; valor <= 100; valor++) {
-        opciones += `<option value="${valor}">${valor}</option>`;
-    }
+    OPCIONES_SPO2.forEach((valor) => {
+        const etiqueta = valor === 21 ? `${valor} (Aire ambiente)` : `${valor}`;
+        opciones += `<option value="${valor}">${etiqueta}</option>`;
+    });
 
     // Crear el select
     const select = document.createElement('select');
@@ -991,11 +990,14 @@ function convertirSpo2ASelect() {
     select.setAttribute('data-unidad', unidad);
     select.innerHTML = opciones;
 
-    // Seleccionar el valor actual si existe y está en el rango válido
+    // Seleccionar la opción más cercana al valor actual, si existe
     if (valorActual) {
         const valorNum = parseFloat(valorActual);
-        if (!isNaN(valorNum) && valorNum >= 80 && valorNum <= 100) {
-            select.value = Math.round(valorNum).toString();
+        if (!isNaN(valorNum)) {
+            const masCercano = OPCIONES_SPO2.reduce((a, b) =>
+                Math.abs(b - valorNum) < Math.abs(a - valorNum) ? b : a
+            );
+            select.value = masCercano.toString();
         }
     }
 
@@ -1266,23 +1268,29 @@ async function inicializar() {
     // Sugerencias de aseguradora (no bloquea el resto de la inicialización)
     cargarAseguradorasMeows();
 
-    // Convertir temperatura a select
-    convertirTempASelect();
+    // Si la medición viene de Dinámica, se deja el valor real editable como
+    // número libre (igual que ya funciona "fr") en vez de forzarlo a encajar
+    // en una de las opciones fijas del select — ver MEOWS_ORIGEN_DINAMICA en
+    // formulario.html.
+    if (!window.MEOWS_ORIGEN_DINAMICA) {
+        // Convertir temperatura a select
+        convertirTempASelect();
 
-    // Convertir tensión arterial sistólica a select
-    convertirTaSysASelect();
+        // Convertir tensión arterial sistólica a select
+        convertirTaSysASelect();
 
-    // Convertir tensión arterial diastólica a select
-    convertirTaDiaASelect();
+        // Convertir tensión arterial diastólica a select
+        convertirTaDiaASelect();
 
-    // Convertir frecuencia cardíaca a select
-    convertirFcASelect();
+        // Convertir frecuencia cardíaca a select
+        convertirFcASelect();
 
-    // Convertir frecuencia cardíaca fetal a select
-    convertirFcfASelect();
+        // Convertir frecuencia cardíaca fetal a select
+        convertirFcfASelect();
 
-    // Convertir saturación de oxígeno (SpO2) a select
-    convertirSpo2ASelect();
+        // Convertir saturación de oxígeno (SpO2) a select
+        convertirSpo2ASelect();
+    }
 
     // Sincronizar campos del paciente
     sincronizarCamposPaciente();

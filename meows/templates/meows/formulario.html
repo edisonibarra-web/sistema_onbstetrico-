@@ -90,6 +90,12 @@
                 {% if medicion %}Editar Medición MEOWS{% else %}Parámetros Vitales{% endif %}
             </h3>
             {% if medicion %}
+            {% if medicion.origen == 'dinamica' %}
+            <p class="section-description" style="color:#1d4ed8;font-weight:600;">
+                🔗 Esta medición se importó automáticamente desde Dinámica (folio {{ medicion.dinamica_folio }}).
+                Verifica los valores; si algo vino incorrecto, corrígelo aquí antes de guardar.
+            </p>
+            {% endif %}
             <p class="section-description" style="color:#b45309;font-weight:600;">
                 ✏️ Estás corrigiendo la medición del {{ medicion.fecha_hora|date:"d/m/Y H:i" }}. Al guardar se
                 actualizará este mismo registro (no se creará uno nuevo).
@@ -325,6 +331,13 @@
     </div>
 
     <script>
+        // Si la medición vino de Dinámica, los valores libres (ta_sys, ta_dia, fc,
+        // temp, spo2, fcf) se dejan como número editable en vez de convertirlos a
+        // <select> de opciones fijas — un valor real (ej. 137 mmHg) puede no
+        // coincidir con ninguna opción del select, y eso podría hacer que alguien
+        // "corrija" pisando el dato real por uno redondeado sin darse cuenta. Ver
+        // convertirTaSysASelect() y hermanas en meows-form.js.
+        window.MEOWS_ORIGEN_DINAMICA = {% if medicion.origen == 'dinamica' %}true{% else %}false{% endif %};
         window.MEOWS_URLS = {
             apiRangos: "{% url 'api_rangos_meows' %}",
             apiCalcularScore: "{% url 'api_calcular_score' %}",

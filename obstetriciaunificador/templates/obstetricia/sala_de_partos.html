@@ -1620,7 +1620,7 @@
             if (input) input.value = cedula;
 
             try {
-                const response = await fetch(`/atencion/api/datos-paciente-unificado/?num_identificacion=${encodeURIComponent(cedula)}`);
+                const response = await fetchConSesion(`/atencion/api/datos-paciente-unificado/?num_identificacion=${encodeURIComponent(cedula)}`);
                 const data = await response.json();
                 if (data.ok && data.encontrado) {
                     mostrarModulos(data, cedula);
@@ -1752,7 +1752,7 @@
                 const url = q
                     ? `/fetal/api/registros/sala-partos/?q=${encodeURIComponent(q)}`
                     : '/fetal/api/registros/sala-partos/';
-                const response = await fetch(url, { credentials: 'same-origin' });
+                const response = await fetchConSesion(url, { credentials: 'same-origin' });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const pacientes = await response.json();
                 window._pacientesActivosSalaPartos = Array.isArray(pacientes) ? pacientes : [];
@@ -1798,11 +1798,11 @@
             }
 
             try {
-                let response = await fetch(`/atencion/api/datos-paciente-unificado/?num_identificacion=${encodeURIComponent(doc)}`);
+                let response = await fetchConSesion(`/atencion/api/datos-paciente-unificado/?num_identificacion=${encodeURIComponent(doc)}`);
                 let data = await response.json();
 
                 if (!data.ok || !data.encontrado) {
-                    const registro = await fetch('/atencion/api/registrar-desde-sala-partos/', {
+                    const registro = await fetchConSesion('/atencion/api/registrar-desde-sala-partos/', {
                         method: 'POST',
                         credentials: 'same-origin',
                         headers: {
@@ -1813,7 +1813,7 @@
                     });
                     if (!registro.ok) throw new Error(`HTTP ${registro.status}`);
 
-                    response = await fetch(`/atencion/api/datos-paciente-unificado/?num_identificacion=${encodeURIComponent(doc)}`);
+                    response = await fetchConSesion(`/atencion/api/datos-paciente-unificado/?num_identificacion=${encodeURIComponent(doc)}`);
                     data = await response.json();
                 }
 

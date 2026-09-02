@@ -237,7 +237,25 @@ class Medicion(models.Model):
         default=timezone.now,
         help_text="Fecha y hora real del monitoreo, registrada manualmente."
     )
-    
+
+    origen = models.CharField(
+        max_length=10,
+        default="manual",
+        choices=[
+            ("manual", "Manual"),
+            ("dinamica", "Dinámica"),
+        ],
+        help_text="Si la medición se digitó a mano o se importó automáticamente desde Dinámica.",
+    )
+    dinamica_folio = models.IntegerField(
+        null=True, blank=True,
+        help_text="HCNFOLIO.OID de Dinámica del que se importó esta medición (solo si origen='dinamica').",
+    )
+    alerta_pendiente = models.BooleanField(
+        default=False,
+        help_text="True mientras ninguna pantalla haya recogido/sonado la alerta de esta medición.",
+    )
+
     # 🧠 RESULTADOS MEOWS (se llenan luego)
     meows_total = models.PositiveIntegerField(null=True, blank=True)
     meows_riesgo = models.CharField(

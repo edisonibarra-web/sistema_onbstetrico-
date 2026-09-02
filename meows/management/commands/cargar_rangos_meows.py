@@ -11,19 +11,17 @@ from meows.models import Parametro, RangoParametro
 
 # Definición de rangos basados en la tabla oficial MEOWS
 RANGOS_MEOWS = {
-    "temp": [  # Temperatura (°C)
-        {"valor_min": 0, "valor_max": 33.9, "score": 3, "orden": 1},  # ROJO
-        {"valor_min": 34.0, "valor_max": 34.9, "score": 3, "orden": 2},  # ROJO
-        {"valor_min": 35.0, "valor_max": 35.9, "score": 1, "orden": 3},  # VERDE
-        {"valor_min": 36.0, "valor_max": 37.4, "score": 0, "orden": 4},  # BLANCO
-        {"valor_min": 37.5, "valor_max": 38.9, "score": 1, "orden": 5},  # VERDE (37 tiene score 1)
-        {"valor_min": 39.0, "valor_max": 39.9, "score": 3, "orden": 6},  # ROJO
-        {"valor_min": 40.0, "valor_max": 999, "score": 3, "orden": 7},  # ROJO
+    "temp": [  # Temperatura (°C) — corregido para calzar con la tabla oficial MEOWS (imagen de referencia)
+        {"valor_min": 0, "valor_max": 33.9, "score": 3, "orden": 1},  # ROJO (<34)
+        {"valor_min": 34.0, "valor_max": 35.0, "score": 1, "orden": 2},  # VERDE (34-35) — antes daba 3 en 34.0-34.9
+        {"valor_min": 35.1, "valor_max": 37.9, "score": 0, "orden": 3},  # BLANCO (35.1-37.9) — antes el normal terminaba en 37.4
+        {"valor_min": 38.0, "valor_max": 38.9, "score": 1, "orden": 4},  # VERDE (38-38.9)
+        {"valor_min": 39.0, "valor_max": 999, "score": 3, "orden": 5},  # ROJO (>=39)
     ],
-    "ta_sys": [  # Presión Arterial Sistólica (mmHg)
-        {"valor_min": 0, "valor_max": 89, "score": 3, "orden": 1},  # ROJO (<90)
-        {"valor_min": 90, "valor_max": 99, "score": 2, "orden": 2},  # AMARILLO
-        {"valor_min": 100, "valor_max": 139, "score": 0, "orden": 3},  # BLANCO
+    "ta_sys": [  # Presión Arterial Sistólica (mmHg) — corregido para calzar con la tabla oficial MEOWS
+        {"valor_min": 0, "valor_max": 79, "score": 3, "orden": 1},  # ROJO (<80)
+        {"valor_min": 80, "valor_max": 89, "score": 2, "orden": 2},  # AMARILLO (80-90) — antes daba 3 (crítico)
+        {"valor_min": 90, "valor_max": 139, "score": 0, "orden": 3},  # BLANCO
         {"valor_min": 140, "valor_max": 149, "score": 1, "orden": 4},  # VERDE
         {"valor_min": 150, "valor_max": 159, "score": 2, "orden": 5},  # AMARILLO
         {"valor_min": 160, "valor_max": 999, "score": 3, "orden": 6},  # ROJO (>=160)
@@ -36,12 +34,11 @@ RANGOS_MEOWS = {
         {"valor_min": 110, "valor_max": 120, "score": 3, "orden": 5},  # ROJO
         {"valor_min": 121, "valor_max": 999, "score": 3, "orden": 6},  # ROJO (>120)
     ],
-    "fc": [  # Frecuencia Cardiaca (lpm)
-        {"valor_min": 0, "valor_max": 49, "score": 3, "orden": 1},  # ROJO (<50)
-        {"valor_min": 50, "valor_max": 59, "score": 3, "orden": 2},  # ROJO (50)
-        {"valor_min": 60, "valor_max": 109, "score": 0, "orden": 3},  # BLANCO
-        {"valor_min": 110, "valor_max": 150, "score": 2, "orden": 4},  # AMARILLO (110-150)
-        {"valor_min": 151, "valor_max": 999, "score": 3, "orden": 5},  # ROJO (>150)
+    "fc": [  # Frecuencia Cardiaca (lpm) — corregido para calzar con la tabla oficial MEOWS
+        {"valor_min": 0, "valor_max": 59, "score": 3, "orden": 1},  # ROJO (<60)
+        {"valor_min": 60, "valor_max": 110, "score": 0, "orden": 2},  # BLANCO (60-110) — antes el normal terminaba en 109
+        {"valor_min": 111, "valor_max": 149, "score": 2, "orden": 3},  # AMARILLO (111-149)
+        {"valor_min": 150, "valor_max": 999, "score": 3, "orden": 4},  # ROJO (>=150) — antes 150 exacto daba 2 en vez de 3
     ],
     "fr": [  # Frecuencia Respiratoria (rpm)
         {"valor_min": 0, "valor_max": 4, "score": 3, "orden": 1},  # ROJO (<5)
@@ -51,12 +48,16 @@ RANGOS_MEOWS = {
         {"valor_min": 25, "valor_max": 29, "score": 2, "orden": 5},  # AMARILLO
         {"valor_min": 30, "valor_max": 999, "score": 3, "orden": 6},  # ROJO (>=30)
     ],
-    "spo2": [  # Saturación de Oxígeno (%)
-        # Nota: La tabla muestra % de O2 suplementario, pero mantenemos SaO2 estándar
-        {"valor_min": 0, "valor_max": 89, "score": 3, "orden": 1},  # ROJO
-        {"valor_min": 90, "valor_max": 92, "score": 2, "orden": 2},  # AMARILLO
-        {"valor_min": 93, "valor_max": 94, "score": 1, "orden": 3},  # VERDE
-        {"valor_min": 95, "valor_max": 100, "score": 0, "orden": 4},  # BLANCO (>=95%)
+    "spo2": [
+        # % de O2 requerido para mantener una Saturación > 95% (FiO2 suplementario),
+        # tal cual la tabla oficial MEOWS — NO es el valor de SpO2 del oxímetro.
+        # "Aire ambiente" (sin O2 suplementario, ~21%) se registra como 0-23%; la
+        # tabla no define explícitamente el corte exacto entre "aire ambiente" y
+        # "24-39%", así que se usó ese límite. Ajustar aquí si en Dinámica el
+        # personal registra este dato de otra forma (ver dinamica_signos_vitales.py).
+        {"valor_min": 0, "valor_max": 23, "score": 0, "orden": 1},  # BLANCO (aire ambiente)
+        {"valor_min": 24, "valor_max": 39, "score": 1, "orden": 2},  # VERDE (24-39%)
+        {"valor_min": 40, "valor_max": 100, "score": 3, "orden": 3},  # ROJO (>=40%)
     ],
     "glasgow": [  # Escala de Glasgow
         {"valor_min": 0, "valor_max": 14, "score": 3, "orden": 1},  # ROJO (<15)

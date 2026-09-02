@@ -56,6 +56,11 @@
                         <span class="badge-dot" aria-hidden="true"></span>
                         <span class="badge-text">{{ medicion.meows_riesgo }}</span>
                     </div>
+                    {% if medicion.origen == 'dinamica' %}
+                    <div class="resultado-badge" style="background:#1d4ed8;color:#fff;" title="Esta medición se importó automáticamente desde Dinámica (folio {{ medicion.dinamica_folio }})">
+                        <span class="badge-text">🔗 IMPORTADO DE DINÁMICA</span>
+                    </div>
+                    {% endif %}
                     <div class="resultado-score">
                         <span class="score-label">Puntaje total MEOWS</span>
                         <span class="score-value">{{ medicion.meows_total }}</span>

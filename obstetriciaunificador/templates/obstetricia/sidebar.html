@@ -7,6 +7,31 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         <i data-lucide="chevron-left" class="nav-icon" id="sidebar-toggle-icon"></i>
     </button>
 
+    <!-- Alertas MEOWS importadas automáticamente desde Dinámica (ver
+         meows/views.py:api_alertas_pendientes). El audio apunta al archivo
+         que pide meows/static/sounds/README.md; si todavía no existe, cae
+         al beep sintetizado de respaldo (ver meowsAlertasPoll más abajo). -->
+    <!-- preload="none": el archivo todavía no existe (ver README de meows/static/sounds);
+         con "auto" el navegador lo pedía en cada carga de página y ensuciaba la consola
+         con un 404 aunque nunca sonara ninguna alerta. Con "none" solo se pide al llamar
+         a .play(), que ya tiene su propio fallback si falla (ver pitidoRespaldo más abajo). -->
+    <audio id="alertSound" preload="none" src="/static/sounds/alert_soft.mp3"></audio>
+    <div id="meows-alerta-toast-stack" class="meows-alerta-toast-stack" aria-live="polite"></div>
+    <style>
+        .meows-alerta-toast-stack {
+            position: fixed; top: 16px; right: 16px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 8px; max-width: 360px;
+        }
+        .meows-alerta-toast {
+            background: #b91c1c; color: #fff; border-radius: 10px; padding: 12px 14px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25); cursor: pointer; font-size: 0.85rem;
+            animation: meows-alerta-in 0.2s ease-out;
+        }
+        .meows-alerta-toast.riesgo-amarillo { background: #b45309; }
+        .meows-alerta-toast strong { display: block; font-size: 0.95rem; margin-bottom: 2px; }
+        @keyframes meows-alerta-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    </style>
+
     <!-- Navegación de Módulos -->
     <!-- Navegación de Sistema -->
     <div class="sidebar-module">
@@ -99,6 +124,33 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
     }
 
     /**
+     * Envoltorio de fetch() para llamadas a APIs protegidas con
+     * @login_required_if_enabled (ver sistema_obstetrico/auth_utils.py).
+     *
+     * Cuando la sesión no existe o venció, Django responde con un 302 hacia
+     * LOGIN_URL ('/login/'); fetch() sigue esa redirección solo y termina
+     * trayendo el HTML de la pantalla de login en vez del JSON esperado —
+     * eso es lo que producía el "Unexpected token '<'" en consola. Esta
+     * función detecta ese caso (response.redirected + response.url apunta a
+     * /login/) y manda al usuario ahí directamente, en vez de dejar que el
+     * código que llamó a fetch() intente parsear HTML como JSON.
+     *
+     * Uso: reemplazar `fetch(url, opts)` por `fetchConSesion(url, opts)` en
+     * cualquier llamada a una API del sistema. Si la sesión venció, esta
+     * función redirige la página y nunca resuelve la promesa (no tiene
+     * sentido seguir ejecutando el código que sigue: la página ya está
+     * navegando fuera).
+     */
+    window.fetchConSesion = async function (url, options) {
+        const response = await fetch(url, options);
+        if (response.redirected && response.url.indexOf('/login/') !== -1) {
+            window.location.href = response.url;
+            return new Promise(() => {}); // la página está navegando; no continuar el flujo que llamó
+        }
+        return response;
+    };
+
+    /**
      * Si ya estamos en Sala de Partos (con un paciente cargado por querystring
      * o seleccionado desde la lista vía AJAX, que no actualiza la URL), el clic
      * en "Sala de Partos" del sidebar no debe recargar la página ni volver a la
@@ -181,7 +233,7 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
 
         try {
             // Buscamos al paciente/atención
-            const response = await fetch(`/atencion/api/datos-paciente-unificado/?num_identificacion=${cedula}`);
+            const response = await fetchConSesion(`/atencion/api/datos-paciente-unificado/?num_identificacion=${cedula}`);
             const data = await response.json();
 
             if (data.ok && data.atencion_id) {
@@ -195,4 +247,86 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             alert("Error de conexión al buscar paciente.");
         }
     }
+
+    /**
+     * Alertas MEOWS importadas automáticamente desde Dinámica (sondeo
+     * periódico de /meows/api/alertas-pendientes/). Cualquier pantalla con
+     * este sidebar cargado (todas las del sistema) recoge y suena la
+     * alerta — no depende de que alguien tenga abierta la ficha exacta de
+     * esa paciente. Ver meows/views.py:api_alertas_pendientes y
+     * meows/management/commands/sincronizar_signos_vitales_dinamica.py.
+     */
+    (function iniciarSondeoAlertasMeows() {
+        var INTERVALO_MS = 20000;
+
+        function pitidoRespaldo() {
+            // Se usa solo si el archivo alert_soft.mp3 (ver meows/static/sounds/README.md)
+            // todavía no existe o el navegador no puede reproducirlo.
+            try {
+                var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                var osc = ctx.createOscillator();
+                var gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = 660;
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.9);
+            } catch (e) { /* navegador sin Web Audio API: se omite el sonido */ }
+        }
+
+        function sonarAlerta() {
+            var audio = document.getElementById('alertSound');
+            if (audio) {
+                audio.currentTime = 0;
+                var p = audio.play();
+                if (p && typeof p.catch === 'function') {
+                    p.catch(pitidoRespaldo);
+                }
+            } else {
+                pitidoRespaldo();
+            }
+        }
+
+        function mostrarToast(alerta) {
+            var stack = document.getElementById('meows-alerta-toast-stack');
+            if (!stack) return;
+            var div = document.createElement('div');
+            div.className = 'meows-alerta-toast riesgo-' + String(alerta.riesgo || '').toLowerCase();
+            div.innerHTML =
+                '<strong>⚠ MEOWS ' + (alerta.riesgo || '') + ' — ' + (alerta.paciente || alerta.numero_documento || '') + '</strong>' +
+                'Importado de Dinámica · ' + (alerta.fecha_hora || '') + ' · click para ver detalle';
+            div.addEventListener('click', function () {
+                window.location.href = alerta.url;
+            });
+            stack.appendChild(div);
+            setTimeout(function () {
+                if (div.parentNode) div.parentNode.removeChild(div);
+            }, 30000);
+        }
+
+        function sondear() {
+            fetch('/meows/api/alertas-pendientes/', { credentials: 'same-origin' })
+                .then(function (r) {
+                    // Sesión vencida (redirigido a /login/): es un sondeo pasivo de
+                    // fondo, no forzamos la navegación por esto — simplemente no hay
+                    // nada que mostrar hasta que el usuario vuelva a iniciar sesión.
+                    if (!r.ok || (r.redirected && r.url.indexOf('/login/') !== -1)) {
+                        return { alertas: [] };
+                    }
+                    return r.json();
+                })
+                .then(function (data) {
+                    var alertas = data.alertas || [];
+                    if (alertas.length === 0) return;
+                    sonarAlerta();
+                    alertas.forEach(mostrarToast);
+                })
+                .catch(function () { /* red caída o sesión expirada: se reintenta en el próximo ciclo */ });
+        }
+
+        sondear();
+        setInterval(sondear, INTERVALO_MS);
+    })();
 </script>

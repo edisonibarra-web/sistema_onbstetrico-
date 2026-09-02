@@ -51,6 +51,7 @@ def construir_grid_meows(paciente):
             'score_total': medicion.meows_total,
             'riesgo': medicion.meows_riesgo,
             'valores_num': valores_num,
+            'origen': medicion.origen,
         })
 
     parametros = Parametro.objects.filter(activo=True).order_by('orden').prefetch_related('rangos')

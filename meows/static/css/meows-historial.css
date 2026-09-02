@@ -1082,6 +1082,18 @@
     font-size: 0.85rem;
 }
 
+.col-origen-dinamica {
+    display: inline-block;
+    margin-top: 2px;
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: #1d4ed8;
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 1px 6px;
+}
+
 .grid-td-celda {
     min-width: 70px;
     white-space: nowrap;

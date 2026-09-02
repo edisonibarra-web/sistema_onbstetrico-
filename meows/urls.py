@@ -18,6 +18,7 @@ urlpatterns = [
     path("api/calcular-score/", views.api_calcular_score, name="api_calcular_score"),
     path("api/buscar-paciente/", views.api_buscar_paciente, name="api_buscar_paciente"),
     path("api/pacientes-activos/", views.api_pacientes_activos, name="api_pacientes_activos"),
+    path("api/alertas-pendientes/", views.api_alertas_pendientes, name="api_alertas_pendientes"),
     path("api/save-biometrics/", views.guardar_huella, name="guardar_huella"),
     path("api/huella/<str:paciente_id>/", views.ultima_huella, name="ultima_huella"),
 ]

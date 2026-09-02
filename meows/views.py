@@ -598,6 +598,42 @@ def api_buscar_paciente(request):
 
 @login_required_if_enabled
 @require_http_methods(["GET"])
+def api_alertas_pendientes(request):
+    """
+    Sondeada periódicamente por el widget de alertas del sidebar (ver
+    obstetricia/sidebar.html). Devuelve las mediciones importadas de
+    Dinámica con riesgo alto/intermedio que todavía nadie ha "recogido" en
+    pantalla, y las marca como entregadas en el mismo request — el primer
+    cliente que las pida es el que suena la alerta; no hace falta un ack
+    aparte para este caso de uso (una campanita de hospital, no un sistema
+    de mensajería con garantías de entrega estrictas).
+    """
+    pendientes = list(
+        Medicion.objects.filter(alerta_pendiente=True)
+        .select_related('paciente')
+        .order_by('fecha_hora')[:20]
+    )
+    ids = [m.id for m in pendientes]
+    if ids:
+        Medicion.objects.filter(id__in=ids).update(alerta_pendiente=False)
+
+    alertas = [
+        {
+            'medicion_id': m.id,
+            'paciente': f"{m.paciente.nombres} {m.paciente.apellidos}".strip(),
+            'numero_documento': m.paciente.numero_documento,
+            'riesgo': m.meows_riesgo,
+            'mensaje': m.meows_mensaje,
+            'fecha_hora': m.fecha_hora.strftime('%Y-%m-%d %H:%M'),
+            'url': f"/meows/resultado/{m.id}/",
+        }
+        for m in pendientes
+    ]
+    return JsonResponse({'alertas': alertas}, json_dumps_params={'ensure_ascii': False})
+
+
+@login_required_if_enabled
+@require_http_methods(["GET"])
 def api_pacientes_activos(request):
     """
     Lista pacientes activas en áreas gineco-obstétricas (Ginecobstetricia,

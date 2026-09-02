@@ -229,6 +229,9 @@ Variables de contexto esperadas:
                     <th class="grid-th-columna">
                         <span class="col-fecha">{{ columna.hora|date:"d/m/y" }}</span>
                         <span class="col-hora">{{ columna.hora|date:"H:i" }}</span>
+                        {% if columna.origen == 'dinamica' %}
+                        <span class="col-origen-dinamica" title="Importado automáticamente desde Dinámica">🔗 Dinámica</span>
+                        {% endif %}
                     </th>
                     {% endfor %}
                 </tr>
