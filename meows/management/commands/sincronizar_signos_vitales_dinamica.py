@@ -19,6 +19,7 @@ avisa claramente y no hace nada.
 """
 from django.core.management.base import BaseCommand
 from django.db.models import Max
+from django.utils import timezone
 
 from frecuenciafetal.sala_partos_db import listar_pacientes_sala_partos
 from meows.models import Formulario, Medicion, MedicionValor, Parametro, Paciente
@@ -31,13 +32,15 @@ from meows.services.meows import calcular_meows
 
 def disparar_alerta(medicion, resultado):
     """
-    Marca la medición como alerta pendiente: cualquier pantalla con el
-    sidebar cargado (ver obstetricia/sidebar.html) la recoge en su próximo
-    sondeo a /meows/api/alertas-pendientes/, reproduce el sonido y la marca
-    como entregada. Ver meows/views.py:api_alertas_pendientes.
+    Marca la medición como alerta y guarda cuándo se disparó: cualquier
+    pantalla con el sidebar cargado (ver obstetricia/sidebar.html) la recoge
+    en su próximo sondeo a /meows/api/alertas-pendientes/ y reproduce el
+    sonido — TODAS las pantallas abiertas dentro de la ventana de tiempo, no
+    solo la primera que pregunte. Ver meows/views.py:api_alertas_pendientes.
     """
     medicion.alerta_pendiente = True
-    medicion.save(update_fields=["alerta_pendiente"])
+    medicion.alerta_generada_en = timezone.now()
+    medicion.save(update_fields=["alerta_pendiente", "alerta_generada_en"])
     print(
         f"[ALERTA MEOWS] Paciente {medicion.paciente} — "
         f"riesgo {resultado['meows_riesgo']} (total {resultado['meows_total']}) — "

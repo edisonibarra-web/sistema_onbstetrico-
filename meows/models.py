@@ -253,7 +253,13 @@ class Medicion(models.Model):
     )
     alerta_pendiente = models.BooleanField(
         default=False,
-        help_text="True mientras ninguna pantalla haya recogido/sonado la alerta de esta medición.",
+        help_text="True si esta medición generó una alerta MEOWS (riesgo alto/medio).",
+    )
+    alerta_generada_en = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Momento en que se disparó la alerta — usado para la ventana de "
+                   "notificación del sidebar (ver api_alertas_pendientes en views.py). "
+                   "No es lo mismo que fecha_hora, que es cuándo se tomó el signo vital.",
     )
 
     # 🧠 RESULTADOS MEOWS (se llenan luego)

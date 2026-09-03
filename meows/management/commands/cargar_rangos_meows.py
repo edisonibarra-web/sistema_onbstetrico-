@@ -48,16 +48,15 @@ RANGOS_MEOWS = {
         {"valor_min": 25, "valor_max": 29, "score": 2, "orden": 5},  # AMARILLO
         {"valor_min": 30, "valor_max": 999, "score": 3, "orden": 6},  # ROJO (>=30)
     ],
-    "spo2": [
-        # % de O2 requerido para mantener una Saturación > 95% (FiO2 suplementario),
-        # tal cual la tabla oficial MEOWS — NO es el valor de SpO2 del oxímetro.
-        # "Aire ambiente" (sin O2 suplementario, ~21%) se registra como 0-23%; la
-        # tabla no define explícitamente el corte exacto entre "aire ambiente" y
-        # "24-39%", así que se usó ese límite. Ajustar aquí si en Dinámica el
-        # personal registra este dato de otra forma (ver dinamica_signos_vitales.py).
-        {"valor_min": 0, "valor_max": 23, "score": 0, "orden": 1},  # BLANCO (aire ambiente)
-        {"valor_min": 24, "valor_max": 39, "score": 1, "orden": 2},  # VERDE (24-39%)
-        {"valor_min": 40, "valor_max": 100, "score": 3, "orden": 3},  # ROJO (>=40%)
+    "spo2": [  # Saturación de Oxígeno por oximetría de pulso (%), directo del oxímetro.
+        # Nota: la tabla oficial MEOWS muestra "% de O2 requerido" (FiO2 suplementario)
+        # en vez de SpO2 directo, pero se confirmó que Dinámica solo tiene disponible
+        # "SATURACION ARTERIAL DE OXIGENO" (SpO2 directo) — el campo de % de O2
+        # requerido no existe todavía ahí — por eso se usa SpO2 directo aquí.
+        {"valor_min": 0, "valor_max": 89, "score": 3, "orden": 1},  # ROJO
+        {"valor_min": 90, "valor_max": 92, "score": 2, "orden": 2},  # AMARILLO
+        {"valor_min": 93, "valor_max": 94, "score": 1, "orden": 3},  # VERDE
+        {"valor_min": 95, "valor_max": 100, "score": 0, "orden": 4},  # BLANCO (>=95%)
     ],
     "glasgow": [  # Escala de Glasgow
         {"valor_min": 0, "valor_max": 14, "score": 3, "orden": 1},  # ROJO (<15)

@@ -17,8 +17,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.core.files.base import ContentFile
 from meows.models import FirmaPaciente
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from django.utils import timezone
+from django.utils.timesince import timesince
 from sistema_obstetrico.auth_utils import login_required_if_enabled
 
 
@@ -77,6 +78,12 @@ def abrir_historial_meows_desde_documento(request, doc=None):
     return redirect(f"/meows/historial/{paciente.id}/{query}")
 
 
+# Si la última lectura automática de Dinámica es más vieja que esto, ya no se
+# usa para prellenar una medición manual nueva (podría inducir a error), pero
+# igual se muestra como referencia informativa. Ver crear_medicion_meows.
+VENTANA_PRELLENADO_DINAMICA_HORAS = 6
+
+
 @never_cache
 @login_required_if_enabled
 def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
@@ -110,6 +117,7 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
     # En modo edición, prellenar cada parámetro con su valor ya guardado
     # (usado por formulario.html vía parametro.valor_actual) para poder
     # revisarlo y corregirlo en vez de reingresarlo todo desde cero.
+    ultima_lectura_dinamica = None
     if medicion_editar:
         valores_existentes = {
             v.parametro_id: v.valor
@@ -120,6 +128,47 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
     else:
         for p in parametros:
             p.valor_actual = ''
+
+        # Medición nueva (no edición): si esta paciente ya tiene lecturas
+        # automáticas de Dinámica, se usan para prellenar las cards en vez de
+        # dejarlas en blanco — el personal revisa/ajusta en vez de digitar
+        # todo desde cero — y se muestra un aviso con la antigüedad del dato,
+        # así se sabe si vale la pena esperar el próximo ciclo automático en
+        # vez de registrar manual. Ver conversación sobre "activar" estas
+        # cards en vez de dejarlas huérfanas del flujo de Dinámica.
+        ultima_medicion_dinamica = (
+            Medicion.objects.filter(paciente=paciente, origen='dinamica')
+            .order_by('-fecha_hora')
+            .first()
+        )
+        if ultima_medicion_dinamica:
+            valores_dinamica = {
+                v.parametro_id: v.valor
+                for v in ultima_medicion_dinamica.valores.all()
+            }
+            antiguedad = timezone.now() - ultima_medicion_dinamica.fecha_hora
+            es_reciente = antiguedad <= timedelta(hours=VENTANA_PRELLENADO_DINAMICA_HORAS)
+
+            if es_reciente:
+                for p in parametros:
+                    if p.id in valores_dinamica:
+                        p.valor_actual = valores_dinamica[p.id]
+
+            ultima_lectura_dinamica = {
+                "fecha_hora": ultima_medicion_dinamica.fecha_hora,
+                "hace": timesince(ultima_medicion_dinamica.fecha_hora),
+                "es_reciente": es_reciente,
+                "riesgo": ultima_medicion_dinamica.meows_riesgo,
+                "valores": [
+                    {
+                        "codigo": p.codigo,
+                        "nombre": p.nombre,
+                        "unidad": p.unidad,
+                        "valor": valores_dinamica[p.id],
+                    }
+                    for p in parametros if p.id in valores_dinamica
+                ],
+            }
 
     if request.method == "POST":
         atencion_id = (request.POST.get("atencion") or request.GET.get("atencion") or "").strip()
@@ -293,6 +342,7 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
         "paciente": paciente,
         "parametros": parametros,
         "medicion": medicion_editar,
+        "ultima_lectura_dinamica": ultima_lectura_dinamica,
         "atencion_id": request.GET.get("atencion") or (medicion_editar.atencion_id if medicion_editar else None),
         "documento": request.GET.get("doc") or paciente.numero_documento,
         "profesional_nombre_sesion": request.session.get('dgh_info', {}).get('nombre_completo') or '',
@@ -596,26 +646,35 @@ def api_buscar_paciente(request):
         }, status=500)
 
 
+# Cuánto tiempo se sigue avisando una alerta a cualquier pantalla que sondee,
+# desde que se disparó. No se "consume" al primero que pregunta (antes sí, y
+# solo esa pantalla la veía) — ahora la ven todas las pantallas abiertas
+# mientras estén dentro de esta ventana; pasado ese tiempo deja de aparecer
+# como toast, pero el dato/riesgo sigue visible siempre en el historial.
+VENTANA_ALERTA_MINUTOS = 10
+
+
 @login_required_if_enabled
 @require_http_methods(["GET"])
 def api_alertas_pendientes(request):
     """
     Sondeada periódicamente por el widget de alertas del sidebar (ver
-    obstetricia/sidebar.html). Devuelve las mediciones importadas de
-    Dinámica con riesgo alto/intermedio que todavía nadie ha "recogido" en
-    pantalla, y las marca como entregadas en el mismo request — el primer
-    cliente que las pida es el que suena la alerta; no hace falta un ack
-    aparte para este caso de uso (una campanita de hospital, no un sistema
-    de mensajería con garantías de entrega estrictas).
+    obstetricia/sidebar.html), en TODAS las pantallas abiertas. Devuelve las
+    mediciones importadas de Dinámica con riesgo alto/intermedio disparadas
+    en los últimos VENTANA_ALERTA_MINUTOS minutos — no se marcan como
+    "entregadas" aquí; la deduplicación para no repetir el mismo sonido una
+    y otra vez en la misma pantalla la hace el JS del cliente (recuerda qué
+    IDs ya mostró, ver sidebar.html).
     """
+    ventana_desde = timezone.now() - timedelta(minutes=VENTANA_ALERTA_MINUTOS)
     pendientes = list(
-        Medicion.objects.filter(alerta_pendiente=True)
+        Medicion.objects.filter(
+            alerta_pendiente=True,
+            alerta_generada_en__gte=ventana_desde,
+        )
         .select_related('paciente')
         .order_by('fecha_hora')[:20]
     )
-    ids = [m.id for m in pendientes]
-    if ids:
-        Medicion.objects.filter(id__in=ids).update(alerta_pendiente=False)
 
     alertas = [
         {
@@ -624,7 +683,7 @@ def api_alertas_pendientes(request):
             'numero_documento': m.paciente.numero_documento,
             'riesgo': m.meows_riesgo,
             'mensaje': m.meows_mensaje,
-            'fecha_hora': m.fecha_hora.strftime('%Y-%m-%d %H:%M'),
+            'fecha_hora': timezone.localtime(m.fecha_hora).strftime('%d/%m/%Y %I:%M %p'),
             'url': f"/meows/resultado/{m.id}/",
         }
         for m in pendientes

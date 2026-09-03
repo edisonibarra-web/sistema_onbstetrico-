@@ -92,10 +92,10 @@ const MEOWS_RANGOS_FALLBACK = {
         { min: 39.0, max: 999, score: 3 }
     ],
     'spo2': [
-        // % de O2 requerido para mantener Saturación > 95% (FiO2 suplementario), no SpO2 directo.
-        { min: 0, max: 23, score: 0 },
-        { min: 24, max: 39, score: 1 },
-        { min: 40, max: 100, score: 3 }
+        { min: 0, max: 89, score: 3 },
+        { min: 90, max: 92, score: 2 },
+        { min: 93, max: 94, score: 1 },
+        { min: 95, max: 100, score: 0 }
     ],
     'glasgow': [
         { min: 0, max: 14, score: 3 },
@@ -958,13 +958,8 @@ function convertirFcfASelect() {
 }
 
 /**
- * Convierte el input de SpO2 a select con los valores de % de O2 requerido
- * para mantener Saturación > 95% (FiO2 suplementario) — tal cual la tabla
- * oficial MEOWS, NO el valor de SpO2 del oxímetro. Ver el comentario en
- * MEOWS_RANGOS_FALLBACK.spo2 más arriba y meows/services/dinamica_signos_vitales.py.
+ * Convierte el input de SpO2 a select con valores válidos (80-100, de 1 en 1)
  */
-const OPCIONES_SPO2 = [21, 24, 28, 31, 35, 40, 50, 60, 80, 100];
-
 function convertirSpo2ASelect() {
     const spo2Input = document.getElementById('spo2');
     if (!spo2Input || spo2Input.tagName === 'SELECT') {
@@ -974,11 +969,11 @@ function convertirSpo2ASelect() {
     const valorActual = spo2Input.value;
     const unidad = spo2Input.dataset.unidad || '%';
 
+    // Generar opciones desde 80 hasta 100
     let opciones = '<option value="">seleccione</option>';
-    OPCIONES_SPO2.forEach((valor) => {
-        const etiqueta = valor === 21 ? `${valor} (Aire ambiente)` : `${valor}`;
-        opciones += `<option value="${valor}">${etiqueta}</option>`;
-    });
+    for (let valor = 80; valor <= 100; valor++) {
+        opciones += `<option value="${valor}">${valor}</option>`;
+    }
 
     // Crear el select
     const select = document.createElement('select');
@@ -990,14 +985,11 @@ function convertirSpo2ASelect() {
     select.setAttribute('data-unidad', unidad);
     select.innerHTML = opciones;
 
-    // Seleccionar la opción más cercana al valor actual, si existe
+    // Seleccionar el valor actual si existe y está en el rango válido
     if (valorActual) {
         const valorNum = parseFloat(valorActual);
-        if (!isNaN(valorNum)) {
-            const masCercano = OPCIONES_SPO2.reduce((a, b) =>
-                Math.abs(b - valorNum) < Math.abs(a - valorNum) ? b : a
-            );
-            select.value = masCercano.toString();
+        if (!isNaN(valorNum) && valorNum >= 80 && valorNum <= 100) {
+            select.value = Math.round(valorNum).toString();
         }
     }
 

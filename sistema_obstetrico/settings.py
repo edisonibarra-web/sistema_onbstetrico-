@@ -190,7 +190,14 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'es-co'
 
-TIME_ZONE = 'UTC'
+# Toda la app opera en el hospital, en Colombia (UTC-5, sin horario de verano).
+# Con 'UTC' aquí, cualquier datetime "naive" (sin zona horaria explícita) que
+# llegue de Dinámica o que digite el personal se interpretaba como si YA fuera
+# UTC, desfasando 5 horas los cálculos de "hace X tiempo" contra la hora real
+# (aunque la hora en pantalla se veía bien, porque no hay conversión visual
+# de por medio). Con 'America/Bogota', Django interpreta correctamente esos
+# datetimes naive como hora de Colombia.
+TIME_ZONE = 'America/Bogota'
 
 USE_I18N = True
 

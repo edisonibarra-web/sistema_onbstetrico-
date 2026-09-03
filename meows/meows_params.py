@@ -66,7 +66,7 @@ MEOWS_PARAMETROS = [
 
         "codigo": "spo2",
 
-        "nombre": "% de O2 requerido para mantener Saturación > 95%",
+        "nombre": "Saturación de oxígeno por oximetría de pulso",
 
         "unidad": "%",
 

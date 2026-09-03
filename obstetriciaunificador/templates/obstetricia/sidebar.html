@@ -23,12 +23,25 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             display: flex; flex-direction: column; gap: 8px; max-width: 360px;
         }
         .meows-alerta-toast {
-            background: #b91c1c; color: #fff; border-radius: 10px; padding: 12px 14px;
+            background: #b91c1c; color: #fff; border-radius: 10px; padding: 12px 30px 12px 14px;
             box-shadow: 0 6px 18px rgba(0,0,0,0.25); cursor: pointer; font-size: 0.85rem;
-            animation: meows-alerta-in 0.2s ease-out;
+            animation: meows-alerta-in 0.2s ease-out; position: relative;
         }
+        /* Mismos colores de riesgo que ya usa el resto de la app (ver meows-historial.css) */
+        .meows-alerta-toast.riesgo-rojo { background: #b91c1c; }
         .meows-alerta-toast.riesgo-amarillo { background: #b45309; }
+        .meows-alerta-toast.riesgo-verde { background: #1e7e34; }
+        .meows-alerta-toast.riesgo-blanco { background: #495057; }
         .meows-alerta-toast strong { display: block; font-size: 0.95rem; margin-bottom: 2px; }
+        .meows-alerta-toast .toast-ver-detalle {
+            display: inline-block; margin-top: 6px; font-weight: 700; text-decoration: underline;
+        }
+        .meows-alerta-toast .toast-cerrar {
+            position: absolute; top: 4px; right: 6px; background: transparent; border: none;
+            color: rgba(255,255,255,0.8); font-size: 1rem; line-height: 1; cursor: pointer;
+            padding: 4px 6px;
+        }
+        .meows-alerta-toast .toast-cerrar:hover { color: #fff; }
         @keyframes meows-alerta-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
     </style>
 
@@ -257,22 +270,40 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
      * meows/management/commands/sincronizar_signos_vitales_dinamica.py.
      */
     (function iniciarSondeoAlertasMeows() {
-        var INTERVALO_MS = 20000;
+        // 5s mientras se prueba de cerca cómo salen las alertas; para uso normal
+        // volver a algo como 20000 (no hace falta más rápido que el propio job).
+        var INTERVALO_MS = 5000;
+
+        // El servidor ya no "consume" la alerta al primero que pregunta — devuelve
+        // todo lo disparado en los últimos minutos a CUALQUIER pantalla que sondee
+        // (ver VENTANA_ALERTA_MINUTOS en meows/views.py). Por eso el deduplicado
+        // (no repetir el mismo sonido/toast una y otra vez en esta pantalla) se
+        // hace aquí, recordando qué medicion_id ya se mostraron en esta pestaña.
+        var idsYaMostrados = new Set();
 
         function pitidoRespaldo() {
             // Se usa solo si el archivo alert_soft.mp3 (ver meows/static/sounds/README.md)
-            // todavía no existe o el navegador no puede reproducirlo.
+            // todavía no existe o el navegador no puede reproducirlo — hoy es lo que
+            // realmente suena, porque ese archivo no se ha agregado. Más fuerte (ganancia
+            // 0.5 en vez de 0.15) y prolongado (3 pitidos, no uno solo) a propósito, para
+            // que sea difícil de ignorar en un pasillo con ruido.
             try {
                 var ctx = new (window.AudioContext || window.webkitAudioContext)();
-                var osc = ctx.createOscillator();
-                var gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.frequency.value = 660;
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.9);
+                var duracionPulso = 0.5;
+                var pausa = 0.15;
+                var pulsos = 3;
+                for (var i = 0; i < pulsos; i++) {
+                    var inicio = ctx.currentTime + i * (duracionPulso + pausa);
+                    var osc = ctx.createOscillator();
+                    var gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = 880;
+                    gain.gain.setValueAtTime(0.5, inicio);
+                    gain.gain.exponentialRampToValueAtTime(0.001, inicio + duracionPulso);
+                    osc.start(inicio);
+                    osc.stop(inicio + duracionPulso);
+                }
             } catch (e) { /* navegador sin Web Audio API: se omite el sonido */ }
         }
 
@@ -294,16 +325,32 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             if (!stack) return;
             var div = document.createElement('div');
             div.className = 'meows-alerta-toast riesgo-' + String(alerta.riesgo || '').toLowerCase();
-            div.innerHTML =
+
+            var cerrar = document.createElement('button');
+            cerrar.type = 'button';
+            cerrar.className = 'toast-cerrar';
+            cerrar.setAttribute('aria-label', 'Cerrar aviso');
+            cerrar.textContent = '✕';
+            cerrar.addEventListener('click', function (ev) {
+                ev.stopPropagation(); // que no navegue al hacer click en cerrar
+                if (div.parentNode) div.parentNode.removeChild(div);
+            });
+
+            var contenido = document.createElement('div');
+            contenido.innerHTML =
                 '<strong>⚠ MEOWS ' + (alerta.riesgo || '') + ' — ' + (alerta.paciente || alerta.numero_documento || '') + '</strong>' +
-                'Importado de Dinámica · ' + (alerta.fecha_hora || '') + ' · click para ver detalle';
+                'Importado de Dinámica · ' + (alerta.fecha_hora || '') +
+                '<span class="toast-ver-detalle">Ver detalle →</span>';
+
+            div.appendChild(cerrar);
+            div.appendChild(contenido);
             div.addEventListener('click', function () {
                 window.location.href = alerta.url;
             });
             stack.appendChild(div);
-            setTimeout(function () {
-                if (div.parentNode) div.parentNode.removeChild(div);
-            }, 30000);
+            // Ya no se autoelimina a los 30s: se queda hasta que alguien la cierre o
+            // haga click para ver el detalle — así no se pierde el acceso si nadie
+            // estaba mirando la pantalla justo cuando apareció.
         }
 
         function sondear() {
@@ -318,10 +365,21 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                     return r.json();
                 })
                 .then(function (data) {
-                    var alertas = data.alertas || [];
-                    if (alertas.length === 0) return;
+                    var nuevas = (data.alertas || []).filter(function (alerta) {
+                        return !idsYaMostrados.has(alerta.medicion_id);
+                    });
+                    if (nuevas.length === 0) return;
+                    nuevas.forEach(function (alerta) {
+                        idsYaMostrados.add(alerta.medicion_id);
+                        mostrarToast(alerta);
+                    });
                     sonarAlerta();
-                    alertas.forEach(mostrarToast);
+                    // Evita que el Set crezca sin límite en sesiones muy largas.
+                    if (idsYaMostrados.size > 300) {
+                        Array.from(idsYaMostrados).slice(0, 150).forEach(function (id) {
+                            idsYaMostrados.delete(id);
+                        });
+                    }
                 })
                 .catch(function () { /* red caída o sesión expirada: se reintenta en el próximo ciclo */ });
         }

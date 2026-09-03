@@ -91,18 +91,34 @@
             </h3>
             {% if medicion %}
             {% if medicion.origen == 'dinamica' %}
-            <p class="section-description" style="color:#1d4ed8;font-weight:600;">
+            <p class="section-description" style="color:#7c3aed;font-weight:600;">
                 🔗 Esta medición se importó automáticamente desde Dinámica (folio {{ medicion.dinamica_folio }}).
                 Verifica los valores; si algo vino incorrecto, corrígelo aquí antes de guardar.
             </p>
             {% endif %}
             <p class="section-description" style="color:#b45309;font-weight:600;">
-                ✏️ Estás corrigiendo la medición del {{ medicion.fecha_hora|date:"d/m/Y H:i" }}. Al guardar se
+                ✏️ Estás corrigiendo la medición del {{ medicion.fecha_hora|date:"d/m/Y h:i A" }}. Al guardar se
                 actualizará este mismo registro (no se creará uno nuevo).
             </p>
             {% else %}
             <p class="section-description">Ingrese los valores clínicos. El sistema calculará automáticamente los
                 puntajes MEOWS.</p>
+            {% if ultima_lectura_dinamica %}
+            <div class="section-description" style="border:1px solid #d8b4fe;background:#faf5ff;border-radius:8px;padding:10px 14px;color:#5b21b6;">
+                <strong style="display:block;margin-bottom:4px;">
+                    🔗 Última lectura automática de Dinámica: hace {{ ultima_lectura_dinamica.hace }}
+                    ({{ ultima_lectura_dinamica.fecha_hora|date:"d/m/Y h:i A" }})
+                </strong>
+                {% for v in ultima_lectura_dinamica.valores %}{{ v.nombre }}: {{ v.valor }}{{ v.unidad }}{% if not forloop.last %} · {% endif %}{% endfor %}
+                <br>
+                {% if ultima_lectura_dinamica.es_reciente %}
+                Las cards de abajo ya se precargaron con este dato — revísalo y ajústalo si algo cambió antes de guardar.
+                {% else %}
+                Es muy antigua para precargarla automáticamente (más de {{ ultima_lectura_dinamica.hace }}) — puedes
+                esperar el próximo ciclo automático o diligenciar manual desde cero.
+                {% endif %}
+            </div>
+            {% endif %}
             {% endif %}
 
             <form method="post" id="meows-form" class="meows-form">
@@ -141,6 +157,30 @@
                         <input type="hidden" id="hora_monitoreo" name="hora_monitoreo" required>
                         <div class="validation-message" id="message-hora_monitoreo"></div>
                     </div>
+                </div>
+
+                <!-- Botones de Acción — ubicados encima de los parámetros para que estén
+                     visibles de inmediato (ej. "Ver Historial Clínico") sin tener que bajar
+                     hasta el final del formulario. -->
+                <div class="footer-actions">
+                    {% if paciente.id %}
+                    <a href="{% url 'historial_meows' paciente_id=paciente.id %}{% if atencion_id %}?atencion={{ atencion_id }}{% if documento %}&doc={{ documento|urlencode }}{% endif %}{% elif documento %}?doc={{ documento|urlencode }}{% endif %}" class="btn btn-info" id="btn-ver-historial">
+                        <span class="btn-icon">📊</span>
+                        Ver Historial Clínico
+                    </a>
+                    {% endif %}
+                    <button type="button" class="btn btn-secondary" id="btn-limpiar">
+                        <span class="btn-icon">🗑️</span>
+                        Limpiar Formulario
+                    </button>
+                    <button type="button" class="btn btn-pdf" id="btn-generar-pdf">
+                        <span class="btn-icon">📄</span>
+                        Generar PDF
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btn-guardar">
+                        <span class="btn-icon">💾</span>
+                        Guardar Registro MEOWS
+                    </button>
                 </div>
 
                 <div class="parametros-resumen-layout">
@@ -272,28 +312,6 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Botones de Acción Final -->
-                    <div class="footer-actions">
-                        {% if paciente.id %}
-                        <a href="{% url 'historial_meows' paciente_id=paciente.id %}{% if atencion_id %}?atencion={{ atencion_id }}{% if documento %}&doc={{ documento|urlencode }}{% endif %}{% elif documento %}?doc={{ documento|urlencode }}{% endif %}" class="btn btn-info" id="btn-ver-historial">
-                            <span class="btn-icon">📊</span>
-                            Ver Historial Clínico
-                        </a>
-                        {% endif %}
-                        <button type="button" class="btn btn-secondary" id="btn-limpiar">
-                            <span class="btn-icon">🗑️</span>
-                            Limpiar Formulario
-                        </button>
-                        <button type="button" class="btn btn-pdf" id="btn-generar-pdf">
-                            <span class="btn-icon">📄</span>
-                            Generar PDF
-                        </button>
-                        <button type="submit" class="btn btn-primary" id="btn-guardar">
-                            <span class="btn-icon">💾</span>
-                            Guardar Registro MEOWS
-                        </button>
                     </div>
                 </div>
             </form>

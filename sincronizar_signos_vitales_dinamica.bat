@@ -5,12 +5,14 @@ REM Pensado para registrarse en el Programador de Tareas de Windows, NO para
 REM ejecutarse a mano en una ventana interactiva (aunque tambien sirve para
 REM probarlo manualmente).
 REM
-REM Como registrarlo en el Programador de Tareas (una sola vez), cada 5 minutos:
+REM Como registrarlo en el Programador de Tareas (una sola vez):
 REM
 REM   schtasks /create /tn "MEOWS - Sincronizar signos vitales Dinamica" ^
 REM     /tr "\"%~f0\"" /sc minute /mo 5 /ru "%USERNAME%"
 REM
-REM Ajusta /mo 5 a la frecuencia que decidan. Para quitarla despues:
+REM Actualmente registrada en /mo 2 (cada 2 minutos) mientras se prueban las
+REM alertas de cerca. Volver a /mo 5 (o mas) para uso normal, para no golpear
+REM Nexus con tanta frecuencia. Para quitarla despues:
 REM   schtasks /delete /tn "MEOWS - Sincronizar signos vitales Dinamica" /f
 
 cd /d "%~dp0"

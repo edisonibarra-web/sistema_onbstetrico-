@@ -57,7 +57,7 @@
                         <span class="badge-text">{{ medicion.meows_riesgo }}</span>
                     </div>
                     {% if medicion.origen == 'dinamica' %}
-                    <div class="resultado-badge" style="background:#1d4ed8;color:#fff;" title="Esta medición se importó automáticamente desde Dinámica (folio {{ medicion.dinamica_folio }})">
+                    <div class="resultado-badge" style="background:#7c3aed;color:#fff;" title="Esta medición se importó automáticamente desde Dinámica (folio {{ medicion.dinamica_folio }})">
                         <span class="badge-text">🔗 IMPORTADO DE DINÁMICA</span>
                     </div>
                     {% endif %}
@@ -74,7 +74,7 @@
                     </div>
                     <div class="resultado-meta">
                         <span class="meta-label">Fecha y hora de la medición</span>
-                        <strong class="meta-value">{{ medicion.fecha_hora|date:"d/m/Y H:i" }}</strong>
+                        <strong class="meta-value">{{ medicion.fecha_hora|date:"d/m/Y h:i A" }}</strong>
                     </div>
                 </div>
             </div>
