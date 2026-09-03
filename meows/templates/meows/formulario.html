@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulario MEOWS - Sistema de Alerta Temprana Obstétrico</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260814b">
+    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260903b">
     <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
     <style>
@@ -101,22 +101,38 @@
                 actualizará este mismo registro (no se creará uno nuevo).
             </p>
             {% else %}
-            <p class="section-description">Ingrese los valores clínicos. El sistema calculará automáticamente los
-                puntajes MEOWS.</p>
             {% if ultima_lectura_dinamica %}
-            <div class="section-description" style="border:1px solid #d8b4fe;background:#faf5ff;border-radius:8px;padding:10px 14px;color:#5b21b6;">
-                <strong style="display:block;margin-bottom:4px;">
-                    🔗 Última lectura automática de Dinámica: hace {{ ultima_lectura_dinamica.hace }}
-                    ({{ ultima_lectura_dinamica.fecha_hora|date:"d/m/Y h:i A" }})
-                </strong>
-                {% for v in ultima_lectura_dinamica.valores %}{{ v.nombre }}: {{ v.valor }}{{ v.unidad }}{% if not forloop.last %} · {% endif %}{% endfor %}
-                <br>
-                {% if ultima_lectura_dinamica.es_reciente %}
-                Las cards de abajo ya se precargaron con este dato — revísalo y ajústalo si algo cambió antes de guardar.
-                {% else %}
-                Es muy antigua para precargarla automáticamente (más de {{ ultima_lectura_dinamica.hace }}) — puedes
-                esperar el próximo ciclo automático o diligenciar manual desde cero.
-                {% endif %}
+            <div class="dinamica-lectura-card {% if ultima_lectura_dinamica.es_reciente %}es-reciente{% else %}es-antigua{% endif %}">
+                <div class="dinamica-lectura-header">
+                    <span class="dinamica-lectura-icono">🔗</span>
+                    <div class="dinamica-lectura-titulo">
+                        <strong>Última lectura automática de Dinámica</strong>
+                        <span class="dinamica-lectura-tiempo">
+                            hace {{ ultima_lectura_dinamica.hace }} · {{ ultima_lectura_dinamica.fecha_hora|date:"d/m/Y h:i A" }}
+                        </span>
+                    </div>
+                    {% if ultima_lectura_dinamica.es_reciente %}
+                    <span class="dinamica-lectura-estado reciente">✓ Precargado</span>
+                    {% else %}
+                    <span class="dinamica-lectura-estado antigua">⏳ Muy antigua</span>
+                    {% endif %}
+                </div>
+                <div class="dinamica-lectura-valores">
+                    {% for v in ultima_lectura_dinamica.valores %}
+                    <div class="dinamica-valor-chip">
+                        <span class="dinamica-valor-nombre">{{ v.nombre }}</span>
+                        <span class="dinamica-valor-dato">{{ v.valor }}{{ v.unidad }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="dinamica-lectura-nota">
+                    {% if ultima_lectura_dinamica.es_reciente %}
+                    Las cards de abajo ya se precargaron con este dato — revísalo y ajústalo si algo cambió antes de guardar.
+                    {% else %}
+                    Es muy antigua para precargarla automáticamente (más de {{ ultima_lectura_dinamica.hace }}) — puedes
+                    esperar el próximo ciclo automático o diligenciar manual desde cero.
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
             {% endif %}

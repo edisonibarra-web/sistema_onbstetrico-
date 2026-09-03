@@ -310,6 +310,167 @@ body {
 }
 
 /* ============================================================================
+   CARD FLOTANTE — ÚLTIMA LECTURA AUTOMÁTICA DE DINÁMICA (formulario.html)
+   Prellenado Opción B+C: banner siempre visible + estado según antigüedad.
+   ============================================================================ */
+.dinamica-lectura-card {
+    position: relative;
+    border-radius: 18px;
+    padding: 22px 26px 20px 24px;
+    margin: 6px 0 26px;
+    background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+    border: 1.5px solid #d8b4fe;
+    border-left: 5px solid #7c3aed;
+    box-shadow: 0 12px 32px rgba(124, 58, 237, 0.16),
+                0 2px 8px rgba(15, 23, 42, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.dinamica-lectura-card.es-antigua {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-color: #cbd5e1;
+    border-left-color: #64748b;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1),
+                0 2px 8px rgba(15, 23, 42, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.dinamica-lectura-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+}
+
+.dinamica-lectura-card.es-antigua .dinamica-lectura-header {
+    border-bottom-color: rgba(100, 116, 139, 0.15);
+}
+
+.dinamica-lectura-icono {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+    box-shadow: 0 4px 10px rgba(124, 58, 237, 0.35);
+}
+
+.dinamica-lectura-card.es-antigua .dinamica-lectura-icono {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+    box-shadow: 0 4px 10px rgba(100, 116, 139, 0.3);
+}
+
+.dinamica-lectura-titulo {
+    flex: 1;
+    min-width: 0;
+}
+
+.dinamica-lectura-titulo strong {
+    display: block;
+    color: #5b21b6;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.dinamica-lectura-card.es-antigua .dinamica-lectura-titulo strong {
+    color: #475569;
+}
+
+.dinamica-lectura-tiempo {
+    display: block;
+    font-size: 0.78rem;
+    color: #7c6a9c;
+    margin-top: 2px;
+}
+
+.dinamica-lectura-card.es-antigua .dinamica-lectura-tiempo {
+    color: #64748b;
+}
+
+.dinamica-lectura-estado {
+    flex-shrink: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.dinamica-lectura-estado.reciente {
+    color: #15803d;
+    background: #dcfce7;
+}
+
+.dinamica-lectura-estado.antigua {
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.dinamica-lectura-valores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.dinamica-valor-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 14px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #e9d5ff;
+    box-shadow: 0 1px 3px rgba(124, 58, 237, 0.08);
+    min-width: 96px;
+}
+
+.dinamica-lectura-card.es-antigua .dinamica-valor-chip {
+    border-color: #e2e8f0;
+}
+
+.dinamica-valor-nombre {
+    font-size: 0.64rem;
+    color: #8b7aa8;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.dinamica-lectura-card.es-antigua .dinamica-valor-nombre {
+    color: #94a3b8;
+}
+
+.dinamica-valor-dato {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #3b0764;
+}
+
+.dinamica-lectura-card.es-antigua .dinamica-valor-dato {
+    color: #334155;
+}
+
+.dinamica-lectura-nota {
+    font-size: 0.82rem;
+    color: #6d28d9;
+    padding-top: 10px;
+    border-top: 1px dashed #e9d5ff;
+}
+
+.dinamica-lectura-card.es-antigua .dinamica-lectura-nota {
+    color: #64748b;
+    border-top-color: #e2e8f0;
+}
+
+/* ============================================================================
    INFORMACIÓN DEL PACIENTE
    ============================================================================ */
 

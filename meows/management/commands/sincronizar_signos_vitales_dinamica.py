@@ -37,6 +37,13 @@ def disparar_alerta(medicion, resultado):
     en su próximo sondeo a /meows/api/alertas-pendientes/ y reproduce el
     sonido — TODAS las pantallas abiertas dentro de la ventana de tiempo, no
     solo la primera que pregunte. Ver meows/views.py:api_alertas_pendientes.
+
+    Se llama para TODA medición nueva importada de Dinámica, sin importar el
+    nivel de riesgo (Blanco a Rojo) — decisión explícita del usuario
+    (2026-09-03): prefiere notificación de cada lectura nueva antes que
+    filtrar solo las de riesgo, aun a costa de más notificaciones. El color
+    del toast (ver sidebar.html, clases riesgo-blanco/verde/amarillo/rojo)
+    y si suena fuerte o no siguen diferenciando visualmente el nivel real.
     """
     medicion.alerta_pendiente = True
     medicion.alerta_generada_en = timezone.now()
@@ -140,9 +147,10 @@ class Command(BaseCommand):
                 if verbosity >= 2:
                     self.stdout.write(f'  + Medición #{medicion.id} para {documento} ({fecha_hora})')
 
-                if resultado["alerta"]:
-                    disparar_alerta(medicion, resultado)
-                    total_alertas += 1
+                # Notifica SIEMPRE, sin importar el riesgo (Blanco a Rojo) — ver
+                # docstring de disparar_alerta().
+                disparar_alerta(medicion, resultado)
+                total_alertas += 1
 
         self.stdout.write(self.style.SUCCESS(
             f'[OK] {total_nuevas} medición(es) nueva(s) importada(s) desde Dinámica '

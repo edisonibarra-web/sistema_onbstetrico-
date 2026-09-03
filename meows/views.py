@@ -317,7 +317,15 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
         medicion.meows_total = resultados_meows["meows_total"]
         medicion.meows_riesgo = resultados_meows["meows_riesgo"]
         medicion.meows_mensaje = resultados_meows["meows_mensaje"]
-        medicion.save(update_fields=["meows_total", "meows_riesgo", "meows_mensaje"])
+        # Notifica en el sidebar (toast + sonido) igual que las mediciones
+        # importadas de Dinámica, sin importar el riesgo — decisión del
+        # usuario (2026-09-03) de no dejar los registros manuales sin avisar.
+        medicion.alerta_pendiente = True
+        medicion.alerta_generada_en = timezone.now()
+        medicion.save(update_fields=[
+            "meows_total", "meows_riesgo", "meows_mensaje",
+            "alerta_pendiente", "alerta_generada_en",
+        ])
 
         if medicion_editar:
             # Al corregir un registro existente, volver a su detalle para
