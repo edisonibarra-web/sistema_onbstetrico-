@@ -1,0 +1,40 @@
+# Entorno virtual de Windows
+venv/
+.venv/
+env/
+**/venv/
+**/__pycache__/
+**/*.pyc
+
+# Variables de entorno y credenciales
+.env
+.env.*
+!.env.example
+CREDENCIALES_DOCKER_SQLSERVER_LOCAL.txt
+
+# Base de datos SQLite local
+db.sqlite3
+db.sqlite3-journal
+
+# Archivos de runtime
+logs/
+media/
+staticfiles/
+
+# Control de versiones
+.git/
+.gitignore
+.claude/
+
+# Archivos generados / temporales
+*.pdf
+*.docx
+*.tmp
+*.temp
+_auditoria_trabajoparto.html
+generate_frecuencia_fetal_docx.py
+tmp_dinamica_diff/
+
+# Datos de prueba locales
+parto_data.json
+test_query.py
