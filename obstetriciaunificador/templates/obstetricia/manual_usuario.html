@@ -413,6 +413,10 @@
                             esta pantalla, un resumen de todo lo registrado hasta ahora en los tres módulos. Use
                             los botones <code class="btnname">Ver registros</code> / <code class="btnname">Ocultar registros</code>
                             para expandir o contraer cada grupo.</li>
+                        <li>En el grupo <b>MEOWS</b> de esa línea de tiempo, use el botón
+                            <code class="btnname">🔍 Visualizar gráfica de trazabilidad</code> para abrir la gráfica
+                            del puntaje total en una ventana más grande — útil cuando la paciente ya tiene muchas
+                            mediciones y la gráfica pequeña queda muy apretada para leerla bien.</li>
                     </ol>
 
                     <h3 class="step-title">Terminar o cambiar de paciente</h3>
@@ -544,11 +548,32 @@
                     <ul class="plain">
                         <li><code class="btnname">Ver Historial Clínico</code>: muestra todas las mediciones
                             anteriores de la paciente en una sola cuadrícula (línea de tiempo).</li>
-                        <li><code class="btnname">Limpiar Formulario</code>: borra lo que haya escrito en la
-                            pantalla actual (pide confirmación antes de borrar).</li>
                         <li><code class="btnname">Generar PDF</code>: descarga el formato oficial MEOWS con todas
-                            las mediciones de la paciente.</li>
+                            las mediciones de la paciente (si tiene muchas, se reparten en varias páginas para que
+                            ninguna quede afuera).</li>
                     </ul>
+
+                    <h3 class="step-title">Después de guardar: la pantalla de resultado</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 6px;">
+                        Al guardar una medición, el sistema lo lleva a una pantalla de resultado con el puntaje, el
+                        nivel de riesgo y tres botones — cada uno con un color distinto a propósito, para no
+                        confundirlos:
+                    </p>
+                    <ul class="plain">
+                        <li><code class="btnname">✏️ Corregir esta Medición</code> (amarillo): corrige los valores
+                            de <b>esta misma</b> medición que acaba de guardar — no crea un registro nuevo.</li>
+                        <li><code class="btnname">📊 Ver Historial del Paciente</code> (azul): abre la cuadrícula
+                            con todas las mediciones anteriores.</li>
+                        <li><code class="btnname">➕ Registrar Nueva Toma</code> (verde): abre el formulario en
+                            blanco para registrar una toma <b>distinta</b> de la misma paciente.</li>
+                    </ul>
+                    <div class="callout tip">
+                        <i data-lucide="info" size="18"></i>
+                        <span>Cuando está corrigiendo una medición existente (no creando una nueva), el botón de
+                        guardar del formulario dice <code class="btnname">Guardar Corrección</code> en vez de
+                        <code class="btnname">Guardar Registro MEOWS</code>, para que quede claro que no está
+                        creando una toma adicional.</span>
+                    </div>
 
                     <h3 class="step-title">Ver e interpretar el historial</h3>
                     <div class="screenshot-frame">
@@ -788,8 +813,8 @@
 
                     <h3 class="step-title">Guardé un dato equivocado, ¿puedo corregirlo?</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
-                        Sí. En MEOWS, abra el registro desde el historial y use <code class="btnname">Editar este
-                        Registro</code>. En Control Posparto Inmediato y Trabajo de Parto, vuelva a abrir el
+                        Sí. En MEOWS, abra el registro desde el historial y use <code class="btnname">✏️ Corregir
+                        esta Medición</code>. En Control Posparto Inmediato y Trabajo de Parto, vuelva a abrir el
                         formulario de la paciente, corrija el valor y presione nuevamente el botón de guardar
                         correspondiente.
                     </p>
@@ -812,7 +837,7 @@
                         Corríjalo directamente en las cards del formulario antes de presionar
                         <code class="btnname">Guardar Registro MEOWS</code> — precargar el dato no le impide
                         editarlo. Si el registro ya se guardó con el error, ábralo desde el historial y use
-                        <code class="btnname">Editar este Registro</code>.
+                        <code class="btnname">✏️ Corregir esta Medición</code>.
                     </p>
 
                     <h3 class="step-title">¿Por qué me llegó una alerta de una paciente que está bien (BLANCO/VERDE)?</h3>
@@ -820,6 +845,14 @@
                         La campana avisa de <b>toda</b> medición nueva, no solo de las críticas, para que se entere
                         apenas llega un dato — el color del aviso (blanco, verde, amarillo o rojo) le indica qué tan
                         urgente es. Solo el riesgo <b>ROJO</b> interrumpe además con un aviso emergente y sonido.
+                    </p>
+
+                    <h3 class="step-title">¿Hasta cuánto tiempo después sigue apareciendo una medición en la campana?</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
+                        Hasta <b>24 horas</b> después de tomada. Esto es a propósito: si por cualquier motivo nadie
+                        revisó la campana en el momento (por ejemplo, un corte breve del sistema), la alerta sigue
+                        disponible durante ese día en vez de perderse — ninguna medición registrada se queda sin
+                        alertar.
                     </p>
                 </section>
 
