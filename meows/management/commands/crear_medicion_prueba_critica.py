@@ -56,6 +56,9 @@ class Command(BaseCommand):
         )
         parametros_por_codigo = {p.codigo: p for p in Parametro.objects.filter(activo=True)}
 
+        resultado = calcular_meows(valores)
+        puntajes_por_codigo = resultado["puntajes"]
+
         medicion = Medicion.objects.create(
             paciente=paciente,
             formulario=formulario,
@@ -67,9 +70,10 @@ class Command(BaseCommand):
             parametro = parametros_por_codigo.get(codigo)
             if parametro is None:
                 continue
-            MedicionValor.objects.create(medicion=medicion, parametro=parametro, valor=str(valor))
-
-        resultado = calcular_meows(valores)
+            MedicionValor.objects.create(
+                medicion=medicion, parametro=parametro, valor=str(valor),
+                puntaje=puntajes_por_codigo.get(codigo),
+            )
         medicion.meows_total = resultado["meows_total"]
         medicion.meows_riesgo = resultado["meows_riesgo"]
         medicion.meows_mensaje = resultado["meows_mensaje"]

@@ -213,12 +213,48 @@
             box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10);
             background: #0f172a;
         }
-        .screenshot-frame img { display: block; width: 100%; height: auto; }
+        .screenshot-frame img {
+            display: block; width: 100%; height: auto;
+            cursor: zoom-in;
+            transition: filter .15s ease;
+        }
+        .screenshot-frame img:hover { filter: brightness(1.04); }
         .screenshot-caption {
             display: flex; align-items: center; gap: 8px;
             font-size: 12.5px; color: #64748b; margin: 0 0 20px; max-width: 1040px;
         }
         .screenshot-caption i { color: #94a3b8; flex-shrink: 0; }
+        .screenshot-caption .zoom-hint { margin-left: auto; font-weight: 700; color: #7c3aed; white-space: nowrap; }
+
+        /* Captura ampliada al hacer clic — "imagen interactiva": deja ver el
+           detalle fino (textos pequeños, distintivos 🔗, colores) que en el
+           tamaño normal de la guía es difícil de leer. */
+        .img-lightbox {
+            display: none;
+            position: fixed; inset: 0; z-index: 5000;
+            background: rgba(15, 23, 42, 0.86);
+            align-items: center; justify-content: center;
+            padding: 40px 20px;
+            cursor: zoom-out;
+        }
+        .img-lightbox.open { display: flex; }
+        .img-lightbox img {
+            max-width: 96vw; max-height: 92vh;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            cursor: default;
+        }
+        .img-lightbox-close {
+            position: absolute; top: 18px; right: 24px;
+            width: 42px; height: 42px; border-radius: 50%;
+            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3);
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .img-lightbox-hint {
+            position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.7); font-size: 12.5px; font-weight: 600;
+        }
 
         @media (max-width: 900px) {
             .main-content { padding: 24px 16px; }
@@ -261,15 +297,22 @@
                     <h1>Manual de Usuario del Sistema Obstétrico Unificado</h1>
                     <p>
                         Esta guía explica, paso a paso y sin tecnicismos, cómo usar cada pantalla del sistema:
-                        cómo encontrar a la paciente, cómo registrar los signos vitales (MEOWS), la frecuencia
-                        cardíaca fetal y el trabajo de parto, y cómo firmar y descargar los formatos en PDF.
+                        cómo encontrar a la paciente, cómo registrar los signos vitales (MEOWS), el control
+                        posparto inmediato y el trabajo de parto, y cómo firmar y descargar los formatos en PDF.
                         Úsela como referencia rápida cada vez que tenga una duda sobre qué botón presionar.
                     </p>
+                    <div class="callout tip" style="max-width:900px;">
+                        <i data-lucide="sparkles" size="18"></i>
+                        <span><b>Novedad:</b> los signos vitales que la enfermería ya registra en Dinámica
+                        Gerencial ahora se importan solos a MEOWS — no hay que volver a digitarlos. El sistema
+                        también le avisa con una campana en el encabezado cuando llega una alerta nueva. Vea el
+                        detalle en la sección 3.</span>
+                    </div>
                     <div class="toc">
                         <a href="#sec-inicio"><span class="dot" style="background:var(--c-manual)"></span>1. Primeros pasos</a>
                         <a href="#sec-sala"><span class="dot" style="background:var(--c-sala)"></span>2. Sala de Partos</a>
                         <a href="#sec-meows"><span class="dot" style="background:var(--c-meows)"></span>3. Módulo MEOWS</a>
-                        <a href="#sec-fetal"><span class="dot" style="background:var(--c-fetal)"></span>4. Frecuencia Fetal</a>
+                        <a href="#sec-fetal"><span class="dot" style="background:var(--c-fetal)"></span>4. Control Posparto Inmediato</a>
                         <a href="#sec-parto"><span class="dot" style="background:var(--c-parto)"></span>5. Trabajo de Parto</a>
                         <a href="#sec-pdf"><span class="dot" style="background:var(--c-sala)"></span>6. PDF unificado</a>
                         <a href="#sec-faq"><span class="dot" style="background:var(--c-manual)"></span>7. Preguntas frecuentes</a>
@@ -301,7 +344,7 @@
                     <h3 class="step-title">Pantalla de Inicio (Dashboard)</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 6px;">
                         Al ingresar llega a la pantalla de bienvenida. Es solo informativa: le recuerda los tres
-                        módulos clínicos disponibles (MEOWS, Control Fetal y Trabajo de Parto). Desde aquí no se
+                        módulos clínicos disponibles (MEOWS, Control Posparto Inmediato y Trabajo de Parto). Desde aquí no se
                         registra ningún dato todavía — el punto de partida real para atender a una paciente es
                         <b>Sala de Partos</b>, en el menú de la izquierda.
                     </p>
@@ -311,9 +354,16 @@
                         <li><b>Dashboard</b>: vuelve a la pantalla de bienvenida.</li>
                         <li><b>Manual de Usuario</b>: esta guía, disponible desde cualquier pantalla del sistema.</li>
                         <li><b>Sala de Partos</b>: al hacer clic aquí, si ya tiene una paciente abierta, se despliegan
-                            los accesos directos a <b>MEOWS</b>, <b>Frecuencia Fetal</b> y <b>Trabajo de Parto</b> de esa paciente.</li>
+                            los accesos directos a <b>MEOWS</b>, <b>Control Posparto Inmediato</b> y <b>Trabajo de Parto</b> de esa paciente.</li>
                         <li>El botón con la flecha (arriba del todo) colapsa el menú a solo íconos, útil en pantallas pequeñas.</li>
                     </ul>
+
+                    <h3 class="step-title">La campana de alertas (siempre visible, arriba a la derecha)</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
+                        En la esquina superior derecha, junto al logo del hospital, hay una campana 🔔 que le avisa
+                        de alertas MEOWS de <b>cualquier</b> paciente, sin importar en qué pantalla esté trabajando.
+                        Vea cómo funciona en detalle en la sección 3 (Módulo MEOWS).
+                    </p>
                 </section>
 
                 <!-- 2. SALA DE PARTOS -->
@@ -326,6 +376,15 @@
                         Este es el punto de partida de todo: aquí identifica a la paciente y desde aquí se
                         habilitan los tres módulos clínicos para ella.
                     </p>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/sala_de_partos.png' %}?v=1" alt="Pantalla de Sala de Partos con una paciente en atención">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Vista real con una paciente ya en atención: la tarjeta de identificación con su estado, las tres cards de módulos (cada una con su propio ícono) y la sección "Datos registrados del paciente" debajo.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
 
                     <h3 class="step-title">Buscar a la paciente</h3>
                     <ol class="steps">
@@ -348,7 +407,7 @@
                         <li>Aparece una tarjeta con su nombre, número de identificación y un indicador de estado:
                             <b>ESTABLE</b>, <b>ALERTA</b> o <b>CRÍTICO</b> (calculado automáticamente según sus
                             registros de MEOWS más recientes).</li>
-                        <li>Debajo verá tres tarjetas grandes: <b>MODULO MEOWS</b>, <b>FRECUENCIA FETAL</b> y
+                        <li>Debajo verá tres tarjetas grandes: <b>MODULO MEOWS</b>, <b>CONTROL POSPARTO INMEDIATO</b> y
                             <b>TRABAJO DE PARTO</b>. Haga clic en la que necesite para empezar a registrar datos.</li>
                         <li>Más abajo, la sección <b>"Línea de Vida del Paciente"</b> le permite ver, sin salir de
                             esta pantalla, un resumen de todo lo registrado hasta ahora en los tres módulos. Use
@@ -385,14 +444,40 @@
                     </p>
 
                     <div class="screenshot-frame">
-                        <img src="{% static 'manual/meows_formulario.png' %}?v=4" alt="Pantalla del formulario MEOWS">
+                        <img src="{% static 'manual/meows_formulario.png' %}?v=5" alt="Pantalla del formulario MEOWS">
                     </div>
                     <div class="screenshot-caption">
                         <i data-lucide="camera" size="14"></i>
-                        <span>Vista real del formulario MEOWS: parámetros vitales a la izquierda y el panel "Resumen" con el puntaje y color de riesgo a la derecha.</span>
+                        <span>Vista real del formulario MEOWS: la tarjeta morada "Última lectura automática de Dinámica" arriba, los parámetros vitales (con el distintivo 🔗 en las cards que vienen de Dinámica) a la izquierda, y el panel "Resumen" a la derecha.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
                     </div>
 
-                    <h3 class="step-title">Registrar una nueva medición</h3>
+                    <h3 class="step-title">Registro automático desde Dinámica (novedad)</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 6px;">
+                        Ya no es necesario digitar en MEOWS lo que la enfermería registra en Dinámica Gerencial. El
+                        sistema revisa Dinámica solo, cada pocos minutos, y si encuentra signos vitales nuevos de
+                        una paciente en atención, crea el registro MEOWS automáticamente, calcula el puntaje y
+                        dispara la alerta si corresponde — sin que nadie tenga que abrir su ficha.
+                    </p>
+                    <ul class="plain">
+                        <li>Al entrar al formulario de una paciente, si existe una lectura automática de Dinámica
+                            de las <b>últimas 6 horas</b>, aparece una tarjeta morada
+                            "🔗 Última lectura automática de Dinámica" con los valores, y las cards de abajo ya
+                            vienen precargadas con ese dato — solo revíselas y ajuste lo que haya cambiado antes de guardar.</li>
+                        <li>Si la última lectura es más antigua que 6 horas, la misma tarjeta se sigue mostrando
+                            (para que sepa que existe), pero las cards quedan en blanco para diligenciar manual.</li>
+                        <li>Cada card que viene de esa lectura automática trae un pequeño distintivo 🔗 en la
+                            esquina, para diferenciarla de un dato digitado a mano.</li>
+                        <li>Si un signo vital todavía no lo trae Dinámica (por ahora: Escala de Glasgow), esa card
+                            se sigue diligenciando siempre a mano.</li>
+                    </ul>
+                    <div class="callout tip">
+                        <i data-lucide="info" size="18"></i>
+                        <span>Esto no le quita la opción de registrar manualmente: si prefiere digitar el dato usted
+                        mismo, o si el automático no llegó todavía, use el formulario exactamente como siempre.</span>
+                    </div>
+
+                    <h3 class="step-title">Registrar una nueva medición (manual)</h3>
                     <ol class="steps">
                         <li>Desde Sala de Partos, entre a la tarjeta <b>MODULO MEOWS</b> de la paciente (o, si ya
                             está dentro de una atención, use el menú lateral: Sala de Partos → MEOWS).</li>
@@ -421,8 +506,38 @@
                     <div class="callout warn">
                         <i data-lucide="alert-triangle" size="18"></i>
                         <span>Si un solo signo vital sale en estado <b>Crítico</b>, el sistema sube el riesgo a
-                        <b>AMARILLO como mínimo</b>, aunque los demás valores estén normales. Si el riesgo llega a
-                        <b>ROJO</b>, el sistema emite un sonido de alerta.</span>
+                        <b>AMARILLO como mínimo</b>, aunque los demás valores estén normales.</span>
+                    </div>
+
+                    <h3 class="step-title">Alertas automáticas: la campana del encabezado (novedad)</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 6px;">
+                        Cada vez que se guarda un registro MEOWS — a mano o automático desde Dinámica — la campana
+                        🔔 de la parte superior derecha (visible en todas las pantallas del sistema) le avisa.
+                    </p>
+                    <ol class="steps">
+                        <li>Sin alertas pendientes, la campana se ve neutra. Cuando llega una nueva, se pone
+                            <b>roja y pulsa</b>, con un número que indica cuántas hay sin revisar.</li>
+                        <li>Haga clic en la campana para abrir el panel con la lista completa: paciente, nivel de
+                            riesgo y fecha/hora. Haga clic en cualquiera para ir directo al detalle de esa medición.</li>
+                        <li>Al abrir el panel la campana vuelve a su color normal, pero las alertas siguen ahí
+                            listadas — nada se borra.</li>
+                        <li>Si el riesgo es <b>ROJO</b>, además de quedar en la campana aparece un aviso emergente
+                            en pantalla (se cierra solo después de unos segundos) y suena una alerta, para que sea
+                            difícil pasarlo por alto aunque nadie esté mirando la campana en ese momento.</li>
+                    </ol>
+                    <div class="callout tip">
+                        <i data-lucide="info" size="18"></i>
+                        <span>La campana avisa de <b>cualquier paciente</b> del sistema, no solo de la que tiene
+                        abierta — no necesita tener la ficha de esa paciente abierta para enterarse.</span>
+                    </div>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/campana_alertas.png' %}?v=1" alt="Panel de la campana de alertas MEOWS abierto">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>La campana (arriba a la derecha) y su panel abierto, con alertas reales de distintas pacientes y niveles de riesgo — cada una con enlace directo "Ver detalle →".</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
                     </div>
 
                     <h3 class="step-title">Otras acciones del formulario</h3>
@@ -436,23 +551,40 @@
                     </ul>
 
                     <h3 class="step-title">Ver e interpretar el historial</h3>
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/linea_tiempo_meows.png' %}?v=1" alt="Línea de Tiempo Clínica MEOWS con varias mediciones importadas de Dinámica">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Cuadrícula real de una paciente con varias tomas importadas automáticamente de Dinámica (distintivo "🔗 Dinámica" bajo cada fecha/hora) y el puntaje total al pie de cada columna.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
                     <ol class="steps">
                         <li>Cada toma queda como una columna en la cuadrícula; cada fila representa un rango
                             posible de un signo vital. Un punto (●) marca el valor real registrado.</li>
+                        <li>Las columnas con el distintivo "🔗 Dinámica" bajo la fecha/hora son mediciones que
+                            llegaron solas desde Dinámica; las que no lo tienen se digitaron a mano.</li>
                         <li>Al final de cada columna aparece el <b>puntaje total</b> de esa toma, coloreado según
                             el riesgo. Haga clic sobre él para ver el detalle completo de esa medición.</li>
-                        <li>Use el botón <code class="btnname">Guía Técnica MEOWS</code> si necesita consultar la
+                        <li>Use el botón <code class="btnname">Guía Técnica MEOWS</code>, junto a
+                            <code class="btnname">Regresar a Trabajo de Parto</code>, si necesita consultar la
                             tabla oficial de puntajes por signo vital.</li>
                         <li>El botón <code class="btnname">Ocultar</code> / <code class="btnname">Mostrar</code>
                             le permite contraer la cuadrícula cuando ya tiene muchas tomas registradas.</li>
                     </ol>
+                    <div class="callout tip">
+                        <i data-lucide="refresh-cw" size="18"></i>
+                        <span>Si mientras tiene esta pantalla abierta llega una alerta nueva de la misma paciente,
+                        la cuadrícula se actualiza sola en unos segundos para mostrar la columna nueva — no
+                        necesita darle F5.</span>
+                    </div>
                 </section>
 
-                <!-- 4. FRECUENCIA FETAL -->
+                <!-- 4. CONTROL POSPARTO INMEDIATO -->
                 <section class="section-card c-fetal" id="sec-fetal">
                     <div class="section-head">
                         <div class="section-icon"><i data-lucide="heart-pulse"></i></div>
-                        <h2>4. Módulo Frecuencia Fetal</h2>
+                        <h2>4. Módulo Control Posparto Inmediato</h2>
                     </div>
                     <p class="section-sub">
                         Formato de Control de Fetocardia y Postparto (FRSPA-007): datos de la paciente, control
@@ -461,16 +593,17 @@
                     </p>
 
                     <div class="screenshot-frame">
-                        <img src="{% static 'manual/frecuencia_fetal_formulario.png' %}?v=2" alt="Pantalla del formulario de Frecuencia Fetal">
+                        <img src="{% static 'manual/frecuencia_fetal_formulario.png' %}?v=2" alt="Pantalla del formulario de Control Posparto Inmediato">
                     </div>
                     <div class="screenshot-caption">
                         <i data-lucide="camera" size="14"></i>
-                        <span>Vista real de la pantalla de Frecuencia Fetal, en blanco (sin paciente seleccionada aún).</span>
+                        <span>Vista real de la pantalla de Control Posparto Inmediato, en blanco (sin paciente seleccionada aún).</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
                     </div>
 
                     <h3 class="step-title">Completar los datos de la paciente</h3>
                     <ol class="steps">
-                        <li>Entre al módulo desde la tarjeta <b>FRECUENCIA FETAL</b> en Sala de Partos.</li>
+                        <li>Entre al módulo desde la tarjeta <b>CONTROL POSPARTO INMEDIATO</b> en Sala de Partos.</li>
                         <li>Revise/complete: nombre de la paciente, número de identificación, edad gestacional,
                             gestas y nombre del acompañante.</li>
                     </ol>
@@ -560,6 +693,7 @@
                     <div class="screenshot-caption">
                         <i data-lucide="camera" size="14"></i>
                         <span>Vista real de la pantalla de Trabajo de Parto, en blanco (sin paciente seleccionada aún).</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
                     </div>
 
                     <h3 class="step-title">Buscar / identificar a la paciente</h3>
@@ -622,8 +756,8 @@
                         <h2>6. Generar el PDF unificado de la atención</h2>
                     </div>
                     <p class="section-sub">
-                        Un solo archivo con los tres formatos completos de la paciente (MEOWS + Frecuencia Fetal +
-                        Trabajo de Parto), listo para imprimir o adjuntar a la historia clínica.
+                        Un solo archivo con los tres formatos completos de la paciente (MEOWS + Control Posparto
+                        Inmediato + Trabajo de Parto), listo para imprimir o adjuntar a la historia clínica.
                     </p>
                     <ol class="steps">
                         <li>Abra la atención de la paciente desde <b>Sala de Partos</b>.</li>
@@ -655,8 +789,9 @@
                     <h3 class="step-title">Guardé un dato equivocado, ¿puedo corregirlo?</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
                         Sí. En MEOWS, abra el registro desde el historial y use <code class="btnname">Editar este
-                        Registro</code>. En Frecuencia Fetal y Trabajo de Parto, vuelva a abrir el formulario de la
-                        paciente, corrija el valor y presione nuevamente el botón de guardar correspondiente.
+                        Registro</code>. En Control Posparto Inmediato y Trabajo de Parto, vuelva a abrir el
+                        formulario de la paciente, corrija el valor y presione nuevamente el botón de guardar
+                        correspondiente.
                     </p>
 
                     <h3 class="step-title">¿Necesito firmar cada registro?</h3>
@@ -671,14 +806,58 @@
                         <b>ESTABLE</b> (sin alertas), <b>ALERTA</b> (algún signo vital en riesgo intermedio) o
                         <b>CRÍTICO</b> (riesgo alto). Consulte el módulo MEOWS para ver el detalle.
                     </p>
+
+                    <h3 class="step-title">El dato que trajo Dinámica automáticamente vino mal, ¿qué hago?</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
+                        Corríjalo directamente en las cards del formulario antes de presionar
+                        <code class="btnname">Guardar Registro MEOWS</code> — precargar el dato no le impide
+                        editarlo. Si el registro ya se guardó con el error, ábralo desde el historial y use
+                        <code class="btnname">Editar este Registro</code>.
+                    </p>
+
+                    <h3 class="step-title">¿Por qué me llegó una alerta de una paciente que está bien (BLANCO/VERDE)?</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
+                        La campana avisa de <b>toda</b> medición nueva, no solo de las críticas, para que se entere
+                        apenas llega un dato — el color del aviso (blanco, verde, amarillo o rojo) le indica qué tan
+                        urgente es. Solo el riesgo <b>ROJO</b> interrumpe además con un aviso emergente y sonido.
+                    </p>
                 </section>
 
             </div>
         </main>
     </div>
 
+    <!-- Visor de imagen ampliada: al hacer clic en cualquier captura de pantalla,
+         se abre aquí a tamaño grande para ver el detalle fino. -->
+    <div class="img-lightbox" id="img-lightbox" onclick="cerrarImagenGrande()">
+        <button type="button" class="img-lightbox-close" onclick="event.stopPropagation(); cerrarImagenGrande()" title="Cerrar">
+            <i data-lucide="x" size="20"></i>
+        </button>
+        <img id="img-lightbox-img" src="" alt="Captura ampliada">
+        <span class="img-lightbox-hint">Clic en cualquier parte, o Esc, para cerrar</span>
+    </div>
+
     <script>
         lucide.createIcons();
+
+        function abrirImagenGrande(imgEl) {
+            const lightbox = document.getElementById('img-lightbox');
+            const grande = document.getElementById('img-lightbox-img');
+            grande.src = imgEl.src;
+            grande.alt = imgEl.alt;
+            lightbox.classList.add('open');
+        }
+        function cerrarImagenGrande() {
+            document.getElementById('img-lightbox').classList.remove('open');
+        }
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Escape') cerrarImagenGrande();
+        });
+        // Cualquier captura de pantalla de la guía es clicable, sin tener que
+        // agregar onclick="" a mano en cada <img> del manual.
+        document.querySelectorAll('.screenshot-frame img').forEach(function (img) {
+            img.addEventListener('click', function () { abrirImagenGrande(img); });
+        });
     </script>
 </body>
 </html>

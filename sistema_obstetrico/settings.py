@@ -130,14 +130,39 @@ WSGI_APPLICATION = 'sistema_obstetrico.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'mssql',
-        'NAME': 'unificada_partos',
-        'USER': '',
-        'PASSWORD': '',
-        'HOST':r'localhost\SQLEXPRESS',  # o IP del servidor
-        'PORT': '',
+        # Valores por defecto = cómo corre hoy fuera de Docker: SQL Server
+        # Express de esta misma máquina, con autenticación de Windows
+        # (USER/PASSWORD vacíos → mssql-django usa Trusted_Connection).
+        #
+        # Dentro de un contenedor Docker esos valores por defecto NO sirven:
+        # "localhost" ahí es el propio contenedor (no esta máquina), y la
+        # autenticación de Windows no existe en Linux. Para correr en Docker,
+        # definir en el .env (pasado con `docker run --env-file .env`):
+        #   DB_LOCAL_HOST=host.docker.internal
+        #   DB_LOCAL_PORT=<puerto TCP fijo de la instancia, ver nota abajo>
+        #   DB_LOCAL_USER=<login SQL, no de Windows>
+        #   DB_LOCAL_PASSWORD=<password de ese login>
+        # Requiere antes, en SQL Server Configuration Manager (una sola vez):
+        #   1) Habilitar el protocolo TCP/IP de la instancia SQLEXPRESS y
+        #      fijarle un puerto estático (por defecto usa uno dinámico vía
+        #      el servicio SQL Browser, que un contenedor no resuelve bien).
+        #   2) Habilitar "SQL Server and Windows Authentication mode" (modo
+        #      mixto) y crear un login SQL con permisos sobre unificada_partos.
+        #   3) Reiniciar el servicio SQL Server y permitir ese puerto en el
+        #      Firewall de Windows.
+        # Con DB_LOCAL_HOST/PORT así, se conecta directo por TCP y ya no hace
+        # falta la sintaxis "HOST\SQLEXPRESS" (que depende del SQL Browser).
+        # "or" en vez de sólo el default de .get(): así, si el .env real llega
+        # a tener la línea presente pero vacía (en vez de no tenerla), sigue
+        # cayendo al valor nativo de siempre en lugar de romper el arranque.
+        'NAME': os.environ.get('DB_LOCAL_NAME') or 'unificada_partos',
+        'USER': os.environ.get('DB_LOCAL_USER', ''),
+        'PASSWORD': os.environ.get('DB_LOCAL_PASSWORD', ''),
+        'HOST': os.environ.get('DB_LOCAL_HOST') or r'localhost\SQLEXPRESS',
+        'PORT': os.environ.get('DB_LOCAL_PORT', ''),
         'OPTIONS': {
             'driver': 'ODBC Driver 18 for SQL Server',
-            'extra_params': 'Encrypt=yes;TrustServerCertificate=yes',
+            'extra_params': 'Encrypt=no;TrustServerCertificate=yes',
         },
     },
 

@@ -168,6 +168,10 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
                     }
                     for p in parametros if p.id in valores_dinamica
                 ],
+                # Códigos que trae la lectura de Dinámica, para resaltar en la
+                # grilla de cards de abajo cuáles corresponden a este dato
+                # (sin importar si alcanzó a precargarse o no).
+                "codigos": [p.codigo for p in parametros if p.id in valores_dinamica],
             }
 
     if request.method == "POST":
@@ -268,7 +272,21 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
                 atencion = None
 
         from meows.services.meows import calcular_meows
+
+        # Se junta primero el diccionario {codigo: valor} desde el POST, SIN
+        # tocar la base de datos todavía, para poder calcular_meows() antes de
+        # crear/actualizar cada MedicionValor — así cada uno se guarda ya con
+        # su propio puntaje individual (antes se guardaba solo el total en
+        # Medicion, dejando MedicionValor.puntaje siempre en NULL y la columna
+        # "Puntaje"/"Estado" de la vista de resultado siempre en "-").
         valores_dict = {}
+        for parametro in parametros:
+            valor = request.POST.get(parametro.codigo)
+            if valor:
+                valores_dict[parametro.codigo] = valor
+
+        resultados_meows = calcular_meows(valores_dict)
+        puntajes_por_codigo = resultados_meows["puntajes"]
 
         if medicion_editar:
             # Editar: se corrige el mismo registro (no se crea uno nuevo).
@@ -280,14 +298,16 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
 
             codigos_enviados = []
             for parametro in parametros:
-                valor = request.POST.get(parametro.codigo)
+                valor = valores_dict.get(parametro.codigo)
                 if valor:
                     MedicionValor.objects.update_or_create(
                         medicion=medicion,
                         parametro=parametro,
-                        defaults={"valor": valor},
+                        defaults={
+                            "valor": valor,
+                            "puntaje": puntajes_por_codigo.get(parametro.codigo),
+                        },
                     )
-                    valores_dict[parametro.codigo] = valor
                     codigos_enviados.append(parametro.id)
             # Si un parámetro que antes tenía valor se dejó en blanco al
             # corregir, se elimina su valor anterior en vez de dejarlo obsoleto.
@@ -301,19 +321,19 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
                 fecha_hora=fecha_hora_monitoreo,
             )
 
-            # Crear los valores de medición
+            # Crear los valores de medición, cada uno con su puntaje individual
             for parametro in parametros:
-                valor = request.POST.get(parametro.codigo)
+                valor = valores_dict.get(parametro.codigo)
                 if valor:
                     MedicionValor.objects.create(
                         medicion=medicion,
                         parametro=parametro,
-                        valor=valor
+                        valor=valor,
+                        puntaje=puntajes_por_codigo.get(parametro.codigo),
                     )
-                    valores_dict[parametro.codigo] = valor
 
-        # Calcular score total, riesgo y mensaje
-        resultados_meows = calcular_meows(valores_dict)
+        # meows_total, meows_riesgo y meows_mensaje ya vienen de resultados_meows,
+        # calculado arriba antes de guardar los MedicionValor.
         medicion.meows_total = resultados_meows["meows_total"]
         medicion.meows_riesgo = resultados_meows["meows_riesgo"]
         medicion.meows_mensaje = resultados_meows["meows_mensaje"]
@@ -659,7 +679,17 @@ def api_buscar_paciente(request):
 # solo esa pantalla la veía) — ahora la ven todas las pantallas abiertas
 # mientras estén dentro de esta ventana; pasado ese tiempo deja de aparecer
 # como toast, pero el dato/riesgo sigue visible siempre en el historial.
-VENTANA_ALERTA_MINUTOS = 10
+#
+# Antes en 10 minutos — subido a 24 horas (2026-09-07) tras confirmar un caso
+# real: la tarea programada generó una alerta mientras el servidor local
+# (runserver) estaba caído; para cuando alguien volvió a abrir el navegador
+# ya habían pasado más de 10 minutos y la alerta nunca llegó a sonar/mostrarse,
+# aunque el registro sí quedó guardado correctamente. El registro NUNCA se
+# pierde (eso no depende de esta ventana, ver sincronizar_signos_vitales_
+# dinamica.py), pero el aviso en vivo si no se atrapa a tiempo. Con 24h,
+# cualquier corte razonable del servidor (una noche, un reinicio) sigue
+# alcanzando a notificar apenas alguien vuelva a abrir una pantalla.
+VENTANA_ALERTA_MINUTOS = 60 * 24
 
 
 @login_required_if_enabled
@@ -692,6 +722,11 @@ def api_alertas_pendientes(request):
             'riesgo': m.meows_riesgo,
             'mensaje': m.meows_mensaje,
             'fecha_hora': timezone.localtime(m.fecha_hora).strftime('%d/%m/%Y %I:%M %p'),
+            # Timestamp ISO además del texto ya formateado: el cliente lo usa
+            # para ordenar el panel por hora REAL de la medición (más reciente
+            # arriba), sin depender del orden en que cada tanda fue llegando —
+            # ver agregarAlPanel/ordenarPanelPorFecha en obstetricia/sidebar.html.
+            'fecha_hora_iso': m.fecha_hora.isoformat(),
             'url': f"/meows/resultado/{m.id}/",
         }
         for m in pendientes

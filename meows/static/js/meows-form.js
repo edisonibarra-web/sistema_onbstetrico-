@@ -1382,20 +1382,6 @@ async function inicializar() {
         }
     });
 
-    // Botón limpiar
-    const btnLimpiar = document.getElementById('btn-limpiar');
-    if (btnLimpiar) {
-        btnLimpiar.addEventListener('click', function () {
-            if (confirm('¿Está seguro de limpiar todos los campos?')) {
-                document.querySelectorAll('.parameter-input').forEach(input => {
-                    input.value = '';
-                    const parametro = input.dataset.param;
-                    actualizarFeedback(parametro, '', null);
-                });
-                actualizarResumen();
-            }
-        });
-    }
 
     // Validación del formulario antes de enviar
     const form = document.getElementById('meows-form');

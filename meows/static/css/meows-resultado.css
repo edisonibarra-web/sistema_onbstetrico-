@@ -1170,6 +1170,21 @@ body {
     box-shadow: 0 5px 15px rgba(217, 119, 6, 0.4);
 }
 
+/* Verde = "crear algo nuevo", a propósito distinto del naranja de "corregir
+   este mismo registro" y el morado de "primario/genérico" — para que a
+   simple vista no se confundan "Corregir esta Medición" con "Registrar
+   Nueva Toma" (van a formularios con comportamiento distinto, aunque se
+   vean iguales una vez abiertos). */
+.btn-success {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(22, 163, 74, 0.4);
+}
+
 .btn-icon {
     font-size: 1.2rem;
 }

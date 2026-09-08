@@ -1736,6 +1736,33 @@ select.patient-input-compact {
     gap: 0.75rem 1.25rem;
 }
 
+/* Marca de trazabilidad: este parámetro viene de la última lectura de
+   Dinámica mostrada en la card flotante de arriba (ver dinamica-lectura-card
+   más arriba en este archivo) — sin importar si alcanzó a precargarse. */
+.parameter-card.marca-dinamica {
+    border-color: #c4b5fd;
+    background: linear-gradient(135deg, #f5f3ff 0%, #e2e8f0 55%);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.14),
+                0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.marca-dinamica-badge {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 2;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+    box-shadow: 0 2px 6px rgba(124, 58, 237, 0.4);
+    cursor: help;
+}
+
 .parameter-card::before {
     content: '';
     position: absolute;
@@ -4485,12 +4512,77 @@ firma-canvas {
     flex: 0 0 170px;
 }
 
+/* Card que envuelve fecha/hora del monitoreo + botones de acción — mismo
+   lenguaje visual que el resto del formulario (card flotante con acento
+   morado, ver .dinamica-lectura-card más arriba en este archivo): borde
+   redondeado, sombra elevada, franja de acento superior. */
+.footer-actions-card {
+    background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+    border: 1px solid #e9d5ff;
+    border-radius: 16px;
+    padding: 18px 22px;
+    margin-bottom: 26px;
+    box-shadow: 0 10px 28px rgba(124, 58, 237, 0.1),
+                0 2px 8px rgba(15, 23, 42, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+.footer-actions-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #a78bfa 0%, #7c3aed 100%);
+}
+
 .footer-actions {
     display: flex;
     justify-content: flex-end;
+    align-items: flex-end;
+    flex-wrap: wrap;
     gap: 12px;
-    padding-top: 18px;
-    border-top: 1px solid #e2e8f0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Que ningún botón individual se niegue a encoger cuando no cabe en una sola
+   línea junto con el grupo de fecha/hora — sin esto, un flex item con texto
+   largo puede forzar overflow horizontal en vez de pasar a la siguiente línea
+   pese a flex-wrap: wrap. */
+.footer-actions > .btn,
+.footer-actions > a.btn {
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+/* Fecha/Hora del monitoreo, en la misma línea que "Ver Historial Clínico" y
+   el resto de botones — ancho ajustado al dato, no a media fila como en
+   .patient-info-grid/.info-item (esas clases se quedan intactas para la
+   sección "Información del Paciente" de arriba). margin-right:auto empuja
+   los botones hacia la derecha manteniendo esto pegado a la izquierda,
+   dentro del mismo .footer-actions (que tiene justify-content: flex-end). */
+.footer-datetime-group {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-right: auto;
+}
+.footer-datetime-item {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
+    border: 2px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.footer-datetime-item .info-label {
+    font-size: 0.68rem;
+    margin-bottom: 0.3rem;
+}
+.footer-datetime-item input[type="date"].patient-input {
+    width: 148px;
+    padding: 8px 10px;
+    font-size: 0.9rem;
 }
 
 .responsable-field {

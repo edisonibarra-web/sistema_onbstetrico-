@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulario MEOWS - Sistema de Alerta Temprana Obstétrico</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260903b">
+    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260904d">
     <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
     <style>
@@ -15,6 +15,11 @@
            el padding por defecto del body (definido en meows-form.css para páginas simples) deja
            un espacio muerto en blanco alrededor del encabezado y el sidebar. Se anula aquí. */
         body { margin: 0 !important; padding: 0 !important; }
+        /* .sidebar-main-content (obstetriciaunificador/css/sidebar.css) trae
+           margin-top:0 — el contenido queda pegado justo debajo del encabezado
+           oscuro. Solo se ajusta aquí (no en ese CSS compartido) para no mover
+           el resto de pantallas que usan el mismo shell. */
+        .sidebar-main-content { margin-top: 28px !important; }
     </style>
 </head>
 
@@ -152,57 +157,60 @@
                 <input type="hidden" name="responsable" id="hidden-responsable">
                 <input type="hidden" name="atencion" value="{{ atencion_id|default:'' }}">
 
-                <!-- Fecha y hora del monitoreo (registro manual, obligatorio entre 2 minutos y 4 horas antes de guardar) -->
-                <div class="patient-info-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 1rem;">
-                    <div class="info-item">
-                        <label class="info-label" for="fecha_monitoreo">Fecha del Monitoreo *</label>
-                        <input type="date" id="fecha_monitoreo" name="fecha_monitoreo" class="patient-input"
-                            value="{% if medicion %}{{ medicion.fecha_hora|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}" required>
-                    </div>
-                    <div class="info-item">
-                        <label class="info-label" for="hora_monitoreo_horas">Hora del Monitoreo *</label>
-                        <div style="display:flex; gap:6px; align-items:center;">
-                            <select id="hora_monitoreo_horas" class="patient-input" style="flex:1;" aria-label="Hora"></select>
-                            <span style="font-weight:700; color:#6c757d;">:</span>
-                            <select id="hora_monitoreo_minutos" class="patient-input" style="flex:1;" aria-label="Minutos"></select>
-                            <select id="hora_monitoreo_periodo" class="patient-input patient-input-compact" style="flex:0 0 92px;" aria-label="AM o PM">
-                                <option value="AM">AM</option>
-                                <option value="PM">PM</option>
-                            </select>
-                        </div>
-                        <input type="hidden" id="hora_monitoreo" name="hora_monitoreo" required>
-                        <div class="validation-message" id="message-hora_monitoreo"></div>
-                    </div>
-                </div>
-
                 <!-- Botones de Acción — ubicados encima de los parámetros para que estén
                      visibles de inmediato (ej. "Ver Historial Clínico") sin tener que bajar
-                     hasta el final del formulario. -->
+                     hasta el final del formulario. La fecha/hora del monitoreo (registro
+                     manual, obligatorio entre 2 minutos y 4 horas antes de guardar) va en la
+                     misma línea, a la izquierda, con ancho ajustado a su contenido en vez de
+                     ocupar media fila como antes — usa clases propias (footer-datetime-*) en
+                     vez de .patient-info-grid/.info-item para no afectar esas clases donde se
+                     usan en grande (la sección "Información del Paciente" más arriba). -->
+                <div class="footer-actions-card">
                 <div class="footer-actions">
+                    <div class="footer-datetime-group">
+                        <div class="footer-datetime-item">
+                            <label class="info-label" for="fecha_monitoreo">Fecha del Monitoreo *</label>
+                            <input type="date" id="fecha_monitoreo" name="fecha_monitoreo" class="patient-input"
+                                value="{% if medicion %}{{ medicion.fecha_hora|date:'Y-m-d' }}{% elif ultima_lectura_dinamica and ultima_lectura_dinamica.es_reciente %}{{ ultima_lectura_dinamica.fecha_hora|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}" required>
+                        </div>
+                        <div class="footer-datetime-item">
+                            <label class="info-label" for="hora_monitoreo_horas">Hora del Monitoreo *</label>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <select id="hora_monitoreo_horas" class="patient-input patient-input-compact" style="width:66px;" aria-label="Hora"></select>
+                                <span style="font-weight:700; color:#6c757d;">:</span>
+                                <select id="hora_monitoreo_minutos" class="patient-input patient-input-compact" style="width:66px;" aria-label="Minutos"></select>
+                                <select id="hora_monitoreo_periodo" class="patient-input patient-input-compact" style="width:78px;" aria-label="AM o PM">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="hora_monitoreo" name="hora_monitoreo" required>
+                        </div>
+                    </div>
                     {% if paciente.id %}
                     <a href="{% url 'historial_meows' paciente_id=paciente.id %}{% if atencion_id %}?atencion={{ atencion_id }}{% if documento %}&doc={{ documento|urlencode }}{% endif %}{% elif documento %}?doc={{ documento|urlencode }}{% endif %}" class="btn btn-info" id="btn-ver-historial">
                         <span class="btn-icon">📊</span>
                         Ver Historial Clínico
                     </a>
                     {% endif %}
-                    <button type="button" class="btn btn-secondary" id="btn-limpiar">
-                        <span class="btn-icon">🗑️</span>
-                        Limpiar Formulario
-                    </button>
                     <button type="button" class="btn btn-pdf" id="btn-generar-pdf">
                         <span class="btn-icon">📄</span>
                         Generar PDF
                     </button>
                     <button type="submit" class="btn btn-primary" id="btn-guardar">
                         <span class="btn-icon">💾</span>
-                        Guardar Registro MEOWS
+                        {% if medicion %}Guardar Corrección{% else %}Guardar Registro MEOWS{% endif %}
                     </button>
+                </div>
                 </div>
 
                 <div class="parametros-resumen-layout">
                 <div class="parameters-grid">
                     {% for parametro in parametros %}
-                    <div class="parameter-card" data-param="{{ parametro.codigo }}">
+                    <div class="parameter-card{% if ultima_lectura_dinamica and parametro.codigo in ultima_lectura_dinamica.codigos %} marca-dinamica{% endif %}" data-param="{{ parametro.codigo }}">
+                        {% if ultima_lectura_dinamica and parametro.codigo in ultima_lectura_dinamica.codigos %}
+                        <span class="marca-dinamica-badge" title="Este parámetro viene de la última lectura de Dinámica">🔗</span>
+                        {% endif %}
                         <div class="parameter-header">
                             <label class="parameter-label" for="{{ parametro.codigo }}">
                                 {{ parametro.nombre }}
@@ -385,6 +393,12 @@
         {% if medicion %}
         // Modo edición: preselecciona la hora ya guardada en vez de "ahora" (ver inicializarSelectorHoraMonitoreo en meows-form.js)
         window.MEOWS_HORA_INICIAL = "{{ medicion.fecha_hora|time:'H:i' }}";
+        {% elif ultima_lectura_dinamica and ultima_lectura_dinamica.es_reciente %}
+        // Medición nueva pero con cards precargadas desde Dinámica (reciente, <=6h):
+        // la fecha/hora del monitoreo también se arrastra de esa lectura en vez de
+        // quedar en "ahora" — si no, se guardaría con la hora real de los signos
+        // vitales pero con la hora de guardado, que no es lo mismo.
+        window.MEOWS_HORA_INICIAL = "{{ ultima_lectura_dinamica.fecha_hora|time:'H:i' }}";
         {% endif %}
     </script>
     <script src="{% static 'js/meows-form.js' %}?v=20260811e"></script>

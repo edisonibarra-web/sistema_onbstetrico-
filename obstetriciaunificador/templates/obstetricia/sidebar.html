@@ -7,19 +7,46 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         <i data-lucide="chevron-left" class="nav-icon" id="sidebar-toggle-icon"></i>
     </button>
 
+    <!-- La campana de alertas MEOWS vive ahora en el encabezado (ver
+         obstetricia/header_formatos.html) — este comentario queda como
+         referencia de dónde buscarla. El resto del mecanismo (JS, sonido,
+         panel, toasts) sigue aquí igual que antes. -->
+
     <!-- Alertas MEOWS importadas automáticamente desde Dinámica (ver
-         meows/views.py:api_alertas_pendientes). El audio apunta al archivo
-         que pide meows/static/sounds/README.md; si todavía no existe, cae
-         al beep sintetizado de respaldo (ver meowsAlertasPoll más abajo). -->
-    <!-- preload="none": el archivo todavía no existe (ver README de meows/static/sounds);
-         con "auto" el navegador lo pedía en cada carga de página y ensuciaba la consola
-         con un 404 aunque nunca sonara ninguna alerta. Con "none" solo se pide al llamar
-         a .play(), que ya tiene su propio fallback si falla (ver pitidoRespaldo más abajo). -->
-    <audio id="alertSound" preload="none" src="/static/sounds/alert_soft.mp3"></audio>
+         meows/views.py:api_alertas_pendientes). El audio apunta al tono
+         generado en meows/static/sounds/alert_soft.wav (ver README ahí);
+         si por algún motivo no carga, cae al beep sintetizado de respaldo
+         (ver pitidoRespaldo más abajo). -->
+    <!-- preload="none": solo se pide el archivo al llamar a .play() (cuando
+         llega una alerta real), no en cada carga de página. -->
+    <audio id="alertSound" preload="none" src="/static/sounds/alert_soft.wav"></audio>
+    <!-- Toasts: desde este cambio, SOLO se usan para riesgo ROJO (aviso breve,
+         se autocierra) — todo lo demás (Blanco/Verde/Amarillo) va directo y en
+         silencio al panel de la campana. Ver iniciarSondeoAlertasMeows más abajo. -->
     <div id="meows-alerta-toast-stack" class="meows-alerta-toast-stack" aria-live="polite"></div>
+
+    <!-- Panel de alertas de la campana: lista completa (todo nivel de riesgo),
+         se abre/cierra con el botón de la campana de arriba. -->
+    <div id="meows-panel-alertas" class="meows-panel-alertas" hidden>
+        <div class="meows-panel-alertas-header">
+            <strong>Alertas MEOWS</strong>
+            <button type="button" class="meows-panel-cerrar" onclick="toggleMeowsPanelAlertas(false)" aria-label="Cerrar panel">✕</button>
+        </div>
+        <div class="meows-panel-alertas-lista" id="meows-panel-alertas-lista">
+            <p class="meows-panel-vacio">Sin alertas por ahora.</p>
+        </div>
+    </div>
+
+    <script>
+        // Documento de la paciente que se está viendo en ESTA página (si el include
+        // de este sidebar la pasó) — usado para decidir si una alerta que llega por
+        // el sondeo corresponde a esta misma paciente (ver iniciarSondeoAlertasMeows
+        // más abajo, y window.MEOWS_AUTO_REFRESH_GRID en historial.html).
+        window.MEOWS_PACIENTE_DOC = "{{ documento|default:""|escapejs }}";
+    </script>
     <style>
         .meows-alerta-toast-stack {
-            position: fixed; top: 16px; right: 16px; z-index: 9999;
+            position: fixed; top: 104px; right: 24px; z-index: 9999;
             display: flex; flex-direction: column; gap: 8px; max-width: 360px;
         }
         .meows-alerta-toast {
@@ -43,6 +70,79 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         }
         .meows-alerta-toast .toast-cerrar:hover { color: #fff; }
         @keyframes meows-alerta-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* La campana en sí (botón + badge) ya no vive aquí — se movió al
+           encabezado, ver obstetricia/header_formatos.html, con un diseño
+           acorde a esa barra oscura. Este bloque solo tiene el panel. */
+
+        /* Panel desplegable de alertas — cae justo debajo de la campana, que
+           ahora vive en el encabezado (ver header_formatos.html). */
+        .meows-panel-alertas {
+            position: fixed; top: 104px; right: 24px; z-index: 9999;
+            width: 360px; max-width: calc(100vw - 32px);
+            background: #fff; border-radius: 12px; overflow: hidden;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+            display: flex; flex-direction: column;
+            max-height: min(72vh, 640px);
+        }
+        /* IMPORTANTE: sin esta regla, el display:flex de arriba le gana al
+           [hidden] nativo del navegador (una regla de autor siempre le gana a
+           la hoja de estilos por defecto, sin importar especificidad) — el
+           panel se quedaría visible siempre, sin importar lo que haga el JS
+           con panel.hidden. Este selector es más específico (clase + atributo)
+           que el de arriba, así que sí logra ocultarlo cuando hidden está presente. */
+        .meows-panel-alertas[hidden] {
+            display: none;
+        }
+        .meows-panel-alertas-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 14px; background: #1e293b; color: #fff;
+        }
+        .meows-panel-alertas-header strong { font-size: 0.95rem; }
+        .meows-panel-cerrar {
+            background: transparent; border: none; color: rgba(255,255,255,0.8);
+            font-size: 1rem; cursor: pointer; padding: 2px 6px;
+        }
+        .meows-panel-cerrar:hover { color: #fff; }
+        .meows-panel-alertas-lista { overflow-y: auto; padding: 8px; }
+        .meows-panel-vacio { color: #94a3b8; font-size: 0.85rem; text-align: center; padding: 20px 8px; margin: 0; }
+        .meows-panel-alerta-card {
+            display: block; text-decoration: none; cursor: pointer;
+            border-radius: 10px; padding: 10px 12px; margin-bottom: 6px;
+            font-size: 0.82rem; color: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            transition: filter 0.15s ease, transform 0.1s ease;
+        }
+        .meows-panel-alerta-card:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .meows-panel-alerta-card strong { display: block; font-size: 0.88rem; margin-bottom: 2px; }
+        .meows-panel-alerta-card .toast-ver-detalle { display: inline-block; margin-top: 4px; font-weight: 700; text-decoration: underline; }
+        /* Pintadas por completo (no solo el borde). Rojo/Verde con texto
+           blanco (buen contraste sobre esos tonos oscuros); Blanco y
+           Amarillo con texto oscuro — blanco de verdad (no gris) y amarillo
+           de verdad (no ámbar/tostado), que si no el texto blanco no se leía. */
+        .meows-panel-alerta-card.riesgo-rojo {
+            background: #b91c1c; color: #fff;
+        }
+        .meows-panel-alerta-card.riesgo-rojo .meows-panel-alerta-meta,
+        .meows-panel-alerta-card.riesgo-rojo .toast-ver-detalle { color: rgba(255,255,255,0.85); }
+
+        .meows-panel-alerta-card.riesgo-verde {
+            background: #1e7e34; color: #fff;
+        }
+        .meows-panel-alerta-card.riesgo-verde .meows-panel-alerta-meta,
+        .meows-panel-alerta-card.riesgo-verde .toast-ver-detalle { color: rgba(255,255,255,0.85); }
+
+        .meows-panel-alerta-card.riesgo-amarillo {
+            background: #ffc107; color: #664d03; border: 1px solid #e6ac00;
+        }
+        .meows-panel-alerta-card.riesgo-amarillo .meows-panel-alerta-meta,
+        .meows-panel-alerta-card.riesgo-amarillo .toast-ver-detalle { color: #7a5c00; }
+
+        .meows-panel-alerta-card.riesgo-blanco {
+            background: #ffffff; color: #343a40; border: 1px solid #dee2e6;
+        }
+        .meows-panel-alerta-card.riesgo-blanco .meows-panel-alerta-meta,
+        .meows-panel-alerta-card.riesgo-blanco .toast-ver-detalle { color: #6c757d; }
     </style>
 
     <!-- Navegación de Módulos -->
@@ -86,8 +186,8 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                 <a href="/meows/crear/{{ documento|urlencode }}/?atencion={{ atencion_id }}" class="tabs-link {% if current_module == 'meows' %}active{% endif %}" title="MEOWS">
                     <span class="tab-icon-badge badge-meows"><i data-lucide="activity" class="nav-icon"></i></span> <span class="tabs-link-text">MEOWS</span>
                 </a>
-                <a href="/fetal/?doc={{ documento|urlencode }}&atencion={{ atencion_id }}" class="tabs-link {% if current_module == 'fetal' %}active{% endif %}" title="Frecuencia Fetal">
-                    <span class="tab-icon-badge badge-fetal"><i data-lucide="heart-pulse" class="nav-icon"></i></span> <span class="tabs-link-text">Frecuencia Fetal</span>
+                <a href="/fetal/?doc={{ documento|urlencode }}&atencion={{ atencion_id }}" class="tabs-link {% if current_module == 'fetal' %}active{% endif %}" title="Control Posparto Inmediato">
+                    <span class="tab-icon-badge badge-fetal"><i data-lucide="heart-pulse" class="nav-icon"></i></span> <span class="tabs-link-text">Control Posparto Inmediato</span>
                 </a>
                 <a href="/parto/?doc={{ documento|urlencode }}&atencion={{ atencion_id }}" class="tabs-link {% if current_module == 'parto' %}active{% endif %}" title="Trabajo de Parto">
                     <span class="tab-icon-badge badge-parto"><i data-lucide="clipboard-list" class="nav-icon"></i></span> <span class="tabs-link-text">Trabajo de Parto</span>
@@ -275,18 +375,129 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         var INTERVALO_MS = 5000;
 
         // El servidor ya no "consume" la alerta al primero que pregunta — devuelve
-        // todo lo disparado en los últimos minutos a CUALQUIER pantalla que sondee
-        // (ver VENTANA_ALERTA_MINUTOS en meows/views.py). Por eso el deduplicado
-        // (no repetir el mismo sonido/toast una y otra vez en esta pantalla) se
-        // hace aquí, recordando qué medicion_id ya se mostraron en esta pestaña.
-        var idsYaMostrados = new Set();
+        // todo lo disparado en las últimas VENTANA_ALERTA_MINUTOS (24h) a
+        // CUALQUIER pantalla que sondee. Por eso el deduplicado (no repetir el
+        // mismo sonido/toast una y otra vez) se hace aquí, recordando qué
+        // medicion_id ya se mostraron.
+        //
+        // Se guarda en sessionStorage (no solo en memoria) porque esta misma
+        // página puede recargarse SOLA (ver window.MEOWS_AUTO_REFRESH_GRID más
+        // abajo, para que la Línea de Tiempo muestre la columna nueva) — con
+        // solo un Set en memoria, cada recarga lo vaciaba a cero, así que las
+        // mismas alertas (dentro de la ventana de 24h) volvían a contarse como
+        // "nuevas" en el siguiente sondeo → sonaban otra vez → si eran de la
+        // paciente en pantalla, disparaban OTRA recarga → bucle. Con
+        // sessionStorage la memoria sobrevive a la recarga (se pierde solo si
+        // se cierra la pestaña), así que cada alerta suena una sola vez de
+        // verdad por sesión, sin importar cuántas veces se recargue la página.
+        var CLAVE_IDS_MOSTRADOS = 'meows_ids_ya_mostrados';
+        function cargarIdsYaMostrados() {
+            try {
+                var guardado = sessionStorage.getItem(CLAVE_IDS_MOSTRADOS);
+                return guardado ? new Set(JSON.parse(guardado)) : new Set();
+            } catch (e) {
+                return new Set();
+            }
+        }
+        function guardarIdsYaMostrados() {
+            try {
+                sessionStorage.setItem(CLAVE_IDS_MOSTRADOS, JSON.stringify(Array.from(idsYaMostrados)));
+            } catch (e) { /* sessionStorage no disponible: se sigue funcionando solo en memoria */ }
+        }
+        var idsYaMostrados = cargarIdsYaMostrados();
+
+        // Lista completa de alertas para el panel de la campana (todo nivel de
+        // riesgo, no solo ROJO). Vive en memoria de esta pestaña — se reconstruye
+        // vacía si se recarga la página; los datos en sí siguen viniendo del
+        // servidor en cada sondeo, esto solo es el "ya las vi" de esta pestaña.
+        var alertasPanel = [];
+        var noLeidas = 0;
+        var MAX_ALERTAS_PANEL = 150;
+
+        function actualizarCampana() {
+            var btn = document.getElementById('meows-campana-btn');
+            var badge = document.getElementById('meows-campana-badge');
+            if (!btn || !badge) return;
+            if (noLeidas > 0) {
+                btn.classList.add('tiene-pendientes');
+                badge.hidden = false;
+                badge.textContent = noLeidas > 99 ? '99+' : String(noLeidas);
+            } else {
+                btn.classList.remove('tiene-pendientes');
+                badge.hidden = true;
+            }
+        }
+
+        function renderizarPanelAlertas() {
+            var lista = document.getElementById('meows-panel-alertas-lista');
+            if (!lista) return;
+            if (alertasPanel.length === 0) {
+                lista.innerHTML = '<p class="meows-panel-vacio">Sin alertas por ahora.</p>';
+                return;
+            }
+            lista.innerHTML = '';
+            alertasPanel.forEach(function (alerta) {
+                var a = document.createElement('a');
+                a.href = alerta.url || '#';
+                a.className = 'meows-panel-alerta-card riesgo-' + String(alerta.riesgo || '').toLowerCase();
+                a.innerHTML =
+                    '<strong>⚠ MEOWS ' + (alerta.riesgo || '') + ' — ' + (alerta.paciente || alerta.numero_documento || '') + '</strong>' +
+                    '<span class="meows-panel-alerta-meta">Importado de Dinámica · ' + (alerta.fecha_hora || '') + '</span>' +
+                    '<span class="toast-ver-detalle">Ver detalle →</span>';
+                lista.appendChild(a);
+            });
+        }
+
+        function agregarAlPanel(alerta) {
+            alertasPanel.push(alerta);
+            // Orden estricto por la hora REAL de la medición (fecha_hora_iso),
+            // no por el orden de llegada al servidor — con el retraso de
+            // replicación de Nexus, una sola tanda puede traer lecturas de
+            // varias horas del día mezcladas, y cada tanda nueva no
+            // necesariamente llega en orden respecto a la anterior.
+            alertasPanel.sort(function (a, b) {
+                return new Date(b.fecha_hora_iso) - new Date(a.fecha_hora_iso);
+            });
+            if (alertasPanel.length > MAX_ALERTAS_PANEL) {
+                alertasPanel.length = MAX_ALERTAS_PANEL; // ya ordenado desc: conserva las más recientes
+            }
+            noLeidas += 1;
+            actualizarCampana();
+            // Si el panel ya está abierto, refleja la alerta nueva de inmediato.
+            var panel = document.getElementById('meows-panel-alertas');
+            if (panel && !panel.hidden) renderizarPanelAlertas();
+        }
+
+        // Expuesta en window: la llama el botón de la campana (onclick en el HTML)
+        // y también historial.html/otras vistas si algún día necesitan cerrarlo
+        // programáticamente. Sin argumento: alterna. true/false: fuerza el estado.
+        window.toggleMeowsPanelAlertas = function (forzarAbierto) {
+            var panel = document.getElementById('meows-panel-alertas');
+            if (!panel) return;
+            var abrir = typeof forzarAbierto === 'boolean' ? forzarAbierto : panel.hidden;
+            panel.hidden = !abrir;
+            if (abrir) {
+                renderizarPanelAlertas();
+                noLeidas = 0;
+                actualizarCampana();
+            }
+        };
+
+        // Clic fuera del panel (y fuera del botón de la campana) lo cierra solo.
+        document.addEventListener('click', function (ev) {
+            var panel = document.getElementById('meows-panel-alertas');
+            var boton = document.getElementById('meows-campana-btn');
+            if (!panel || panel.hidden) return;
+            if (panel.contains(ev.target) || (boton && boton.contains(ev.target))) return;
+            window.toggleMeowsPanelAlertas(false);
+        });
 
         function pitidoRespaldo() {
-            // Se usa solo si el archivo alert_soft.mp3 (ver meows/static/sounds/README.md)
-            // todavía no existe o el navegador no puede reproducirlo — hoy es lo que
-            // realmente suena, porque ese archivo no se ha agregado. Más fuerte (ganancia
-            // 0.5 en vez de 0.15) y prolongado (3 pitidos, no uno solo) a propósito, para
-            // que sea difícil de ignorar en un pasillo con ruido.
+            // Respaldo por si alert_soft.wav no carga o el navegador bloquea su
+            // reproducción (ej. autoplay restringido sin interacción previa del
+            // usuario). Más fuerte (ganancia 0.5 en vez de 0.15) y prolongado (3
+            // pitidos, no uno solo) a propósito, para que sea difícil de ignorar
+            // en un pasillo con ruido.
             try {
                 var ctx = new (window.AudioContext || window.webkitAudioContext)();
                 var duracionPulso = 0.5;
@@ -321,6 +532,9 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         }
 
         function mostrarToast(alerta) {
+            // Desde este cambio: SOLO para ROJO (ver sondear() más abajo). Todo lo
+            // demás va directo y en silencio al panel de la campana — evita que una
+            // tanda grande (ej. 49 alertas de golpe) tape la pantalla de toasts.
             var stack = document.getElementById('meows-alerta-toast-stack');
             if (!stack) return;
             var div = document.createElement('div');
@@ -348,9 +562,13 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                 window.location.href = alerta.url;
             });
             stack.appendChild(div);
-            // Ya no se autoelimina a los 30s: se queda hasta que alguien la cierre o
-            // haga click para ver el detalle — así no se pierde el acceso si nadie
-            // estaba mirando la pantalla justo cuando apareció.
+            // A diferencia de antes, SÍ se autocierra (riesgo crítico ya queda
+            // registrado en el panel de la campana de todos modos — esto es solo
+            // el aviso inmediato para que nadie lo pase por alto sin mirar la
+            // campana en ese momento).
+            setTimeout(function () {
+                if (div.parentNode) div.parentNode.removeChild(div);
+            }, 15000);
         }
 
         function sondear() {
@@ -371,14 +589,37 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                     if (nuevas.length === 0) return;
                     nuevas.forEach(function (alerta) {
                         idsYaMostrados.add(alerta.medicion_id);
-                        mostrarToast(alerta);
+                        // Todo nivel de riesgo entra al panel de la campana (silencioso).
+                        agregarAlPanel(alerta);
+                        // Solo ROJO además se muestra como aviso emergente inmediato.
+                        if (String(alerta.riesgo || '').toUpperCase() === 'ROJO') {
+                            mostrarToast(alerta);
+                        }
                     });
+                    guardarIdsYaMostrados();
                     sonarAlerta();
-                    // Evita que el Set crezca sin límite en sesiones muy largas.
+                    // La Línea de Tiempo Clínica (historial.html) es HTML estático desde
+                    // que se cargó la página — este sondeo la avisa por el toast, pero la
+                    // tabla en sí no se actualiza sola. Si la alerta es de la MISMA paciente
+                    // que se está viendo aquí, se recarga sola para que la nueva columna
+                    // aparezca sin que alguien tenga que acordarse de darle F5. Gateado a
+                    // window.MEOWS_AUTO_REFRESH_GRID (solo lo declara historial.html) para
+                    // NUNCA hacerlo en el formulario y arriesgar perder algo sin guardar.
+                    if (window.MEOWS_AUTO_REFRESH_GRID && window.MEOWS_PACIENTE_DOC) {
+                        var esDeEstaPaciente = nuevas.some(function (alerta) {
+                            return alerta.numero_documento === window.MEOWS_PACIENTE_DOC;
+                        });
+                        if (esDeEstaPaciente) {
+                            setTimeout(function () { location.reload(); }, 2500);
+                        }
+                    }
+                    // Evita que el Set (y lo guardado en sessionStorage) crezca sin
+                    // límite en sesiones muy largas.
                     if (idsYaMostrados.size > 300) {
                         Array.from(idsYaMostrados).slice(0, 150).forEach(function (id) {
                             idsYaMostrados.delete(id);
                         });
+                        guardarIdsYaMostrados();
                     }
                 })
                 .catch(function () { /* red caída o sesión expirada: se reintenta en el próximo ciclo */ });

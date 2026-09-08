@@ -756,22 +756,24 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    margin-left: auto;
+    /* Ya no vive en la leyenda (donde margin-left:auto la empujaba al borde
+       derecho) — ahora está junto a "Regresar a Trabajo de Parto" en el
+       encabezado, en el orden natural del flujo. */
     padding: 8px 16px;
     border-radius: 999px;
-    background: #64748b;
-    color: #fff;
+    background: #ffffff;
+    color: #212529;
     font-weight: 700;
     font-size: 0.85rem;
-    border: 1px solid #64748b;
+    border: 1px solid #cbd5e1;
     cursor: pointer;
-    box-shadow: 0 3px 8px rgba(100, 116, 139, 0.3);
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.12);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-meows-referencia:hover {
     transform: translateY(-1px);
-    box-shadow: 0 5px 12px rgba(100, 116, 139, 0.4);
+    box-shadow: 0 5px 12px rgba(15, 23, 42, 0.2);
 }
 
 .meows-referencia-overlay {
@@ -1088,8 +1090,9 @@
     font-size: 0.56rem;
     font-weight: 700;
     letter-spacing: 0.02em;
-    background: #7c3aed;
-    color: #ffffff;
+    background: #ffffff;
+    color: #343a40;
+    border: 1px solid #dee2e6;
     border-radius: 999px;
     padding: 1px 6px;
 }

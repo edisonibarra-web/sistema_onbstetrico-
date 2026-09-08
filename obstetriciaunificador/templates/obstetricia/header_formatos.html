@@ -123,6 +123,47 @@
     }
     .header-formatos-institucional-texto { display: none; }
 }
+
+/* Campana de alertas MEOWS — llamativa a propósito (color sólido, no vidrio
+   esmerilado) para que se distinga de un vistazo sobre el encabezado oscuro
+   institucional. Usa el mismo cian de acento que ya trae este encabezado
+   (ver el borde degradado de .header-formatos-institucionales arriba) para
+   que combine y no se vea un color inventado aparte.
+   Ver meows/views.py:api_alertas_pendientes para el origen de los datos; el
+   JS que la controla vive en obstetricia/sidebar.html, incluido siempre
+   junto a este encabezado. */
+.meows-campana-btn {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    width: 58px; height: 58px; flex-shrink: 0;
+    border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.meows-campana-btn svg { width: 28px; height: 28px; }
+.meows-campana-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(14, 165, 233, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.meows-campana-btn.tiene-pendientes {
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    animation: meows-campana-pulso 1.6s ease-in-out infinite;
+}
+@keyframes meows-campana-pulso {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55), 0 4px 14px rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0), 0 4px 14px rgba(239, 68, 68, 0.4); }
+}
+.meows-campana-badge {
+    position: absolute; top: -4px; right: -4px;
+    background: #fff; color: #b91c1c; border: 3px solid #0f1f38;
+    border-radius: 999px; min-width: 24px; height: 24px; padding: 0 5px;
+    font-size: 0.78rem; font-weight: 800; line-height: 18px; text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
 </style>
 {% comment %}Encabezado institucional unificado para formatos{% endcomment %}
 <header class="header-formatos-institucionales">
@@ -143,6 +184,15 @@
         <img src="{% static 'img/logo_acreditacion.png' %}" alt="Logo Acreditación">
     </div>
     <div class="header-formatos-logo-right">
+        <!-- Campana de alertas MEOWS: verde/neutra sin pendientes, roja con
+             pulso y contador cuando llegan alertas nuevas (todo nivel de
+             riesgo). Clic abre el panel con la lista completa — ver el JS en
+             obstetricia/sidebar.html (toggleMeowsPanelAlertas), incluido
+             siempre junto a este encabezado en todas las pantallas. -->
+        <button type="button" class="meows-campana-btn" id="meows-campana-btn" title="Alertas MEOWS" onclick="toggleMeowsPanelAlertas()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
+            <span class="meows-campana-badge" id="meows-campana-badge" hidden>0</span>
+        </button>
         {% if not ocultar_btn_regresar %}
         <a href="/atencion/sala-de-partos/{% if documento %}?num_identificacion={{ documento|urlencode }}{% elif atencion and atencion.paciente %}?num_identificacion={{ atencion.paciente|urlencode }}{% endif %}" class="btn-back-modules" title="Volver a los Módulos">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-grid"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>

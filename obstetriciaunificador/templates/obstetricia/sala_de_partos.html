@@ -304,10 +304,10 @@
         .modules-grid {
             display: none; /* Se muestra al encontrar paciente */
             grid-template-columns: repeat(3, 1fr);
-            gap: 18px;
+            gap: 32px;
             width: 100%;
             max-width: 100%;
-            margin-top: 30px;
+            margin-top: 48px;
         }
         .module-card {
             background: linear-gradient(145deg, #ffffff 0%, #f8fbff 65%, #f1f5ff 100%);
@@ -325,16 +325,31 @@
             position: relative;
             overflow: hidden;
         }
+        /* Marca de agua decorativa: antes un círculo genérico translúcido igual en
+           las tres cards. Ahora cada módulo tiene su propio ícono (el mismo que ya
+           usa su .card-icon: activity/baby/clipboard-list) como watermark grande y
+           translúcido, para que se distingan entre sí en vez de repetir la misma
+           figura. */
         .module-card::before {
             content: "";
             position: absolute;
-            top: -40px;
-            right: -30px;
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.45);
+            top: -18px;
+            right: -18px;
+            width: 140px;
+            height: 140px;
+            background-repeat: no-repeat;
+            background-size: contain;
+            opacity: 0.55;
             pointer-events: none;
+        }
+        .card-meows::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2'/%3E%3C/svg%3E");
+        }
+        .card-fetal::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5'/%3E%3Cpath d='M15 12h.01'/%3E%3Cpath d='M19.38 6.813A9 9 0 0 1 20.8 10.2a2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1'/%3E%3Cpath d='M9 12h.01'/%3E%3C/svg%3E");
+        }
+        .card-parto::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='8' height='4' x='8' y='2' rx='1' ry='1'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/%3E%3Cpath d='M12 11h4'/%3E%3Cpath d='M12 16h4'/%3E%3Cpath d='M8 11h.01'/%3E%3Cpath d='M8 16h.01'/%3E%3C/svg%3E");
         }
         .module-card:hover {
             transform: translateY(-6px);
@@ -354,31 +369,31 @@
         .module-card p { margin: 0; font-size: 14px; color: #64748b; line-height: 1.4; }
 
         .card-meows {
-            color: #6d28d9;
-            border-top: 6px solid #7c3aed;
-            background: linear-gradient(145deg, #f5f3ff 0%, #ede9fe 100%);
+            color: #5b21b6;
+            border-top: 6px solid #6d28d9;
+            background: linear-gradient(145deg, #ede9fe 0%, #c4b5fd 100%);
         }
         .card-meows .card-icon {
-            background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
-            box-shadow: 0 8px 18px rgba(124, 58, 237, 0.24);
+            background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%);
+            box-shadow: 0 8px 18px rgba(109, 40, 217, 0.32);
         }
         .card-fetal {
-            color: #0f766e;
-            border-top: 6px solid #2dd4bf;
-            background: linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%);
+            color: #115e59;
+            border-top: 6px solid #0d9488;
+            background: linear-gradient(145deg, #ccfbf1 0%, #5eead4 100%);
         }
         .card-fetal .card-icon {
-            background: linear-gradient(135deg, #99f6e4 0%, #5eead4 100%);
-            box-shadow: 0 8px 18px rgba(13, 148, 136, 0.24);
+            background: linear-gradient(135deg, #5eead4 0%, #2dd4bf 100%);
+            box-shadow: 0 8px 18px rgba(13, 148, 136, 0.32);
         }
         .card-parto {
-            color: #9d174d;
-            border-top: 6px solid #f472b6;
-            background: linear-gradient(145deg, #fdf2f8 0%, #fce7f3 100%);
+            color: #0e7490;
+            border-top: 6px solid #0891b2;
+            background: linear-gradient(145deg, #cffafe 0%, #67e8f9 100%);
         }
         .card-parto .card-icon {
-            background: linear-gradient(135deg, #fbcfe8 0%, #f9a8d4 100%);
-            box-shadow: 0 8px 18px rgba(219, 39, 119, 0.24);
+            background: linear-gradient(135deg, #67e8f9 0%, #22d3ee 100%);
+            box-shadow: 0 8px 18px rgba(8, 145, 178, 0.32);
         }
 
         /* Compact Clinical Card (Colorful & Organized) */
@@ -551,8 +566,8 @@
         .status-estable { background: #15803d; }
 
         .btn-change-patient {
-            background: rgba(255, 255, 255, 0.16);
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            border: 1px solid #a78bfa;
             color: #ffffff;
             padding: 7px 12px;
             border-radius: 10px;
@@ -562,11 +577,13 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            box-shadow: 0 4px 10px rgba(124, 58, 237, 0.4);
             transition: all 0.2s;
         }
         .btn-change-patient:hover {
-            background: rgba(255, 255, 255, 0.26);
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
             transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(124, 58, 237, 0.5);
         }
 
         .clinico-stats-row {
@@ -615,9 +632,9 @@
             box-shadow: inset 0 0 0 1px rgba(255,255,255,0.42);
         }
         .stat-parto {
-            background: linear-gradient(135deg, #fce7f3 0%, #f9a8d4 100%);
-            color: #9d174d;
-            border: 1px solid #f472b6;
+            background: linear-gradient(135deg, #cffafe 0%, #67e8f9 100%);
+            color: #0e7490;
+            border: 1px solid #22d3ee;
             box-shadow: inset 0 0 0 1px rgba(255,255,255,0.42);
         }
 
@@ -626,6 +643,7 @@
             display: none;
             width: 100%;
             max-width: 100%;
+            margin-top: 48px;
             background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 55%, #ecfeff 100%);
             border: 1px solid #99f6e4;
             border-radius: 16px;
@@ -656,8 +674,8 @@
             font-size: 0.92rem;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            background: linear-gradient(120deg, #0e7490 0%, #0891b2 60%, #06b6d4 100%);
-            box-shadow: 0 4px 12px rgba(8, 145, 178, 0.25);
+            background: linear-gradient(135deg, #111827 0%, #374151 45%, #4b5563 75%, #6b7280 100%);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
         }
         .patient-info-grid {
             display: grid;
@@ -884,6 +902,77 @@
         .timeline-mini-chart-card canvas {
             width: 100% !important;
             height: 80px !important;
+        }
+        /* Mini-gráficas de signos vitales dentro del grupo MEOWS de la Línea de
+           Tiempo Clínica (presión, FC, FR, temperatura, SpO2, FCF): ocultas a
+           pedido — la gráfica grande de Puntaje Total MEOWS ya está arriba. */
+        #meows-vitales-grid {
+            display: none;
+        }
+        /* Botón "Visualizar gráfica de trazabilidad" dentro de la tarjeta de la
+           gráfica MEOWS, y el visor ampliado que abre (misma gráfica, más grande
+           y fácil de leer con muchas mediciones). */
+        .timeline-group-chart-wrap {
+            position: relative;
+        }
+        .btn-ver-trazabilidad {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            padding: 7px 14px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: #fff;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(124, 58, 237, 0.35);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .btn-ver-trazabilidad:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(124, 58, 237, 0.45);
+        }
+        .btn-ver-trazabilidad i {
+            width: 15px;
+            height: 15px;
+        }
+        .chart-lightbox {
+            display: none;
+            position: fixed; inset: 0; z-index: 5000;
+            background: rgba(15, 23, 42, 0.86);
+            align-items: center; justify-content: center;
+            padding: 30px 20px;
+        }
+        .chart-lightbox.open { display: flex; }
+        .chart-lightbox-card {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 22px 30px 30px;
+            width: min(1500px, 97vw);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .chart-lightbox-title {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 15px; font-weight: 800;
+            color: #6d28d9;
+            margin: 0 0 16px;
+        }
+        .chart-lightbox-canvas-wrap {
+            height: min(78vh, 620px);
+        }
+        .chart-lightbox-close {
+            position: absolute; top: 14px; right: 16px;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: #f3f4f6; border: 1px solid #e5e7eb;
+            color: #374151; display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .chart-lightbox-close:hover {
+            background: #e5e7eb;
         }
         .timeline-group-chart-pendiente {
             margin-top: 12px;
@@ -1157,6 +1246,21 @@
 
     <div style="display:none">{% csrf_token %}</div>
 
+    <!-- Visor ampliado de la gráfica de trazabilidad MEOWS: la tarjeta normal
+         es pequeña y con muchas mediciones cuesta leer el detalle; este modal
+         redibuja la misma gráfica a tamaño grande. -->
+    <div class="chart-lightbox" id="meows-chart-lightbox" onclick="cerrarGraficaMeowsGrande()">
+        <div class="chart-lightbox-card" onclick="event.stopPropagation()">
+            <button type="button" class="chart-lightbox-close" onclick="cerrarGraficaMeowsGrande()" title="Cerrar">
+                <i data-lucide="x" size="20"></i>
+            </button>
+            <h4 class="chart-lightbox-title"><i data-lucide="activity"></i> Trazabilidad del Puntaje MEOWS</h4>
+            <div class="chart-lightbox-canvas-wrap">
+                <canvas id="chart-meows-grande"></canvas>
+            </div>
+        </div>
+    </div>
+
     <script>
         lucide.createIcons();
 
@@ -1167,6 +1271,11 @@
         let chartsMeowsVitales = [];
         let chartPartoResumen = null;
         let chartsParto = [];
+        // Última trazabilidad MEOWS recibida: se reutiliza para redibujar la
+        // misma gráfica, más grande, en el visor ampliado (botón "Visualizar
+        // gráfica de trazabilidad").
+        let ultimaTrazaMeows = null;
+        let chartMeowsGrande = null;
 
         // Dibuja un grid de mini-gráficas de línea, una por parámetro, cada una
         // con su propia escala Y (evita aplastar valores pequeños al lado de
@@ -1235,16 +1344,24 @@
             return nuevosCharts;
         }
 
-        function renderGraficaMeows(traza) {
-            const canvas = document.getElementById('chart-meows');
-            if (!canvas) return;
-            if (chartMeows) { chartMeows.destroy(); chartMeows = null; }
+        // Mismos umbrales de meows/services/meows.py (clasificar_riesgo): con
+        // esto el eje Y del puntaje total queda pintado con el color de alerta
+        // que le corresponde a cada valor, para que de un vistazo se sepa que
+        // 0=BLANCO, 1-3=VERDE, 4-5=AMARILLO, 6+=ROJO (igual que los puntos de
+        // la gráfica, ya coloreados según el riesgo real de cada medición).
+        function colorPorPuntajeMeowsTotal(valor) {
+            if (valor >= 6) return '#ef4444';   // ROJO
+            if (valor >= 4) return '#eab308';   // AMARILLO
+            if (valor >= 1) return '#22c55e';   // VERDE
+            return '#3b82f6';                   // BLANCO
+        }
 
-            chartsMeowsVitales = renderMiniChartsGrid('meows-vitales-grid', chartsMeowsVitales, traza && traza.vitales);
-
-            if (!traza || !traza.labels || traza.labels.length === 0) return;
-
-            chartMeows = new Chart(canvas, {
+        // Config del Chart.js de trazabilidad MEOWS, compartida entre la
+        // tarjeta pequeña de la Línea de Tiempo y el visor ampliado (`grande`
+        // sube fuentes/puntos/grosor para que se lea bien a tamaño grande).
+        function construirConfigChartMeows(traza, grande) {
+            const tamFuente = grande ? 13 : 9;
+            return {
                 type: 'line',
                 data: {
                     labels: traza.labels,
@@ -1255,9 +1372,9 @@
                         backgroundColor: 'rgba(124, 58, 237, 0.12)',
                         pointBackgroundColor: traza.colores,
                         pointBorderColor: '#ffffff',
-                        pointRadius: 5,
-                        pointHoverRadius: 6,
-                        borderWidth: 2,
+                        pointRadius: grande ? 6 : 5,
+                        pointHoverRadius: grande ? 8 : 6,
+                        borderWidth: grande ? 3 : 2,
                         tension: 0.3,
                         fill: true,
                     }]
@@ -1274,12 +1391,55 @@
                         }
                     },
                     scales: {
-                        x: { ticks: { font: { size: 9 } }, grid: { display: false } },
-                        y: { beginAtZero: true, ticks: { font: { size: 9 }, precision: 0 } }
+                        x: { ticks: { font: { size: tamFuente } }, grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: { size: tamFuente, weight: grande ? '700' : '400' },
+                                precision: 0,
+                                color: (ctx) => colorPorPuntajeMeowsTotal(ctx.tick.value)
+                            }
+                        }
                     }
                 }
-            });
+            };
         }
+
+        function renderGraficaMeows(traza) {
+            ultimaTrazaMeows = traza;
+            const canvas = document.getElementById('chart-meows');
+            if (!canvas) return;
+            if (chartMeows) { chartMeows.destroy(); chartMeows = null; }
+
+            chartsMeowsVitales = renderMiniChartsGrid('meows-vitales-grid', chartsMeowsVitales, traza && traza.vitales);
+
+            const btnVerTrazabilidad = canvas.closest('.timeline-group-chart-wrap')?.querySelector('.btn-ver-trazabilidad');
+
+            if (!traza || !traza.labels || traza.labels.length === 0) {
+                if (btnVerTrazabilidad) btnVerTrazabilidad.style.display = 'none';
+                return;
+            }
+            if (btnVerTrazabilidad) btnVerTrazabilidad.style.display = '';
+
+            chartMeows = new Chart(canvas, construirConfigChartMeows(traza, false));
+        }
+
+        function abrirGraficaMeowsGrande() {
+            if (!ultimaTrazaMeows || !ultimaTrazaMeows.labels || ultimaTrazaMeows.labels.length === 0) return;
+            const canvas = document.getElementById('chart-meows-grande');
+            if (chartMeowsGrande) { chartMeowsGrande.destroy(); chartMeowsGrande = null; }
+            chartMeowsGrande = new Chart(canvas, construirConfigChartMeows(ultimaTrazaMeows, true));
+            document.getElementById('meows-chart-lightbox').classList.add('open');
+        }
+
+        function cerrarGraficaMeowsGrande() {
+            document.getElementById('meows-chart-lightbox').classList.remove('open');
+            if (chartMeowsGrande) { chartMeowsGrande.destroy(); chartMeowsGrande = null; }
+        }
+
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Escape') cerrarGraficaMeowsGrande();
+        });
 
         // Parámetro usado como "resumen" grande de Parto, igual que MEOWS
         // destaca su puntaje total: Dilatación cervical es la métrica clásica
@@ -1540,6 +1700,12 @@
                         const canvas = document.createElement('canvas');
                         canvas.id = 'chart-meows';
                         chartWrap.appendChild(canvas);
+                        const btnVerTrazabilidad = document.createElement('button');
+                        btnVerTrazabilidad.type = 'button';
+                        btnVerTrazabilidad.className = 'btn-ver-trazabilidad';
+                        btnVerTrazabilidad.innerHTML = '<i data-lucide="maximize-2"></i> Visualizar gráfica de trazabilidad';
+                        btnVerTrazabilidad.onclick = abrirGraficaMeowsGrande;
+                        chartWrap.appendChild(btnVerTrazabilidad);
                         groupWrap.appendChild(chartWrap);
 
                         const vitalesGrid = document.createElement('div');

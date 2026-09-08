@@ -203,7 +203,8 @@
     }
 
     .doc-section-title {
-      background: var(--pcard-gradient);
+      /* Sólido, no degradado — mismo criterio que .pcard-section arriba. */
+      background: var(--pcard-accent-600);
       color: var(--pcard-text-dark);
       font-weight: 700;
       font-size: 0.82rem;
@@ -1819,9 +1820,9 @@
     .sangrado-panal-rows {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      margin-bottom: 10px;
-      max-height: 340px;
+      gap: 12px;
+      margin-bottom: 14px;
+      max-height: 420px;
       overflow-y: auto;
       padding-right: 4px;
     }
@@ -1829,12 +1830,12 @@
     .sangrado-panal-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       flex-wrap: wrap;
       background: #f8fafc;
       border: 1.5px solid var(--border-color);
-      border-radius: 10px;
-      padding: 7px 9px;
+      border-radius: 12px;
+      padding: 11px 14px;
       transition: border-color 0.15s ease, background 0.15s ease;
     }
 
@@ -1844,17 +1845,17 @@
     }
 
     .sangrado-panal-peso {
-      width: 82px;
-      padding: 5px 8px;
-      font-size: 0.78rem;
+      width: 110px;
+      padding: 9px 12px;
+      font-size: 0.95rem;
       font-weight: 700;
     }
 
     .sangrado-panal-nuevo-label {
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 0.66rem;
+      gap: 6px;
+      font-size: 0.8rem;
       font-weight: 600;
       color: #64748b;
       cursor: pointer;
@@ -1863,24 +1864,24 @@
 
     .sangrado-panal-nuevo-label input {
       accent-color: var(--accent);
-      width: 13px;
-      height: 13px;
+      width: 17px;
+      height: 17px;
     }
 
     .sangrado-panal-cc {
       font-weight: 800;
-      font-size: 0.75rem;
+      font-size: 0.9rem;
       color: var(--accent-dark);
       background: var(--accent-bg);
       border-radius: 20px;
-      padding: 2px 9px;
+      padding: 4px 13px;
       margin-left: auto;
       white-space: nowrap;
     }
 
     .sangrado-panal-row .btn-remove-row {
-      font-size: 1rem;
-      padding: 0 2px;
+      font-size: 1.25rem;
+      padding: 0 4px;
       line-height: 1;
     }
 
@@ -1892,10 +1893,10 @@
       background: #fff;
       border: 1.5px dashed rgba(14, 116, 144, 0.45);
       color: #0c6b7d;
-      padding: 7px 10px;
+      padding: 10px 14px;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 0.72rem;
+      font-size: 0.85rem;
       font-weight: 700;
       margin-bottom: 10px;
       transition: all 0.15s ease;
@@ -2255,7 +2256,11 @@
       padding: 18px 20px;
       margin: 0 0 22px;
       border: 1px solid var(--pcard-text-dark);
-      background: var(--pcard-gradient);
+      /* Sólido, no degradado — se pidió mantener el mismo verde (el tono
+         medio del degradado que tenía antes), solo que parejo. El degradado
+         (--pcard-gradient) se deja intacto para .btn-primary/.site-footer,
+         que no se tocaron. */
+      background: var(--pcard-accent-600);
       box-shadow: 0 14px 32px rgba(5, 150, 105, 0.28);
     }
     .pcard-title {
@@ -3065,7 +3070,7 @@
             </div>
 
             <div id="sangrado-panal-modal-overlay" class="preview-modal-overlay" onclick="if(event.target===this) cerrarPanalPesajesModal()">
-              <div class="preview-modal" style="max-width:480px;--accent:#db2777;--accent-bg:#fdf2f8;--accent-dark:#9d174d;--accent-shadow:rgba(219, 39, 119, 0.18);">
+              <div class="preview-modal sangrado-modal" style="max-width:680px;--accent:#059669;--accent-bg:#ecfdf5;--accent-dark:#065f46;--accent-shadow:rgba(5, 150, 105, 0.18);">
                 <div class="preview-modal-header">
                   <span>👶 Pesajes de pañal <span style="opacity:.75;font-weight:600;font-size:.85em;">— PESO BASAL: 115 gr</span></span>
                   <span class="preview-modal-close" onclick="cerrarPanalPesajesModal()" title="Cerrar">&times;</span>
@@ -3075,7 +3080,7 @@
                   <button type="button" class="btn-panal-add" onclick="agregarPesajePanal()">➕ Agregar pesaje</button>
                 </div>
                 <div class="preview-modal-footer" style="justify-content: space-between;">
-                  <span style="font-weight:800;color:var(--text-primary);">Total pañal: <span id="sangrado-panal-modal-total" style="color:#9d174d;">0 cc</span></span>
+                  <span style="font-weight:800;color:var(--text-primary);">Total pañal: <span id="sangrado-panal-modal-total" style="color:#065f46;">0 cc</span></span>
                   <button type="button" class="btn btn-secondary btn-sm" onclick="cerrarPanalPesajesModal()">Cerrar</button>
                 </div>
               </div>

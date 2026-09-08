@@ -14,9 +14,21 @@
            el padding por defecto del body (definido en meows-form.css para páginas simples) deja
            un espacio muerto en blanco alrededor del encabezado y el sidebar. Se anula aquí. */
         body { margin: 0 !important; padding: 0 !important; }
+        /* .sidebar-main-content (obstetriciaunificador/css/sidebar.css) trae
+           margin-top:0 — el contenido queda pegado justo debajo del encabezado
+           oscuro. Solo se ajusta aquí (no en ese CSS compartido) para no mover
+           el resto de pantallas que usan el mismo shell. */
+        .sidebar-main-content { margin-top: 28px !important; }
     </style>
 </head>
 <body>
+<script>
+    // Página de solo lectura (no hay ningún formulario con datos sin guardar) —
+    // seguro recargarla sola si llega una alerta de esta misma paciente, para
+    // que la Línea de Tiempo Clínica muestre la columna nueva sin esperar a que
+    // alguien le dé F5. Ver iniciarSondeoAlertasMeows en obstetricia/sidebar.html.
+    window.MEOWS_AUTO_REFRESH_GRID = true;
+</script>
 {% include 'obstetricia/header_formatos.html' with current_module='meows' documento=documento modulo_titulo='Historial Clínico MEOWS' modulo_subtitulo='Evolución del Estado Clínico' %}
 <div class="app-layout-sidebar">
     {% include 'obstetricia/sidebar.html' with is_panel=False atencion_id=atencion_id documento=documento current_module='meows' %}

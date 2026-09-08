@@ -19,6 +19,9 @@ Variables de contexto esperadas:
         <a href="{% url 'parto_home' %}?atencion={{ atencion_id|default:'' }}&doc={{ documento|default:meows_paciente.numero_documento|urlencode }}" class="btn-volver-parto">
             <span>↩️</span> Regresar a Trabajo de Parto
         </a>
+        <button type="button" class="btn-meows-referencia" onclick="abrirMeowsReferencia()">
+            <span>🔎</span> Guía Técnica MEOWS
+        </button>
         {% if meows_paciente %}
         <a href="{% url 'crear_meows' paciente_id=meows_paciente.id %}" class="btn-volver-parto">
             <span>➕</span> Nueva Medición
@@ -50,9 +53,6 @@ Variables de contexto esperadas:
         <span class="grid-legend-item"><span class="grid-legend-swatch score-2"></span>Moderado-alto <strong>· 2 puntos</strong></span>
         <span class="grid-legend-item"><span class="grid-legend-swatch score-3"></span>Crítico <strong>· 3 puntos</strong></span>
         <span class="grid-legend-item"><span class="grid-legend-marca">●</span>Valor registrado</span>
-        <button type="button" class="btn-meows-referencia" onclick="abrirMeowsReferencia()">
-            <span>🔎</span> Guía Técnica MEOWS
-        </button>
     </div>
 
     <div id="meows-referencia-overlay" class="meows-referencia-overlay" onclick="if(event.target===this) cerrarMeowsReferencia()">
@@ -263,7 +263,7 @@ Variables de contexto esperadas:
                     {% for columna in columnas %}
                     <td class="grid-td-total riesgo-bg-{{ columna.riesgo|lower|default:'none' }}">
                         <a href="{% url 'ver_meows' medicion_id=columna.medicion_id %}" class="grid-total-link" title="Ver detalle completo">
-                            <strong>{{ columna.score_total|default:"-" }}</strong>
+                            <strong>{{ columna.score_total|default_if_none:"-" }}</strong>
                             <span class="grid-total-riesgo">{{ columna.riesgo|default:"-" }}</span>
                         </a>
                     </td>

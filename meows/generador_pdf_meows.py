@@ -4,11 +4,12 @@ Generador de PDF MEOWS usando ReportLab - Formato idéntico al formato físico
 from django.http import HttpResponse
 from django.conf import settings
 from django.contrib.staticfiles import finders
+from django.utils import timezone
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.lib.units import cm, mm
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from datetime import datetime
@@ -65,11 +66,22 @@ def generar_pdf_meows(paciente, mediciones):
     if hasattr(mediciones, "exists"):
         if not mediciones.exists():
             return HttpResponse("No hay mediciones para generar el PDF", status=400)
-        mediciones_iter = mediciones
+        mediciones_iter = list(mediciones)
     else:
         if not mediciones:
             return HttpResponse("No hay mediciones para generar el PDF", status=400)
-        mediciones_iter = mediciones
+        mediciones_iter = list(mediciones)
+
+    # La grilla pone una columna por medición en una sola página apaisada — con
+    # pacientes muy monitoreadas (ahora que Dinámica importa automáticamente,
+    # algunas ya acumulan decenas o cientos de registros) el ancho por columna
+    # se vuelve negativo y ReportLab revienta con
+    # "flowable given negative availWidth" (Error 500). En vez de recortar
+    # mediciones (el PDF debe reflejar TODA la Línea de Tiempo Clínica), se
+    # reparte la grilla en varias tablas de MEDICIONES_POR_PAGINA columnas
+    # cada una, una por página, más abajo.
+    MEDICIONES_POR_PAGINA = 10
+    total_mediciones_paciente = len(mediciones_iter)
     
     # DEFINIR VARIABLES DE ANCHO AL INICIO para evitar errores de variable no definida
     ancho_puntos = 1.1*cm  # Valor por defecto - definir primero
@@ -417,12 +429,16 @@ def generar_pdf_meows(paciente, mediciones):
     
     story.append(tabla_datos)
     story.append(Spacer(1, 0.3*cm))
-    
+
     # ===== ORGANIZAR MEDICIONES =====
     mediciones_agrupadas = []
     for medicion in mediciones_iter:
-        fecha_str = medicion.fecha_hora.strftime("%d/%m/%y")
-        hora_str = medicion.fecha_hora.strftime("%I:%M %p")
+        # fecha_hora se guarda en UTC (aware); sin localtime() aquí el PDF
+        # imprime la hora UTC en vez de la hora de Bogotá (mismo bug ya
+        # corregido antes en meows/views.py api_alertas_pendientes).
+        fecha_hora_local = timezone.localtime(medicion.fecha_hora)
+        fecha_str = fecha_hora_local.strftime("%d/%m/%y")
+        hora_str = fecha_hora_local.strftime("%I:%M %p")
         
         valores_dict = {}
         for valor_obj in medicion.valores.all():
@@ -443,287 +459,278 @@ def generar_pdf_meows(paciente, mediciones):
     # ===== GRILLA DE PARÁMETROS =====
     from meows.models import Parametro
     parametros = Parametro.objects.filter(activo=True).order_by('orden')
-    
-    # ===== CALCULAR ANCHOS DE COLUMNAS PRIMERO (ANTES DE CUALQUIER USO) =====
-    # DEFINIR TODAS LAS VARIABLES DE ANCHO PRIMERO - IMPORTANTE: antes de cualquier uso
-    ancho_total = landscape(A4)[0] - 1.6*cm  # Menos márgenes
-    num_mediciones = max(len(mediciones_agrupadas), 1) if mediciones_agrupadas else 1
-    
-    # Valores iniciales
-    ancho_parametro = 2.9*cm  # Reducido más
-    ancho_unidad = 0.8*cm  # Más compacto
-    ancho_puntos = 0.85*cm  # Más reducido para evitar que se salga - CRÍTICO: definir siempre primero
-    ancho_medicion = 2*cm  # Valor por defecto
-    
-    # Ancho disponible para las columnas de mediciones
-    ancho_disponible = ancho_total - ancho_parametro - ancho_unidad - ancho_puntos
-    # Calcular ancho por medición con mínimo de 2cm para que quepa fecha/hora y valores
-    if num_mediciones > 0:
-        ancho_medicion = ancho_disponible / num_mediciones
-    else:
-        ancho_medicion = 2*cm
-    
-    # Asegurar un ancho mínimo de 2cm para cada medición (necesario para fecha/hora/valores)
-    if ancho_medicion < 2*cm and num_mediciones > 0:
-        ancho_medicion = 2*cm
-        # Reajustar otras columnas si es necesario
-        ancho_total_necesario = ancho_parametro + ancho_unidad + ancho_puntos + (ancho_medicion * num_mediciones)
-        if ancho_total_necesario > ancho_total:
-            # Reducir parámetro y unidad si hay muchas mediciones
-            ancho_parametro = 2.8*cm
-            ancho_unidad = 0.8*cm
-            # Recalcular - ancho_puntos ya está definido arriba, no se redefine aquí
-            ancho_disponible = ancho_total - ancho_parametro - ancho_unidad - ancho_puntos
-            if num_mediciones > 0:
-                ancho_medicion = ancho_disponible / num_mediciones
-            else:
-                ancho_medicion = 2*cm
-    
-    # Estilo para encabezado de fecha/hora
-    estilo_encabezado_fecha = ParagraphStyle(
-        'EncabezadoFecha',
+
+    # La Línea de Tiempo Clínica no recorta mediciones, así que el PDF
+    # tampoco debe hacerlo: en vez de forzar todas las columnas en una sola
+    # tabla (lo que revienta con "negative availWidth" apenas hay más de
+    # ~10 mediciones), se reparte la grilla en tantas tablas — una por
+    # página apaisada — como hagan falta para imprimir TODAS las mediciones.
+    chunks_mediciones = [
+        mediciones_agrupadas[i:i + MEDICIONES_POR_PAGINA]
+        for i in range(0, len(mediciones_agrupadas), MEDICIONES_POR_PAGINA)
+    ]
+    total_paginas_grilla = len(chunks_mediciones)
+
+    estilo_paginacion_grilla = ParagraphStyle(
+        'PaginacionGrilla',
         parent=styles['Normal'],
-        fontSize=5.5,  # Fuente pequeña para que quepa
-        textColor=colors.black,
+        fontSize=7.5,
+        textColor=colors.HexColor('#1e3a8a'),
+        fontName='Helvetica-Bold',
         alignment=1,  # Centrado
-        leading=6.5,  # Espaciado compacto
-        spaceAfter=0,
+        spaceAfter=4,
         spaceBefore=0,
     )
-    
-    # Encabezado de la grilla - FECHA y HORA en encabezados separados por cada medición
-    encabezado_grilla = ['PARÁMETRO', 'UNIDAD']
-    # Agregar encabezados de fecha y hora para cada medición con formato más compacto
-    for item in mediciones_agrupadas:
-        # Formato más compacto para evitar desbordamiento
-        encabezado_grilla.append(Paragraph(
-            f"<b>FECHA</b><br/>{item['fecha']}<br/><b>HORA</b><br/>{item['hora']}",
-            estilo_encabezado_fecha
-        ))
-    encabezado_grilla.append('PUNTOS')
-    
-    # Datos de la grilla
-    datos_grilla = [encabezado_grilla]
-    
-    # Agregar filas de parámetros
-    for parametro in parametros:
-        fila = []
-        
-        # PARÁMETRO
-        fila.append(Paragraph(parametro.nombre, estilo_parametro_nombre))
-        
-        # UNIDAD
-        fila.append(parametro.unidad)
-        
-        # VALORES por medición - Mostrar valor y score
-        for item in mediciones_agrupadas:
-            valores_hora = item['valores']
-            if parametro.codigo in valores_hora:
-                valor_data = valores_hora[parametro.codigo]
-                valor = str(valor_data['valor'])
-                score = valor_data['puntaje']
-                # Formato: valor en primera línea, score entre paréntesis en segunda línea
-                # Ejemplo: 36.5\n(0) o 39.2\n(3)
-                celda_texto = f"{valor}<br/><b>({score})</b>"
-                fila.append(Paragraph(celda_texto, estilo_valor_celda))
-            else:
-                fila.append('')
-        
-        # PUNTOS (columna de referencia) - Crear sub-tabla con colores
-        # Ancho de sub-tabla más pequeño para que quepa dentro de la celda sin desbordarse
-        ancho_sub_tabla_puntos = max(ancho_puntos - 0.2*cm, 0.6*cm)  # Reducir más el margen, mínimo 0.6cm
-        puntos_tabla = Table([
+
+    for pagina_idx, mediciones_pagina in enumerate(chunks_mediciones):
+        if pagina_idx > 0:
+            story.append(PageBreak())
+
+        if total_paginas_grilla > 1:
+            inicio = pagina_idx * MEDICIONES_POR_PAGINA + 1
+            fin = inicio + len(mediciones_pagina) - 1
+            story.append(Paragraph(
+                f"Mediciones {inicio}–{fin} de {total_mediciones_paciente} "
+                f"(página {pagina_idx + 1} de {total_paginas_grilla})",
+                estilo_paginacion_grilla
+            ))
+
+        # ===== CALCULAR ANCHOS DE COLUMNAS DE ESTA PÁGINA =====
+        ancho_total = landscape(A4)[0] - 1.6*cm  # Menos márgenes
+        num_mediciones = max(len(mediciones_pagina), 1)
+
+        # Valores iniciales
+        ancho_parametro = 2.9*cm  # Reducido más
+        ancho_unidad = 0.8*cm  # Más compacto
+        ancho_puntos = 0.85*cm  # Más reducido para evitar que se salga
+        ancho_medicion = 2*cm  # Valor por defecto
+
+        # Ancho disponible para las columnas de mediciones de esta página
+        ancho_disponible = ancho_total - ancho_parametro - ancho_unidad - ancho_puntos
+        ancho_medicion = ancho_disponible / num_mediciones
+
+        # Asegurar un ancho mínimo de 2cm para cada medición (necesario para fecha/hora/valores)
+        # — con el reparto por páginas (máx. MEDICIONES_POR_PAGINA columnas)
+        # esto ya no debería activarse nunca, pero se conserva como resguardo.
+        if ancho_medicion < 2*cm:
+            ancho_medicion = 2*cm
+            ancho_total_necesario = ancho_parametro + ancho_unidad + ancho_puntos + (ancho_medicion * num_mediciones)
+            if ancho_total_necesario > ancho_total:
+                ancho_parametro = 2.8*cm
+                ancho_unidad = 0.8*cm
+                ancho_disponible = ancho_total - ancho_parametro - ancho_unidad - ancho_puntos
+                ancho_medicion = ancho_disponible / num_mediciones
+
+        # Estilo para encabezado de fecha/hora — texto BLANCO: esta celda es un
+        # Paragraph, así que ignora el TEXTCOLOR blanco que ya está puesto a nivel
+        # de tabla para toda la fila de encabezado (ver 'TEXTCOLOR', (0,0), (-1,0)
+        # más abajo) — un Paragraph siempre usa el color de su propio ParagraphStyle,
+        # por eso quedaba en negro sobre el fondo azul oscuro y no se leía.
+        estilo_encabezado_fecha = ParagraphStyle(
+            'EncabezadoFecha',
+            parent=styles['Normal'],
+            fontSize=5.5,  # Fuente pequeña para que quepa
+            textColor=colors.white,
+            alignment=1,  # Centrado
+            leading=6.5,  # Espaciado compacto
+            spaceAfter=0,
+            spaceBefore=0,
+        )
+
+        # Encabezado de la grilla - FECHA y HORA en encabezados separados por cada medición
+        encabezado_grilla = ['PARÁMETRO', 'UNIDAD']
+        for item in mediciones_pagina:
+            encabezado_grilla.append(Paragraph(
+                f"<b>FECHA</b><br/>{item['fecha']}<br/><b>HORA</b><br/>{item['hora']}",
+                estilo_encabezado_fecha
+            ))
+        encabezado_grilla.append('PUNTOS')
+
+        # Datos de la grilla
+        datos_grilla = [encabezado_grilla]
+
+        # Agregar filas de parámetros
+        for parametro in parametros:
+            fila = []
+
+            # PARÁMETRO
+            fila.append(Paragraph(parametro.nombre, estilo_parametro_nombre))
+
+            # UNIDAD
+            fila.append(parametro.unidad)
+
+            # VALORES por medición - Mostrar valor y score
+            for item in mediciones_pagina:
+                valores_hora = item['valores']
+                if parametro.codigo in valores_hora:
+                    valor_data = valores_hora[parametro.codigo]
+                    valor = str(valor_data['valor'])
+                    score = valor_data['puntaje']
+                    # Formato: valor en primera línea, score entre paréntesis en segunda línea
+                    celda_texto = f"{valor}<br/><b>({score})</b>"
+                    fila.append(Paragraph(celda_texto, estilo_valor_celda))
+                else:
+                    fila.append('')
+
+            # PUNTOS (columna de referencia) - Crear sub-tabla con colores
+            ancho_sub_tabla_puntos = max(ancho_puntos - 0.2*cm, 0.6*cm)
+            puntos_tabla = Table([
+                ['3'],
+                ['2'],
+                ['1'],
+                ['0']
+            ], colWidths=[ancho_sub_tabla_puntos], rowHeights=[0.28*cm, 0.28*cm, 0.28*cm, 0.28*cm])
+
+            puntos_tabla.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, 0), obtener_color_score(3)),  # Rojo para 3
+                ('BACKGROUND', (0, 1), (0, 1), obtener_color_score(2)),  # Amarillo para 2
+                ('BACKGROUND', (0, 2), (0, 2), obtener_color_score(1)),  # Verde para 1
+                ('BACKGROUND', (0, 3), (0, 3), obtener_color_score(0)),  # Blanco para 0
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 6),
+                ('GRID', (0, 0), (-1, -1), 0.15, colors.black),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ]))
+
+            fila.append(puntos_tabla)
+            datos_grilla.append(fila)
+
+        # Fila TOTAL - Mostrar total con riesgo/score asociado
+        fila_total = ['TOTAL', '']
+        for item in mediciones_pagina:
+            medicion = item['medicion']
+            total = medicion.meows_total if medicion.meows_total else 0
+            riesgo_score = 0
+            if medicion.meows_riesgo == "VERDE":
+                riesgo_score = 1
+            elif medicion.meows_riesgo == "AMARILLO":
+                riesgo_score = 2
+            elif medicion.meows_riesgo == "ROJO":
+                riesgo_score = 3
+            total_texto = f"<b>{total}</b><br/><b>({riesgo_score})</b>"
+            estilo_total = ParagraphStyle(
+                'TotalCelda',
+                parent=estilo_valor_celda,
+                fontSize=6.5,
+                leading=8,
+            )
+            fila_total.append(Paragraph(total_texto, estilo_total))
+
+        ancho_sub_tabla_puntos_total = max(ancho_puntos - 0.2*cm, 0.6*cm)
+        puntos_tabla_total = Table([
             ['3'],
             ['2'],
             ['1'],
             ['0']
-        ], colWidths=[ancho_sub_tabla_puntos], rowHeights=[0.28*cm, 0.28*cm, 0.28*cm, 0.28*cm])
-        
-        puntos_tabla.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, 0), obtener_color_score(3)),  # Rojo para 3
-            ('BACKGROUND', (0, 1), (0, 1), obtener_color_score(2)),  # Amarillo para 2
-            ('BACKGROUND', (0, 2), (0, 2), obtener_color_score(1)),  # Verde para 1
-            ('BACKGROUND', (0, 3), (0, 3), obtener_color_score(0)),  # Blanco para 0
+        ], colWidths=[ancho_sub_tabla_puntos_total], rowHeights=[0.28*cm, 0.28*cm, 0.28*cm, 0.28*cm])
+
+        puntos_tabla_total.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), obtener_color_score(3)),
+            ('BACKGROUND', (0, 1), (0, 1), obtener_color_score(2)),
+            ('BACKGROUND', (0, 2), (0, 2), obtener_color_score(1)),
+            ('BACKGROUND', (0, 3), (0, 3), obtener_color_score(0)),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 6),  # Más reducido para que quepa
-            ('GRID', (0, 0), (-1, -1), 0.15, colors.black),  # Bordes más delgados
+            ('FONTSIZE', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 0.15, colors.black),
             ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
             ('RIGHTPADDING', (0, 0), (-1, -1), 0),
             ('TOPPADDING', (0, 0), (-1, -1), 0),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
-        
-        fila.append(puntos_tabla)
-        
-        datos_grilla.append(fila)
-    
-    # Fila TOTAL - Mostrar total con riesgo/score asociado
-    fila_total = ['TOTAL', '']
-    for item in mediciones_agrupadas:
-        medicion = item['medicion']
-        total = medicion.meows_total if medicion.meows_total else 0
-        # Determinar el score de riesgo para mostrar junto al total
-        riesgo_score = 0
-        if medicion.meows_riesgo == "VERDE":
-            riesgo_score = 1
-        elif medicion.meows_riesgo == "AMARILLO":
-            riesgo_score = 2
-        elif medicion.meows_riesgo == "ROJO":
-            riesgo_score = 3
-        # Formato: total en primera línea, score riesgo entre paréntesis en segunda línea
-        # Ejemplo: 5\n(2) o 8\n(3) - Formato más compacto
-        total_texto = f"<b>{total}</b><br/><b>({riesgo_score})</b>"
-        estilo_total = ParagraphStyle(
-            'TotalCelda',
-            parent=estilo_valor_celda,
-            fontSize=6.5,  # Tamaño de fuente reducido
-            leading=8,  # Espaciado reducido
-        )
-        fila_total.append(Paragraph(total_texto, estilo_total))
-    # Agregar columna de puntos también en la fila total (puede estar vacía o mostrar referencia)
-    # Ancho de sub-tabla más pequeño para que quepa dentro de la celda sin desbordarse
-    ancho_sub_tabla_puntos_total = max(ancho_puntos - 0.2*cm, 0.6*cm)  # Reducir más el margen, mínimo 0.6cm
-    puntos_tabla_total = Table([
-        ['3'],
-        ['2'],
-        ['1'],
-        ['0']
-    ], colWidths=[ancho_sub_tabla_puntos_total], rowHeights=[0.28*cm, 0.28*cm, 0.28*cm, 0.28*cm])
-    
-    puntos_tabla_total.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, 0), obtener_color_score(3)),  # Rojo para 3
-        ('BACKGROUND', (0, 1), (0, 1), obtener_color_score(2)),  # Amarillo para 2
-        ('BACKGROUND', (0, 2), (0, 2), obtener_color_score(1)),  # Verde para 1
-        ('BACKGROUND', (0, 3), (0, 3), obtener_color_score(0)),  # Blanco para 0
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 6),  # Más reducido para que quepa
-        ('GRID', (0, 0), (-1, -1), 0.15, colors.black),  # Bordes más delgados
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    
-    fila_total.append(puntos_tabla_total)
-    datos_grilla.append(fila_total)
-    
-    # Usar los anchos ya calculados anteriormente
-    anchos_columnas = [ancho_parametro, ancho_unidad]
-    for _ in mediciones_agrupadas:
-        anchos_columnas.append(ancho_medicion)
-    anchos_columnas.append(ancho_puntos)
-    
-    # Calcular altura de filas - debe ser suficiente para la sub-tabla de puntos (4 filas)
-    altura_fila = 1.2*cm  # Altura ajustada para 4 filas de puntos (0.28cm cada una = 1.12cm + pequeño margen)
-    alturas_filas = [0.8*cm]  # Altura del encabezado aumentada para fecha/hora
-    # Altura para cada fila de parámetros
-    for _ in range(len(parametros)):
-        alturas_filas.append(altura_fila)
-    # Altura para la fila total
-    alturas_filas.append(0.7*cm)  # Altura aumentada para que quepa total y score
-    
-    # Crear tabla de grilla
-    tabla_grilla = Table(datos_grilla, colWidths=anchos_columnas, rowHeights=alturas_filas, repeatRows=1)
-    
-    # Estilos de la grilla
-    estilo_grilla = [
-        # Encabezado
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 6),
-        ('FONTSIZE', (0, 1), (-1, -2), 6.5),  # Reducido para evitar desbordamiento
-        ('FONTSIZE', (0, -1), (-1, -1), 6.5),  # Fila total reducido
-        # Estilo para celdas con valores (columna 2 en adelante, excepto columna de puntos) - Padding reducido
-        ('LEFTPADDING', (2, 1), (-2, -2), 2),
-        ('RIGHTPADDING', (2, 1), (-2, -2), 2),
-        ('TOPPADDING', (2, 1), (-2, -2), 2),
-        ('BOTTOMPADDING', (2, 1), (-2, -2), 2),
-        # Columna de puntos - padding mínimo para evitar desbordamiento
-        ('LEFTPADDING', (-1, 0), (-1, -1), 1),  # Última columna (puntos)
-        ('RIGHTPADDING', (-1, 0), (-1, -1), 1),
-        ('TOPPADDING', (-1, 0), (-1, -1), 1),
-        ('BOTTOMPADDING', (-1, 0), (-1, -1), 1),
-        ('ALIGN', (-1, 0), (-1, -1), 'CENTER'),  # Centrar contenido de la columna de puntos
-        ('VALIGN', (-1, 0), (-1, -1), 'MIDDLE'),
-        ('BOX', (0, 0), (-1, -1), 0.8, colors.HexColor('#1f2937')),
-        ('INNERGRID', (0, 0), (-1, -1), 0.35, colors.HexColor('#6b7280')),
-        # Columna parámetro
-        ('ALIGN', (0, 1), (0, -2), 'LEFT'),  # Columna parámetro alineada a la izquierda
-        ('FONTNAME', (0, 1), (0, -2), 'Helvetica-Bold'),  # Parámetros en negrita
-        ('BACKGROUND', (0, 1), (0, -2), colors.HexColor('#f9fafb')),
-        # Columna unidad
-        ('BACKGROUND', (1, 1), (1, -2), colors.HexColor('#f3f4f6')),
-        # Fila total
-        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#dbeafe')),
-    ]
-    
-    # Aplicar colores según scores en las celdas de valores
-    fila_idx = 1  # Empezar después del encabezado
-    for parametro in parametros:
-        col_idx = 2  # Empezar después de PARÁMETRO, UNIDAD
-        for item in mediciones_agrupadas:
-            valores_hora = item['valores']
-            if parametro.codigo in valores_hora:
-                valor_data = valores_hora[parametro.codigo]
-                score = valor_data['puntaje']
-                color = obtener_color_score(score)
-                estilo_grilla.append(('BACKGROUND', (col_idx, fila_idx), (col_idx, fila_idx), color))
+
+        fila_total.append(puntos_tabla_total)
+        datos_grilla.append(fila_total)
+
+        # Anchos de columnas de esta página
+        anchos_columnas = [ancho_parametro, ancho_unidad]
+        for _ in mediciones_pagina:
+            anchos_columnas.append(ancho_medicion)
+        anchos_columnas.append(ancho_puntos)
+
+        # Calcular altura de filas - debe ser suficiente para la sub-tabla de puntos (4 filas)
+        altura_fila = 1.2*cm
+        alturas_filas = [0.8*cm]
+        for _ in range(len(parametros)):
+            alturas_filas.append(altura_fila)
+        alturas_filas.append(0.7*cm)
+
+        # Crear tabla de grilla de esta página
+        tabla_grilla = Table(datos_grilla, colWidths=anchos_columnas, rowHeights=alturas_filas, repeatRows=1)
+
+        estilo_grilla = [
+            # Encabezado
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 6),
+            ('FONTSIZE', (0, 1), (-1, -2), 6.5),
+            ('FONTSIZE', (0, -1), (-1, -1), 6.5),
+            ('LEFTPADDING', (2, 1), (-2, -2), 2),
+            ('RIGHTPADDING', (2, 1), (-2, -2), 2),
+            ('TOPPADDING', (2, 1), (-2, -2), 2),
+            ('BOTTOMPADDING', (2, 1), (-2, -2), 2),
+            ('LEFTPADDING', (-1, 0), (-1, -1), 1),
+            ('RIGHTPADDING', (-1, 0), (-1, -1), 1),
+            ('TOPPADDING', (-1, 0), (-1, -1), 1),
+            ('BOTTOMPADDING', (-1, 0), (-1, -1), 1),
+            ('ALIGN', (-1, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (-1, 0), (-1, -1), 'MIDDLE'),
+            ('BOX', (0, 0), (-1, -1), 0.8, colors.HexColor('#1f2937')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.35, colors.HexColor('#6b7280')),
+            ('ALIGN', (0, 1), (0, -2), 'LEFT'),
+            ('FONTNAME', (0, 1), (0, -2), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, 1), (0, -2), colors.HexColor('#f9fafb')),
+            ('BACKGROUND', (1, 1), (1, -2), colors.HexColor('#f3f4f6')),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#dbeafe')),
+        ]
+
+        # Aplicar colores según scores en las celdas de valores
+        fila_idx = 1
+        for parametro in parametros:
+            col_idx = 2
+            for item in mediciones_pagina:
+                valores_hora = item['valores']
+                if parametro.codigo in valores_hora:
+                    valor_data = valores_hora[parametro.codigo]
+                    score = valor_data['puntaje']
+                    color = obtener_color_score(score)
+                    estilo_grilla.append(('BACKGROUND', (col_idx, fila_idx), (col_idx, fila_idx), color))
+                col_idx += 1
+            fila_idx += 1
+
+        # Colorear totales
+        fila_total_idx = len(datos_grilla) - 1
+        col_idx = 2
+        for item in mediciones_pagina:
+            medicion = item['medicion']
+            riesgo_color = 0
+            if medicion.meows_riesgo == "VERDE":
+                riesgo_color = 1
+            elif medicion.meows_riesgo == "AMARILLO":
+                riesgo_color = 2
+            elif medicion.meows_riesgo == "ROJO":
+                riesgo_color = 3
+            color = obtener_color_score(riesgo_color)
+            estilo_grilla.append(('BACKGROUND', (col_idx, fila_total_idx), (col_idx, fila_total_idx), color))
             col_idx += 1
-        fila_idx += 1
-    
-    # Colorear totales
-    fila_total_idx = len(datos_grilla) - 1
-    col_idx = 2  # Empezar después de PARÁMETRO, UNIDAD
-    for item in mediciones_agrupadas:
-        medicion = item['medicion']
-        riesgo_color = 0
-        if medicion.meows_riesgo == "VERDE":
-            riesgo_color = 1
-        elif medicion.meows_riesgo == "AMARILLO":
-            riesgo_color = 2
-        elif medicion.meows_riesgo == "ROJO":
-            riesgo_color = 3
-        color = obtener_color_score(riesgo_color)
-        estilo_grilla.append(('BACKGROUND', (col_idx, fila_total_idx), (col_idx, fila_total_idx), color))
-        col_idx += 1
-    
-    tabla_grilla.setStyle(TableStyle(estilo_grilla))
-    
-    # Después de aplicar estilos base, reemplazar las celdas de puntos con sub-tablas coloreadas
-    # Esto requiere reconstruir la tabla, así que mejor hacemos las celdas de puntos con múltiples estilos
-    # Usaremos un enfoque más directo: colorear la celda completa con el color dominante y mostrar los números
-    
-    # Alternativa: crear filas separadas para cada puntuación (3, 2, 1, 0) en la columna PUNTOS
-    # Pero esto complicaría la estructura. Mejor usamos celdas con fondo dividido visualmente
-    
-    # Vamos a modificar el enfoque: crear la columna de puntos como un string HTML con colores
-    # y usar Paragraph para renderizarlo, pero ReportLab no soporta colores en texto simple así
-    
-    # Solución: crear múltiples estilos de fondo alternados o usar una tabla anidada
-    # La mejor opción es dividir visualmente la celda usando colores de fondo segmentados
-    
-    # Implementación práctica: Colorear toda la columna con un gradiente o dividir en 4 secciones
-    # Como ReportLab no permite fácilmente dividir una celda, usaremos una aproximación:
-    # Crear 4 celdas pequeñas apiladas verticalmente o usar colores de fondo en franjas
-    
-    # Mejor solución: Modificar las filas para tener 4 sub-filas en la columna de puntos
-    # Pero esto requeriría cambiar toda la estructura de la tabla
-    
-    # Solución más simple y efectiva: Usar un Table anidado para la columna de puntos
-    # o crear la columna de puntos con fondos diferentes por cada número
-    story.append(tabla_grilla)
-    story.append(Spacer(1, 0.5*cm))
-    
+
+        tabla_grilla.setStyle(TableStyle(estilo_grilla))
+
+        story.append(tabla_grilla)
+        story.append(Spacer(1, 0.5*cm))
+
     # Ancho total disponible para la firma del responsable
     ancho_total_firma = landscape(A4)[0] - 1.6*cm
 

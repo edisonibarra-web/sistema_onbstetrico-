@@ -37,3 +37,5 @@ Thumbs.db
 parto_data.json
 # Scripts de prueba locales
 test_query.py
+# Credenciales locales de Docker
+CREDENCIALES_DOCKER_SQLSERVER_LOCAL.txt

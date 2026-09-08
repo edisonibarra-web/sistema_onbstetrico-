@@ -57,7 +57,7 @@
                         <span class="badge-text">{{ medicion.meows_riesgo }}</span>
                     </div>
                     {% if medicion.origen == 'dinamica' %}
-                    <div class="resultado-badge" style="background:#7c3aed;color:#fff;" title="Esta medición se importó automáticamente desde Dinámica (folio {{ medicion.dinamica_folio }})">
+                    <div class="resultado-badge" style="background:#ffffff;color:#343a40;border:1px solid #dee2e6;" title="Esta medición se importó automáticamente desde Dinámica (folio {{ medicion.dinamica_folio }})">
                         <span class="badge-text">🔗 IMPORTADO DE DINÁMICA</span>
                     </div>
                     {% endif %}
@@ -135,17 +135,17 @@
         <!-- SECCIÓN: ACCIONES -->
         <section class="section acciones-section">
             <div class="acciones-buttons">
-                <a href="{% url 'editar_meows' medicion_id=medicion.id %}{% if atencion_id %}?atencion={{ atencion_id }}{% endif %}" class="btn btn-warning">
+                <a href="{% url 'editar_meows' medicion_id=medicion.id %}{% if atencion_id %}?atencion={{ atencion_id }}{% endif %}" class="btn btn-warning" title="Corrige los valores de ESTA misma medición, no crea un registro nuevo">
                     <span class="btn-icon">✏️</span>
-                    Editar este Registro
+                    Corregir esta Medición
                 </a>
                 <a href="{% url 'historial_meows' paciente_id=medicion.paciente.id %}" class="btn btn-info">
                     <span class="btn-icon">📊</span>
                     Ver Historial del Paciente
                 </a>
-                <a href="{% url 'crear_meows' paciente_id=medicion.paciente.id %}" class="btn btn-primary">
+                <a href="{% url 'crear_meows' paciente_id=medicion.paciente.id %}" class="btn btn-success" title="Abre el formulario en blanco para registrar una toma nueva y distinta de esta paciente">
                     <span class="btn-icon">➕</span>
-                    Nueva Medición
+                    Registrar Nueva Toma
                 </a>
             </div>
         </section>

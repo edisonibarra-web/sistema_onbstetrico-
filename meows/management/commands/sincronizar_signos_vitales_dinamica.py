@@ -93,6 +93,19 @@ class Command(BaseCommand):
                 numero_documento=documento,
                 defaults=self._datos_basicos_paciente(p),
             )
+            # Aunque el paciente ya existiera localmente, se refrescan estos
+            # campos en CADA ciclo con lo que traiga Nexus ahora mismo (cama,
+            # aseguradora, fecha de ingreso, etc. cambian durante la
+            # hospitalización). Antes solo se llenaban una vez, al crear el
+            # registro (get_or_create con defaults=), así que una paciente
+            # como esta podía quedarse para siempre con "Fecha nacimiento",
+            # "Tipo de sangre", "Fecha de ingreso" y "Edad gestacional" vacíos
+            # en "Datos registrados del paciente" aunque Nexus sí los tuviera
+            # — no es que la enfermería no los haya diligenciado en Dinámica,
+            # es que nuestro caché local nunca los traía después del primer
+            # registro. "responsable" NO se toca aquí: no viene de Nexus, lo
+            # diligencia el personal directamente en esta app.
+            self._actualizar_datos_basicos_paciente(paciente, p)
 
             ultima_fecha = Medicion.objects.filter(
                 paciente=paciente, origen='dinamica'
@@ -122,6 +135,13 @@ class Command(BaseCommand):
                 if not valores_dict:
                     continue
 
+                # Calcular ANTES de crear los MedicionValor, para poder guardar
+                # el puntaje individual de cada uno junto con su valor (si no,
+                # queda NULL y la vista de resultado no puede mostrar el
+                # puntaje/estado por parámetro, solo el total de la medición).
+                resultado = calcular_meows(valores_dict)
+                puntajes_por_codigo = resultado["puntajes"]
+
                 medicion = Medicion.objects.create(
                     paciente=paciente,
                     formulario=formulario,
@@ -134,10 +154,10 @@ class Command(BaseCommand):
                     if parametro is None:
                         continue
                     MedicionValor.objects.create(
-                        medicion=medicion, parametro=parametro, valor=str(valor)
+                        medicion=medicion, parametro=parametro, valor=str(valor),
+                        puntaje=puntajes_por_codigo.get(codigo),
                     )
 
-                resultado = calcular_meows(valores_dict)
                 medicion.meows_total = resultado["meows_total"]
                 medicion.meows_riesgo = resultado["meows_riesgo"]
                 medicion.meows_mensaje = resultado["meows_mensaje"]
@@ -168,3 +188,47 @@ class Command(BaseCommand):
             'aseguradora': p.get('aseguradora') or '',
             'cama': p.get('numero_cama') or '',
         }
+
+    @staticmethod
+    def _actualizar_datos_basicos_paciente(paciente, p):
+        """
+        Refresca en el Paciente local los campos que SÍ vienen de Nexus, cada
+        vez que aparece en el listado de listar_pacientes_sala_partos() — no
+        solo la primera vez. Ver comentario en el punto donde se llama.
+        """
+        def _a_fecha(valor):
+            # listar_pacientes_sala_partos() devuelve datetime (con hora);
+            # Paciente.fecha_nacimiento/fecha_ingreso son DateField.
+            if valor is None:
+                return None
+            return valor.date() if hasattr(valor, 'date') else valor
+
+        def _a_entero(valor):
+            if valor is None:
+                return None
+            try:
+                return int(valor)
+            except (TypeError, ValueError):
+                return None
+
+        cambios = {
+            'aseguradora': p.get('aseguradora') or '',
+            'cama': p.get('numero_cama') or '',
+            'num_historia_clinica': p.get('historia_clinica') or paciente.num_historia_clinica,
+            'fecha_nacimiento': _a_fecha(p.get('fecha_nacimiento')) or paciente.fecha_nacimiento,
+            'fecha_ingreso': _a_fecha(p.get('fecha_ingreso')) or paciente.fecha_ingreso,
+            'diagnostico': p.get('diagnostico') or paciente.diagnostico,
+            'tipo_sangre': p.get('grupo_sanguineo') or paciente.tipo_sangre,
+            'nombre_acompanante': p.get('nombre_acompanante') or paciente.nombre_acompanante,
+            'edad_gestacional': _a_entero(p.get('edad_gestacional')) or paciente.edad_gestacional,
+            'gestas': _a_entero(p.get('gestas')) or paciente.gestas,
+            'n_controles_prenatales': _a_entero(p.get('controles_prenatales')) or paciente.n_controles_prenatales,
+        }
+
+        hubo_cambio = False
+        for campo, valor_nuevo in cambios.items():
+            if getattr(paciente, campo) != valor_nuevo:
+                setattr(paciente, campo, valor_nuevo)
+                hubo_cambio = True
+        if hubo_cambio:
+            paciente.save(update_fields=list(cambios.keys()))
