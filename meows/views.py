@@ -385,6 +385,18 @@ def ver_meows(request, medicion_id):
     """
     medicion = get_object_or_404(Medicion, id=medicion_id)
 
+    # Ver el detalle de la alerta la da por atendida para TODOS los equipos/
+    # usuarios, no solo para quien la abrió (antes esto solo se recordaba en
+    # el sessionStorage del navegador que la abría, así que la misma alerta
+    # reaparecía como nueva en cualquier otra pestaña o PC). Al apagar
+    # alerta_pendiente aquí, api_alertas_pendientes deja de devolverla para
+    # cualquiera desde el siguiente sondeo.
+    if medicion.alerta_pendiente:
+        medicion.alerta_pendiente = False
+        medicion.alerta_vista_en = timezone.now()
+        medicion.alerta_vista_por = request.user if request.user.is_authenticated else None
+        medicion.save(update_fields=["alerta_pendiente", "alerta_vista_en", "alerta_vista_por"])
+
     return render(request, "meows/resultado.html", {
         "medicion": medicion,
         "valores": medicion.valores.select_related("parametro").order_by("parametro__orden"),
@@ -704,6 +716,12 @@ def api_alertas_pendientes(request):
     y otra vez en la misma pantalla la hace el JS del cliente (recuerda qué
     IDs ya mostró, ver sidebar.html).
     """
+    # BUG real encontrado 2026-09-08: esto ordenaba ASCENDENTE y cortaba a
+    # 20 -> siempre devolvía las 20 alertas MÁS VIEJAS de la ventana, nunca
+    # las recientes. Con cualquier atraso (p.ej. la tarea programada caída
+    # un rato, o una tanda grande de Dinámica) las alertas nuevas —hasta una
+    # ROJA real— quedaban enterradas y JAMÁS llegaban a mostrarse. Se
+    # invierte a descendente para quedarnos con las 20 MÁS RECIENTES.
     ventana_desde = timezone.now() - timedelta(minutes=VENTANA_ALERTA_MINUTOS)
     pendientes = list(
         Medicion.objects.filter(
@@ -711,7 +729,7 @@ def api_alertas_pendientes(request):
             alerta_generada_en__gte=ventana_desde,
         )
         .select_related('paciente')
-        .order_by('fecha_hora')[:20]
+        .order_by('-fecha_hora')[:20]
     )
 
     alertas = [

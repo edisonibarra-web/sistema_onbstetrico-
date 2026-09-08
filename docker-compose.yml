@@ -5,8 +5,24 @@ services:
       dockerfile: Dockerfile
     container_name: sistema-obstetrico-dev
     env_file:
+      # Orden importa: .env.docker se carga DESPUÉS y sobreescribe solo las
+      # 4 variables DB_LOCAL_* que .env deja vacías a propósito (para no
+      # romper el runserver/tarea programada nativos, que leen el mismo .env).
       - ./.env
+      - ./.env.docker
     ports:
       - "8000:8000"
     volumes:
       - .:/app
+
+# La subred por defecto que Docker le asigna a este proyecto (172.20.0.0/16)
+# choca de frente con la red real del hospital: la BD Nexus vive en
+# 172.20.100.209, que cae DENTRO de ese mismo rango. El contenedor entonces
+# trataba 172.20.100.209 como si fuera un vecino de su propia red interna
+# (nunca salía a buscarlo afuera) -> "No route to host". Se fija una subred
+# que no se cruza con ningún rango real visto en la red de este equipo.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.250.10.0/24

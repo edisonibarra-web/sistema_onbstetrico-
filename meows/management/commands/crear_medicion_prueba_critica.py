@@ -18,10 +18,19 @@ from django.utils import timezone
 from meows.models import Formulario, Medicion, MedicionValor, Parametro, Paciente
 from meows.services.meows import calcular_meows
 
+
+# Recalibrado 2026-09-08: los presets de "verde" y "amarillo" quedaron viejos
+# respecto a los rangos reales vigentes (RangoParametro) y en realidad sumaban
+# >=6 -> siempre daban ROJO, sin importar el --nivel pedido. Verificado cada
+# preset contra los rangos reales de la BD antes de dejarlo aquí:
+#   blanco:   total 0            (todos en score 0)
+#   verde:    total 1-3, ningún parámetro individual en score 3
+#   amarillo: total 4-5, ningún parámetro individual en score 3
+#   rojo:     total >=6 (aquí además con varios parámetros en score 3)
 VALORES_POR_NIVEL = {
     "rojo": {"ta_sys": 200, "ta_dia": 115, "fc": 175, "fr": 35, "temp": 40.2, "spo2": 82, "fcf": 95},
-    "amarillo": {"ta_sys": 155, "ta_dia": 95, "fc": 130, "fr": 26, "temp": 38.5, "spo2": 92, "fcf": 155},
-    "verde": {"ta_sys": 145, "ta_dia": 92, "fc": 115, "fr": 22, "temp": 37.8, "spo2": 94, "fcf": 150},
+    "amarillo": {"ta_sys": 152, "ta_dia": 95, "fc": 120, "fr": 15, "temp": 37.0, "spo2": 98, "fcf": 140},
+    "verde": {"ta_sys": 140, "ta_dia": 70, "fc": 90, "fr": 20, "temp": 37.0, "spo2": 98, "fcf": 140},
     "blanco": {"ta_sys": 110, "ta_dia": 70, "fc": 80, "fr": 16, "temp": 36.5, "spo2": 98, "fcf": 140},
 }
 

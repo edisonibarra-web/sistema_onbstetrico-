@@ -148,14 +148,45 @@
     transform: translateY(-2px) scale(1.05);
     box-shadow: 0 6px 20px rgba(14, 165, 233, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
-.meows-campana-btn.tiene-pendientes {
+/* Tres estados según lo que haya PENDIENTE de verse ahora mismo (no según lo
+   "nuevo desde la última vez que se abrió el panel" — ver actualizarCampana()
+   en sidebar.html):
+   - tiene-rojo: hay al menos una alerta ROJA sin abrir su detalle todavía.
+     Se queda así aunque se abra el panel — solo baja al ver el detalle de
+     ESA alerta puntual (no basta con mirarla en la lista).
+   - tiene-amarillo: hay alertas pendientes pero ninguna es ROJA.
+   - sin clase: no hay ninguna alerta pendiente (azul neutro de siempre). */
+.meows-campana-btn.tiene-rojo {
     background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-    animation: meows-campana-pulso 1.6s ease-in-out infinite;
+    /* Más urgente que el amarillo a propósito: además del pulso de sombra,
+       se agita (como una campana real sonando) para que sea imposible de
+       ignorar con el rabillo del ojo — pedido explícito: "más palpitante,
+       moverse, que le llame la atención al enfermero". */
+    animation: meows-campana-pulso-rojo 1.6s ease-in-out infinite,
+               meows-campana-agitar-rojo 1s ease-in-out infinite;
 }
-@keyframes meows-campana-pulso {
+.meows-campana-btn.tiene-amarillo {
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+    color: #664d03;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    animation: meows-campana-pulso-amarillo 1.6s ease-in-out infinite;
+}
+@keyframes meows-campana-pulso-rojo {
     0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55), 0 4px 14px rgba(239, 68, 68, 0.4); }
     50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0), 0 4px 14px rgba(239, 68, 68, 0.4); }
+}
+@keyframes meows-campana-agitar-rojo {
+    0%, 100% { transform: rotate(0deg); }
+    15% { transform: rotate(-16deg); }
+    30% { transform: rotate(13deg); }
+    45% { transform: rotate(-9deg); }
+    60% { transform: rotate(6deg); }
+    75% { transform: rotate(-3deg); }
+    90% { transform: rotate(0deg); }
+}
+@keyframes meows-campana-pulso-amarillo {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.55), 0 4px 14px rgba(217, 119, 6, 0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(217, 119, 6, 0), 0 4px 14px rgba(217, 119, 6, 0.4); }
 }
 .meows-campana-badge {
     position: absolute; top: -4px; right: -4px;

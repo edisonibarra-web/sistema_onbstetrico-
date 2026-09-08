@@ -54,11 +54,17 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             box-shadow: 0 6px 18px rgba(0,0,0,0.25); cursor: pointer; font-size: 0.85rem;
             animation: meows-alerta-in 0.2s ease-out; position: relative;
         }
-        /* Mismos colores de riesgo que ya usa el resto de la app (ver meows-historial.css) */
-        .meows-alerta-toast.riesgo-rojo { background: #b91c1c; }
-        .meows-alerta-toast.riesgo-amarillo { background: #b45309; }
-        .meows-alerta-toast.riesgo-verde { background: #1e7e34; }
-        .meows-alerta-toast.riesgo-blanco { background: #495057; }
+        /* Mismos colores de riesgo que ya usa el resto de la app (ver meows-historial.css
+           y las .meows-panel-alerta-card de aquí abajo). Blanco/amarillo necesitan texto
+           oscuro porque son fondos claros — si no, quedan ilegibles en blanco sobre blanco. */
+        .meows-alerta-toast.riesgo-rojo { background: #b91c1c; color: #fff; }
+        .meows-alerta-toast.riesgo-amarillo { background: #ffc107; color: #664d03; }
+        .meows-alerta-toast.riesgo-amarillo .toast-ver-detalle { color: #7a5c00; }
+        .meows-alerta-toast.riesgo-amarillo .toast-cerrar { color: #664d03; }
+        .meows-alerta-toast.riesgo-verde { background: #1e7e34; color: #fff; }
+        .meows-alerta-toast.riesgo-blanco { background: #ffffff; color: #343a40; border: 1px solid #dee2e6; }
+        .meows-alerta-toast.riesgo-blanco .toast-ver-detalle { color: #6c757d; }
+        .meows-alerta-toast.riesgo-blanco .toast-cerrar { color: #343a40; }
         .meows-alerta-toast strong { display: block; font-size: 0.95rem; margin-bottom: 2px; }
         .meows-alerta-toast .toast-ver-detalle {
             display: inline-block; margin-top: 6px; font-weight: 700; text-decoration: underline;
@@ -407,24 +413,42 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         var idsYaMostrados = cargarIdsYaMostrados();
 
         // Lista completa de alertas para el panel de la campana (todo nivel de
-        // riesgo, no solo ROJO). Vive en memoria de esta pestaña — se reconstruye
-        // vacía si se recarga la página; los datos en sí siguen viniendo del
-        // servidor en cada sondeo, esto solo es el "ya las vi" de esta pestaña.
+        // riesgo, no solo ROJO). Vive en memoria de esta pestaña, pero se
+        // RECONSTRUYE COMPLETA en cada sondeo a partir de la respuesta del
+        // servidor (ver sondear() más abajo) — no depende de ir acumulando
+        // solo lo nuevo, así sobrevive intacta a una recarga de página.
+        //
+        // Descartar una alerta del panel al ver su detalle es responsabilidad
+        // del SERVIDOR (ver_meows en views.py apaga alerta_pendiente), no de
+        // esta pestaña: así, ver el detalle desde un equipo la da por
+        // atendida para CUALQUIER otro equipo/usuario también — antes esto
+        // solo se recordaba en el sessionStorage de quien la abría, y la
+        // misma alerta volvía a aparecer como nueva en cualquier otra
+        // pestaña o PC.
         var alertasPanel = [];
-        var noLeidas = 0;
         var MAX_ALERTAS_PANEL = 150;
 
         function actualizarCampana() {
             var btn = document.getElementById('meows-campana-btn');
             var badge = document.getElementById('meows-campana-badge');
             if (!btn || !badge) return;
-            if (noLeidas > 0) {
-                btn.classList.add('tiene-pendientes');
+            // Tanto el COLOR como el NÚMERO dependen de lo que sigue pendiente en
+            // alertasPanel ahora mismo (no de "nuevo desde la última vez que se
+            // abrió el panel") — y el número es EXCLUSIVAMENTE de rojas, a
+            // pedido: "la campana debe registrarme el número de alertas rojas,
+            // solo para rojas". Ni abrir el panel ni mirarlo baja esto: solo ver
+            // el detalle de cada alerta roja puntual (ver_meows en views.py).
+            var rojasPendientes = alertasPanel.filter(function (alerta) {
+                return String(alerta.riesgo || '').toUpperCase() === 'ROJO';
+            });
+            btn.classList.remove('tiene-rojo', 'tiene-amarillo');
+            if (rojasPendientes.length > 0) {
+                btn.classList.add('tiene-rojo');
                 badge.hidden = false;
-                badge.textContent = noLeidas > 99 ? '99+' : String(noLeidas);
+                badge.textContent = rojasPendientes.length > 99 ? '99+' : String(rojasPendientes.length);
             } else {
-                btn.classList.remove('tiene-pendientes');
                 badge.hidden = true;
+                if (alertasPanel.length > 0) btn.classList.add('tiene-amarillo');
             }
         }
 
@@ -444,28 +468,11 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                     '<strong>⚠ MEOWS ' + (alerta.riesgo || '') + ' — ' + (alerta.paciente || alerta.numero_documento || '') + '</strong>' +
                     '<span class="meows-panel-alerta-meta">Importado de Dinámica · ' + (alerta.fecha_hora || '') + '</span>' +
                     '<span class="toast-ver-detalle">Ver detalle →</span>';
+                // Clic normal de enlace: navega a ver_meows, que es quien marca
+                // esta alerta puntual como atendida (para todo el mundo, no solo
+                // esta pestaña) — nada que hacer aquí del lado del cliente.
                 lista.appendChild(a);
             });
-        }
-
-        function agregarAlPanel(alerta) {
-            alertasPanel.push(alerta);
-            // Orden estricto por la hora REAL de la medición (fecha_hora_iso),
-            // no por el orden de llegada al servidor — con el retraso de
-            // replicación de Nexus, una sola tanda puede traer lecturas de
-            // varias horas del día mezcladas, y cada tanda nueva no
-            // necesariamente llega en orden respecto a la anterior.
-            alertasPanel.sort(function (a, b) {
-                return new Date(b.fecha_hora_iso) - new Date(a.fecha_hora_iso);
-            });
-            if (alertasPanel.length > MAX_ALERTAS_PANEL) {
-                alertasPanel.length = MAX_ALERTAS_PANEL; // ya ordenado desc: conserva las más recientes
-            }
-            noLeidas += 1;
-            actualizarCampana();
-            // Si el panel ya está abierto, refleja la alerta nueva de inmediato.
-            var panel = document.getElementById('meows-panel-alertas');
-            if (panel && !panel.hidden) renderizarPanelAlertas();
         }
 
         // Expuesta en window: la llama el botón de la campana (onclick en el HTML)
@@ -478,8 +485,9 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             panel.hidden = !abrir;
             if (abrir) {
                 renderizarPanelAlertas();
-                noLeidas = 0;
-                actualizarCampana();
+                // Ya NO se limpia nada aquí: el color y el número de la campana
+                // son "lo que sigue pendiente", no "lo no leído" — abrir/mirar el
+                // panel no cuenta como atender una alerta, solo ver su detalle sí.
             }
         };
 
@@ -532,9 +540,9 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         }
 
         function mostrarToast(alerta) {
-            // Desde este cambio: SOLO para ROJO (ver sondear() más abajo). Todo lo
-            // demás va directo y en silencio al panel de la campana — evita que una
-            // tanda grande (ej. 49 alertas de golpe) tape la pantalla de toasts.
+            // Toda medición nueva muestra este aviso emergente (ver sondear() más
+            // abajo) — solo ROJO además dispara sonido. Se autocierra a los 15s
+            // (ver más abajo) para que una tanda grande no tape la pantalla.
             var stack = document.getElementById('meows-alerta-toast-stack');
             if (!stack) return;
             var div = document.createElement('div');
@@ -583,21 +591,49 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                     return r.json();
                 })
                 .then(function (data) {
-                    var nuevas = (data.alertas || []).filter(function (alerta) {
+                    var todas = data.alertas || [];
+
+                    // El panel se reconstruye COMPLETO en cada sondeo con lo que el
+                    // servidor todavía considera pendiente (ver_meows ya excluyó ahí
+                    // mismo lo que cualquier usuario/equipo haya atendido). Así, ver
+                    // el detalle de UNA alerta ya no hace desaparecer a las demás —
+                    // siguen ahí hasta que cada una se abra por su cuenta.
+                    alertasPanel = todas;
+                    alertasPanel.sort(function (a, b) {
+                        return new Date(b.fecha_hora_iso) - new Date(a.fecha_hora_iso);
+                    });
+                    if (alertasPanel.length > MAX_ALERTAS_PANEL) {
+                        alertasPanel.length = MAX_ALERTAS_PANEL; // ya ordenado desc: conserva las más recientes
+                    }
+                    var panelEl = document.getElementById('meows-panel-alertas');
+                    if (panelEl && !panelEl.hidden) renderizarPanelAlertas();
+                    // El color de la campana depende de alertasPanel, así que se
+                    // reevalúa en TODO sondeo (haya o no alertas "nuevas" esta vez) —
+                    // por ejemplo, al cargar una página después de haber descartado
+                    // la última roja pendiente, debe volver sola a azul o amarillo.
+                    actualizarCampana();
+
+                    // Toast + sonido, en cambio, sí son de una sola vez por pestaña:
+                    // esto es lo que nunca se le mostró a este usuario todavía.
+                    var nuevas = todas.filter(function (alerta) {
                         return !idsYaMostrados.has(alerta.medicion_id);
                     });
                     if (nuevas.length === 0) return;
+                    // 2026-09-08: toda medición nueva debe dar aviso emergente (no solo
+                    // quedar silenciosa en el panel); ROJO además suena, para que una
+                    // crítica sea imposible de pasar por alto aunque nadie esté mirando.
+                    var hayRojo = false;
                     nuevas.forEach(function (alerta) {
                         idsYaMostrados.add(alerta.medicion_id);
-                        // Todo nivel de riesgo entra al panel de la campana (silencioso).
-                        agregarAlPanel(alerta);
-                        // Solo ROJO además se muestra como aviso emergente inmediato.
+                        mostrarToast(alerta);
                         if (String(alerta.riesgo || '').toUpperCase() === 'ROJO') {
-                            mostrarToast(alerta);
+                            hayRojo = true;
                         }
                     });
+                    // (color/número de campana ya se actualizaron arriba, a partir
+                    // de alertasPanel — no dependen de "nuevas")
                     guardarIdsYaMostrados();
-                    sonarAlerta();
+                    if (hayRojo) sonarAlerta();
                     // La Línea de Tiempo Clínica (historial.html) es HTML estático desde
                     // que se cargó la página — este sondeo la avisa por el toast, pero la
                     // tabla en sí no se actualiza sola. Si la alerta es de la MISMA paciente

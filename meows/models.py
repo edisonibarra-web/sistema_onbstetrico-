@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from datetime import date
@@ -260,6 +261,20 @@ class Medicion(models.Model):
         help_text="Momento en que se disparó la alerta — usado para la ventana de "
                    "notificación del sidebar (ver api_alertas_pendientes en views.py). "
                    "No es lo mismo que fecha_hora, que es cuándo se tomó el signo vital.",
+    )
+    # "Visto" COMPARTIDO entre equipos/usuarios: antes solo vivía en el
+    # sessionStorage del navegador que abría el detalle, así que la misma
+    # alerta reaparecía como nueva en cualquier otra pestaña/PC. Al marcarse
+    # aquí (ver marcar_alerta_vista en views.py, llamado desde la vista de
+    # resultado), api_alertas_pendientes deja de devolverla para TODOS —
+    # decisión 2026-09-08: ver el detalle de una alerta la da por atendida
+    # para todo el mundo, no solo para quien la abrió.
+    alerta_vista_en = models.DateTimeField(null=True, blank=True)
+    alerta_vista_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="alertas_meows_vistas",
     )
 
     # 🧠 RESULTADOS MEOWS (se llenan luego)
