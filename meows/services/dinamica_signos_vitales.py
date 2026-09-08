@@ -35,11 +35,28 @@ cédula 27294904, revisados en sept/2026):
     veces el otro, para la misma paciente). Por eso `fc` se completa
     primero con FRECUENCIA CARDIACA y, si esa toma no la trae, se usa PULSO.
 
-Pendiente — Glasgow:
-    No existe todavía en Dinámica un signo vital utilizable para esto ni para
-    "% de O2 requerido para mantener Saturación > 95%" (la tarjeta MEOWS de
-    saturación usa por ahora SATURACION ARTERIAL DE OXIGENO directo, ver
-    arriba). Cuando se agreguen esos campos en Dinámica, completar aquí.
+Mapeo DE PRUEBA — Nivel de Conciencia y % de O2 requerido (2026-09-08):
+    Se acaban de agregar 2 signos vitales nuevos, pero SOLO en el ambiente de
+    PRUEBAS de Dinámica (base DGEMPRES01, servidor 172.20.100.188) — todavía
+    NO existen en DGEMPRES_NEXUS (producción, 172.20.100.209). Mientras se
+    valida esto con la jefe de sala de partos, la conexión 'readonly' apunta
+    TEMPORALMENTE a DGEMPRES01 (ver .env) y se usan estos OID:
+
+        OID  Nombre en Dinámica (DGEMPRES01)      -> campo MEOWS
+        27   % DE O2 PARA SaO2 >= 95%              -> o2_req (parámetro NUEVO)
+        28   NIVEL DE CONCIENCIA                   -> glasgow (ya existía)
+
+    ⚠️ IMPORTANTE: estos números de OID son específicos de DGEMPRES01 — cada
+    base de datos numera su propio catálogo HCNTIPSVIT de forma independiente,
+    así que NO hay garantía de que sean los mismos OID cuando estos campos se
+    confirmen y agreguen a DGEMPRES99/Nexus. Al volver a apuntar a Nexus, hay
+    que volver a consultar HCNTIPSVIT ahí y actualizar estas dos constantes
+    con los OID reales que le correspondan en esa base.
+
+    El puntaje de "o2_req" (RangoParametro) también es PROVISIONAL — un solo
+    tramo que da 0 puntos siempre, porque ni Dinámica ni la tabla física
+    FRSPA-026 tienen todavía los rangos oficiales confirmados. Reemplazar por
+    los tramos reales antes de usar esto con pacientes de verdad.
 """
 from django.db import connections
 
@@ -52,15 +69,17 @@ _OID_RESPIRACION = 19
 _OID_FETOCARDIO = 20
 _OID_SATURACION_O2 = 22
 
+# OID de PRUEBA, válidos solo en DGEMPRES01 (ver docstring arriba) — NO
+# confirmados todavía en Nexus/producción.
+_OID_O2_REQUERIDO = 27
+_OID_NIVEL_CONCIENCIA = 28
+
 _OIDS_USADOS = (
     _OID_TEMPERATURA, _OID_TENSION, _OID_PULSO,
     _OID_FRECUENCIA_CARDIACA, _OID_RESPIRACION,
     _OID_FETOCARDIO, _OID_SATURACION_O2,
+    _OID_O2_REQUERIDO, _OID_NIVEL_CONCIENCIA,
 )
-
-# TODO: Glasgow todavía no tiene un signo vital utilizable en Dinámica
-# (ver docstring). Mientras tanto, cada lectura queda con "glasgow": None,
-# tal como si esa medición manual no hubiera diligenciado ese campo.
 
 
 class MapeoNoConfigurado(Exception):
@@ -102,6 +121,7 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
             "fecha_hora": datetime,
             "ta_sys": 120, "ta_dia": 80, "fc": 88, "fr": 18,
             "temp": 36.8, "spo2": 97, "glasgow": None, "fcf": 140,
+            "o2_req": None,
         }
     (con None en los campos que esa toma no traiga diligenciados).
     """
@@ -137,6 +157,7 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
             "fecha_hora": hora,
             "ta_sys": None, "ta_dia": None, "fc": None, "fr": None,
             "temp": None, "spo2": None, "glasgow": None, "fcf": None,
+            "o2_req": None,
         })
         if tipo_oid == _OID_TEMPERATURA:
             lectura["temp"] = _a_numero(valor)
@@ -154,6 +175,10 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
             lectura["fcf"] = _a_numero(valor)
         elif tipo_oid == _OID_SATURACION_O2:
             lectura["spo2"] = _a_numero(valor)
+        elif tipo_oid == _OID_NIVEL_CONCIENCIA:
+            lectura["glasgow"] = _a_numero(valor)
+        elif tipo_oid == _OID_O2_REQUERIDO:
+            lectura["o2_req"] = _a_numero(valor)
 
     for hora, valor_pulso in pulso_por_hora.items():
         lectura = lecturas_por_hora.get(hora)

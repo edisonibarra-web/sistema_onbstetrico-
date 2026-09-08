@@ -215,6 +215,18 @@ body {
     border-bottom: none;
 }
 
+/* Mismo morado suave que ya usa MEOWS para "Información del Paciente" en
+   otras vistas (ver .info-section en meows-form.css) — antes esta sección
+   quedaba con el fondo blanco genérico de .section, sin nada que la
+   distinguiera visualmente de las demás. */
+.section.patient-section {
+    background: linear-gradient(135deg, #c4b5fd 0%, #ddd6fe 100%);
+    border: 1px solid #a78bfa;
+    border-bottom: 1px solid #a78bfa;
+    border-radius: 14px;
+    box-shadow: 0 14px 32px rgba(124, 58, 237, 0.16);
+}
+
 .section-title {
     font-size: 1.5rem;
     font-weight: 600;
@@ -266,12 +278,41 @@ body {
                 inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
+/* Amarillo INTENSO de verdad (no un fondo pálido con solo el borde marcado):
+   degradado sólido en el mismo amarillo/ámbar que ya usa el resto de la app
+   (badges, toasts) — las cajas blancas de puntaje/mensaje quedan con
+   contraste fuerte encima, así que el texto sigue siendo legible. */
 .resultado-card.resultado-amarillo {
-    border-color: var(--color-amarillo);
-    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 50%, #ffe69c 100%);
-    box-shadow: 0 8px 24px rgba(255, 193, 7, 0.2),
-                0 4px 12px rgba(255, 193, 7, 0.12),
-                inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    border-color: #b45309;
+    background: linear-gradient(135deg, #ffc107 0%, #ffb300 55%, #f59e0b 100%);
+    box-shadow: 0 10px 28px rgba(217, 119, 6, 0.35),
+                0 4px 12px rgba(217, 119, 6, 0.2);
+}
+
+.resultado-card.resultado-amarillo .resultado-header {
+    border-bottom-color: rgba(146, 64, 14, 0.25);
+}
+
+.resultado-card.resultado-amarillo .riesgo-amarillo {
+    background: #fff8e1;
+    border-color: #ffffff;
+}
+
+.resultado-card.resultado-amarillo .mensaje-text {
+    border: 1px solid #fbd999;
+    border-left: 4px solid #d97706;
+}
+
+/* "Grado de respuesta recomendada" y "Fecha y hora" van directo sobre el
+   fondo amarillo intenso (no dentro de una caja blanca) — con el gris/ámbar
+   claro de siempre se leían apagados ahí, así que se oscurecen un poco más. */
+.resultado-card.resultado-amarillo .mensaje-title {
+    color: #78350f;
+}
+
+.resultado-card.resultado-amarillo .resultado-meta {
+    color: #78350f;
+    border-top-color: rgba(120, 53, 15, 0.25);
 }
 
 .resultado-card.resultado-rojo {
@@ -419,7 +460,7 @@ body {
 
 .riesgo-amarillo {
     background: var(--color-amarillo);
-    color: #333;
+    color: #664d03;
     border-color: var(--color-amarillo);
 }
 
@@ -451,15 +492,58 @@ body {
     z-index: 2;
 }
 
-.resultado-card.resultado-rojo .resultado-score {
+/* La caja de "Puntaje total MEOWS" ahora se pinta por completo según el
+   riesgo de esa medición (igual que ya hacen el badge de riesgo, el panel de
+   la campana y los toasts) — antes era una caja blanca fija sin importar si
+   el resultado era blanco, verde, amarillo o rojo, así que no se distinguía
+   de un vistazo. Blanco/amarillo con texto oscuro (fondos claros); verde/
+   rojo con texto blanco (fondos oscuros/saturados). */
+.resultado-card.resultado-blanco .resultado-score {
     background: #ffffff;
-    border-color: #f3bcc3;
-    box-shadow: none;
+    border: 2px solid #6c757d;
 }
 
+.resultado-card.resultado-blanco .score-label,
+.resultado-card.resultado-blanco .score-value {
+    color: #343a40;
+}
+
+.resultado-card.resultado-verde .resultado-score {
+    background: var(--color-verde);
+    border-color: #1e7e34;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.resultado-card.resultado-verde .score-label,
+.resultado-card.resultado-verde .score-value {
+    color: #ffffff;
+}
+
+/* Ámbar oscuro (no el amarillo puro) a propósito: la tarjeta amarilla ya es
+   toda ella vívida (ver .resultado-card.resultado-amarillo arriba), así que
+   una caja del mismo amarillo se camuflaba contra su propio fondo — con un
+   tono más oscuro y texto blanco, igual que hacen verde/rojo, sí se distingue. */
+.resultado-card.resultado-amarillo .resultado-score {
+    background: #b45309;
+    border-color: #78350f;
+    box-shadow: 0 4px 12px rgba(120, 53, 15, 0.35);
+}
+
+.resultado-card.resultado-amarillo .score-label,
+.resultado-card.resultado-amarillo .score-value {
+    color: #ffffff;
+}
+
+.resultado-card.resultado-rojo .resultado-score {
+    background: var(--color-rojo);
+    border-color: #b4232d;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.35);
+}
+
+.resultado-card.resultado-rojo .score-label,
 .resultado-card.resultado-rojo .score-value {
-    color: #b4232d;
-    -webkit-text-fill-color: #b4232d;
+    color: #ffffff;
+    -webkit-text-fill-color: #ffffff;
     filter: none;
     animation: none;
 }

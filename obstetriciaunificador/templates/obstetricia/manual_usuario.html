@@ -519,20 +519,40 @@
                         🔔 de la parte superior derecha (visible en todas las pantallas del sistema) le avisa.
                     </p>
                     <ol class="steps">
-                        <li>Sin alertas pendientes, la campana se ve neutra. Cuando llega una nueva, se pone
-                            <b>roja y pulsa</b>, con un número que indica cuántas hay sin revisar.</li>
+                        <li>Sin alertas pendientes, la campana se ve azul/neutra. Se pone <b>roja y se agita</b>
+                            (con un número) mientras exista al menos una alerta <b>ROJA</b> sin revisar; si no hay
+                            ninguna roja pero sí otras pendientes (blanco/verde/amarillo), se pone
+                            <b>amarilla y pulsa</b> — así distingue de un vistazo qué tan urgente es lo que falta
+                            por ver.</li>
                         <li>Haga clic en la campana para abrir el panel con la lista completa: paciente, nivel de
-                            riesgo y fecha/hora. Haga clic en cualquiera para ir directo al detalle de esa medición.</li>
-                        <li>Al abrir el panel la campana vuelve a su color normal, pero las alertas siguen ahí
-                            listadas — nada se borra.</li>
-                        <li>Si el riesgo es <b>ROJO</b>, además de quedar en la campana aparece un aviso emergente
-                            en pantalla (se cierra solo después de unos segundos) y suena una alerta, para que sea
-                            difícil pasarlo por alto aunque nadie esté mirando la campana en ese momento.</li>
+                            riesgo y fecha/hora. Haga clic en <b>"Ver detalle"</b> de una alerta puntual para
+                            marcarla como atendida — recién ahí sale de la lista (para usted y para cualquier otro
+                            equipo/turno que también la esté viendo). Solo abrir el panel y mirarlo <b>no</b> la
+                            quita de la lista ni cambia el color de la campana.</li>
+                        <li>Además de quedar en la campana, cada alerta nueva muestra un aviso emergente en
+                            pantalla (se cierra solo después de unos segundos) y suena — con un tono agudo y más
+                            urgente si es <b>ROJO</b>, y un tono suave para el resto — para que sea difícil pasarlo
+                            por alto aunque nadie esté mirando la campana en ese momento. Si llegan varias a la vez,
+                            suenan una detrás de otra, cada una con su propio tono.</li>
                     </ol>
                     <div class="callout tip">
                         <i data-lucide="info" size="18"></i>
                         <span>La campana avisa de <b>cualquier paciente</b> del sistema, no solo de la que tiene
                         abierta — no necesita tener la ficha de esa paciente abierta para enterarse.</span>
+                    </div>
+
+                    <div class="callout warn">
+                        <i data-lucide="volume-2" size="18"></i>
+                        <span><b>Nota para el área de sistemas — configuración única por equipo:</b> los
+                        navegadores (Chrome, Edge) bloquean por seguridad cualquier sonido automático hasta que el
+                        usuario haga clic al menos una vez en la página. Como esta app cambia de página cada vez
+                        que se navega (entrar a una atención, "Ver detalle", etc.), eso puede hacer que una alerta
+                        muy temprana no suene la primera vez. La solución es permanente y se hace <b>una sola vez
+                        por computador</b>: clic en el ícono de candado 🔒 junto a la barra de direcciones →
+                        "Configuración de sitios" (o "Permisos para este sitio") → buscar <b>"Sonido"</b> → cambiar
+                        a <b>"Permitir"</b> → recargar la página. Con esto, las alertas suenan 100% automáticas en
+                        ese equipo, sin necesidad de ningún clic previo — recomendado hacerlo en cada computador de
+                        la sala de partos donde la app quede abierta todo el turno.</span>
                     </div>
 
                     <div class="screenshot-frame">

@@ -168,13 +168,21 @@ DATABASES = {
 
     'readonly': {  # 🔵 BD externa (NO TOCAR la lógica de solo-lectura)
         # Credenciales SIEMPRE desde variables de entorno (.env) — nunca hardcodeadas.
-        # Ver .env.example para las claves DGEMPRES_NEXUS_USER/PASSWORD/HOST.
+        # Ver .env.example para las claves DGEMPRES_NEXUS_USER/PASSWORD/HOST/NAME/PORT.
+        #
+        # 2026-09-08: NAME y PORT ahora también vienen de .env (antes NAME estaba
+        # fijo en "DGEMPRES_NEXUS" en este archivo). Motivo: mientras se validan
+        # los 2 campos nuevos (Nivel de Conciencia, % O2) con la jefe de sala de
+        # partos, esta conexión debe apuntar TEMPORALMENTE a la base de pruebas
+        # donde Dinámica realmente corre (DGEMPRES01 en 172.20.100.188) en vez
+        # de a DGEMPRES_NEXUS (172.20.100.209) — cambiar solo el .env, sin tocar
+        # código, y así también es más simple/seguro volver a producción después.
         'ENGINE': 'mssql',
-        'NAME': 'DGEMPRES_NEXUS',
+        'NAME': os.environ.get('DGEMPRES_NEXUS_NAME') or 'DGEMPRES_NEXUS',
         'USER': os.environ.get('DGEMPRES_NEXUS_USER', ''),
         'PASSWORD': os.environ.get('DGEMPRES_NEXUS_PASSWORD', ''),
         'HOST': os.environ.get('DGEMPRES_NEXUS_HOST', ''),
-        'PORT': '1433',
+        'PORT': os.environ.get('DGEMPRES_NEXUS_PORT') or '1433',
         'OPTIONS': {
             'driver': 'ODBC Driver 18 for SQL Server',
             'extra_params': 'Encrypt=yes;TrustServerCertificate=yes',

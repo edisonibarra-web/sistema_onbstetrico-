@@ -13,13 +13,19 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
          panel, toasts) sigue aquí igual que antes. -->
 
     <!-- Alertas MEOWS importadas automáticamente desde Dinámica (ver
-         meows/views.py:api_alertas_pendientes). El audio apunta al tono
-         generado en meows/static/sounds/alert_soft.wav (ver README ahí);
-         si por algún motivo no carga, cae al beep sintetizado de respaldo
-         (ver pitidoRespaldo más abajo). -->
-    <!-- preload="none": solo se pide el archivo al llamar a .play() (cuando
-         llega una alerta real), no en cada carga de página. -->
-    <audio id="alertSound" preload="none" src="/static/sounds/alert_soft.wav"></audio>
+         meows/views.py:api_alertas_pendientes). Dos tonos distintos según
+         qué tan urgente es lo que llegó — si alguno no carga, cae al beep
+         sintetizado de respaldo correspondiente (ver pitidoRespaldoUrgente/
+         pitidoRespaldoSuave más abajo). preload="none": solo se piden al
+         llamar a .play(), no en
+         cada carga de página. -->
+    <!-- ROJO: tono corto y agudo (dos pitidos), pensado para llamar la
+         atención de inmediato — ver meows/static/sounds/README.md. -->
+    <audio id="alertSoundRojo" preload="none" src="/static/sounds/alert_urgente.wav"></audio>
+    <!-- Blanco/Verde/Amarillo: el tono suave de una sola nota larga que ya
+         existía — este SÍ era su propósito original (ver README), quedó
+         libre para esto al crear el tono urgente específico para ROJO. -->
+    <audio id="alertSoundSuave" preload="none" src="/static/sounds/alert_soft.wav"></audio>
     <!-- Toasts: desde este cambio, SOLO se usan para riesgo ROJO (aviso breve,
          se autocierra) — todo lo demás (Blanco/Verde/Amarillo) va directo y en
          silencio al panel de la campana. Ver iniciarSondeoAlertasMeows más abajo. -->
@@ -32,6 +38,11 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             <strong>Alertas MEOWS</strong>
             <button type="button" class="meows-panel-cerrar" onclick="toggleMeowsPanelAlertas(false)" aria-label="Cerrar panel">✕</button>
         </div>
+        <!-- Aclaración pedida 2026-09-08: con la lista larga, no era obvio si lo
+             más reciente estaba arriba o abajo sin comparar horas a mano — se
+             confundía fácil. Fuera del área con scroll (.meows-panel-alertas-lista)
+             a propósito, para que quede siempre visible sin importar el scroll. -->
+        <div class="meows-panel-orden-info">↑ Más reciente arriba&nbsp;&nbsp;·&nbsp;&nbsp;Más antigua abajo ↓</div>
         <div class="meows-panel-alertas-lista" id="meows-panel-alertas-lista">
             <p class="meows-panel-vacio">Sin alertas por ahora.</p>
         </div>
@@ -110,6 +121,11 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             font-size: 1rem; cursor: pointer; padding: 2px 6px;
         }
         .meows-panel-cerrar:hover { color: #fff; }
+        .meows-panel-orden-info {
+            text-align: center; font-size: 0.72rem; font-weight: 700;
+            color: #64748b; background: #f1f5f9; padding: 5px 8px;
+            border-bottom: 1px solid #e2e8f0; letter-spacing: 0.02em;
+        }
         .meows-panel-alertas-lista { overflow-y: auto; padding: 8px; }
         .meows-panel-vacio { color: #94a3b8; font-size: 0.85rem; text-align: center; padding: 20px 8px; margin: 0; }
         .meows-panel-alerta-card {
@@ -376,9 +392,11 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
      * meows/management/commands/sincronizar_signos_vitales_dinamica.py.
      */
     (function iniciarSondeoAlertasMeows() {
-        // 5s mientras se prueba de cerca cómo salen las alertas; para uso normal
-        // volver a algo como 20000 (no hace falta más rápido que el propio job).
-        var INTERVALO_MS = 5000;
+        // 2026-09-08: ya en uso normal (no en pruebas de cerca) — la tarea
+        // programada real corre cada 2 minutos (ver
+        // sincronizar_signos_vitales_dinamica.bat), así que sondear cada 20s
+        // sigue siendo mucho más rápido que eso sin golpear el servidor de más.
+        var INTERVALO_MS = 20000;
 
         // El servidor ya no "consume" la alerta al primero que pregunta — devuelve
         // todo lo disparado en las últimas VENTANA_ALERTA_MINUTOS (24h) a
@@ -500,14 +518,36 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             window.toggleMeowsPanelAlertas(false);
         });
 
-        function pitidoRespaldo() {
-            // Respaldo por si alert_soft.wav no carga o el navegador bloquea su
-            // reproducción (ej. autoplay restringido sin interacción previa del
-            // usuario). Más fuerte (ganancia 0.5 en vez de 0.15) y prolongado (3
-            // pitidos, no uno solo) a propósito, para que sea difícil de ignorar
-            // en un pasillo con ruido.
+        // Compartido entre los dos pitidos de respaldo (y "desbloqueado" en la
+        // primera interacción del usuario, ver más abajo). Bug real encontrado
+        // 2026-09-08: cada pitido creaba un AudioContext NUEVO en el momento de
+        // sonar — como eso pasa dentro de un .catch() (no directo de un clic
+        // del usuario), el navegador lo crea "suspendido" y NUNCA se oye nada,
+        // sin ningún error visible: la alerta se notificaba en la campana pero
+        // el respaldo quedaba completamente mudo. Reutilizar un solo contexto
+        // ya "despierto" desde el primer clic soluciona esto de raíz.
+        var _audioCtxCompartido = null;
+        function obtenerAudioCtxCompartido() {
+            if (!_audioCtxCompartido) {
+                try {
+                    _audioCtxCompartido = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    return null;
+                }
+            }
+            return _audioCtxCompartido;
+        }
+
+        function pitidoRespaldoUrgente() {
+            // Respaldo por si alert_urgente.wav no carga o el navegador bloquea
+            // su reproducción (ej. autoplay restringido sin interacción previa
+            // del usuario). Fuerte (ganancia 0.5) y prolongado (3 pitidos, no
+            // uno solo) a propósito — es el de ROJO, difícil de ignorar en un
+            // pasillo con ruido.
             try {
-                var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                var ctx = obtenerAudioCtxCompartido();
+                if (!ctx) return;
+                if (ctx.state === 'suspended') ctx.resume();
                 var duracionPulso = 0.5;
                 var pausa = 0.15;
                 var pulsos = 3;
@@ -526,22 +566,87 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             } catch (e) { /* navegador sin Web Audio API: se omite el sonido */ }
         }
 
-        function sonarAlerta() {
-            var audio = document.getElementById('alertSound');
+        function pitidoRespaldoSuave() {
+            // Respaldo del tono NO rojo (blanco/verde/amarillo): un solo pulso,
+            // más bajo y corto que el de arriba — a propósito discreto, no debe
+            // confundirse con la urgencia de una alerta roja.
+            try {
+                var ctx = obtenerAudioCtxCompartido();
+                if (!ctx) return;
+                if (ctx.state === 'suspended') ctx.resume();
+                var osc = ctx.createOscillator();
+                var gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = 587; // D5, mismo registro que alert_soft.wav
+                gain.gain.setValueAtTime(0.18, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.6);
+            } catch (e) { /* navegador sin Web Audio API: se omite el sonido */ }
+        }
+
+        function sonarAlertaRoja() {
+            var audio = document.getElementById('alertSoundRojo');
             if (audio) {
                 audio.currentTime = 0;
                 var p = audio.play();
                 if (p && typeof p.catch === 'function') {
-                    p.catch(pitidoRespaldo);
+                    p.catch(pitidoRespaldoUrgente);
                 }
             } else {
-                pitidoRespaldo();
+                pitidoRespaldoUrgente();
             }
         }
 
+        function sonarAlertaSuave() {
+            var audio = document.getElementById('alertSoundSuave');
+            if (audio) {
+                audio.currentTime = 0;
+                var p = audio.play();
+                if (p && typeof p.catch === 'function') {
+                    p.catch(pitidoRespaldoSuave);
+                }
+            } else {
+                pitidoRespaldoSuave();
+            }
+        }
+
+        // "Desbloquea" el audio en la primera interacción real del usuario con
+        // la página (clic, tecla o toque) — cubre el caso de que una alerta
+        // llegue ANTES de que nadie haya tocado nada: sin esto, el navegador
+        // puede rechazar tanto el <audio> real como el AudioContext de
+        // respaldo en ese primer sondeo, y la alerta queda notificada en la
+        // campana pero completamente muda. Se hace una sola vez por pestaña.
+        (function habilitarAudioAlPrimerGesto() {
+            var yaDesbloqueado = false;
+            function desbloquear() {
+                if (yaDesbloqueado) return;
+                yaDesbloqueado = true;
+                var ctx = obtenerAudioCtxCompartido();
+                if (ctx && ctx.state === 'suspended') ctx.resume();
+                ['alertSoundRojo', 'alertSoundSuave'].forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (!el) return;
+                    var p = el.play();
+                    if (p && typeof p.then === 'function') {
+                        p.then(function () { el.pause(); el.currentTime = 0; }).catch(function () {});
+                    }
+                });
+                document.removeEventListener('click', desbloquear);
+                document.removeEventListener('keydown', desbloquear);
+                document.removeEventListener('touchstart', desbloquear);
+            }
+            document.addEventListener('click', desbloquear);
+            document.addEventListener('keydown', desbloquear);
+            document.addEventListener('touchstart', desbloquear);
+        })();
+
         function mostrarToast(alerta) {
             // Toda medición nueva muestra este aviso emergente (ver sondear() más
-            // abajo) — solo ROJO además dispara sonido. Se autocierra a los 15s
+            // abajo) — además suena, con un tono distinto según qué tan urgente
+            // es (ROJO = tono agudo/urgente; blanco/verde/amarillo = tono suave,
+            // ver sonarAlertaRoja/sonarAlertaSuave). Se autocierra a los 15s
             // (ver más abajo) para que una tanda grande no tape la pantalla.
             var stack = document.getElementById('meows-alerta-toast-stack');
             if (!stack) return;
@@ -620,20 +725,23 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                     });
                     if (nuevas.length === 0) return;
                     // 2026-09-08: toda medición nueva debe dar aviso emergente (no solo
-                    // quedar silenciosa en el panel); ROJO además suena, para que una
-                    // crítica sea imposible de pasar por alto aunque nadie esté mirando.
-                    var hayRojo = false;
-                    nuevas.forEach(function (alerta) {
+                    // quedar silenciosa en el panel), y CADA UNA suena por su cuenta con
+                    // el tono que le corresponde (ROJO = urgente, resto = suave) — no una
+                    // sola vez decidiendo "la peor" de toda la tanda. Se escalonan con un
+                    // pequeño retraso entre cada una (en vez de todas al mismo tiempo)
+                    // para que no se corten entre sí al compartir el mismo <audio>.
+                    var RETRASO_ENTRE_SONIDOS_MS = 900;
+                    nuevas.forEach(function (alerta, indice) {
                         idsYaMostrados.add(alerta.medicion_id);
                         mostrarToast(alerta);
-                        if (String(alerta.riesgo || '').toUpperCase() === 'ROJO') {
-                            hayRojo = true;
-                        }
+                        var esRojo = String(alerta.riesgo || '').toUpperCase() === 'ROJO';
+                        setTimeout(function () {
+                            if (esRojo) sonarAlertaRoja(); else sonarAlertaSuave();
+                        }, indice * RETRASO_ENTRE_SONIDOS_MS);
                     });
                     // (color/número de campana ya se actualizaron arriba, a partir
                     // de alertasPanel — no dependen de "nuevas")
                     guardarIdsYaMostrados();
-                    if (hayRojo) sonarAlerta();
                     // La Línea de Tiempo Clínica (historial.html) es HTML estático desde
                     // que se cargó la página — este sondeo la avisa por el toast, pero la
                     // tabla en sí no se actualiza sola. Si la alerta es de la MISMA paciente

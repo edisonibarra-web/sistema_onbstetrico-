@@ -1013,16 +1013,19 @@
     box-shadow: 3px 0 8px -3px rgba(15, 23, 42, 0.15);
 }
 
+/* Mismo degradado azul marino que usa el encabezado del app (ver
+   .header-formatos-institucionales en obstetricia/header_formatos.html) —
+   antes era un gris plano (#64748b) sin relación visual con el resto. */
 .grid-th-parametro,
 .grid-th-fila {
-    background: #64748b;
+    background: linear-gradient(135deg, #14213d 0%, #1e3a5f 55%, #2c4a6e 100%);
     color: #ffffff;
     z-index: 4;
 }
 
 .grid-th-tiempo,
 .grid-th-columna {
-    background: #64748b;
+    background: linear-gradient(135deg, #14213d 0%, #1e3a5f 55%, #2c4a6e 100%);
     color: #ffffff;
     font-weight: 700;
     white-space: nowrap;
@@ -1044,12 +1047,12 @@
    Angosta (no necesita ser ancha) y visualmente separada del resto de la
    tabla con un borde/sombra propios, como si fuera una franja aparte. */
 .grid-th-puntaje {
-    background: #64748b;
+    background: linear-gradient(135deg, #14213d 0%, #1e3a5f 55%, #2c4a6e 100%);
     color: #ffffff;
     width: 56px;
     min-width: 56px;
     max-width: 56px;
-    border-left: 4px solid #475569;
+    border-left: 4px solid #14213d;
     box-shadow: -6px 0 12px -6px rgba(15, 23, 42, 0.35);
 }
 
