@@ -13,22 +13,16 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
          panel, toasts) sigue aquí igual que antes. -->
 
     <!-- Alertas MEOWS importadas automáticamente desde Dinámica (ver
-         meows/views.py:api_alertas_pendientes). Dos tonos distintos según
-         qué tan urgente es lo que llegó — si alguno no carga, cae al beep
-         sintetizado de respaldo correspondiente (ver pitidoRespaldoUrgente/
-         pitidoRespaldoSuave más abajo). preload="none": solo se piden al
-         llamar a .play(), no en
-         cada carga de página. -->
-    <!-- ROJO: tono corto y agudo (dos pitidos), pensado para llamar la
-         atención de inmediato — ver meows/static/sounds/README.md. -->
+         meows/views.py:api_alertas_pendientes). El servidor ya solo envía
+         AMARILLO/ROJO (Blanco/Verde dejaron de generar alerta, a pedido de
+         enfermería 2026-09-09 — se siguen viendo en la Línea de Tiempo del
+         paciente, solo que sin sonido ni aviso emergente), así que queda un
+         único tono para ambos niveles — si no carga, cae al beep sintetizado
+         de respaldo (ver pitidoRespaldoUrgente más abajo). preload="none":
+         solo se pide al llamar a .play(), no en cada carga de página. -->
     <audio id="alertSoundRojo" preload="none" src="/static/sounds/alert_urgente.wav"></audio>
-    <!-- Blanco/Verde/Amarillo: el tono suave de una sola nota larga que ya
-         existía — este SÍ era su propósito original (ver README), quedó
-         libre para esto al crear el tono urgente específico para ROJO. -->
-    <audio id="alertSoundSuave" preload="none" src="/static/sounds/alert_soft.wav"></audio>
-    <!-- Toasts: desde este cambio, SOLO se usan para riesgo ROJO (aviso breve,
-         se autocierra) — todo lo demás (Blanco/Verde/Amarillo) va directo y en
-         silencio al panel de la campana. Ver iniciarSondeoAlertasMeows más abajo. -->
+    <!-- Toasts: aviso breve que se autocierra, para toda alerta nueva
+         (AMARILLO/ROJO). Ver iniciarSondeoAlertasMeows más abajo. -->
     <div id="meows-alerta-toast-stack" class="meows-alerta-toast-stack" aria-live="polite"></div>
 
     <!-- Panel de alertas de la campana: lista completa (todo nivel de riesgo),
@@ -179,11 +173,13 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                 <div class="sidebar-module-name">Inicio</div>
             </div>
         </div>
+        <!-- 2026-09-09: se quitó el botón "Dashboard" -- esa pantalla de
+             bienvenida se movió al login (ver frecuenciafetal/templates/
+             frecuenciafetal/login.html) y /atencion/ ahora redirige directo
+             a Sala de Partos (ver obstetriciaunificador/views.py:dashboard).
+             Solo queda "Manual de Usuario" en este grupo. -->
         <div class="sidebar-module-dropdown expanded" style="margin-top: 0; padding-top: 0;">
             <nav class="tabs">
-                <a href="/atencion/" class="tabs-link {% if is_dashboard %}active{% endif %}" title="Dashboard">
-                    <span class="tab-icon-badge badge-dashboard"><i data-lucide="layout-dashboard" class="nav-icon"></i></span> <span class="tabs-link-text">Dashboard</span>
-                </a>
                 <a href="/atencion/manual/" class="tabs-link {% if is_manual %}active{% endif %}" title="Manual de Usuario">
                     <span class="tab-icon-badge badge-manual"><i data-lucide="book-open" class="nav-icon"></i></span> <span class="tabs-link-text">Manual de Usuario</span>
                 </a>
@@ -205,7 +201,7 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         </a>
         <div id="modulo-clinico-dropdown" class="sidebar-module-dropdown" style="margin-top: 0; padding-top: 0;">
             <nav class="tabs">
-                <a href="/meows/crear/{{ documento|urlencode }}/?atencion={{ atencion_id }}" class="tabs-link {% if current_module == 'meows' %}active{% endif %}" title="MEOWS">
+                <a href="/meows/historial-doc/{{ documento|urlencode }}/?atencion={{ atencion_id }}" class="tabs-link {% if current_module == 'meows' %}active{% endif %}" title="MEOWS">
                     <span class="tab-icon-badge badge-meows"><i data-lucide="activity" class="nav-icon"></i></span> <span class="tabs-link-text">MEOWS</span>
                 </a>
                 <a href="/fetal/?doc={{ documento|urlencode }}&atencion={{ atencion_id }}" class="tabs-link {% if current_module == 'fetal' %}active{% endif %}" title="Control Posparto Inmediato">
@@ -430,8 +426,10 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         }
         var idsYaMostrados = cargarIdsYaMostrados();
 
-        // Lista completa de alertas para el panel de la campana (todo nivel de
-        // riesgo, no solo ROJO). Vive en memoria de esta pestaña, pero se
+        // Lista completa de alertas para el panel de la campana. Desde
+        // 2026-09-09 el servidor solo manda AMARILLO/ROJO (ver
+        // api_alertas_pendientes) — Blanco/Verde ya no entran aquí, a pedido
+        // de enfermería. Vive en memoria de esta pestaña, pero se
         // RECONSTRUYE COMPLETA en cada sondeo a partir de la respuesta del
         // servidor (ver sondear() más abajo) — no depende de ir acumulando
         // solo lo nuevo, así sobrevive intacta a una recarga de página.
@@ -452,10 +450,12 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             if (!btn || !badge) return;
             // Tanto el COLOR como el NÚMERO dependen de lo que sigue pendiente en
             // alertasPanel ahora mismo (no de "nuevo desde la última vez que se
-            // abrió el panel") — y el número es EXCLUSIVAMENTE de rojas, a
-            // pedido: "la campana debe registrarme el número de alertas rojas,
-            // solo para rojas". Ni abrir el panel ni mirarlo baja esto: solo ver
-            // el detalle de cada alerta roja puntual (ver_meows en views.py).
+            // abrió el panel"). El número muestra rojas pendientes cuando hay
+            // (campana roja); si no hay rojas pero sí queda algo pendiente
+            // (campana amarilla), el número pasa a contar esas pendientes —
+            // a pedido: "cuando la campana esté amarilla cuéntalas también".
+            // Ni abrir el panel ni mirarlo baja esto: solo ver el detalle de
+            // cada alerta puntual la quita (ver_meows en views.py).
             var rojasPendientes = alertasPanel.filter(function (alerta) {
                 return String(alerta.riesgo || '').toUpperCase() === 'ROJO';
             });
@@ -464,9 +464,12 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                 btn.classList.add('tiene-rojo');
                 badge.hidden = false;
                 badge.textContent = rojasPendientes.length > 99 ? '99+' : String(rojasPendientes.length);
+            } else if (alertasPanel.length > 0) {
+                btn.classList.add('tiene-amarillo');
+                badge.hidden = false;
+                badge.textContent = alertasPanel.length > 99 ? '99+' : String(alertasPanel.length);
             } else {
                 badge.hidden = true;
-                if (alertasPanel.length > 0) btn.classList.add('tiene-amarillo');
             }
         }
 
@@ -566,27 +569,11 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             } catch (e) { /* navegador sin Web Audio API: se omite el sonido */ }
         }
 
-        function pitidoRespaldoSuave() {
-            // Respaldo del tono NO rojo (blanco/verde/amarillo): un solo pulso,
-            // más bajo y corto que el de arriba — a propósito discreto, no debe
-            // confundirse con la urgencia de una alerta roja.
-            try {
-                var ctx = obtenerAudioCtxCompartido();
-                if (!ctx) return;
-                if (ctx.state === 'suspended') ctx.resume();
-                var osc = ctx.createOscillator();
-                var gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.frequency.value = 587; // D5, mismo registro que alert_soft.wav
-                gain.gain.setValueAtTime(0.18, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.6);
-            } catch (e) { /* navegador sin Web Audio API: se omite el sonido */ }
-        }
-
-        function sonarAlertaRoja() {
+        // 2026-09-09: se quitó el tono suave (pitidoRespaldoSuave/
+        // sonarAlertaSuave) — ya no hace falta porque Blanco/Verde dejaron de
+        // notificar del todo, y AMARILLO/ROJO comparten ahora el mismo tono
+        // urgente (sonarAlertaMeows, antes "sonarAlertaRoja").
+        function sonarAlertaMeows() {
             var audio = document.getElementById('alertSoundRojo');
             if (audio) {
                 audio.currentTime = 0;
@@ -596,19 +583,6 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                 }
             } else {
                 pitidoRespaldoUrgente();
-            }
-        }
-
-        function sonarAlertaSuave() {
-            var audio = document.getElementById('alertSoundSuave');
-            if (audio) {
-                audio.currentTime = 0;
-                var p = audio.play();
-                if (p && typeof p.catch === 'function') {
-                    p.catch(pitidoRespaldoSuave);
-                }
-            } else {
-                pitidoRespaldoSuave();
             }
         }
 
@@ -625,7 +599,7 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                 yaDesbloqueado = true;
                 var ctx = obtenerAudioCtxCompartido();
                 if (ctx && ctx.state === 'suspended') ctx.resume();
-                ['alertSoundRojo', 'alertSoundSuave'].forEach(function (id) {
+                ['alertSoundRojo'].forEach(function (id) {
                     var el = document.getElementById(id);
                     if (!el) return;
                     var p = el.play();
@@ -643,11 +617,11 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         })();
 
         function mostrarToast(alerta) {
-            // Toda medición nueva muestra este aviso emergente (ver sondear() más
-            // abajo) — además suena, con un tono distinto según qué tan urgente
-            // es (ROJO = tono agudo/urgente; blanco/verde/amarillo = tono suave,
-            // ver sonarAlertaRoja/sonarAlertaSuave). Se autocierra a los 15s
-            // (ver más abajo) para que una tanda grande no tape la pantalla.
+            // Toda alerta nueva (AMARILLO/ROJO — Blanco/Verde ya no llegan aquí,
+            // ver api_alertas_pendientes) muestra este aviso emergente (ver
+            // sondear() más abajo) y suena con el único tono urgente que queda
+            // (ver sonarAlertaMeows). Se autocierra a los 15s (ver más abajo)
+            // para que una tanda grande no tape la pantalla.
             var stack = document.getElementById('meows-alerta-toast-stack');
             if (!stack) return;
             var div = document.createElement('div');
@@ -725,19 +699,18 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                     });
                     if (nuevas.length === 0) return;
                     // 2026-09-08: toda medición nueva debe dar aviso emergente (no solo
-                    // quedar silenciosa en el panel), y CADA UNA suena por su cuenta con
-                    // el tono que le corresponde (ROJO = urgente, resto = suave) — no una
-                    // sola vez decidiendo "la peor" de toda la tanda. Se escalonan con un
-                    // pequeño retraso entre cada una (en vez de todas al mismo tiempo)
+                    // quedar silenciosa en el panel), y CADA UNA suena por su cuenta — no
+                    // una sola vez decidiendo "la peor" de toda la tanda. Se escalonan con
+                    // un pequeño retraso entre cada una (en vez de todas al mismo tiempo)
                     // para que no se corten entre sí al compartir el mismo <audio>.
+                    // 2026-09-09: el servidor ya solo manda AMARILLO/ROJO (ver
+                    // api_alertas_pendientes), así que las dos usan el mismo tono único
+                    // (sonarAlertaMeows) — ya no hay que distinguir por riesgo aquí.
                     var RETRASO_ENTRE_SONIDOS_MS = 900;
                     nuevas.forEach(function (alerta, indice) {
                         idsYaMostrados.add(alerta.medicion_id);
                         mostrarToast(alerta);
-                        var esRojo = String(alerta.riesgo || '').toUpperCase() === 'ROJO';
-                        setTimeout(function () {
-                            if (esRojo) sonarAlertaRoja(); else sonarAlertaSuave();
-                        }, indice * RETRASO_ENTRE_SONIDOS_MS);
+                        setTimeout(sonarAlertaMeows, indice * RETRASO_ENTRE_SONIDOS_MS);
                     });
                     // (color/número de campana ya se actualizaron arriba, a partir
                     // de alertasPanel — no dependen de "nuevas")

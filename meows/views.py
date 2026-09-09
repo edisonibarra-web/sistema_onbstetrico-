@@ -83,6 +83,15 @@ def abrir_historial_meows_desde_documento(request, doc=None):
 # igual se muestra como referencia informativa. Ver crear_medicion_meows.
 VENTANA_PRELLENADO_DINAMICA_HORAS = 6
 
+# 2026-09-09: a pedido, Dinámica pasa a ser la ÚNICA fuente de mediciones
+# MEOWS (todo llega por la sincronización automática) — ya no debe poder
+# crearse ni corregirse una medición a mano desde la interfaz. Se bloquea
+# aquí, en el punto de entrada único de ambas rutas ('crear_meows' y
+# 'editar_meows'), en vez de borrar la vista: si algún día falla la
+# sincronización con Dinámica y hace falta un respaldo manual temporal,
+# basta con volver a poner esto en True — el resto del código ya está listo.
+PERMITIR_CREACION_MANUAL_MEOWS = False
+
 
 @never_cache
 @login_required_if_enabled
@@ -92,7 +101,24 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
     una medición ya guardada (cuando se llega con medicion_id, vía la URL
     'editar_meows') y así poder corregir un error humano sin crear un
     registro duplicado.
+
+    Deshabilitada por defecto (ver PERMITIR_CREACION_MANUAL_MEOWS arriba):
+    Dinámica es ahora la única fuente de mediciones.
     """
+    if not PERMITIR_CREACION_MANUAL_MEOWS:
+        messages.info(
+            request,
+            "El registro manual de MEOWS está deshabilitado: todas las mediciones "
+            "se sincronizan automáticamente desde Dinámica.",
+        )
+        # Ruta literal (no reverse por nombre): 'meows.urls' está incluido dos
+        # veces en el proyecto (/meows/... y /fetal/meows/..., mismo nombre de
+        # URL en ambos) y reverse() puede devolver cualquiera de los dos. Con
+        # la ruta fija, el redirect siempre cae en el prefijo canónico.
+        if medicion_id:
+            return redirect(f"/meows/resultado/{medicion_id}/")
+        return redirect(f"/meows/historial/{paciente_id}/")
+
     atencion_id = request.GET.get("atencion")
 
     medicion_editar = None
@@ -338,14 +364,15 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
         medicion.meows_riesgo = resultados_meows["meows_riesgo"]
         medicion.meows_mensaje = resultados_meows["meows_mensaje"]
         # Notifica en el sidebar (toast + sonido) igual que las mediciones
-        # importadas de Dinámica, sin importar el riesgo — decisión del
-        # usuario (2026-09-03) de no dejar los registros manuales sin avisar.
-        medicion.alerta_pendiente = True
-        medicion.alerta_generada_en = timezone.now()
-        medicion.save(update_fields=[
-            "meows_total", "meows_riesgo", "meows_mensaje",
-            "alerta_pendiente", "alerta_generada_en",
-        ])
+        # importadas de Dinámica: solo Amarillo/Rojo interrumpen con alerta,
+        # a pedido de enfermería (2026-09-09) — ver la misma regla en
+        # sincronizar_signos_vitales_dinamica.py:disparar_alerta().
+        campos_a_guardar = ["meows_total", "meows_riesgo", "meows_mensaje"]
+        if resultados_meows["meows_riesgo"] in ("AMARILLO", "ROJO"):
+            medicion.alerta_pendiente = True
+            medicion.alerta_generada_en = timezone.now()
+            campos_a_guardar += ["alerta_pendiente", "alerta_generada_en"]
+        medicion.save(update_fields=campos_a_guardar)
 
         if medicion_editar:
             # Al corregir un registro existente, volver a su detalle para
@@ -397,9 +424,27 @@ def ver_meows(request, medicion_id):
         medicion.alerta_vista_por = request.user if request.user.is_authenticated else None
         medicion.save(update_fields=["alerta_pendiente", "alerta_vista_en", "alerta_vista_por"])
 
+    # 2026-09-09: antes solo se listaban los MedicionValor que YA existían
+    # para esta medición — si Dinámica no trajo, por ejemplo, Frecuencia
+    # Cardíaca Fetal o Nivel de Conciencia en esa toma puntual, la card de ese
+    # parámetro simplemente no aparecía (parecía que ni existiera en el
+    # sistema). Ahora se recorren TODOS los parámetros activos y, al que le
+    # falte valor, se le arma una card vacía ("Sin registrar") en vez de
+    # omitirla — igual de completo que la Línea de Tiempo Clínica, que sí
+    # muestra las 8 columnas siempre.
+    valores_guardados = {
+        v.parametro_id: v
+        for v in medicion.valores.select_related("parametro")
+    }
+    valores = [
+        valores_guardados.get(parametro.id)
+        or MedicionValor(medicion=medicion, parametro=parametro, valor="", puntaje=None)
+        for parametro in Parametro.objects.filter(activo=True).order_by("orden")
+    ]
+
     return render(request, "meows/resultado.html", {
         "medicion": medicion,
-        "valores": medicion.valores.select_related("parametro").order_by("parametro__orden"),
+        "valores": valores,
         "atencion_id": medicion.atencion_id,
         "documento": medicion.paciente.numero_documento,
     })

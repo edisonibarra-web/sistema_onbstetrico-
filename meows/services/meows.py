@@ -167,29 +167,6 @@ def score_temp(valor: float) -> int:
         return 3
 
 
-def score_spo2(valor: int) -> int:
-    """
-    Calcula el puntaje para Saturación de Oxígeno (SpO2).
-    
-    Args:
-        valor: Saturación de oxígeno en %
-        
-    Returns:
-        0: Normal (>=95)
-        1: Moderado (93-94)
-        2: Moderado-Alto (90-92)
-        3: Crítico (<90)
-    """
-    if valor < 90:
-        return 3
-    elif 90 <= valor <= 92:
-        return 2
-    elif 93 <= valor <= 94:
-        return 1
-    else:  # >= 95
-        return 0
-
-
 def score_glasgow(valor: int) -> int:
     """
     Calcula el puntaje para Escala de Glasgow.
@@ -216,12 +193,19 @@ def score_glasgow(valor: int) -> int:
 # ============================================================================
 # 📌 MAPEO DE FUNCIONES POR CÓDIGO DE PARÁMETRO (LEGACY)
 # ============================================================================
+# 2026-09-09: se quitó "spo2" (Saturación de Oxígeno) de aquí a propósito, no
+# es un olvido — era un sustituto temporal de "% de O2 requerido" (o2_req)
+# mientras ese campo oficial no existía en Dinámica (ver cargar_rangos_meows.py
+# para el detalle histórico). Con o2_req ya disponible, SpO2 se quitó del
+# sistema MEOWS por completo (Parametro.activo=False + no se sincroniza más
+# desde Dinámica, ver dinamica_signos_vitales.py) — si quedara aquí, cualquier
+# código que todavía pasara una clave "spo2" la seguiría puntuando por este
+# fallback aunque el parámetro esté desactivado en la base de datos.
 SCORE_FUNCTIONS = {
     "fc": score_fc,
     "ta_sys": score_ta_sistolica,
     "fr": score_fr,
     "temp": score_temp,
-    "spo2": score_spo2,
     "glasgow": score_glasgow,
 }
 
@@ -240,7 +224,6 @@ def evaluar_meows(valores: dict, usar_bd: bool = True) -> dict:
                     "ta_sys": 95,
                     "fr": 28,
                     "temp": 38.2,
-                    "spo2": 94,
                     "glasgow": 14
                 }
         usar_bd: Si True, usa rangos desde base de datos. Si False, usa funciones legacy.
@@ -373,7 +356,6 @@ def calcular_meows(valores: dict, usar_bd: bool = True) -> dict:
                     "ta_sys": 85,
                     "fr": 32,
                     "temp": 38.6,
-                    "spo2": 91,
                     "glasgow": 13,
                 }
         usar_bd: Si True, usa rangos desde base de datos. Si False, usa funciones legacy.

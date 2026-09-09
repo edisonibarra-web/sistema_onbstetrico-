@@ -1,5 +1,5 @@
 
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
@@ -273,12 +273,18 @@ def get_parto_trazabilidad(documento):
 @login_required_if_enabled
 def dashboard(request):
     """
-    Vista de bienvenida al aplicativo (Dashboard General).
+    2026-09-09: la vista de bienvenida (tarjeta "Sistema Obstétrico Unificado"
+    + las 3 features) se movió a la pantalla de login (ver frecuenciafetal/
+    templates/frecuenciafetal/login.html) -- ya no tiene sentido repetirla
+    después de iniciar sesión. Esta ruta ('/atencion/', raíz del sitio tras
+    home() en sistema_obstetrico/urls.py) ahora entra directo a Sala de
+    Partos, que es lo que la propia pantalla de bienvenida ya le pedía hacer
+    al usuario ("Use Sala de Partos para identificar a la paciente").
+    Se deja esta vista (en vez de apuntar la URL raíz directo a sala_de_partos
+    en urls.py) para no tener que tocar las 2 rutas que ya apuntan aquí
+    (sistema_obstetrico/urls.py:home y obstetriciaunificador/urls.py:'').
     """
-    return render(request, "obstetricia/dashboard.html", {
-        "is_dashboard": True,
-        "title": "Bienvenido al Sistema Obstétrico"
-    })
+    return redirect("sala_de_partos")
 
 
 @login_required_if_enabled

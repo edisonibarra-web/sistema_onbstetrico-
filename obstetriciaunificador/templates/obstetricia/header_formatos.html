@@ -148,6 +148,28 @@
     transform: translateY(-2px) scale(1.05);
     box-shadow: 0 6px 20px rgba(14, 165, 233, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
+/* 2026-09-09: botón de cerrar sesión, mismo estilo circular que la campana
+   (a pedido, "al lado de la campana") — /logout/ ya existía
+   (frecuenciafetal.views.logout_view) pero no tenía ningún botón visible en
+   ninguna pantalla. Va en este encabezado (no en el sidebar) porque este sí
+   está incluido siempre, en todas las pantallas. */
+.header-logout-btn {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    width: 58px; height: 58px; flex-shrink: 0;
+    border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+    text-decoration: none;
+}
+.header-logout-btn svg { width: 26px; height: 26px; }
+.header-logout-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
 /* Tres estados según lo que haya PENDIENTE de verse ahora mismo (no según lo
    "nuevo desde la última vez que se abrió el panel" — ver actualizarCampana()
    en sidebar.html):
@@ -215,15 +237,19 @@
         <img src="{% static 'img/logo_acreditacion.png' %}" alt="Logo Acreditación">
     </div>
     <div class="header-formatos-logo-right">
-        <!-- Campana de alertas MEOWS: verde/neutra sin pendientes, roja con
-             pulso y contador cuando llegan alertas nuevas (todo nivel de
-             riesgo). Clic abre el panel con la lista completa — ver el JS en
+        <!-- Campana de alertas MEOWS: azul/neutra sin pendientes, roja con
+             pulso y contador cuando llegan alertas nuevas de riesgo AMARILLO
+             o ROJO (Blanco/Verde ya no notifican, a pedido de enfermería
+             2026-09-09). Clic abre el panel con la lista completa — ver el JS en
              obstetricia/sidebar.html (toggleMeowsPanelAlertas), incluido
              siempre junto a este encabezado en todas las pantallas. -->
         <button type="button" class="meows-campana-btn" id="meows-campana-btn" title="Alertas MEOWS" onclick="toggleMeowsPanelAlertas()">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
             <span class="meows-campana-badge" id="meows-campana-badge" hidden>0</span>
         </button>
+        <a href="/logout/" class="header-logout-btn" title="Cerrar Sesión" onclick="return confirm('¿Seguro que desea cerrar la sesión?');">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></svg>
+        </a>
         {% if not ocultar_btn_regresar %}
         <a href="/atencion/sala-de-partos/{% if documento %}?num_identificacion={{ documento|urlencode }}{% elif atencion and atencion.paciente %}?num_identificacion={{ atencion.paciente|urlencode }}{% endif %}" class="btn-back-modules" title="Volver a los Módulos">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-grid"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>

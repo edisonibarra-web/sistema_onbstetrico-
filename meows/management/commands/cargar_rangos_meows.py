@@ -48,16 +48,14 @@ RANGOS_MEOWS = {
         {"valor_min": 25, "valor_max": 29, "score": 2, "orden": 5},  # AMARILLO
         {"valor_min": 30, "valor_max": 999, "score": 3, "orden": 6},  # ROJO (>=30)
     ],
-    "spo2": [  # Saturación de Oxígeno por oximetría de pulso (%), directo del oxímetro.
-        # Nota: la tabla oficial MEOWS muestra "% de O2 requerido" (FiO2 suplementario)
-        # en vez de SpO2 directo, pero se confirmó que Dinámica solo tiene disponible
-        # "SATURACION ARTERIAL DE OXIGENO" (SpO2 directo) — el campo de % de O2
-        # requerido no existe todavía ahí — por eso se usa SpO2 directo aquí.
-        {"valor_min": 0, "valor_max": 89, "score": 3, "orden": 1},  # ROJO
-        {"valor_min": 90, "valor_max": 92, "score": 2, "orden": 2},  # AMARILLO
-        {"valor_min": 93, "valor_max": 94, "score": 1, "orden": 3},  # VERDE
-        {"valor_min": 95, "valor_max": 100, "score": 0, "orden": 4},  # BLANCO (>=95%)
-    ],
+    # "spo2" (Saturación de Oxígeno por oximetría de pulso) — QUITADO el 2026-09-09.
+    # Se usaba como sustituto de "% de O2 requerido" (tabla oficial MEOWS) mientras
+    # Dinámica no tenía ese campo disponible (solo traía SpO2 directo del oxímetro,
+    # OID 22 "SATURACION ARTERIAL DE OXIGENO"). Con "o2_req" ya confirmado y en uso
+    # (ver más abajo), SpO2 sobra — se desactivó el Parametro (activo=False) y se
+    # quitó su extracción en meows/services/dinamica_signos_vitales.py. Rangos que
+    # tenía, por si algún día hiciera falta reactivarlo:
+    #   0-89 -> 3 (ROJO), 90-92 -> 2 (AMARILLO), 93-94 -> 1 (VERDE), 95-100 -> 0 (BLANCO)
     "glasgow": [  # Escala de Glasgow
         {"valor_min": 0, "valor_max": 14, "score": 3, "orden": 1},  # ROJO (<15)
         {"valor_min": 15, "valor_max": 15, "score": 0, "orden": 2},  # BLANCO (Alerta=Glasgow 15)

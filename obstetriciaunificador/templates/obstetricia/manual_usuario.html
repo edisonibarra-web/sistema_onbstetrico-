@@ -443,62 +443,33 @@
                         <h2>3. Módulo MEOWS — Alerta Temprana Obstétrica</h2>
                     </div>
                     <p class="section-sub">
-                        Aquí se registran los signos vitales de la paciente. El sistema calcula automáticamente un
-                        puntaje y le indica el nivel de riesgo con un color, igual que el formato físico FRSPA-026.
+                        Aquí se consultan los signos vitales de la paciente. El sistema los trae automáticamente
+                        desde Dinámica Gerencial, calcula un puntaje y le indica el nivel de riesgo con un color,
+                        igual que el formato físico FRSPA-026.
                     </p>
 
                     <div class="screenshot-frame">
-                        <img src="{% static 'manual/meows_formulario.png' %}?v=5" alt="Pantalla del formulario MEOWS">
+                        <img src="{% static 'manual/linea_tiempo_meows.png' %}?v=2" alt="Línea de Tiempo Clínica MEOWS">
                     </div>
                     <div class="screenshot-caption">
                         <i data-lucide="camera" size="14"></i>
-                        <span>Vista real del formulario MEOWS: la tarjeta morada "Última lectura automática de Dinámica" arriba, los parámetros vitales (con el distintivo 🔗 en las cards que vienen de Dinámica) a la izquierda, y el panel "Resumen" a la derecha.</span>
+                        <span>Línea de Tiempo Clínica de una paciente, con las mediciones importadas automáticamente de Dinámica (distintivo "🔗 Dinámica" bajo cada fecha/hora) y el puntaje total al pie de cada columna.</span>
                         <span class="zoom-hint">🔍 Clic para ampliar</span>
                     </div>
 
-                    <h3 class="step-title">Registro automático desde Dinámica (novedad)</h3>
+                    <h3 class="step-title">Registro automático desde Dinámica — única fuente de datos</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 6px;">
-                        Ya no es necesario digitar en MEOWS lo que la enfermería registra en Dinámica Gerencial. El
-                        sistema revisa Dinámica solo, cada pocos minutos, y si encuentra signos vitales nuevos de
-                        una paciente en atención, crea el registro MEOWS automáticamente, calcula el puntaje y
-                        dispara la alerta si corresponde — sin que nadie tenga que abrir su ficha.
+                        Ya no se digita nada en MEOWS: el sistema revisa Dinámica solo, cada pocos minutos, y si
+                        encuentra signos vitales nuevos de una paciente en atención, crea el registro MEOWS
+                        automáticamente, calcula el puntaje y dispara la alerta si corresponde — sin que nadie
+                        tenga que abrir su ficha ni digitar nada.
                     </p>
-                    <ul class="plain">
-                        <li>Al entrar al formulario de una paciente, si existe una lectura automática de Dinámica
-                            de las <b>últimas 6 horas</b>, aparece una tarjeta morada
-                            "🔗 Última lectura automática de Dinámica" con los valores, y las cards de abajo ya
-                            vienen precargadas con ese dato — solo revíselas y ajuste lo que haya cambiado antes de guardar.</li>
-                        <li>Si la última lectura es más antigua que 6 horas, la misma tarjeta se sigue mostrando
-                            (para que sepa que existe), pero las cards quedan en blanco para diligenciar manual.</li>
-                        <li>Cada card que viene de esa lectura automática trae un pequeño distintivo 🔗 en la
-                            esquina, para diferenciarla de un dato digitado a mano.</li>
-                        <li>Si un signo vital todavía no lo trae Dinámica (por ahora: Escala de Glasgow), esa card
-                            se sigue diligenciando siempre a mano.</li>
-                    </ul>
-                    <div class="callout tip">
-                        <i data-lucide="info" size="18"></i>
-                        <span>Esto no le quita la opción de registrar manualmente: si prefiere digitar el dato usted
-                        mismo, o si el automático no llegó todavía, use el formulario exactamente como siempre.</span>
+                    <div class="callout warn">
+                        <i data-lucide="alert-triangle" size="18"></i>
+                        <span>Desde el 2026-09-09, MEOWS <b>ya no permite crear ni corregir mediciones a mano</b> —
+                        Dinámica es la única fuente de verdad. Si un dato se registró mal, corríjalo en Dinámica
+                        (vea la pregunta frecuente más abajo).</span>
                     </div>
-
-                    <h3 class="step-title">Registrar una nueva medición (manual)</h3>
-                    <ol class="steps">
-                        <li>Desde Sala de Partos, entre a la tarjeta <b>MODULO MEOWS</b> de la paciente (o, si ya
-                            está dentro de una atención, use el menú lateral: Sala de Partos → MEOWS).</li>
-                        <li>Los datos de la paciente (nombre, documento, aseguradora, cama, etc.) se completan solos.</li>
-                        <li>Indique la <b>fecha y hora</b> en que se tomaron los signos vitales.</li>
-                        <li>Diligencie cada signo vital disponible: presión arterial, frecuencia cardíaca,
-                            frecuencia respiratoria, temperatura, saturación de oxígeno, estado de conciencia
-                            (Glasgow) y, si aplica, frecuencia cardíaca fetal. No es obligatorio llenarlos todos —
-                            solo los que haya tomado.</li>
-                        <li>A medida que ingresa cada valor, la tarjeta de ese parámetro le muestra si está
-                            <b>Normal</b>, <b>Moderado</b>, <b>Moderado-Alto</b> o <b>Crítico</b>, y el panel
-                            "Resumen" (a un lado) actualiza en vivo el <b>Puntaje Total</b> y el <b>Nivel de Riesgo</b>.</li>
-                        <li>Escriba su nombre en <b>"Responsable del Registro"</b> y, si lo desea, presione
-                            <code class="btnname">Capturar Firma</code> para firmar en el recuadro que aparece.</li>
-                        <li>Presione <code class="btnname">Guardar Registro MEOWS</code>. El sistema guarda la
-                            medición y lo deja listo para registrar la siguiente toma.</li>
-                    </ol>
 
                     <h3 class="step-title">Cómo interpretar el resultado</h3>
                     <div class="risk-grid">
@@ -515,25 +486,32 @@
 
                     <h3 class="step-title">Alertas automáticas: la campana del encabezado (novedad)</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 6px;">
-                        Cada vez que se guarda un registro MEOWS — a mano o automático desde Dinámica — la campana
-                        🔔 de la parte superior derecha (visible en todas las pantallas del sistema) le avisa.
+                        Cada vez que Dinámica registra un signo vital nuevo y el sistema calcula riesgo
+                        <b>AMARILLO</b> o <b>ROJO</b>, la campana 🔔 de la parte superior derecha (visible en todas
+                        las pantallas del sistema) le avisa.
                     </p>
+                    <div class="callout tip">
+                        <i data-lucide="info" size="18"></i>
+                        <span>Desde el 2026-09-09, <b>BLANCO y VERDE ya no generan alerta</b> (ni sonido, ni aviso
+                        emergente, ni entran al panel de la campana), a pedido de enfermería — esos niveles se
+                        siguen viendo con normalidad en la Línea de Tiempo Clínica del paciente, solo que sin
+                        interrumpir.</span>
+                    </div>
                     <ol class="steps">
                         <li>Sin alertas pendientes, la campana se ve azul/neutra. Se pone <b>roja y se agita</b>
                             (con un número) mientras exista al menos una alerta <b>ROJA</b> sin revisar; si no hay
-                            ninguna roja pero sí otras pendientes (blanco/verde/amarillo), se pone
-                            <b>amarilla y pulsa</b> — así distingue de un vistazo qué tan urgente es lo que falta
-                            por ver.</li>
+                            ninguna roja pero sí una o más <b>AMARILLAS</b> pendientes, se pone <b>amarilla y
+                            pulsa</b> — así distingue de un vistazo qué tan urgente es lo que falta por ver.</li>
                         <li>Haga clic en la campana para abrir el panel con la lista completa: paciente, nivel de
                             riesgo y fecha/hora. Haga clic en <b>"Ver detalle"</b> de una alerta puntual para
                             marcarla como atendida — recién ahí sale de la lista (para usted y para cualquier otro
                             equipo/turno que también la esté viendo). Solo abrir el panel y mirarlo <b>no</b> la
                             quita de la lista ni cambia el color de la campana.</li>
                         <li>Además de quedar en la campana, cada alerta nueva muestra un aviso emergente en
-                            pantalla (se cierra solo después de unos segundos) y suena — con un tono agudo y más
-                            urgente si es <b>ROJO</b>, y un tono suave para el resto — para que sea difícil pasarlo
-                            por alto aunque nadie esté mirando la campana en ese momento. Si llegan varias a la vez,
-                            suenan una detrás de otra, cada una con su propio tono.</li>
+                            pantalla (se cierra solo después de unos segundos) y suena — un único tono agudo y
+                            urgente, igual para AMARILLO y ROJO — para que sea difícil pasarlo por alto aunque nadie
+                            esté mirando la campana en ese momento. Si llegan varias a la vez, suenan una detrás de
+                            otra.</li>
                     </ol>
                     <div class="callout tip">
                         <i data-lucide="info" size="18"></i>
@@ -564,40 +542,26 @@
                         <span class="zoom-hint">🔍 Clic para ampliar</span>
                     </div>
 
-                    <h3 class="step-title">Otras acciones del formulario</h3>
+                    <h3 class="step-title">Otras acciones desde la Línea de Tiempo Clínica</h3>
                     <ul class="plain">
-                        <li><code class="btnname">Ver Historial Clínico</code>: muestra todas las mediciones
-                            anteriores de la paciente en una sola cuadrícula (línea de tiempo).</li>
-                        <li><code class="btnname">Generar PDF</code>: descarga el formato oficial MEOWS con todas
+                        <li><code class="btnname">📈 Ver historial MEOWS completo</code>: abre la cuadrícula con
+                            todas las mediciones de la paciente (línea de tiempo).</li>
+                        <li><code class="btnname">📄 Generar PDF</code>: descarga el formato oficial MEOWS con todas
                             las mediciones de la paciente (si tiene muchas, se reparten en varias páginas para que
                             ninguna quede afuera).</li>
                     </ul>
 
-                    <h3 class="step-title">Después de guardar: la pantalla de resultado</h3>
+                    <h3 class="step-title">Al abrir el detalle de una medición</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 6px;">
-                        Al guardar una medición, el sistema lo lleva a una pantalla de resultado con el puntaje, el
-                        nivel de riesgo y tres botones — cada uno con un color distinto a propósito, para no
-                        confundirlos:
+                        Desde la campana de alertas o desde la Línea de Tiempo, "Ver detalle" lo lleva a la
+                        pantalla de resultado de esa medición, con el puntaje, el nivel de riesgo y el botón
+                        <code class="btnname">📊 Ver Historial del Paciente</code> para volver a la cuadrícula
+                        completa.
                     </p>
-                    <ul class="plain">
-                        <li><code class="btnname">✏️ Corregir esta Medición</code> (amarillo): corrige los valores
-                            de <b>esta misma</b> medición que acaba de guardar — no crea un registro nuevo.</li>
-                        <li><code class="btnname">📊 Ver Historial del Paciente</code> (azul): abre la cuadrícula
-                            con todas las mediciones anteriores.</li>
-                        <li><code class="btnname">➕ Registrar Nueva Toma</code> (verde): abre el formulario en
-                            blanco para registrar una toma <b>distinta</b> de la misma paciente.</li>
-                    </ul>
-                    <div class="callout tip">
-                        <i data-lucide="info" size="18"></i>
-                        <span>Cuando está corrigiendo una medición existente (no creando una nueva), el botón de
-                        guardar del formulario dice <code class="btnname">Guardar Corrección</code> en vez de
-                        <code class="btnname">Guardar Registro MEOWS</code>, para que quede claro que no está
-                        creando una toma adicional.</span>
-                    </div>
 
                     <h3 class="step-title">Ver e interpretar el historial</h3>
                     <div class="screenshot-frame">
-                        <img src="{% static 'manual/linea_tiempo_meows.png' %}?v=1" alt="Línea de Tiempo Clínica MEOWS con varias mediciones importadas de Dinámica">
+                        <img src="{% static 'manual/linea_tiempo_meows.png' %}?v=2" alt="Línea de Tiempo Clínica MEOWS con varias mediciones importadas de Dinámica">
                     </div>
                     <div class="screenshot-caption">
                         <i data-lucide="camera" size="14"></i>
@@ -607,8 +571,8 @@
                     <ol class="steps">
                         <li>Cada toma queda como una columna en la cuadrícula; cada fila representa un rango
                             posible de un signo vital. Un punto (●) marca el valor real registrado.</li>
-                        <li>Las columnas con el distintivo "🔗 Dinámica" bajo la fecha/hora son mediciones que
-                            llegaron solas desde Dinámica; las que no lo tienen se digitaron a mano.</li>
+                        <li>Cada columna trae el distintivo "🔗 Dinámica" bajo la fecha/hora — todas las
+                            mediciones llegan automáticamente desde Dinámica, no hay registro manual.</li>
                         <li>Al final de cada columna aparece el <b>puntaje total</b> de esa toma, coloreado según
                             el riesgo. Haga clic sobre él para ver el detalle completo de esa medición.</li>
                         <li>Use el botón <code class="btnname">Guía Técnica MEOWS</code>, junto a
@@ -833,10 +797,10 @@
 
                     <h3 class="step-title">Guardé un dato equivocado, ¿puedo corregirlo?</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
-                        Sí. En MEOWS, abra el registro desde el historial y use <code class="btnname">✏️ Corregir
-                        esta Medición</code>. En Control Posparto Inmediato y Trabajo de Parto, vuelva a abrir el
-                        formulario de la paciente, corrija el valor y presione nuevamente el botón de guardar
-                        correspondiente.
+                        En <b>MEOWS</b> ya no: los registros vienen únicamente de Dinámica, así que una corrección
+                        se hace allá, no en esta app (vea la siguiente pregunta). En <b>Control Posparto Inmediato</b>
+                        y <b>Trabajo de Parto</b> nada cambió: vuelva a abrir el formulario de la paciente, corrija
+                        el valor y presione nuevamente el botón de guardar correspondiente.
                     </p>
 
                     <h3 class="step-title">¿Necesito firmar cada registro?</h3>
@@ -854,25 +818,25 @@
 
                     <h3 class="step-title">El dato que trajo Dinámica automáticamente vino mal, ¿qué hago?</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
-                        Corríjalo directamente en las cards del formulario antes de presionar
-                        <code class="btnname">Guardar Registro MEOWS</code> — precargar el dato no le impide
-                        editarlo. Si el registro ya se guardó con el error, ábralo desde el historial y use
-                        <code class="btnname">✏️ Corregir esta Medición</code>.
+                        Ya no se puede corregir desde MEOWS — el valor debe corregirse directamente en Dinámica.
+                        Repórtelo a sistemas si el registro con el dato incorrecto ya se importó a MEOWS, para
+                        revisarlo caso a caso.
                     </p>
 
-                    <h3 class="step-title">¿Por qué me llegó una alerta de una paciente que está bien (BLANCO/VERDE)?</h3>
+                    <h3 class="step-title">¿Por qué ya no me llegan alertas de pacientes en BLANCO o VERDE?</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
-                        La campana avisa de <b>toda</b> medición nueva, no solo de las críticas, para que se entere
-                        apenas llega un dato — el color del aviso (blanco, verde, amarillo o rojo) le indica qué tan
-                        urgente es. Solo el riesgo <b>ROJO</b> interrumpe además con un aviso emergente y sonido.
+                        Es un cambio a pedido de enfermería (2026-09-09): antes la campana avisaba de <b>toda</b>
+                        medición nueva sin importar el riesgo; ahora solo interrumpe con las que de verdad requieren
+                        atención (<b>AMARILLO</b> y <b>ROJO</b>). Las mediciones BLANCO/VERDE se siguen guardando y
+                        se ven con normalidad en la Línea de Tiempo Clínica, solo que sin generar alerta.
                     </p>
 
                     <h3 class="step-title">¿Hasta cuánto tiempo después sigue apareciendo una medición en la campana?</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
-                        Hasta <b>24 horas</b> después de tomada. Esto es a propósito: si por cualquier motivo nadie
-                        revisó la campana en el momento (por ejemplo, un corte breve del sistema), la alerta sigue
-                        disponible durante ese día en vez de perderse — ninguna medición registrada se queda sin
-                        alertar.
+                        Hasta <b>24 horas</b> después de tomada (aplica solo a AMARILLO/ROJO, las únicas que generan
+                        alerta). Esto es a propósito: si por cualquier motivo nadie revisó la campana en el momento
+                        (por ejemplo, un corte breve del sistema), la alerta sigue disponible durante ese día en vez
+                        de perderse.
                     </p>
                 </section>
 

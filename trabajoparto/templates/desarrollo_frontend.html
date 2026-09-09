@@ -299,18 +299,22 @@
             z-index: 4;
         }
         .preview-grid-th-hora {
-            min-width: 78px;
+            /* 2026-09-09: se ensanchó de 78px a 104px -- la fecha ahora es
+               completa (dd/mm/aaaa) en vez de solo "día/mes" (más ancho aún
+               con la letra más grande pedida después), para que no quede
+               apretada ni ambigua sobre a qué mes/año pertenece la toma. */
+            min-width: 104px;
         }
         .preview-grid-col-fecha,
         .preview-grid-col-hora {
             display: block;
         }
         .preview-grid-col-fecha {
-            font-size: 0.62rem;
+            font-size: 0.8rem;
             opacity: 0.85;
         }
         .preview-grid-col-hora {
-            font-size: 0.78rem;
+            font-size: 0.95rem;
             font-weight: 800;
         }
         .preview-grid-td-valor {
@@ -413,7 +417,16 @@
         <input type="hidden" id="formulario_id" name="formulario_id">
         <input type="hidden" name="atencion" value="{{ atencion_id|default:'' }}">
 
-        <form id="formulario-clinico" method="post">
+        <!-- 2026-09-09: novalidate a propósito -- sin esto, el navegador corre su
+             propia validación nativa ANTES de disparar 'submit' (ver listener en
+             main.js), y si algún campo oculto dentro de un modal de parámetro
+             queda "required" (ej. "Contracciones en 10 min"), el envío se
+             bloquea en silencio ("An invalid form control... is not focusable"
+             en consola) sin que guardarFormulario() alcance a correr ni a
+             mostrar ningún mensaje de error. La validación real ya la hace
+             guardarFormulario() en JS (exige Estado y Responsable; la firma NO
+             es obligatoria) -- la nativa aquí solo estorbaba. -->
+        <form id="formulario-clinico" method="post" novalidate>
             {% csrf_token %}
 
             <!-- Información del Paciente -->
@@ -632,9 +645,15 @@
                 <div class="category-section cat-fetal" style="border-radius: 12px; border: 2px solid var(--accent); background: linear-gradient(135deg, #b0b6bd 0%, #e2e6ea 45%, #ced3d9 100%); overflow: hidden; display: flex; flex-direction: column;">
                     <h3 class="category-title" style="background: #64748b; color: #fff; padding: 10px 12px; margin: 0; font-size: 0.85em; font-weight: 800; text-align: center; letter-spacing: 0.5px; text-transform: uppercase;"><span style="font-size: 1.6em; vertical-align: middle; margin-right: 6px; display: inline-block; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));">👶</span>FETAL</h3>
                     <div class="buttons-container" style="padding: 12px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1;">
-                        <button type="button" class="btn-parametro" id="btn-parametro-8" data-parametro-id="8" data-parametro-nombre="FRECUENCIA CARDIACA FETAL" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                        <!-- 2026-09-09: Frecuencia Cardiaca Fetal deja de ser editable a mano -- se
+                             sincroniza sola desde Dinámica (FETOCARDIO), igual que en MEOWS, con la
+                             hora exacta con la que Dinámica registró ese dato (no la hora de la
+                             columna que la enfermera tenga abierta). Ver management command
+                             trabajoparto/management/commands/sincronizar_frecuencia_fetal_dinamica.py.
+                             disabled + sin onclick para que quede claro que no se puede tocar aquí. -->
+                        <button type="button" class="btn-parametro" id="btn-parametro-8" data-parametro-id="8" data-parametro-nombre="FRECUENCIA CARDIACA FETAL" disabled title="Se sincroniza automáticamente desde Dinámica, no se edita aquí" style="background: #eef0f2; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: not-allowed; transition: all 0.2s; font-weight: 600; color: #495057; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
                             <span class="btn-parametro-top"><span class="status-indicator" id="indicator-8" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
-                            ❤️ FRECUENCIA CARDIACA FETAL</span>
+                            ❤️ FRECUENCIA CARDIACA FETAL <span title="Dato automático de Dinámica">🔗</span></span>
                             <span class="btn-parametro-value" id="val-preview-8">-</span>
                         </button>
                         <button type="button" class="btn-parametro" id="btn-parametro-9" data-parametro-id="9" data-parametro-nombre="MOVIMIENTOS FETALES" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">

@@ -26,7 +26,7 @@ def obtener_valores_clinicos(medicion: Medicion) -> Dict:
         # Conversión de tipos según parámetro
         # Usamos códigos congelados - no hay lógica clínica, solo adaptación
         try:
-            if codigo in ["fc", "ta_sys", "ta_dia", "fr", "spo2", "glasgow"]:
+            if codigo in ["fc", "ta_sys", "ta_dia", "fr", "glasgow"]:
                 valores[codigo] = int(valor)
             elif codigo == "temp":
                 valores[codigo] = float(valor)

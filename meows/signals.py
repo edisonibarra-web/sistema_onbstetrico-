@@ -26,8 +26,12 @@ def ejecutar_meows(sender, instance, **kwargs):
     valores = obtener_valores_clinicos(medicion)
     
     # Validar que estén todos los parámetros necesarios para MEOWS
-    # MEOWS requiere: fc, ta_sys, fr, temp, spo2, glasgow (6 parámetros)
-    parametros_requeridos = {"fc", "ta_sys", "fr", "temp", "spo2", "glasgow"}
+    # MEOWS requiere: fc, ta_sys, fr, temp, glasgow (5 parámetros).
+    # 2026-09-09: se quitó "spo2" de este conjunto — el parámetro se removió
+    # del sistema MEOWS (ver meows/services/dinamica_signos_vitales.py); de
+    # haberse dejado aquí, esta condición nunca se habría vuelto a cumplir
+    # (spo2 ya no llega en `valores`) y esta señal habría quedado inutilizada.
+    parametros_requeridos = {"fc", "ta_sys", "fr", "temp", "glasgow"}
     parametros_presentes = set(valores.keys())
     
     # Solo calcular si tenemos al menos los parámetros requeridos

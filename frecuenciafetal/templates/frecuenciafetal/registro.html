@@ -1,0 +1,208 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear cuenta - Sistema Obstétrico</title>
+    <style>
+        /* Mismo lenguaje visual que login.html -- ver comentario ahí. */
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: linear-gradient(135deg, #0b1220 0%, #0f1f38 55%, #123a5e 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 15%, rgba(56, 189, 248, 0.18) 0%, transparent 55%);
+            pointer-events: none;
+        }
+        .marca {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 22px;
+            text-align: center;
+        }
+        .marca img {
+            height: 64px;
+            width: auto;
+            object-fit: contain;
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: #f8fafc;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+            margin-bottom: 14px;
+        }
+        .marca .nombre-hospital {
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        .marca .lema-hospital {
+            font-size: 0.82rem;
+            color: #94a3b8;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            margin-top: 3px;
+        }
+        .login-box {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 400px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 20px 48px rgba(3, 20, 40, 0.45), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+            padding: 30px 28px;
+            border-top: 3px solid #38bdf8;
+        }
+        h1 {
+            margin: 0 0 4px;
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #0f1f38;
+        }
+        .subtitulo {
+            margin: 0 0 16px;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        label {
+            display: block;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        input {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1.5px solid #dbe3ec;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        input:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+        }
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.02em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+        }
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(14, 165, 233, 0.5);
+        }
+        .error {
+            margin-top: 14px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        /* 2026-09-09: aviso de que esta cuenta NO se crea en Dinámica -- ver
+           registro_usuario_view en frecuenciafetal/views.py. Se muestra
+           siempre, no solo como error, para que quede claro desde antes de
+           diligenciar el formulario. */
+        .info-acceso {
+            margin-top: 4px;
+            margin-bottom: 4px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: #eff8ff;
+            border: 1px solid #bfe4fb;
+            color: #0c4a6e;
+            font-size: 0.78rem;
+            line-height: 1.55;
+        }
+        .volver { margin-top: 16px; text-align: center; }
+        .volver a { color: #64748b; font-size: 0.82rem; font-weight: 600; text-decoration: none; }
+        .volver a:hover { color: #0284c7; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div>
+        <div class="marca">
+            <img src="{% static 'img/logo_hospital.png' %}" alt="Logo Hospital">
+            <div class="nombre-hospital">Hospital Universitario Departamental</div>
+            <div class="lema-hospital">Sistema Unificado de Obstetricia</div>
+        </div>
+
+        <div class="login-box">
+            <h1>Crear cuenta</h1>
+            <p class="subtitulo">Solo si aún no tiene acceso a Dinámica Gerencial</p>
+
+            <div class="info-acceso">
+                Use, si puede, el <strong>mismo usuario y contraseña</strong> que use (o
+                vaya a usar) en <strong>Dinámica Gerencial</strong> — así, si más
+                adelante le crean cuenta allá con ese mismo usuario, el acceso
+                queda unificado sin tener que registrarse de nuevo. Esta cuenta
+                <strong>solo sirve para este sistema</strong>, no crea ni modifica
+                nada en Dinámica.
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next }}">
+
+                <label for="username">Usuario</label>
+                <input id="username" name="username" type="text" required autocomplete="username">
+
+                <label for="nombre_completo">Nombre completo</label>
+                <input id="nombre_completo" name="nombre_completo" type="text" required>
+
+                <label for="password">Contraseña</label>
+                <input id="password" name="password" type="password" required minlength="6" autocomplete="new-password">
+
+                <label for="password2">Confirmar contraseña</label>
+                <input id="password2" name="password2" type="password" required minlength="6" autocomplete="new-password">
+
+                <button type="submit">Crear cuenta e ingresar</button>
+            </form>
+
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <div class="volver">
+                <a href="/login/{% if next %}?next={{ next|urlencode }}{% endif %}">&larr; Ya tengo cuenta, volver al ingreso</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

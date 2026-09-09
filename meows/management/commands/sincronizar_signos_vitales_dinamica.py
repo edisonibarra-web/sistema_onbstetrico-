@@ -38,12 +38,11 @@ def disparar_alerta(medicion, resultado):
     sonido — TODAS las pantallas abiertas dentro de la ventana de tiempo, no
     solo la primera que pregunte. Ver meows/views.py:api_alertas_pendientes.
 
-    Se llama para TODA medición nueva importada de Dinámica, sin importar el
-    nivel de riesgo (Blanco a Rojo) — decisión explícita del usuario
-    (2026-09-03): prefiere notificación de cada lectura nueva antes que
-    filtrar solo las de riesgo, aun a costa de más notificaciones. El color
-    del toast (ver sidebar.html, clases riesgo-blanco/verde/amarillo/rojo)
-    y si suena fuerte o no siguen diferenciando visualmente el nivel real.
+    Se llama solo para mediciones de riesgo AMARILLO o ROJO (ver el filtro en
+    el llamador, más abajo) — decisión explícita de enfermería (2026-09-09):
+    Blanco/Verde ya no deben interrumpir con notificación ni sonido, solo se
+    consultan en la Línea de Tiempo del paciente. (Reemplaza la decisión
+    anterior del 2026-09-03, que notificaba todo nivel de riesgo.)
     """
     medicion.alerta_pendiente = True
     medicion.alerta_generada_en = timezone.now()
@@ -167,10 +166,15 @@ class Command(BaseCommand):
                 if verbosity >= 2:
                     self.stdout.write(f'  + Medición #{medicion.id} para {documento} ({fecha_hora})')
 
-                # Notifica SIEMPRE, sin importar el riesgo (Blanco a Rojo) — ver
-                # docstring de disparar_alerta().
-                disparar_alerta(medicion, resultado)
-                total_alertas += 1
+                # 2026-09-09: a pedido de enfermería, ya NO se notifica Blanco/Verde
+                # (antes se notificaba todo, ver docstring de disparar_alerta() —
+                # decisión anterior del 2026-09-03, ahora reemplazada). Solo
+                # Amarillo/Rojo entran a la campana/panel de alertas; Blanco/Verde
+                # se guardan igual y se ven en la Línea de Tiempo del paciente, pero
+                # sin sonido ni notificación emergente.
+                if resultado["meows_riesgo"] in ("AMARILLO", "ROJO"):
+                    disparar_alerta(medicion, resultado)
+                    total_alertas += 1
 
         self.stdout.write(self.style.SUCCESS(
             f'[OK] {total_nuevas} medición(es) nueva(s) importada(s) desde Dinámica '

@@ -5,7 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resultado MEOWS - Sistema de Alerta Temprana Obstétrico</title>
-    <link rel="stylesheet" href="{% static 'css/meows-resultado.css' %}?v=20260707c">
+    <!-- 2026-09-09: meows-form.css se carga ANTES que meows-resultado.css a propósito,
+         para poder reusar tal cual las clases "de las cards" del formulario MEOWS
+         (.parameter-card, .parametros-resumen-layout, .summary-section-lateral y toda
+         su familia) sin copiarlas a mano -- son cientos de líneas con estados por
+         puntaje/riesgo, mejor una sola fuente de verdad. Donde ambos archivos definen
+         lo mismo (body, .container, .section, .info-item, .btn, etc.) gana
+         meows-resultado.css por cargar después, así el resto de esta página no cambia. -->
+    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260904d">
+    <link rel="stylesheet" href="{% static 'css/meows-resultado.css' %}?v=20260909b">
     <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
     <style>
@@ -80,72 +88,93 @@
             </div>
         </section>
 
-        <!-- SECCIÓN: DETALLE DE PARÁMETROS -->
+        <!-- SECCIÓN: DETALLE DE PARÁMETROS + RESUMEN -->
+        <!-- 2026-09-09: a pedido, se cambió la tabla plana por las mismas dos "cards" del
+             formulario MEOWS (bloqueado, ver crear_medicion_meows en views.py): las cards
+             de parámetro (izquierda) y la card "Resumen" (derecha), una al lado de la otra
+             igual que allá (.parametros-resumen-layout). Ambas en SOLO LECTURA: sin
+             <input>/<select>/JS en vivo, solo <div>s con los valores ya guardados —
+             el color/puntaje/insignia de cada una salen del servidor (valor.puntaje /
+             medicion.meows_*). Las clases vienen de meows-form.css (cargado en el <head>
+             de esta página, ver comentario ahí); meows-resultado.css solo aporta lo
+             específico de esta pantalla. -->
         <section class="section detalle-section">
             <h3 class="section-title">
                 <span class="icon">📋</span>
                 Detalle de Parámetros
             </h3>
-            
-            <div class="parametros-table">
-                <div class="table-header">
-                    <div class="col-parametro">Parámetro</div>
-                    <div class="col-valor">Valor</div>
-                    <div class="col-puntaje">Puntaje</div>
-                    <div class="col-estado">Estado</div>
-                </div>
-                
-                <div class="table-body">
+            <p class="detalle-solo-lectura-nota">🔒 Solo lectura: estos valores vienen de Dinámica y ya no se pueden editar aquí.</p>
+
+            <div class="parametros-resumen-layout">
+                <div class="parameters-grid">
                     {% for valor in valores %}
-                    <div class="table-row score-{{ valor.puntaje|default:0 }}">
-                        <div class="col-parametro">
-                            <span class="param-name">{{ valor.parametro.nombre }}</span>
-                            <span class="param-unit">({{ valor.parametro.unidad }})</span>
+                    <div class="parameter-card{% if valor.puntaje is not None %} card-score-{{ valor.puntaje }}{% endif %}">
+                        <div class="parameter-header">
+                            <span class="parameter-label">
+                                {{ valor.parametro.nombre }}
+                                <span class="parameter-unit">({{ valor.parametro.unidad }})</span>
+                            </span>
                         </div>
-                        <div class="col-valor">
-                            <span class="valor-number">{{ valor.valor }}</span>
-                            <span class="valor-unit">{{ valor.parametro.unidad }}</span>
+
+                        <div class="input-wrapper">
+                            <div class="parameter-input{% if valor.puntaje is not None %} score-{{ valor.puntaje }}{% endif %}">{% if valor.valor %}{{ valor.valor }}{% else %}—{% endif %}</div>
+                            <span class="input-unit">{{ valor.parametro.unidad }}</span>
                         </div>
-                        <div class="col-puntaje">
-                            {% if valor.puntaje is not None %}
-                                <span class="puntaje-badge score-{{ valor.puntaje }}">{{ valor.puntaje }}</span>
-                            {% else %}
-                                <span class="puntaje-badge score-none">-</span>
-                            {% endif %}
+
+                        <div class="score-feedback">
+                            <div class="score-indicator">
+                                <span class="score-label">Puntaje:</span>
+                                <span class="score-value{% if valor.puntaje is not None %} score-{{ valor.puntaje }}{% endif %}">{{ valor.puntaje|default_if_none:"-" }}</span>
+                            </div>
+                            <div class="score-bar">
+                                <div class="score-fill{% if valor.puntaje is not None %} score-{{ valor.puntaje }}{% endif %}"></div>
+                            </div>
                         </div>
-                        <div class="col-estado">
-                            {% if valor.puntaje == 0 %}
-                                <span class="estado-badge estado-verde">Normal</span>
-                            {% elif valor.puntaje == 1 %}
-                                <span class="estado-badge estado-amarillo">Moderado</span>
-                            {% elif valor.puntaje == 2 %}
-                                <span class="estado-badge estado-naranja">Moderado-Alto</span>
-                            {% elif valor.puntaje == 3 %}
-                                <span class="estado-badge estado-rojo">Crítico</span>
-                            {% else %}
-                                <span class="estado-badge estado-none">-</span>
-                            {% endif %}
-                        </div>
+
+                        {# valor.valor vacío = este parámetro no traía dato en esta toma. #}
+                        {# Se distingue de "medido pero sin franja que le asigne puntaje" #}
+                        {# (valor.puntaje es None con dato SÍ presente). Ver ver_meows arriba. #}
+                        <div class="validation-message{% if not valor.valor %} sin-registrar{% elif valor.puntaje == 0 %} success{% elif valor.puntaje == 1 %} success-green{% elif valor.puntaje == 2 %} warning{% elif valor.puntaje == 3 %} error{% endif %}">{% if not valor.valor %}Sin registrar{% elif valor.puntaje == 0 %}✓ Normal{% elif valor.puntaje == 1 %}⚠ Moderado{% elif valor.puntaje == 2 %}⚠⚠ Moderado-Alto{% elif valor.puntaje == 3 %}🚨 CRÍTICO{% else %}-{% endif %}</div>
                     </div>
                     {% endfor %}
                 </div>
+
+                <section class="section summary-section summary-section-lateral">
+                    <h3 class="section-title">
+                        <span class="icon">📋</span>
+                        Resumen
+                    </h3>
+                    <div class="summary-card">
+                        <div class="summary-item item-score-{{ medicion.meows_riesgo|lower }}">
+                            <label class="summary-label">Puntaje Total MEOWS</label>
+                            <div class="summary-value score-{{ medicion.meows_riesgo|lower }}">{{ medicion.meows_total }}</div>
+                        </div>
+                        <div class="summary-item item-score-{{ medicion.meows_riesgo|lower }}">
+                            <label class="summary-label">Nivel de Riesgo</label>
+                            <div class="summary-risk">
+                                <span class="risk-badge risk-{{ medicion.meows_riesgo|lower }}">{{ medicion.meows_riesgo }}</span>
+                            </div>
+                        </div>
+                        <div class="summary-item item-score-{{ medicion.meows_riesgo|lower }}">
+                            <label class="summary-label">GRADO DE RESPUESTA</label>
+                            <div class="summary-conducta">{{ medicion.meows_mensaje }}</div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </section>
 
         <!-- SECCIÓN: ACCIONES -->
         <section class="section acciones-section">
             <div class="acciones-buttons">
-                <a href="{% url 'editar_meows' medicion_id=medicion.id %}{% if atencion_id %}?atencion={{ atencion_id }}{% endif %}" class="btn btn-warning" title="Corrige los valores de ESTA misma medición, no crea un registro nuevo">
-                    <span class="btn-icon">✏️</span>
-                    Corregir esta Medición
-                </a>
+                {# 2026-09-09: se quitaron "Corregir esta Medición" y "Registrar Nueva #}
+                {# Toma" -- los registros MEOWS ahora vienen únicamente de la #}
+                {# sincronización automática con Dinámica (fuente de verdad). El #}
+                {# código de crear/editar (crear_medicion_meows en views.py) se #}
+                {# conserva bloqueado como respaldo, no se expone en la interfaz. #}
                 <a href="{% url 'historial_meows' paciente_id=medicion.paciente.id %}" class="btn btn-info">
                     <span class="btn-icon">📊</span>
                     Ver Historial del Paciente
-                </a>
-                <a href="{% url 'crear_meows' paciente_id=medicion.paciente.id %}" class="btn btn-success" title="Abre el formulario en blanco para registrar una toma nueva y distinta de esta paciente">
-                    <span class="btn-icon">➕</span>
-                    Registrar Nueva Toma
                 </a>
             </div>
         </section>

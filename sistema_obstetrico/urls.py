@@ -9,7 +9,7 @@ from django.urls import path, include
 from django.views.generic.base import RedirectView
 from django.shortcuts import redirect
 from obstetriciaunificador.models import AtencionParto
-from frecuenciafetal.views import login_view, logout_view
+from frecuenciafetal.views import login_view, logout_view, registro_usuario_view
 
 
 def home(request):
@@ -24,6 +24,7 @@ urlpatterns = [
     path('favicon.ico', RedirectView.as_view(url='/static/favicon.svg', permanent=True)),
     path('admin/', admin.site.urls),
     path('login/', login_view, name='login'),
+    path('registro/', registro_usuario_view, name='registro_usuario'),
     path('logout/', logout_view, name='logout'),
     path('accounts/login/', RedirectView.as_view(url='/login/', permanent=False)),
     path('api/', include('trabajoparto.api_urls')),

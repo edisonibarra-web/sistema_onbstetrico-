@@ -27,11 +27,18 @@ from meows.services.meows import calcular_meows
 #   verde:    total 1-3, ningún parámetro individual en score 3
 #   amarillo: total 4-5, ningún parámetro individual en score 3
 #   rojo:     total >=6 (aquí además con varios parámetros en score 3)
+#
+# 2026-09-09: se quitó "spo2" de los 4 presets (parámetro removido del
+# sistema MEOWS, ver meows/services/dinamica_signos_vitales.py). Reverificado
+# contra la BD que el nivel resultante no cambia: en "blanco"/"verde"/
+# "amarillo" spo2 ya aportaba 0 puntos (no afectaba el total); en "rojo"
+# aportaba puntos pero el total ya superaba 6 sin él (18 vs. ~21), así que
+# sigue clasificando ROJO igual.
 VALORES_POR_NIVEL = {
-    "rojo": {"ta_sys": 200, "ta_dia": 115, "fc": 175, "fr": 35, "temp": 40.2, "spo2": 82, "fcf": 95},
-    "amarillo": {"ta_sys": 152, "ta_dia": 95, "fc": 120, "fr": 15, "temp": 37.0, "spo2": 98, "fcf": 140},
-    "verde": {"ta_sys": 140, "ta_dia": 70, "fc": 90, "fr": 20, "temp": 37.0, "spo2": 98, "fcf": 140},
-    "blanco": {"ta_sys": 110, "ta_dia": 70, "fc": 80, "fr": 16, "temp": 36.5, "spo2": 98, "fcf": 140},
+    "rojo": {"ta_sys": 200, "ta_dia": 115, "fc": 175, "fr": 35, "temp": 40.2, "fcf": 95},
+    "amarillo": {"ta_sys": 152, "ta_dia": 95, "fc": 120, "fr": 15, "temp": 37.0, "fcf": 140},
+    "verde": {"ta_sys": 140, "ta_dia": 70, "fc": 90, "fr": 20, "temp": 37.0, "fcf": 140},
+    "blanco": {"ta_sys": 110, "ta_dia": 70, "fc": 80, "fr": 16, "temp": 36.5, "fcf": 140},
 }
 
 
@@ -88,10 +95,14 @@ class Command(BaseCommand):
         medicion.meows_mensaje = resultado["meows_mensaje"]
         medicion.save(update_fields=["meows_total", "meows_riesgo", "meows_mensaje"])
 
-        # Notifica SIEMPRE, igual que ya quedó el job real.
-        medicion.alerta_pendiente = True
-        medicion.alerta_generada_en = timezone.now()
-        medicion.save(update_fields=["alerta_pendiente", "alerta_generada_en"])
+        # 2026-09-09: solo notifica Amarillo/Rojo, igual que el job real
+        # (ver sincronizar_signos_vitales_dinamica.py:disparar_alerta) — así
+        # una prueba con nivel "blanco"/"verde" refleja fielmente que esos
+        # niveles ya NO deben sonar ni aparecer en el panel de alertas.
+        if medicion.meows_riesgo in ("AMARILLO", "ROJO"):
+            medicion.alerta_pendiente = True
+            medicion.alerta_generada_en = timezone.now()
+            medicion.save(update_fields=["alerta_pendiente", "alerta_generada_en"])
 
         self.stdout.write(self.style.SUCCESS(
             f"Medición de prueba #{medicion.id} creada para {paciente} — "

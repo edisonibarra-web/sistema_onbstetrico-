@@ -2,40 +2,38 @@
 
 Esta carpeta contiene los archivos de audio para las alertas sonoras del sistema MEOWS.
 
-## Archivos actuales (dos tonos, según urgencia — desde 2026-09-08):
+## Archivo actual (un solo tono — desde 2026-09-09):
 
-- **alert_soft.wav**: tono suave de dos notas (~0.8s, D5 → G5, con fade in/out),
-  generado programáticamente (sin dependencias externas, solo el módulo `wave`
-  de Python) el 2026-09-04. Se usa para riesgo **Blanco/Verde/Amarillo** — este
-  siempre fue su propósito original ("no debe ser estridente" abajo); quedó
-  libre para esto al crearse `alert_urgente.wav` específico para Rojo.
 - **alert_urgente.wav**: dos pitidos cortos y agudos (C6/E6, ~0.78s en total),
-  generado igual de forma programática el 2026-09-08. Se usa **exclusivamente
-  para riesgo ROJO** — a propósito más llamativo y con un ritmo distinto al
-  tono suave, para que se distinga de oído cuál llegó sin tener que mirar la
-  pantalla.
+  generado programáticamente (sin dependencias externas, solo el módulo `wave`
+  de Python) el 2026-09-08. Es el único tono del sistema: suena para **AMARILLO
+  y ROJO** (las dos únicas alertas que quedan, a pedido de enfermería —
+  Blanco/Verde dejaron de notificar del todo, ver `meows/management/commands/
+  sincronizar_signos_vitales_dinamica.py:disparar_alerta`).
 
-Reemplaza cualquiera de los dos por un archivo real grabado/elegido a mano
-cuando haya uno disponible; los `<audio>` en `obstetricia/sidebar.html`
-(`#alertSoundRojo`, `#alertSoundSuave`) aceptan cualquier `.wav`/`.mp3` puesto
-en esta ruta con el mismo nombre (o cambia el `src` si usas otro nombre).
+- **alert_soft.wav**: ya NO se usa. Existía un segundo tono más suave para
+  Blanco/Verde/Amarillo (2026-09-04 a 2026-09-08), pero se quitó al dejar de
+  notificarse Blanco/Verde y unificarse el sonido de Amarillo con el de Rojo.
+  Se deja el archivo en la carpeta por si se quiere reutilizar en el futuro,
+  pero ningún `<audio>` de `obstetricia/sidebar.html` lo referencia ya.
 
-## Características recomendadas si se reemplazan:
+Reemplaza `alert_urgente.wav` por un archivo real grabado/elegido a mano
+cuando haya uno disponible; el `<audio id="alertSoundRojo">` en
+`obstetricia/sidebar.html` acepta cualquier `.wav`/`.mp3` puesto en esta ruta
+con el mismo nombre (o cambia el `src` si usas otro nombre).
 
-- **alert_soft.wav** (Blanco/Verde/Amarillo): corto, grave, suave — no debe
-  sonar a alarma ni saturar al personal con tomas frecuentes.
-- **alert_urgente.wav** (Rojo): corto pero agudo/llamativo — sí debe
-  distinguirse claramente como el más urgente de los dos.
-- Duración recomendada para ambos: 0.6 – 1.2 segundos.
+## Características recomendadas si se reemplaza:
+
+- Corto pero agudo/llamativo — debe distinguirse claramente como alerta
+  urgente, sin llegar a ser insoportable con tomas frecuentes.
+- Duración recomendada: 0.6 – 1.2 segundos.
 
 ## Nota:
 
-El sistema reproduce alguno de los dos tonos para **toda** medición nueva
-(Blanco a Rojo, no solo riesgo alto — decisión del usuario, 2026-09-03)
-importada de Dinámica o registrada manualmente; cuál de los dos suena depende
-del riesgo de esa medición (ver `sonarAlertaRoja()`/`sonarAlertaSuave()` en
-`obstetricia/sidebar.html`). Si el archivo correspondiente llegara a faltar o
-el navegador bloquea la reproducción, cada uno cae automáticamente a su
-propio beep sintetizado de respaldo (`pitidoRespaldoUrgente()` /
-`pitidoRespaldoSuave()`) — el sistema nunca se rompe por esto, en el peor
-caso suena el respaldo en vez del tono real.
+El sistema reproduce este tono para **toda** medición nueva de riesgo AMARILLO
+o ROJO (nunca Blanco/Verde) importada de Dinámica, con un pequeño escalonado
+entre alertas si llegan varias juntas (ver `sonarAlertaMeows()` y
+`RETRASO_ENTRE_SONIDOS_MS` en `obstetricia/sidebar.html`). Si el archivo
+llegara a faltar o el navegador bloquea la reproducción, cae automáticamente
+a un beep sintetizado de respaldo (`pitidoRespaldoUrgente()`) — el sistema
+nunca se rompe por esto, en el peor caso suena el respaldo en vez del tono real.

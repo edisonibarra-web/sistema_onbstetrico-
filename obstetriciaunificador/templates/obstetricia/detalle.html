@@ -998,7 +998,7 @@ function limpiarCardPaciente() {
             return;
         }
         if (modulo === 'meows') {
-            window.location.href = '/meows/crear/' + encodeURIComponent(doc) + '/?atencion=' + atencionId;
+            window.location.href = '/meows/historial-doc/' + encodeURIComponent(doc) + '/?atencion=' + atencionId;
         } else if (modulo === 'fetal') {
             window.location.href = '/fetal/?atencion=' + atencionId + '&doc=' + encodeURIComponent(doc);
         } else if (modulo === 'parto') {

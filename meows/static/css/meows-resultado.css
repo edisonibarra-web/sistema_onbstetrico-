@@ -771,6 +771,9 @@ body {
 
 /* ============================================================================
    TABLA DE PARÁMETROS
+   2026-09-09: resultado.html ya NO usa esta tabla (ver .parameters-grid-solo-
+   lectura más abajo, con las "cards" de parámetro) — se deja el CSS por si
+   algo más la sigue referenciando o se necesita en el futuro.
    ============================================================================ */
 
 .parametros-table {
@@ -1364,4 +1367,28 @@ body {
     }
 }
 
+/* ============================================================================
+   CARDS DE PARÁMETRO + RESUMEN (SOLO LECTURA) — 2026-09-09
+   Las clases .parameter-card, .parametros-resumen-layout, .summary-section-
+   lateral y toda su familia YA NO se copian aquí a mano: vienen de
+   meows-form.css, cargado antes que este archivo en resultado.html (ver
+   comentario ahí). Solo queda lo que es específico de ESTA página.
+   ============================================================================ */
+
+.detalle-solo-lectura-nota {
+    margin: 0 0 var(--spacing-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #6c757d;
+}
+
+/* 2026-09-09: card de un parámetro activo que Dinámica NO trajo en esta toma
+   puntual (ver ver_meows en views.py) — gris neutro, para no confundirla con
+   "Normal" (verde/blanco) ni con ningún nivel de alerta real. */
+.parameter-card .validation-message.sin-registrar {
+    color: #6c757d;
+    background: linear-gradient(135deg, #f1f3f5 0%, #e9ecef 100%);
+    border-color: #ced4da;
+    font-style: italic;
+}
 

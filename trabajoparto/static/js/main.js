@@ -173,7 +173,12 @@ function obtenerDatosFormulario() {
 // El event listener del formulario está en el bloque DOMContentLoaded principal (línea ~337)
   
 
-async function apiRequest(endpoint, method = 'GET', data = null) {
+async function apiRequest(endpoint, method = 'GET', data = null, opciones = {}) {
+    // suprimirMensajeError: para llamadas donde el que invoca ya sabe que un
+    // cierto código de error (ej. 404) es recuperable y va a reintentar --
+    // evita el flash de un toast rojo que un instante después se corrige solo
+    // (ver guardarFormulario: PUT a un formulario_id ya borrado).
+    const { suprimirMensajeError = false } = opciones;
     const methodUpper = String(method || 'GET').toUpperCase();
     const options = {
         method: methodUpper,
@@ -280,10 +285,20 @@ async function apiRequest(endpoint, method = 'GET', data = null) {
             // Si no es JSON, usar el texto tal cual
         }
         
-        // Mostrar mensaje en la interfaz en lugar de alerta
-        mostrarMensaje(errorMessage, 'error');
-        
-        throw new Error(errorMessage);
+        // Mostrar mensaje en la interfaz en lugar de alerta (salvo que el
+        // llamador ya sepa que este error puede ser recuperable, ver arriba).
+        if (!suprimirMensajeError) {
+            mostrarMensaje(errorMessage, 'error');
+        }
+
+        // 2026-09-09: se adjunta el status HTTP al error (ej. 404) para que
+        // quien llame a apiRequest pueda reaccionar distinto según el caso
+        // (ver guardarFormulario: si un PUT a un formulario_id viejo/borrado
+        // da 404, se reintenta como creación en vez de fallar del todo).
+        const httpError = new Error(errorMessage);
+        httpError.status = response.status;
+        httpError.details = errorDetails;
+        throw httpError;
     }
 
     // Solo intentar JSON si hay contenido
@@ -677,8 +692,32 @@ async function guardarFormulario() {
         
         if (formularioId) {
             console.log('Actualizando formulario existente con ID:', formularioId);
-            // Actualizar formulario existente
-            formulario = await apiRequest(`/formularios/${formularioId}/`, 'PUT', formularioData);
+            try {
+                // Actualizar formulario existente. suprimirMensajeError: si
+                // da 404 se recupera solo abajo, no hace falta alarmar antes.
+                formulario = await apiRequest(`/formularios/${formularioId}/`, 'PUT', formularioData, { suprimirMensajeError: true });
+            } catch (errorPut) {
+                // 2026-09-09: si formulario_id quedó "viejo" (el registro ya no
+                // existe en el backend -- borrado, u obtenido de una caché
+                // desactualizada del navegador), antes esto hacía fallar todo
+                // el guardado sin remedio. Ahora, específicamente ante un 404
+                // ("No Formulario matches the given query"), se reintenta como
+                // creación en vez de perder lo que la enfermera diligenció.
+                if (errorPut && errorPut.status === 404) {
+                    console.warn('El formulario_id guardado ya no existe (404) — se crea uno nuevo en su lugar.');
+                    setValorInput('formulario_id', '');
+                    formulario = await apiRequest('/formularios/', 'POST', formularioData);
+                    if (formulario && formulario.id) {
+                        setValorInput('formulario_id', formulario.id);
+                    }
+                } else {
+                    // No era el caso recuperable -- se suprimió el mensaje al
+                    // pedir el PUT, así que se muestra aquí antes de propagar
+                    // el error, para no dejar al usuario sin ninguna pista.
+                    mostrarMensaje(errorPut.message || 'Error al actualizar el formulario', 'error');
+                    throw errorPut;
+                }
+            }
         } else {
             console.log('Creando nuevo formulario...');
             // Crear nuevo formulario
@@ -819,7 +858,7 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas) {
     html += '</tr><tr>';
     horasUnicas.forEach(hora => {
         const d = new Date(hora);
-        const fecha = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+        const fecha = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
         const horaTxt = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
         html += `<th class="preview-grid-th-hora"><span class="preview-grid-col-fecha">${fecha}</span><span class="preview-grid-col-hora">${horaTxt}</span></th>`;
     });
@@ -903,7 +942,16 @@ async function actualizarFormularioInformativo(formularioId, datosCompletos = nu
                 }
             }
         }
-        
+
+        // Preview de Frecuencia Cardiaca Fetal (parametro 8, ya no editable a
+        // mano, sincronizado solo desde Dinámica) — este es el punto real
+        // donde llegan las mediciones al cargar el paciente (ver
+        // llenarFormularioDesdePaciente más abajo, que llama a esta función
+        // con datosCompletos.mediciones ya incluido).
+        if (typeof actualizarPreviewFrecuenciaCardiacaFetal === 'function') {
+            actualizarPreviewFrecuenciaCardiacaFetal(mediciones);
+        }
+
         // Mostrar el contenedor de vista previa
         const previewContainer = document.getElementById('vista-previa-paciente');
         if (previewContainer) previewContainer.style.display = 'block';
@@ -1064,9 +1112,34 @@ async function abrirVistaPreviaMediciones() {
         return;
     }
 
-    const formularioId = obtenerValorInput('formulario_id');
+    let formularioId = obtenerValorInput('formulario_id');
+
+    // 2026-09-09: antes, si formulario_id todavía no estaba poblado (ej. se
+    // escribió el documento pero no se disparó la búsqueda de paciente antes
+    // de pulsar este botón), se bloqueaba de una con "guarde primero" —
+    // aunque la paciente YA tuviera un registro guardado de antes. Ahora, si
+    // falta, se intenta resolver aquí mismo por el número de identificación
+    // (mismo endpoint que usa la búsqueda normal) antes de darlo por
+    // inexistente, para que "ya existe un registro" sí deje verlo.
     if (!formularioId) {
-        mostrarMensaje('Primero guarde el formulario para ver la vista previa de mediciones.', 'warning');
+        const numIdentificacion = obtenerValorInput('num_identificacion');
+        if (numIdentificacion) {
+            try {
+                const data = await buscarPacienteCompleto(numIdentificacion);
+                if (data && data.encontrado && data.formulario) {
+                    if (typeof llenarFormularioDesdePaciente === 'function') {
+                        await llenarFormularioDesdePaciente(data);
+                    }
+                    formularioId = data.formulario.id;
+                }
+            } catch (e) {
+                console.warn('No se pudo resolver el formulario para la vista previa:', e);
+            }
+        }
+    }
+
+    if (!formularioId) {
+        mostrarMensaje('Esta paciente todavía no tiene ningún registro guardado.', 'warning');
         return;
     }
 
@@ -1211,12 +1284,58 @@ async function guardarTodoElControl() {
  * reflejara ese valor guardado para poder verlo y corregirlo, en lugar de
  * dejar el botón/modal en blanco después de guardar o al recargar la página.
  */
+/**
+ * 2026-09-09: Frecuencia Cardiaca Fetal (parametro 8) dejó de ser editable a
+ * mano -- se sincroniza sola desde Dinámica (ver trabajoparto/management/
+ * commands/sincronizar_frecuencia_fetal_dinamica.py). Por eso su preview NO
+ * se filtra por hora_registro_actual como el resto de parámetros (ese campo
+ * sigue siendo siempre "ahora mismo", a propósito, para no desfechar lo que
+ * se registra a mano en las demás categorías) -- muestra directamente el
+ * ÚLTIMO valor conocido junto con SU PROPIA hora real de Dinámica.
+ */
+function actualizarPreviewFrecuenciaCardiacaFetal(mediciones) {
+    if (!Array.isArray(mediciones)) return;
+    const valPreview = document.getElementById('val-preview-8');
+    if (!valPreview) return;
+
+    let masReciente = null;
+    mediciones.forEach(medicion => {
+        const parametroId = medicion.parametro ? medicion.parametro.id : medicion.parametro;
+        if (String(parametroId) !== '8') return;
+        if (!masReciente || new Date(medicion.tomada_en) > new Date(masReciente.tomada_en)) {
+            masReciente = medicion;
+        }
+    });
+    if (!masReciente) return;
+
+    const valorObj = (masReciente.valores || []).find(v => {
+        const campoId = v.campo ? v.campo.id : v.campo;
+        return String(campoId) === '6';
+    });
+    if (!valorObj) return;
+    let numero = (valorObj.valor_number !== null && valorObj.valor_number !== undefined)
+        ? valorObj.valor_number
+        : valorObj.valor_text;
+    if (numero === null || numero === undefined) return;
+    // valor_number llega como Decimal serializado ("80.000000") -- se limpia
+    // a un entero simple para mostrar, igual que hace el resto de la grilla.
+    const numeroFloat = parseFloat(numero);
+    if (!isNaN(numeroFloat)) numero = Number.isInteger(numeroFloat) ? numeroFloat : numeroFloat.toFixed(1);
+
+    const horaTexto = new Date(masReciente.tomada_en).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    valPreview.textContent = `${numero} lpm · ${horaTexto}`;
+
+    const indicator = document.getElementById('indicator-8');
+    if (indicator) indicator.style.backgroundColor = '#7c3aed'; // morado: mismo distintivo "dato de Dinámica" que usa MEOWS
+}
+
 async function sincronizarMedicionesGuardadas(formularioId, horaRegistro) {
     if (!formularioId || !horaRegistro) return;
     try {
         const timestamp = new Date().getTime();
         const mediciones = await apiRequest(`/formularios/${formularioId}/mediciones/?_=${timestamp}`);
         if (!Array.isArray(mediciones)) return;
+        actualizarPreviewFrecuenciaCardiacaFetal(mediciones);
 
         const formatearComoInputHora = (isoString) => {
             const d = new Date(isoString);

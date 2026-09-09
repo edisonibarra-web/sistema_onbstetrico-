@@ -23,22 +23,22 @@ Variables de contexto esperadas:
             <span>🔎</span> Guía Técnica MEOWS
         </button>
         {% if meows_paciente %}
-        <a href="{% url 'crear_meows' paciente_id=meows_paciente.id %}" class="btn-volver-parto">
-            <span>➕</span> Nueva Medición
+        {# 2026-09-09: se movió aquí desde formulario.html (bloqueado) para que #}
+        {# generar el PDF siga disponible aunque ya no haya formulario manual. #}
+        <a href="{% url 'generar_pdf_meows' paciente_id=meows_paciente.id %}" class="btn-volver-parto" target="_blank">
+            <span>📄</span> Generar PDF
         </a>
         {% endif %}
         {% elif meows_paciente %}
         <a href="{% url 'historial_meows' paciente_id=meows_paciente.id %}?atencion={{ atencion_id|default:'' }}&doc={{ documento|default:'' }}" class="btn-volver-parto">
             <span>📈</span> Ver historial MEOWS completo
         </a>
-        <a href="{% url 'crear_meows' paciente_id=meows_paciente.id %}" class="btn-volver-parto">
-            <span>➕</span> Nueva medición MEOWS
-        </a>
-        {% else %}
-        <a href="{% url 'abrir_meows_desde_atencion_doc' doc=documento %}" class="btn-volver-parto">
-            <span>➕</span> Nueva medición MEOWS
-        </a>
         {% endif %}
+        {# 2026-09-09: se quitó el botón "Nueva medición"/"Crear Primera Medición" #}
+        {# de aquí -- los registros MEOWS ahora vienen únicamente de la sincronización #}
+        {# automática con Dinámica (ver meows/views.py:crear_medicion_meows, bloqueado #}
+        {# a propósito). El código de creación manual se conserva como respaldo por si #}
+        {# algún día falla esa sincronización, pero ya no se expone en la interfaz. #}
         <button type="button" class="btn-toggle-timeline" id="meows-toggle-btn" onclick="toggleMeowsGrid()" title="Mostrar u ocultar la línea de tiempo clínica">
             <span id="meows-toggle-icon">➖</span> <span id="meows-toggle-label">Ocultar</span>
         </button>
@@ -55,6 +55,12 @@ Variables de contexto esperadas:
         <span class="grid-legend-item"><span class="grid-legend-marca">●</span>Valor registrado</span>
     </div>
 
+    {# 2026-09-09: PAS (Presión Arterial Sistólica) y FC en esta guía se #}
+    {# corrigieron contra una foto real de la tabla física FRSPA-026 -- #}
+    {# quedaron distintos de los RangoParametro vigentes en base de datos #}
+    {# (0-79/80-89/90-139 y 0-59/60-110/111-149) para 3 tramos puntuales. #}
+    {# Ver la misma corrección y su justificación en meows/services/ #}
+    {# grid.py:FILAS_EXPLICITAS['ta_sys'] y ['fc']. #}
     <div id="meows-referencia-overlay" class="meows-referencia-overlay" onclick="if(event.target===this) cerrarMeowsReferencia()">
         <div class="meows-referencia-modal">
             <div class="meows-referencia-header">
@@ -85,10 +91,10 @@ Variables de contexto esperadas:
                         <tbody>
                             <tr>
                                 <td class="ref-td-parametro">Presión Arterial Sistólica<br><span class="ref-unidad">(PAS) mmHg</span></td>
-                                <td class="score-3">&lt; 80</td>
-                                <td class="score-2">80 - 90</td>
+                                <td class="score-3">&lt; 90</td>
+                                <td class="score-2">90 - 99</td>
                                 <td class="score-1"></td>
-                                <td class="score-0">90 - 139</td>
+                                <td class="score-0">100 - 139</td>
                                 <td class="score-1">140 - 149</td>
                                 <td class="score-2">150 - 159</td>
                                 <td class="score-3">≥ 160</td>
@@ -118,9 +124,9 @@ Variables de contexto esperadas:
                                 <td class="score-3">&lt; 60</td>
                                 <td class="score-2"></td>
                                 <td class="score-1"></td>
-                                <td class="score-0">60 - 110</td>
+                                <td class="score-0">60 - 109</td>
                                 <td class="score-1"></td>
-                                <td class="score-2">111 - 149</td>
+                                <td class="score-2">110 - 149</td>
                                 <td class="score-3">≥ 150</td>
                             </tr>
                             <tr>
@@ -128,7 +134,7 @@ Variables de contexto esperadas:
                                 <td class="score-3"></td>
                                 <td class="score-2"></td>
                                 <td class="score-1"></td>
-                                <td class="score-0">Aire ambiente</td>
+                                <td class="score-0">21%</td>
                                 <td class="score-1">24 - 39%</td>
                                 <td class="score-2"></td>
                                 <td class="score-3">≥40 %</td>
@@ -277,18 +283,7 @@ Variables de contexto esperadas:
     <div class="empty-state">
         <div class="empty-icon">📋</div>
         <div class="empty-title">No hay mediciones registradas</div>
-        <div class="empty-text">Este paciente aún no tiene mediciones MEOWS registradas.</div>
-        {% if meows_paciente %}
-        <a href="{% url 'crear_meows' paciente_id=meows_paciente.id %}" class="btn btn-primary">
-            <span class="btn-icon">➕</span>
-            Crear Primera Medición
-        </a>
-        {% else %}
-        <a href="{% url 'abrir_meows_desde_atencion_doc' doc=documento %}" class="btn btn-primary">
-            <span class="btn-icon">➕</span>
-            Crear Primera Medición
-        </a>
-        {% endif %}
+        <div class="empty-text">Este paciente aún no tiene mediciones MEOWS registradas. Aparecerán aquí automáticamente en cuanto se registren signos vitales en Dinámica.</div>
     </div>
     {% endif %}
     </div>
