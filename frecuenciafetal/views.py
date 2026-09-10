@@ -1,9 +1,16 @@
+import logging
 from django.views.generic import TemplateView
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
+from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
+
+# 2026-09-10: logging en vez de print() para la ruta de autenticación /
+# integración con Dinámica. REGLA: nunca registrar contraseñas, hashes,
+# tokens ni datos clínicos de pacientes.
+logger = logging.getLogger('frecuenciafetal.auth')
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -15,7 +22,8 @@ from django.core.files.base import ContentFile
 from .models import (
     RegistroParto, ControlFetocardia,
     ControlRecienNacido, GlucometriaRecienNacido,
-    ControlPostpartoInmediato, ControlSangrado, HuellaBebe, FirmaPaciente, Huella
+    ControlPostpartoInmediato, ControlSangrado, HuellaBebe, FirmaPaciente, Huella,
+    IntentoLoginFallido
 )
 from .serializers import (
     RegistroPartoSerializer, RegistroPartoListSerializer,
@@ -509,6 +517,42 @@ def guardar_firma_digital(request):
     return JsonResponse({"ok": False, "error": "Método no permitido"}, status=405)
 
 
+
+# --- Límite de intentos de login (ver IntentoLoginFallido en models.py) ---
+# Ventana y umbral elegidos para frenar un script de fuerza bruta (que
+# necesita cientos/miles de intentos por minuto para ser útil) sin ser tan
+# estrictos que un grupo de personas detrás de la misma IP/NAT del hospital
+# quede bloqueado por errores normales de tipeo.
+_LOGIN_VENTANA_MINUTOS = 15
+_LOGIN_MAX_INTENTOS = 6
+_LOGIN_RETENCION_HORAS = 24
+
+
+def _ip_cliente(request):
+    """IP de origen del request, tolerando estar detrás de un proxy/balanceador."""
+    xff = request.META.get('HTTP_X_FORWARDED_FOR')
+    if xff:
+        return xff.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR') or '0.0.0.0'
+
+
+def _demasiados_intentos_login(ip):
+    from django.utils import timezone
+    from datetime import timedelta
+    limite = timezone.now() - timedelta(minutes=_LOGIN_VENTANA_MINUTOS)
+    return IntentoLoginFallido.objects.filter(ip=ip, creado__gte=limite).count() >= _LOGIN_MAX_INTENTOS
+
+
+def _registrar_intento_login_fallido(ip, username):
+    from django.utils import timezone
+    from datetime import timedelta
+    IntentoLoginFallido.objects.create(ip=ip, username=(username or '')[:150])
+    # Limpieza barata: aprovecha este mismo write para no acumular filas viejas
+    # para siempre (no hay un cron/management command aparte para esto).
+    corte = timezone.now() - timedelta(hours=_LOGIN_RETENCION_HORAS)
+    IntentoLoginFallido.objects.filter(creado__lt=corte).delete()
+
+
 def login_view(request):
     # Nota: se usa la ruta explícita '/atencion/sala-de-partos/' (no el
     # nombre de URL) porque hoy existe más de un urlpattern llamado 'home'
@@ -529,14 +573,47 @@ def login_view(request):
         u = request.POST.get('username')
         p = request.POST.get('password')
         next_url = request.POST.get('next', '/atencion/sala-de-partos/')
+        ip = _ip_cliente(request)
 
-        from django.contrib.auth import authenticate, login
-        user = authenticate(request, username=u, password=p)
-        if user:
-            login(request, user)
-            return redirect(next_url)
+        if _demasiados_intentos_login(ip):
+            # 2026-09-09: límite de intentos (hallazgo "fuerza bruta sin
+            # límite") -- por IP, no por cuenta, a propósito (ver docstring
+            # de IntentoLoginFallido en models.py).
+            error = (
+                "Demasiados intentos fallidos desde esta red. Espere unos "
+                "minutos e intente de nuevo."
+            )
         else:
-            error = "Usuario o contraseña incorrectos en Dinámica Gerencial."
+            from django.contrib.auth import authenticate, login
+            # dgh_connection_error: lo marca DGHBackend en el propio request
+            # cuando el fallo fue por no poder conectarse a Dinámica (ver
+            # auth_dgh.py), para distinguirlo de una contraseña realmente
+            # incorrecta -- son dos situaciones distintas y el mensaje al
+            # usuario debe ser distinto (aquí no tiene sentido, por ejemplo,
+            # decirle "conserve su cuenta local como respaldo" si su clave sí
+            # era correcta pero Dinámica no respondió).
+            request.dgh_connection_error = False
+            user = authenticate(request, username=u, password=p)
+            if user:
+                login(request, user)
+                return redirect(next_url)
+            elif getattr(request, 'dgh_connection_error', False):
+                # 2026-09-10: mensaje institucional, sin tecnicismos (no
+                # menciona SQL, IP, tablas ni "sin conexión" literal). El
+                # detalle técnico ya quedó en el log (ver auth_dgh.py).
+                error = (
+                    "No fue posible validar las credenciales institucionales en "
+                    "este momento. Intente nuevamente en unos minutos. Si el "
+                    "problema continúa, use una cuenta local de este sistema (si "
+                    "tiene una creada como respaldo) o comuníquese con Sistemas."
+                )
+                logger.warning("Login no verificable: Dinámica Gerencial no respondió.")
+                # No cuenta como intento fallido real: no fue un error de
+                # contraseña, fue Dinámica sin responder -- no hay que
+                # penalizar a alguien que sí tecleó bien su clave.
+            else:
+                error = "Usuario o contraseña incorrectos en Dinámica Gerencial."
+                _registrar_intento_login_fallido(ip, u)
 
     return render(request, 'frecuenciafetal/login.html', {'error': error, 'next': next_url})
 
@@ -562,6 +639,10 @@ def _usuario_existe_en_dinamica(username):
             )
             return cursor.fetchone() is not None
     except Exception:
+        logger.warning(
+            "No se pudo verificar el usuario contra Dinámica Gerencial durante el "
+            "registro; se bloquea el alta por precaución."
+        )
         return True
 
 
@@ -613,12 +694,23 @@ def registro_usuario_view(request):
             error = "La contraseña debe tener al menos 6 caracteres."
         elif password != password2:
             error = "Las contraseñas no coinciden."
-        elif User.objects.filter(username__iexact=username).exists():
-            error = "Ese usuario ya está registrado en este sistema. Use el login normal."
-        elif _usuario_existe_en_dinamica(username):
+        elif User.objects.filter(username__iexact=username).exists() or _usuario_existe_en_dinamica(username):
+            # 2026-09-09 -- hallazgo "enumeración de usuarios vía /registro/":
+            # antes había un mensaje distinto para "ya existe localmente" y
+            # "ya existe en Dinámica", lo que permitía a cualquiera (sin
+            # necesitar contraseña) usar este formulario como oráculo para
+            # averiguar qué usernames de Dinámica son válidos y están
+            # activos -- información útil para luego dirigir un ataque de
+            # fuerza bruta contra esas cuentas confirmadas. Se une en un solo
+            # mensaje genérico que no revela cuál de los dos casos ocurrió.
+            # (El `or` de Python evalúa de izquierda a derecha y se detiene
+            # en el primero que sea True, así que la consulta a Dinámica de
+            # _usuario_existe_en_dinamica ni siquiera se ejecuta cuando ya
+            # existe localmente.)
             error = (
-                "Ese usuario ya existe en Dinámica Gerencial — use el login normal con "
-                "su clave de Dinámica en vez de registrarse aquí."
+                "No fue posible crear la cuenta con ese usuario. Si ya tiene acceso "
+                "(en este sistema o en Dinámica Gerencial), use el login normal en "
+                "vez de registrarse aquí."
             )
         else:
             user = User.objects.create_user(username=username, password=password)
@@ -653,9 +745,20 @@ def registro_usuario_view(request):
     })
 
 
+@require_http_methods(["GET", "POST"])
 def logout_view(request):
+    """
+    2026-09-10: el cierre de sesión ahora se hace por POST + CSRF (el botón del
+    encabezado, header_formatos.html, es un <form method="post">).
+
+    Un GET a /logout/ YA NO cierra la sesión: solo redirige. Así se cierra el
+    vector de "logout forzado por CSRF" (una página maliciosa con
+    <img src="/logout/"> ya no puede desloguear al usuario), sin romper ningún
+    enlace ni marcador viejo — un GET simplemente rebota de vuelta a la app.
+    """
     from django.contrib.auth import logout
-    logout(request)
+    if request.method == 'POST':
+        logout(request)
     return redirect('/')
 @login_required_if_enabled
 @csrf_exempt

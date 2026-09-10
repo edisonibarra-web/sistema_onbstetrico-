@@ -52,14 +52,17 @@ def obtener_color_score(score):
     return colores.get(score, colors.white)
 
 
-def generar_pdf_meows(paciente, mediciones):
+def generar_pdf_meows(paciente, mediciones, responsable=None):
     """
     Genera un PDF MEOWS con formato idéntico al formato físico usando ReportLab.
-    
+
     Args:
         paciente: Instancia del modelo Paciente
         mediciones: QuerySet de Medicion ordenadas por fecha_hora
-    
+        responsable: nombre del profesional que genera/valida el reporte (del
+            usuario en sesión). Si no se pasa, cae en paciente.responsable y
+            luego en "No especificado".
+
     Returns:
         HttpResponse con el PDF generado
     """
@@ -731,70 +734,22 @@ def generar_pdf_meows(paciente, mediciones):
         story.append(tabla_grilla)
         story.append(Spacer(1, 0.5*cm))
 
-    # Ancho total disponible para la firma del responsable
+    # Ancho total disponible para el bloque de validación
     ancho_total_firma = landscape(A4)[0] - 1.6*cm
 
-    # ===== FIRMA DEL RESPONSABLE (ENFERMERO) CON BIOMETRÍA =====
-    # Intentar obtener la firma biométrica del responsable (el que diligencia)
-    img_firma_bio = None
-    try:
-        # Búsqueda robusta de firma: documento, documento sin ceros, id interno y formulario_id
-        from meows.models import FirmaPaciente
-        from django.db.models import Q
-
-        ids_busqueda = set()
-        doc_paciente = str(getattr(paciente, "numero_documento", "") or "").strip()
-        if doc_paciente:
-            ids_busqueda.add(doc_paciente)
-            doc_limpio = doc_paciente.lstrip('0') or '0'
-            ids_busqueda.add(doc_limpio)
-            if doc_paciente.isdigit():
-                ids_busqueda.add(str(int(doc_paciente)))
-        ids_busqueda.add(str(paciente.id))
-
-        formularios_ids = {
-            str(getattr(m, "formulario_id", "")).strip()
-            for m in mediciones_iter
-            if getattr(m, "formulario_id", None)
-        }
-        formularios_ids = {fid for fid in formularios_ids if fid}
-
-        query_firma = Q(paciente_id__in=list(ids_busqueda))
-        if formularios_ids:
-            query_firma |= Q(formulario_id__in=list(formularios_ids))
-
-        firma_obj = (
-            FirmaPaciente.objects
-            .filter(query_firma)
-            .exclude(imagen_firma=None)
-            .exclude(imagen_firma='')
-            .order_by('-fecha')
-            .first()
-        )
-        
-        if firma_obj and firma_obj.imagen_firma:
-            try:
-                # 1. Intentar por path físico si existe
-                if os.path.exists(firma_obj.imagen_firma.path):
-                    img_firma_bio = Image(firma_obj.imagen_firma.path, width=4.5*cm, height=1.8*cm, kind='proportional')
-                else:
-                    # 2. Fallback memoria/storage (más lento)
-                    firma_obj.imagen_firma.open('rb')
-                    img_bytes_f = BytesIO(firma_obj.imagen_firma.read())
-                    firma_obj.imagen_firma.close()
-                    img_firma_bio = Image(img_bytes_f, width=4.5*cm, height=1.8*cm, kind='proportional')
-            except Exception as e_img:
-                # Si ambos fallan, no agregar la firma pero no romper el PDF
-                print(f"Error al cargar firma biométrica: {e_img}")
-                img_firma_bio = None
-    except Exception as e:
-        print(f"Error general buscando firma: {e}")
-        pass
-
+    # ===== BLOQUE DE VALIDACIÓN (RESPONSABLE DEL REPORTE) =====
+    # MEOWS ya no se diligencia a mano — las mediciones llegan solas desde
+    # Dinámica. El "responsable" del PDF es el profesional en sesión que
+    # generó/consultó el reporte (mismo criterio que el campo RESPONSABLE de
+    # Trabajo de Parto y Control Posparto). Sin firma: solo el nombre.
     fecha_actual = datetime.now().strftime("%d/%m/%Y")
     hora_actual = datetime.now().strftime("%I:%M %p")
-    responsable = paciente.responsable if paciente.responsable else 'No especificado'
-    
+    responsable = (
+        (responsable or '').strip()
+        or (getattr(paciente, 'responsable', '') or '').strip()
+        or 'No especificado'
+    )
+
     estilo_firma = ParagraphStyle(
         'Firma',
         parent=styles['Normal'],
@@ -804,18 +759,20 @@ def generar_pdf_meows(paciente, mediciones):
         leading=10,
         fontName='Helvetica-Bold',
     )
-    
+
     firma_texto = (
-        f'<b>Responsable del Registro MEOWS:</b> {responsable}  <br/>'
-        f'<b>Fecha:</b> {fecha_actual}  '
+        f'<b>Responsable:</b> {responsable}  <br/>'
+        f'<b>Fecha de generación:</b> {fecha_actual}  '
         f'<b>Hora:</b> {hora_actual}'
     )
-    
-    # Celda con firma (si existe) + texto
-    contenido_firma = []
-    if img_firma_bio:
-        contenido_firma.append(img_firma_bio)
-    contenido_firma.append(Paragraph(f"<b>VALIDACIÓN DE REGISTRO</b><br/>{firma_texto}", estilo_firma))
+
+    contenido_firma = [Paragraph(
+        f"<b>VALIDACIÓN DEL REPORTE MEOWS</b><br/>"
+        f"<font size=7>Las mediciones se importan automáticamente desde Dinámica Gerencial. "
+        f"Este reporte fue generado y consultado por el profesional en sesión:</font><br/>"
+        f"{firma_texto}",
+        estilo_firma,
+    )]
 
     tabla_firma = Table([[contenido_firma]], colWidths=[ancho_total_firma])
     tabla_firma.setStyle(TableStyle([

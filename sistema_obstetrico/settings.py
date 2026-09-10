@@ -25,27 +25,46 @@ load_dotenv(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-# Debe venir de la variable de entorno DJANGO_SECRET_KEY. El valor de respaldo solo sirve
-# para que `manage.py` no truene en un checkout nuevo sin .env todavía configurado — no usar
-# en ningún entorno compartido.
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-giplfuu5j2$k!p@9uqs9lncczcv=r5hd&!)v1r*+)ihh27-%ar',
-)
+from django.core.exceptions import ImproperlyConfigured
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Por defecto False (seguro por defecto); poner DJANGO_DEBUG=True solo en desarrollo local.
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
+# SECURITY WARNING: keep the secret key used in production secret!
+# Debe venir SIEMPRE de la variable de entorno DJANGO_SECRET_KEY.
+# 2026-09-10: en producción (DEBUG=False) ahora es OBLIGATORIA -- si falta, el
+# proceso no arranca (falla claro y temprano) en vez de usar en silencio una
+# clave conocida y publicada. El valor de respaldo solo aplica en DEBUG=True,
+# para que un checkout nuevo sin .env todavía configurado no truene al correr
+# `manage.py`.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'django-insecure-giplfuu5j2$k!p@9uqs9lncczcv=r5hd&!)v1r*+)ihh27-%ar'
+    else:
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY es obligatoria cuando DJANGO_DEBUG=False. "
+            "Genere una clave única para este entorno y póngala en el .env."
+        )
+
 # Exige inicio de sesión en todo el sistema. Poner REQUIRE_LOGIN=False en .env únicamente si
 # esta app queda temporalmente detrás de otra aplicación que ya controla el login.
 REQUIRE_LOGIN = os.environ.get('REQUIRE_LOGIN', 'True') == 'True'
 
-# Permite conexión desde tablet u otros dispositivos en la red local.
-# En producción usar hosts explícitos.
-ALLOWED_HOSTS = ['*'] if DEBUG else ['localhost', '127.0.0.1']
+# Hosts permitidos.
+# 2026-09-10: se agregó la variable DJANGO_ALLOWED_HOSTS (lista separada por
+# comas, ej. "salapartos.hospital.local,10.20.30.40") para producción, sin
+# tocar código. Si NO se define, el comportamiento es EXACTAMENTE el de antes:
+#   - DEBUG=True  -> ['*']  (cómodo para tablets/PCs en la red local de dev)
+#   - DEBUG=False -> ['localhost', '127.0.0.1']
+_ALLOWED = os.environ.get('DJANGO_ALLOWED_HOSTS', '').strip()
+if _ALLOWED:
+    ALLOWED_HOSTS = [h.strip() for h in _ALLOWED.split(',') if h.strip()]
+elif DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Orígenes CSRF confiables para que la tablet pueda hacer POST (formularios, API).
 # Evita depender de una IP fija cuando el equipo cambia de red.
@@ -75,6 +94,55 @@ if _local_ip:
     CSRF_TRUSTED_ORIGINS += [f'http://{_local_ip}:{port}' for port in _DEV_PORTS]
 if _CSRF_EXTRA:
     CSRF_TRUSTED_ORIGINS.append(_CSRF_EXTRA)
+
+
+# ---------------------------------------------------------------------------
+# Seguridad de transporte y de sesión
+# 2026-09-10 -- endurecimiento de bajo impacto para producción, SIN cambiar
+# el comportamiento en desarrollo (`runserver` sobre HTTP sigue funcionando
+# igual). Todo lo "duro" está apagado por defecto y se enciende solo por
+# variable de entorno cuando el entorno de verdad tenga HTTPS.
+# ---------------------------------------------------------------------------
+
+# Poner HTTPS_ENABLED=True en el .env SOLO cuando el sitio se sirva por HTTPS
+# (típicamente detrás de un proxy inverso: Nginx, IIS, Traefik...). Mientras
+# esté en False (default), nada de esto aplica y el login por HTTP local no
+# se ve afectado.
+_HTTPS_ENABLED = os.environ.get('HTTPS_ENABLED', 'False') == 'True'
+
+# Cookies de sesión/CSRF: siempre HttpOnly + SameSite=Lax (ya eran el default
+# de Django, se dejan explícitos). El flag Secure se activa solo con HTTPS
+# real, porque marcar Secure sobre HTTP haría que el navegador NO mande la
+# cookie y el login quedaría roto en desarrollo.
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = _HTTPS_ENABLED
+CSRF_COOKIE_SECURE = _HTTPS_ENABLED
+
+if _HTTPS_ENABLED:
+    # Redirige HTTP -> HTTPS. Requiere que el proxy inverso mande la cabecera
+    # X-Forwarded-Proto correctamente; con SECURE_PROXY_SSL_HEADER, Django
+    # confía en ella para saber que la petición original sí venía por HTTPS
+    # (evita un bucle de redirección infinito detrás del proxy).
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    # HSTS se deja pendiente a propósito: una vez el navegador lo cachea es
+    # difícil de revertir si HTTPS llega a fallar. Activarlo (SECURE_HSTS_*)
+    # solo cuando HTTPS lleve tiempo estable en producción.
+
+# Duración de la sesión.
+# 2026-09-10 -- HALLAZGO: el default de Django es 1209600 s (14 días), muy
+# largo para estaciones compartidas de sala de partos. Ahora es configurable
+# por entorno con SESSION_HORAS. El DEFAULT SIGUE SIENDO 14 días (336 h) =
+# comportamiento actual EXACTO, para no cambiar nada sin querer en pruebas.
+# Recomendación para producción: SESSION_HORAS=24 (cubre un turno largo con
+# relevo; una sesión olvidada muere en 24 h en vez de 2 semanas).
+try:
+    _SESSION_HORAS = int(os.environ.get('SESSION_HORAS', '336'))
+except ValueError:
+    _SESSION_HORAS = 336
+SESSION_COOKIE_AGE = _SESSION_HORAS * 3600
 
 
 # Application definition
@@ -185,10 +253,33 @@ DATABASES = {
         'PORT': os.environ.get('DGEMPRES_NEXUS_PORT') or '1433',
         'OPTIONS': {
             'driver': 'ODBC Driver 18 for SQL Server',
-            'extra_params': 'Encrypt=yes;TrustServerCertificate=yes',
+            # 2026-09-09 -- hallazgo "dependencia de disponibilidad de
+            # Dinámica": sin esto, si el servidor de Dinámica no responde
+            # (apagado, red caída, etc.), el intento de conexión se quedaba
+            # colgado con el timeout por defecto del driver (bastante largo),
+            # dejando la pantalla de login congestionada varios segundos
+            # antes de fallar. "Connection Timeout" (segundos) solo limita
+            # cuánto se espera para establecer la conexión -- no afecta el
+            # tiempo permitido para que una consulta ya conectada termine.
+            'extra_params': 'Encrypt=yes;TrustServerCertificate=yes;Connection Timeout=5',
         },
     },
 }
+
+# 2026-09-10 -- HALLAZGO DE SEGURIDAD "no afectar la BD de Dinámica ni en
+# pruebas ni en producción": meows/db_router.py ya traía una clase
+# ReadonlyRouter cuyo propio comentario decía "Bloquea migraciones en
+# 'readonly'", pero nunca se había registrado aquí -- sin esta línea, Django
+# no sabe que ese router existe, así que esa protección NUNCA estuvo activa
+# realmente (era una falsa sensación de seguridad). Su allow_migrate()
+# devuelve False para CUALQUIER app si db == 'readonly', así que a partir de
+# ahora un `manage.py migrate --database=readonly` (a mano o por error) no
+# podría crear/alterar/borrar nada ahí, sin importar qué app se intente
+# migrar -- capa adicional a que ya ningún modelo mapeado a tablas de
+# Dinámica es managed=True, y a que ninguna consulta del proyecto escribe en
+# 'readonly' (ver auditoría 2026-09-10, sin una sola sentencia INSERT/UPDATE/
+# DELETE/CREATE/ALTER/DROP contra esa conexión en todo el repositorio).
+DATABASE_ROUTERS = ['meows.db_router.ReadonlyRouter']
 
 
 # Backends de autenticación: primero se intenta DGH (Dinámica Gerencial, valida contra la
@@ -265,4 +356,54 @@ REST_FRAMEWORK = {
         if REQUIRE_LOGIN else
         'rest_framework.permissions.AllowAny'
     ],
+}
+
+
+# ---------------------------------------------------------------------------
+# Logging
+# 2026-09-10 -- antes no había NADA configurado: los mensajes de la app iban a
+# `print()` sueltos (ver auth_dgh.py). Ahora hay un logger con salida a
+# consola (stdout), que es justo lo que un contenedor Docker espera: se ven
+# con `docker compose logs web` y los recoge cualquier recolector estándar.
+# No se escribe a archivo a propósito (evita temas de rutas/permisos/rotación
+# dentro del contenedor).
+#
+# IMPORTANTE: nunca registrar contraseñas, hashes, tokens, credenciales de BD
+# ni datos clínicos de pacientes. Los loggers de la app (ej.
+# 'frecuenciafetal.auth') solo emiten mensajes tipo "Dinámica no disponible",
+# "usuario no encontrado", "error validando usuario".
+_LOG_LEVEL = os.environ.get('DJANGO_LOG_LEVEL', 'INFO').upper()
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        # Loggers propios de la app (autenticación / integración con Dinámica).
+        'frecuenciafetal': {
+            'handlers': ['console'],
+            'level': _LOG_LEVEL,
+            'propagate': False,
+        },
+        # Errores del servidor Django (500, etc.): que se vean, sin pedir DEBUG.
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
 }

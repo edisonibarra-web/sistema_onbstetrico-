@@ -779,7 +779,12 @@ def pdf_atencion(request, id):
         except (PacienteMeows.DoesNotExist, PacienteMeows.MultipleObjectsReturned):
             paciente_meows = mediciones_qs.first().paciente
 
-        response_meows = generar_pdf_meows(paciente_meows, list(mediciones_qs))
+        from sistema_obstetrico.auth_utils import nombre_profesional_sesion
+        response_meows = generar_pdf_meows(
+            paciente_meows,
+            list(mediciones_qs),
+            responsable=nombre_profesional_sesion(request),
+        )
         if isinstance(response_meows, HttpResponse):
             pdf_file = io.BytesIO(response_meows.content)
             reader = PdfReader(pdf_file)

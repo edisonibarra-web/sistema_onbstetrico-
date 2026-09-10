@@ -11,7 +11,15 @@ Variables de contexto esperadas:
   - mostrar_link_volver (bool, opcional): si se muestra "Regresar a Trabajo de Parto"
     (True en meows/historial.html) o un acceso directo al módulo MEOWS (False, embebido)
 {% endcomment %}
-<section class="section timeline-section">
+{% comment %}
+2026-09-10: `abrir_en_modal` lo pasa SOLO Control Posparto Inmediato
+(frecuenciafetal/formulario.html). En esa vista la tabla se abre en una
+ventana grande (modal) y la sección queda como una tarjeta compacta con un
+resumen. En las demás vistas (meows/historial.html) NO se pasa esta variable
+-> se mantiene el comportamiento de siempre: tabla desplegada dentro de la
+página, colapsable con el botón "Ocultar/Mostrar".
+{% endcomment %}
+<section class="section timeline-section{% if abrir_en_modal %} timeline-section--compact{% endif %}">
     <h3 class="section-title">
         <span class="section-icon-badge"><i data-lucide="line-chart"></i></span>
         {% if mostrar_link_volver %}Línea de Tiempo Clínica{% else %}Control Posparto Inmediato{% endif %}
@@ -19,13 +27,19 @@ Variables de contexto esperadas:
         <a href="{% url 'parto_home' %}?atencion={{ atencion_id|default:'' }}&doc={{ documento|default:meows_paciente.numero_documento|urlencode }}" class="btn-volver-parto">
             <span>↩️</span> Regresar a Trabajo de Parto
         </a>
+        {% if not abrir_en_modal %}
+        {# En modo inline la Guía Técnica va aquí, en el <h3>. En modo modal se #}
+        {# mueve al encabezado del modal (ahí queda accesible mientras se lee #}
+        {# la tabla; en el <h3> quedaría tapada por el modal al abrirlo). #}
         <button type="button" class="btn-meows-referencia" onclick="abrirMeowsReferencia()">
             <span>🔎</span> Guía Técnica MEOWS
         </button>
+        {% endif %}
         {% if meows_paciente %}
         {# 2026-09-09: se movió aquí desde formulario.html (bloqueado) para que #}
         {# generar el PDF siga disponible aunque ya no haya formulario manual. #}
-        <a href="{% url 'generar_pdf_meows' paciente_id=meows_paciente.id %}" class="btn-volver-parto" target="_blank">
+        {# El id lo usa historial.html para agregarle ?responsable=<campo>. #}
+        <a id="btn-generar-pdf-meows" href="{% url 'generar_pdf_meows' paciente_id=meows_paciente.id %}" class="btn-volver-parto" target="_blank">
             <span>📄</span> Generar PDF
         </a>
         {% endif %}
@@ -34,18 +48,52 @@ Variables de contexto esperadas:
             <span>📈</span> Ver historial MEOWS completo
         </a>
         {% endif %}
-        {# 2026-09-09: se quitó el botón "Nueva medición"/"Crear Primera Medición" #}
-        {# de aquí -- los registros MEOWS ahora vienen únicamente de la sincronización #}
-        {# automática con Dinámica (ver meows/views.py:crear_medicion_meows, bloqueado #}
-        {# a propósito). El código de creación manual se conserva como respaldo por si #}
-        {# algún día falla esa sincronización, pero ya no se expone en la interfaz. #}
+        {# 2026-09-09: se quitó el botón "Nueva medición" -- los registros MEOWS #}
+        {# vienen únicamente de la sincronización automática con Dinámica. #}
+        {% if abrir_en_modal %}
+        <button type="button" class="btn-abrir-timeline" onclick="abrirMeowsTimeline()" title="Ver la línea de tiempo clínica en una ventana grande">
+            <span>📊</span> Ver línea de tiempo clínica
+        </button>
+        {% else %}
         <button type="button" class="btn-toggle-timeline" id="meows-toggle-btn" onclick="toggleMeowsGrid()" title="Mostrar u ocultar la línea de tiempo clínica">
             <span id="meows-toggle-icon">➖</span> <span id="meows-toggle-label">Ocultar</span>
         </button>
+        {% endif %}
     </h3>
 
+    {% if abrir_en_modal %}
+    {% if columnas %}
+    {% with ultima=columnas|last %}
+    <p class="meows-timeline-summary">
+        <span class="meows-summary-dato"><strong>{{ columnas|length }}</strong> toma{{ columnas|length|pluralize }} registrada{{ columnas|length|pluralize }}</span>
+        {% if ultima.hora %}<span class="meows-summary-dato">Última toma: <strong>{{ ultima.hora|date:"d/m/y · h:i A" }}</strong></span>{% endif %}
+        {% if ultima.riesgo %}<span class="meows-summary-dato">Riesgo actual: <span class="meows-summary-riesgo riesgo-bg-{{ ultima.riesgo|lower }}">{{ ultima.riesgo }}</span></span>{% endif %}
+    </p>
+    {% endwith %}
+    {% else %}
+    <p class="meows-timeline-summary meows-timeline-summary--vacio">Sin mediciones MEOWS registradas todavía. Aparecerán aquí en cuanto se registren signos vitales en Dinámica.</p>
+    {% endif %}
+    {% endif %}
+
+    {% if abrir_en_modal %}
+    <div class="meows-timeline-overlay" id="meows-timeline-overlay" onclick="if(event.target===this) cerrarMeowsTimeline()">
+    <div class="meows-timeline-modal">
+    <div class="meows-timeline-modal-header">
+        <span><i data-lucide="line-chart"></i> Línea de Tiempo Clínica MEOWS</span>
+        <div class="meows-timeline-modal-actions">
+            {% if columnas %}
+            <button type="button" class="btn-meows-referencia" onclick="abrirMeowsReferencia()">
+                <span>🔎</span> Guía Técnica MEOWS
+            </button>
+            {% endif %}
+            <button type="button" class="meows-timeline-modal-close" onclick="cerrarMeowsTimeline()" title="Cerrar">&times;</button>
+        </div>
+    </div>
+    <div class="meows-timeline-modal-body">
+    {% else %}
     <div id="meows-grid-body" class="meows-grid-body">
     <div class="meows-grid-body-inner">
+    {% endif %}
     {% if columnas %}
     <div class="grid-legend">
         <span class="grid-legend-item"><span class="grid-legend-swatch score-0"></span>Normal <strong>· 0 puntos</strong></span>
@@ -55,12 +103,11 @@ Variables de contexto esperadas:
         <span class="grid-legend-item"><span class="grid-legend-marca">●</span>Valor registrado</span>
     </div>
 
-    {# 2026-09-09: PAS (Presión Arterial Sistólica) y FC en esta guía se #}
-    {# corrigieron contra una foto real de la tabla física FRSPA-026 -- #}
-    {# quedaron distintos de los RangoParametro vigentes en base de datos #}
-    {# (0-79/80-89/90-139 y 0-59/60-110/111-149) para 3 tramos puntuales. #}
-    {# Ver la misma corrección y su justificación en meows/services/ #}
-    {# grid.py:FILAS_EXPLICITAS['ta_sys'] y ['fc']. #}
+    {# Esta guía refleja la tabla física FRSPA-026. Desde 2026-09-10 los #}
+    {# RangoParametro de la BD ya coinciden con estos valores para #}
+    {# temp/ta_sys/fc/fcf (ver meows/migrations/0023_rangos_meows_frspa026.py #}
+    {# y grid.py:FILAS_EXPLICITAS). La FCF no aparece como fila porque en la #}
+    {# FRSPA-026 no puntúa. #}
     <div id="meows-referencia-overlay" class="meows-referencia-overlay" onclick="if(event.target===this) cerrarMeowsReferencia()">
         <div class="meows-referencia-modal">
             <div class="meows-referencia-header">
@@ -141,13 +188,13 @@ Variables de contexto esperadas:
                             </tr>
                             <tr>
                                 <td class="ref-td-parametro">Temperatura<br><span class="ref-unidad">°C</span></td>
-                                <td class="score-3">&lt; 34</td>
+                                <td class="score-3">&lt; 34.5</td>
                                 <td class="score-2"></td>
-                                <td class="score-1">34 - 35</td>
-                                <td class="score-0">35.1 - 37.9</td>
-                                <td class="score-1">38 - 38.9</td>
+                                <td class="score-1">34.5 - 35.4</td>
+                                <td class="score-0">35.5 - 37.4</td>
+                                <td class="score-1">37.5 - 38.4</td>
                                 <td class="score-2"></td>
-                                <td class="score-3">≥ 39</td>
+                                <td class="score-3">≥ 38.5</td>
                             </tr>
                             <tr>
                                 <td class="ref-td-parametro">Estado de conciencia</td>
@@ -286,10 +333,23 @@ Variables de contexto esperadas:
         <div class="empty-text">Este paciente aún no tiene mediciones MEOWS registradas. Aparecerán aquí automáticamente en cuanto se registren signos vitales en Dinámica.</div>
     </div>
     {% endif %}
-    </div>
-    </div>
+    {% if abrir_en_modal %}
+    </div>{# .meows-timeline-modal-body #}
+    </div>{# .meows-timeline-modal #}
+    </div>{# .meows-timeline-overlay #}
+    {% else %}
+    </div>{# .meows-grid-body-inner #}
+    </div>{# .meows-grid-body #}
+    {% endif %}
 </section>
 <script>
+// 2026-09-10: en Control Posparto Inmediato la Línea de Tiempo Clínica se abre
+// en una ventana grande (modal), como la gráfica "Trazabilidad del Puntaje
+// MEOWS". En las demás vistas se mantiene desplegada e igual que siempre
+// (colapsable con localStorage). Cada bloque abajo no hace nada si su
+// elemento no existe en la página -> los dos modos conviven sin conflicto.
+
+// --- Modo INLINE (meows/historial.html): colapsar/expandir + recordar estado ---
 (function() {
     var STORAGE_KEY = 'meows-grid-collapsed-{{ documento|default:"na"|escapejs }}';
     var body = document.getElementById('meows-grid-body');
@@ -301,7 +361,7 @@ Variables de contexto esperadas:
         if (instant) body.style.transition = 'none';
         body.classList.toggle('is-collapsed', collapsed);
         if (instant) {
-            void body.offsetHeight; /* fuerza reflow antes de reactivar la transición */
+            void body.offsetHeight;
             body.style.transition = '';
         }
         if (icon) icon.textContent = collapsed ? '➕' : '➖';
@@ -319,6 +379,16 @@ Variables de contexto esperadas:
     if (saved === '1') applyState(true, true);
 })();
 
+// --- Modo MODAL (Control Posparto Inmediato) ---
+window.abrirMeowsTimeline = function() {
+    var o = document.getElementById('meows-timeline-overlay');
+    if (o) o.classList.add('show');
+};
+window.cerrarMeowsTimeline = function() {
+    var o = document.getElementById('meows-timeline-overlay');
+    if (o) o.classList.remove('show');
+};
+
 window.abrirMeowsReferencia = function() {
     var overlay = document.getElementById('meows-referencia-overlay');
     if (overlay) overlay.classList.add('show');
@@ -331,7 +401,11 @@ window.cerrarMeowsReferencia = function() {
 
 document.addEventListener('keydown', function(e) {
     if (e.key !== 'Escape') return;
-    var overlay = document.getElementById('meows-referencia-overlay');
-    if (overlay && overlay.classList.contains('show')) window.cerrarMeowsReferencia();
+    // La Guía Técnica se abre ENCIMA de la línea de tiempo -> si está abierta,
+    // Esc cierra primero esa; si no, cierra la línea de tiempo.
+    var ref = document.getElementById('meows-referencia-overlay');
+    if (ref && ref.classList.contains('show')) { window.cerrarMeowsReferencia(); return; }
+    var tl = document.getElementById('meows-timeline-overlay');
+    if (tl && tl.classList.contains('show')) window.cerrarMeowsTimeline();
 });
 </script>

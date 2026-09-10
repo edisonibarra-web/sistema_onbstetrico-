@@ -1057,7 +1057,14 @@
                 </div>
 
             <!-- SECCIÓN DE FIRMA DEL RESPONSABLE -->
+            <!-- 2026-09-10: la firma se OCULTA por ahora (no es necesaria). No se
+                 elimina: quitar el atributo `hidden` de .firma-card abajo la
+                 reactiva tal cual. El JS de firma sigue encontrando #imgFirma /
+                 #estadoFirma por id sin romperse (solo quedan dentro de un
+                 contenedor no renderizado). Guardar el formulario NUNCA exigió
+                 firma (ver guardarFormulario en main.js). -->
             <style>
+            .firma-card[hidden] { display: none !important; }
             .firma-card {
                 margin: 24px 0;
                 width: 100%;
@@ -1231,7 +1238,7 @@
                 .firma-panel-hint { max-width: 100%; }
             }
             </style>
-            <div class="firma-card">
+            <div class="firma-card" hidden>
                 <div class="firma-card-header">
                     <div class="firma-card-header-icon">✍️</div>
                     <div class="firma-card-header-text">
@@ -1330,7 +1337,7 @@
         <script>window.API_BASE_URL = 'http://TU_HOST:8000/api';</script>
         Si no defines nada, config.js la infiere automáticamente con window.location.hostname.
     -->
-    <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'js/main.js' %}?v=20260910"></script>
     <script>
     (function() {
       const docFromCard = "{{ documento|default:''|escapejs }}".trim();

@@ -31,7 +31,12 @@
             display: flex;
             justify-content: center;
         }
-        .manual-wrap { width: 100%; max-width: 1720px; }
+        /* Sin max-width: en monitores anchos (ultra-wide, TVs de sala) el
+           manual debe usar todo el ancho disponible en vez de dejar
+           franjas en blanco a los lados -- el texto y las capturas ya
+           tienen su propio max-width más angosto para seguir siendo
+           legibles aunque la tarjeta blanca se extienda de borde a borde. */
+        .manual-wrap { width: 100%; }
 
         /* Encabezado */
         .manual-header {
@@ -256,6 +261,130 @@
             color: rgba(255,255,255,0.7); font-size: 12.5px; font-weight: 600;
         }
 
+        /* Metadatos de portada (versión / fecha / institución) */
+        .manual-meta {
+            position: relative;
+            display: flex; flex-wrap: wrap; gap: 8px 18px;
+            font-size: 12.5px; color: #94a3b8; font-weight: 700;
+            margin: -6px 0 18px;
+        }
+        .manual-meta span { display: flex; align-items: center; gap: 5px; }
+        .manual-meta i { color: #cbd5e1; }
+
+        /* Buscador del manual */
+        .manual-search-wrap { position: relative; max-width: 480px; margin: 4px 0 18px; }
+        .manual-search-box {
+            position: relative; display: flex; align-items: center;
+            background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px;
+            padding: 0 14px;
+        }
+        .manual-search-box i { color: #94a3b8; flex-shrink: 0; }
+        .manual-search-box input {
+            width: 100%; border: none; background: transparent; outline: none;
+            padding: 11px 10px; font-size: 14px; font-family: inherit; color: #0f172a;
+        }
+        .manual-search-results {
+            display: none;
+            position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 20;
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+            max-height: 360px; overflow-y: auto;
+        }
+        .manual-search-results.open { display: block; }
+        .manual-search-result {
+            display: block; padding: 12px 16px; text-decoration: none;
+            border-bottom: 1px solid #f1f5f9; cursor: pointer;
+        }
+        .manual-search-result:last-child { border-bottom: none; }
+        .manual-search-result:hover { background: #f8fafc; }
+        .manual-search-result b { display: block; font-size: 13.5px; color: var(--primary-blue); margin-bottom: 3px; }
+        .manual-search-result span { font-size: 12.5px; color: #64748b; line-height: 1.4; }
+        .manual-search-result mark { background: #fef08a; color: inherit; border-radius: 2px; }
+        .manual-search-empty { padding: 14px 16px; font-size: 13px; color: #94a3b8; }
+
+        /* Se resalta brevemente la tarjeta a la que se saltó desde el buscador
+           o desde "Siguiente/Anterior", para que el usuario ubique de un
+           vistazo dónde quedó, aunque el salto sea instantáneo. */
+        .section-card.search-flash { animation: flashCard 1.6s ease; }
+        @keyframes flashCard {
+            0%   { box-shadow: 0 0 0 3px #38bdf8, 0 10px 26px rgba(15,23,42,0.05); }
+            100% { box-shadow: 0 10px 26px rgba(15,23,42,0.05); }
+        }
+
+        /* Navegación Anterior / Siguiente al pie de cada sección (inyectada por JS) */
+        .section-nav {
+            display: flex; justify-content: space-between; gap: 12px;
+            margin-top: 28px; padding-top: 18px; border-top: 1px dashed #e2e8f0;
+        }
+        .section-nav-btn {
+            display: flex; align-items: center; gap: 8px;
+            max-width: 46%;
+            padding: 10px 16px; border-radius: 12px;
+            background: #f8fafc; border: 1px solid #e2e8f0;
+            color: #334155; font-size: 13px; font-weight: 700;
+            text-decoration: none; line-height: 1.3;
+            transition: background .15s ease, transform .15s ease;
+        }
+        .section-nav-btn:hover { background: #eef2ff; transform: translateY(-1px); }
+        .section-nav-btn.next { margin-left: auto; text-align: right; flex-direction: row-reverse; }
+        .section-nav-btn i { flex-shrink: 0; color: #94a3b8; }
+
+        /* Capturas interactivas con indicadores numerados (hotspots) */
+        .hotspot-frame { position: relative; }
+        .hotspot {
+            position: absolute;
+            width: 30px; height: 30px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            color: #fff; font-weight: 800; font-size: 13.5px;
+            border: 3px solid #fff;
+            box-shadow: 0 3px 10px rgba(2, 132, 199, 0.5), 0 0 0 4px rgba(56,189,248,0.25);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0; z-index: 3;
+            transition: transform .15s ease, background .15s ease;
+            animation: hotspotPulse 2.2s ease-in-out infinite;
+        }
+        .hotspot:hover { transform: translate(-50%, -50%) scale(1.12); }
+        .hotspot.active {
+            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+            transform: translate(-50%, -50%) scale(1.15);
+            animation: none;
+        }
+        @keyframes hotspotPulse {
+            0%, 100% { box-shadow: 0 3px 10px rgba(2, 132, 199, 0.5), 0 0 0 4px rgba(56,189,248,0.25); }
+            50% { box-shadow: 0 3px 10px rgba(2, 132, 199, 0.5), 0 0 0 8px rgba(56,189,248,0.06); }
+        }
+        .hotspot-hint {
+            display: flex; align-items: center; gap: 7px;
+            font-size: 12.5px; color: #7c3aed; font-weight: 700;
+            margin: 10px 0 4px;
+        }
+        .hotspot-panel {
+            max-width: 1040px;
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+            margin: 8px 0 20px;
+        }
+        .hotspot-panel-item {
+            display: flex; gap: 10px;
+            padding: 12px 14px; border-radius: 12px;
+            background: #f8fafc; border: 1px solid #e2e8f0;
+            font-size: 13px; line-height: 1.5; color: #334155;
+            cursor: pointer; transition: background .15s ease, border-color .15s ease;
+        }
+        .hotspot-panel-item b.num {
+            flex-shrink: 0;
+            width: 22px; height: 22px; border-radius: 50%;
+            background: #dbeafe; color: #1d4ed8;
+            font-size: 12px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .hotspot-panel-item:hover { background: #eef2ff; }
+        .hotspot-panel-item.active { background: #fffbeb; border-color: #fde68a; }
+        .hotspot-panel-item.active b.num { background: #fde68a; color: #92400e; }
+        @media (max-width: 640px) { .hotspot-panel { grid-template-columns: 1fr; } }
+
         @media (max-width: 900px) {
             .main-content { padding: 24px 16px; }
             .manual-header, .section-card { padding: 26px 22px; border-radius: 18px; }
@@ -265,7 +394,8 @@
 
         /* Impresión / "Descargar PDF" (usa el diálogo de impresión del navegador) */
         @media print {
-            #app-sidebar, .pdf-download-btn, .toc { display: none !important; }
+            #app-sidebar, .pdf-download-btn, .toc,
+            .manual-search-wrap, .section-nav, .hotspot, .hotspot-hint { display: none !important; }
             body { background: #fff; }
             .app-layout { display: block; }
             .main-content { padding: 0; display: block; }
@@ -295,11 +425,18 @@
                     <div class="manual-icon"><i data-lucide="book-open" size="30"></i></div>
                     <div class="manual-eyebrow">Guía para el personal asistencial</div>
                     <h1>Manual de Usuario del Sistema Obstétrico Unificado</h1>
+                    <div class="manual-meta">
+                        <span><i data-lucide="hospital" size="13"></i> Hospital Universitario Departamental de Nariño</span>
+                        <span><i data-lucide="tag" size="13"></i> Versión del manual 1.1</span>
+                        <span><i data-lucide="calendar" size="13"></i> Actualizado el 9 de septiembre de 2026</span>
+                    </div>
                     <p>
                         Esta guía explica, paso a paso y sin tecnicismos, cómo usar cada pantalla del sistema:
-                        cómo encontrar a la paciente, cómo registrar los signos vitales (MEOWS), el control
-                        posparto inmediato y el trabajo de parto, y cómo firmar y descargar los formatos en PDF.
-                        Úsela como referencia rápida cada vez que tenga una duda sobre qué botón presionar.
+                        desde iniciar sesión, hasta encontrar a la paciente, registrar los signos vitales (MEOWS),
+                        el control posparto inmediato y el trabajo de parto, y firmar y descargar los formatos en
+                        PDF. Está dirigida al personal asistencial (enfermería, medicina, personal de sala de
+                        partos) del hospital que atiende pacientes obstétricas. Úsela como referencia rápida cada
+                        vez que tenga una duda sobre qué botón presionar — no necesita leerla de corrido.
                     </p>
                     <div class="callout tip" style="max-width:900px;">
                         <i data-lucide="sparkles" size="18"></i>
@@ -308,14 +445,25 @@
                         también le avisa con una campana en el encabezado cuando llega una alerta nueva. Vea el
                         detalle en la sección 3.</span>
                     </div>
+
+                    <div class="manual-search-wrap">
+                        <div class="manual-search-box">
+                            <i data-lucide="search" size="17"></i>
+                            <input type="search" id="manual-search" autocomplete="off"
+                                   placeholder="Buscar en el manual: módulo, botón, campo, error…">
+                        </div>
+                        <div class="manual-search-results" id="manual-search-results"></div>
+                    </div>
+
                     <div class="toc">
-                        <a href="#sec-inicio"><span class="dot" style="background:var(--c-manual)"></span>1. Primeros pasos</a>
+                        <a href="#sec-inicio"><span class="dot" style="background:var(--c-manual)"></span>1. Primeros pasos e inicio de sesión</a>
                         <a href="#sec-sala"><span class="dot" style="background:var(--c-sala)"></span>2. Sala de Partos</a>
                         <a href="#sec-meows"><span class="dot" style="background:var(--c-meows)"></span>3. Módulo MEOWS</a>
                         <a href="#sec-fetal"><span class="dot" style="background:var(--c-fetal)"></span>4. Control Posparto Inmediato</a>
                         <a href="#sec-parto"><span class="dot" style="background:var(--c-parto)"></span>5. Trabajo de Parto</a>
                         <a href="#sec-pdf"><span class="dot" style="background:var(--c-sala)"></span>6. PDF unificado</a>
                         <a href="#sec-faq"><span class="dot" style="background:var(--c-manual)"></span>7. Preguntas frecuentes</a>
+                        <a href="#sec-seguridad"><span class="dot" style="background:#0f172a"></span>8. Seguridad, permisos y roles</a>
                     </div>
                 </div>
 
@@ -325,44 +473,137 @@
                         <div class="section-icon"><i data-lucide="log-in"></i></div>
                         <h2>1. Primeros pasos</h2>
                     </div>
-                    <p class="section-sub">Cómo ingresar al sistema y qué encuentra apenas entra.</p>
+                    <p class="section-sub">Requisitos para entrar, cómo iniciar sesión, cómo crear cuenta si no tiene una, y qué encuentra apenas entra.</p>
+
+                    <h3 class="step-title">Requisitos de acceso</h3>
+                    <ul class="plain">
+                        <li><b>Navegador:</b> Google Chrome o Microsoft Edge en su versión actual (son los navegadores
+                            con los que se ha probado el sistema). Otros navegadores modernos basados en Chromium
+                            deberían funcionar igual, pero no están verificados.</li>
+                        <li><b>Dirección de acceso:</b> la URL la asigna el área de Sistemas del hospital según dónde
+                            esté desplegado el servidor (red interna del hospital); pregúntele a Sistemas si no la
+                            tiene guardada como favorito.</li>
+                        <li><b>Cuenta:</b> su usuario y contraseña de <b>Dinámica Gerencial</b>, o una cuenta local
+                            creada desde <code class="btnname">crear una cuenta nueva aquí</code> si todavía no tiene
+                            acceso a Dinámica (ver más abajo).</li>
+                        <li><b>Sonido de alertas:</b> la primera vez que use el sistema en un computador, autorice el
+                            sonido del sitio en el navegador para que las alertas críticas de MEOWS suenen sin
+                            necesidad de hacer clic primero (detalle en la sección 3).</li>
+                    </ul>
+                    <div class="callout warn">
+                        <i data-lucide="shield-alert" size="18"></i>
+                        <span>Este sistema maneja información clínica de pacientes. No comparta su usuario ni su
+                        contraseña con nadie, ni siquiera con otro compañero de turno — cada quien debe ingresar con
+                        su propia cuenta. Vea más recomendaciones en la sección 8 (Seguridad).</span>
+                    </div>
 
                     <h3 class="step-title">Iniciar sesión</h3>
+                    <div class="screenshot-frame hotspot-frame">
+                        <img src="{% static 'manual/login.png' %}?v=1" alt="Pantalla de inicio de sesión del sistema">
+                        <button type="button" class="hotspot" data-num="1" style="left:78.7%;top:43.4%" title="Campo Usuario">1</button>
+                        <button type="button" class="hotspot" data-num="2" style="left:78.7%;top:53.6%" title="Campo Contraseña">2</button>
+                        <button type="button" class="hotspot" data-num="3" style="left:95.5%;top:61.8%" title="Botón Ingresar">3</button>
+                        <button type="button" class="hotspot" data-num="4" style="left:84.4%;top:73.2%" title="Crear cuenta nueva">4</button>
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Pantalla real de inicio de sesión. A la izquierda, un recordatorio de los 3 módulos clínicos; a la derecha, el formulario de ingreso.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <div class="hotspot-hint"><i data-lucide="mouse-pointer-click" size="14"></i> Haga clic en cada número de la captura para ver su explicación:</div>
+                    <div class="hotspot-panel" data-hotspot-panel="login">
+                        <div class="hotspot-panel-item" data-num="1"><b class="num">1</b><span><b>Usuario:</b> escriba el mismo código con el que ingresa a Dinámica Gerencial (o el que eligió al crear su cuenta local).</span></div>
+                        <div class="hotspot-panel-item" data-num="2"><b class="num">2</b><span><b>Contraseña:</b> la misma clave de Dinámica Gerencial (o la que definió al registrarse localmente).</span></div>
+                        <div class="hotspot-panel-item" data-num="3"><b class="num">3</b><span><b>Botón Ingresar:</b> valida sus credenciales contra Dinámica y, si son correctas, lo lleva directo a Sala de Partos.</span></div>
+                        <div class="hotspot-panel-item" data-num="4"><b class="num">4</b><span><b>Crear cuenta nueva:</b> enlace a <code class="btnname">/registro/</code> para quien todavía no tiene usuario en Dinámica.</span></div>
+                    </div>
                     <ol class="steps">
-                        <li>Abra el sistema en su navegador. Si no tiene una sesión iniciada, verá la pantalla de inicio de sesión.</li>
+                        <li>Abra el sistema en su navegador. Si no tiene una sesión iniciada, verá la pantalla de inicio de sesión de arriba.</li>
                         <li>Escriba su <b>usuario</b> (el mismo código que usa en Dinámica Gerencial) y su <b>contraseña</b>.</li>
-                        <li>Presione <code class="btnname">Ingresar al Sistema</code>.</li>
-                        <li>Si el usuario o la contraseña no son correctos, el sistema le mostrará el mensaje
+                        <li>Presione <code class="btnname">Ingresar</code>.</li>
+                        <li>Si el usuario o la contraseña no son correctos, el sistema le muestra el mensaje
                             "Usuario o contraseña incorrectos en Dinámica Gerencial." Verifique los datos e intente de nuevo.</li>
+                        <li>Si Dinámica Gerencial no responde en ese momento (caída o problema de red), el mensaje es distinto:
+                            "No se pudo validar contra Dinámica Gerencial en este momento (sin conexión). Intente de nuevo en unos
+                            minutos, o ingrese con una cuenta local de este sistema si tiene una creada como respaldo." — en ese
+                            caso su contraseña puede ser correcta, simplemente no se pudo verificar todavía.</li>
+                        <li>Con la sesión ya iniciada, entrar de nuevo a <code class="btnname">/login/</code> (o a la raíz del sitio)
+                            lo redirige automáticamente a Sala de Partos — no vuelve a mostrarle el formulario.</li>
                     </ol>
                     <div class="callout tip">
                         <i data-lucide="info" size="18"></i>
                         <span>Su nombre completo (tomado de su usuario) se usará luego para completar automáticamente el campo
                         "Responsable" en los formularios que diligencie, para que no tenga que escribirlo cada vez.</span>
                     </div>
+                    <div class="callout warn">
+                        <i data-lucide="timer-reset" size="18"></i>
+                        <span><b>Límite de intentos:</b> por seguridad, después de varios intentos fallidos seguidos desde el mismo
+                        equipo/red, el sistema bloquea temporalmente nuevos intentos durante unos minutos con el mensaje
+                        "Demasiados intentos fallidos desde esta red. Espere unos minutos e intente de nuevo." Esto no cuenta los
+                        casos en que Dinámica no respondió — solo contraseñas realmente incorrectas.</span>
+                    </div>
+
+                    <h3 class="step-title">¿No tiene cuenta? Crear una cuenta nueva</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 10px;">
+                        Esta opción es <b>solo</b> para quien todavía no tiene usuario en Dinámica Gerencial. La
+                        cuenta que crea aquí es <b>exclusiva de este sistema</b>: nunca escribe ni modifica nada en
+                        Dinámica.
+                    </p>
+                    <div class="screenshot-frame" style="max-width:460px;">
+                        <img src="{% static 'manual/registro.png' %}?v=1" alt="Pantalla de creación de cuenta nueva">
+                    </div>
+                    <div class="screenshot-caption" style="max-width:460px;">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Pantalla real de creación de cuenta, accesible desde el enlace ④ de la pantalla de login.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <ol class="steps">
+                        <li>Desde el login, haga clic en <code class="btnname">crear una cuenta nueva aquí</code>.</li>
+                        <li>Complete <b>Usuario</b>, <b>Nombre completo</b>, <b>Contraseña</b> (mínimo 6 caracteres) y
+                            <b>Confirmar contraseña</b>. Los cuatro campos son obligatorios.</li>
+                        <li>Se recomienda usar el <b>mismo usuario y contraseña</b> que use o vaya a usar en
+                            Dinámica: si más adelante le crean cuenta allá con ese mismo usuario, el acceso queda
+                            unificado automáticamente, sin tener que registrarse de nuevo.</li>
+                        <li>Presione <code class="btnname">Crear cuenta e ingresar</code>. Si todo está correcto, la
+                            sesión queda iniciada de inmediato y lo lleva a Sala de Partos.</li>
+                    </ol>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:14px 0 6px;font-weight:800;">Mensajes de error posibles al registrarse:</p>
+                    <ul class="plain">
+                        <li><i>"Complete usuario, nombre completo y contraseña."</i> — falta algún campo obligatorio.</li>
+                        <li><i>"La contraseña debe tener al menos 6 caracteres."</i></li>
+                        <li><i>"Las contraseñas no coinciden."</i> — Contraseña y Confirmar contraseña son distintas.</li>
+                        <li><i>"No fue posible crear la cuenta con ese usuario. Si ya tiene acceso (en este sistema o en Dinámica
+                            Gerencial), use el login normal en vez de registrarse aquí."</i> — aparece tanto si ese usuario ya está
+                            registrado localmente como si ya existe (activo) en Dinámica. El sistema no distingue cuál de los dos
+                            casos fue a propósito: así nadie puede usar este formulario para "adivinar" qué usuarios de Dinámica
+                            existen probando nombres al azar. Si le sale este mensaje, use el login normal.</li>
+                    </ul>
 
                     <h3 class="step-title">Pantalla de Inicio (Dashboard)</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 6px;">
-                        Al ingresar llega a la pantalla de bienvenida. Es solo informativa: le recuerda los tres
-                        módulos clínicos disponibles (MEOWS, Control Posparto Inmediato y Trabajo de Parto). Desde aquí no se
-                        registra ningún dato todavía — el punto de partida real para atender a una paciente es
-                        <b>Sala de Partos</b>, en el menú de la izquierda.
+                        Al iniciar sesión, el sistema lo lleva directo a <b>Sala de Partos</b> — no hay una pantalla
+                        de bienvenida intermedia; ese contenido (el recordatorio de los tres módulos clínicos) ahora
+                        se muestra en el propio login, antes de entrar.
                     </p>
 
                     <h3 class="step-title">El menú lateral (siempre visible)</h3>
                     <ul class="plain">
-                        <li><b>Dashboard</b>: vuelve a la pantalla de bienvenida.</li>
                         <li><b>Manual de Usuario</b>: esta guía, disponible desde cualquier pantalla del sistema.</li>
                         <li><b>Sala de Partos</b>: al hacer clic aquí, si ya tiene una paciente abierta, se despliegan
                             los accesos directos a <b>MEOWS</b>, <b>Control Posparto Inmediato</b> y <b>Trabajo de Parto</b> de esa paciente.</li>
                         <li>El botón con la flecha (arriba del todo) colapsa el menú a solo íconos, útil en pantallas pequeñas.</li>
                     </ul>
 
-                    <h3 class="step-title">La campana de alertas (siempre visible, arriba a la derecha)</h3>
-                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
+                    <h3 class="step-title">La campana de alertas y el botón de salir (siempre visibles, arriba a la derecha)</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 8px;">
                         En la esquina superior derecha, junto al logo del hospital, hay una campana 🔔 que le avisa
                         de alertas MEOWS de <b>cualquier</b> paciente, sin importar en qué pantalla esté trabajando.
                         Vea cómo funciona en detalle en la sección 3 (Módulo MEOWS).
+                    </p>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
+                        Justo al lado de la campana está el botón rojo circular de <b>Cerrar Sesión</b> (ícono de
+                        salida). Le pide confirmación antes de cerrar la sesión, para evitar que la cierre por
+                        accidente mientras trabaja.
                     </p>
                 </section>
 
@@ -840,6 +1081,64 @@
                     </p>
                 </section>
 
+                <!-- 8. SEGURIDAD, PERMISOS Y ROLES -->
+                <section class="section-card c-manual" id="sec-seguridad" style="--section-accent:#0f172a;">
+                    <div class="section-head">
+                        <div class="section-icon" style="background:linear-gradient(135deg,#475569,#0f172a);"><i data-lucide="shield-check"></i></div>
+                        <h2>8. Seguridad, permisos y roles</h2>
+                    </div>
+                    <p class="section-sub">
+                        Qué puede hacer cada tipo de cuenta dentro del sistema, y buenas prácticas para el manejo de
+                        información clínica.
+                    </p>
+
+                    <h3 class="step-title">Permisos y roles — cómo funciona realmente hoy</h3>
+                    <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 10px;">
+                        A diferencia de otros sistemas, este aplicativo <b>no tiene roles diferenciados</b> (no
+                        existe hoy un perfil "enfermería" distinto de "medicina" con permisos distintos dentro de la
+                        app). Así funciona el acceso en la práctica:
+                    </p>
+                    <ul class="plain">
+                        <li>Cualquier usuario que inicie sesión correctamente (con cuenta de Dinámica o cuenta local)
+                            tiene acceso completo a los tres módulos clínicos: MEOWS, Control Posparto Inmediato y
+                            Trabajo de Parto, para cualquier paciente en Sala de Partos.</li>
+                        <li>No hay pantallas ni acciones que se oculten u oscurezcan según el cargo del usuario.</li>
+                        <li>El sistema sí distingue internamente, solo para fines de auditoría, las cuentas creadas
+                            por autorregistro local (grupo interno <i>"Registro local (no Dinámica)"</i>) de las que
+                            se validaron contra Dinámica — pero esa distinción no cambia lo que la persona puede
+                            hacer en la app.</li>
+                        <li>El panel de administración de Django (<code class="btnname">/admin/</code>) es aparte y
+                            está reservado a personal de Sistemas con una cuenta de superusuario técnica; ninguna
+                            cuenta creada por el login normal o por <code class="btnname">/registro/</code> puede
+                            entrar ahí.</li>
+                        <li>El acceso al sistema completo puede exigirse o desactivarse de forma global (para todos
+                            los usuarios a la vez) desde la configuración del servidor — eso lo administra
+                            exclusivamente el área de Sistemas, no es algo que se configure desde la interfaz.</li>
+                    </ul>
+                    <div class="callout warn">
+                        <i data-lucide="alert-triangle" size="18"></i>
+                        <span>Como no hay restricción por rol dentro de la app, la responsabilidad de que cada
+                        persona use el sistema según su función es de <b>uso, no de bloqueo técnico</b>: no
+                        registre ni modifique información de un módulo que no le corresponda a su función.</span>
+                    </div>
+
+                    <h3 class="step-title">Buenas prácticas de seguridad</h3>
+                    <ul class="plain">
+                        <li><b>No comparta su usuario ni su contraseña</b> con otro compañero, ni siquiera para
+                            "agilizar" un cambio de turno. Cada persona debe tener y usar su propia cuenta.</li>
+                        <li><b>Cierre sesión</b> con el botón rojo junto a la campana (arriba a la derecha) al
+                            terminar su turno o al alejarse de un computador compartido de la sala de partos.</li>
+                        <li><b>No comparta capturas de pantalla ni información de pacientes</b> por canales
+                            personales (WhatsApp, correo personal, etc.). Toda la información clínica debe
+                            mantenerse dentro de los canales oficiales del hospital.</li>
+                        <li><b>Verifique siempre que está viendo la paciente correcta</b> antes de registrar o
+                            firmar un formato — el nombre y la identificación aparecen en la parte superior de cada
+                            módulo.</li>
+                        <li>Si sospecha que alguien más pudo haber usado su cuenta, cambie su contraseña de
+                            Dinámica (o repórtelo a Sistemas si es una cuenta local) de inmediato.</li>
+                    </ul>
+                </section>
+
             </div>
         </main>
     </div>
@@ -875,6 +1174,165 @@
         document.querySelectorAll('.screenshot-frame img').forEach(function (img) {
             img.addEventListener('click', function () { abrirImagenGrande(img); });
         });
+
+        // ---- Capturas interactivas (hotspots numerados) ----
+        // Cada botón numerado sobre la imagen resalta su explicación
+        // correspondiente en el panel de abajo, y viceversa. El botón está
+        // superpuesto a la imagen, así que un clic sobre él no dispara el
+        // "abrirImagenGrande" del listener de arriba (el target del evento es
+        // el botón, no la imagen).
+        document.querySelectorAll('.hotspot-frame').forEach(function (frame) {
+            const panel = frame.parentElement.querySelector('.hotspot-panel');
+            if (!panel) return;
+            const botones = frame.querySelectorAll('.hotspot');
+            const items = panel.querySelectorAll('.hotspot-panel-item');
+            function activar(num) {
+                const yaActivo = frame.querySelector('.hotspot.active[data-num="' + num + '"]');
+                botones.forEach(function (b) { b.classList.remove('active'); });
+                items.forEach(function (i) { i.classList.remove('active'); });
+                if (yaActivo) return; // clic de nuevo sobre el mismo = apagar
+                const btn = frame.querySelector('.hotspot[data-num="' + num + '"]');
+                const item = panel.querySelector('.hotspot-panel-item[data-num="' + num + '"]');
+                if (btn) btn.classList.add('active');
+                if (item) item.classList.add('active');
+            }
+            botones.forEach(function (btn) {
+                btn.addEventListener('click', function (ev) {
+                    ev.stopPropagation();
+                    activar(btn.dataset.num);
+                });
+            });
+            items.forEach(function (item) {
+                item.addEventListener('click', function () { activar(item.dataset.num); });
+            });
+        });
+
+        // ---- Navegación "Anterior / Siguiente" al pie de cada sección ----
+        (function () {
+            const secciones = Array.from(document.querySelectorAll('main .section-card[id]'));
+            secciones.forEach(function (sec, idx) {
+                const anterior = secciones[idx - 1];
+                const siguiente = secciones[idx + 1];
+                if (!anterior && !siguiente) return;
+                const nav = document.createElement('div');
+                nav.className = 'section-nav';
+                if (anterior) {
+                    const a = document.createElement('a');
+                    a.href = '#' + anterior.id;
+                    a.className = 'section-nav-btn prev';
+                    a.innerHTML = '<i data-lucide="arrow-left" size="15"></i><span>' + anterior.querySelector('h2').textContent + '</span>';
+                    nav.appendChild(a);
+                } else {
+                    nav.appendChild(document.createElement('span'));
+                }
+                if (siguiente) {
+                    const a = document.createElement('a');
+                    a.href = '#' + siguiente.id;
+                    a.className = 'section-nav-btn next';
+                    a.innerHTML = '<span>' + siguiente.querySelector('h2').textContent + '</span><i data-lucide="arrow-right" size="15"></i>';
+                    nav.appendChild(a);
+                } else {
+                    nav.appendChild(document.createElement('span'));
+                }
+                sec.appendChild(nav);
+            });
+            lucide.createIcons();
+        })();
+
+        // Resalta brevemente la tarjeta de destino al llegar por un enlace
+        // interno (índice, buscador o Anterior/Siguiente) — útil porque el
+        // salto es instantáneo y sin esto no queda claro que sí se movió.
+        function irASeccion(id) {
+            const destino = document.getElementById(id);
+            if (!destino) return;
+            destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            destino.classList.remove('search-flash');
+            void destino.offsetWidth; // reinicia la animación si se repite
+            destino.classList.add('search-flash');
+        }
+        document.querySelectorAll('a[href^="#sec-"]').forEach(function (a) {
+            a.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                irASeccion(a.getAttribute('href').slice(1));
+                history.replaceState(null, '', '#' + a.getAttribute('href').slice(1));
+            });
+        });
+
+        // ---- Buscador del manual ----
+        // Índice simple, construido una sola vez desde el propio contenido de
+        // cada tarjeta de sección: no depende de mantener una lista aparte de
+        // "palabras clave" que se desactualice con el tiempo.
+        (function () {
+            const input = document.getElementById('manual-search');
+            const resultsBox = document.getElementById('manual-search-results');
+            if (!input || !resultsBox) return;
+
+            const indice = Array.from(document.querySelectorAll('main .section-card[id]')).map(function (sec) {
+                return {
+                    id: sec.id,
+                    titulo: sec.querySelector('h2') ? sec.querySelector('h2').textContent.trim() : sec.id,
+                    texto: sec.innerText.replace(/\s+/g, ' ').trim()
+                };
+            });
+
+            function escapeHtml(s) {
+                return s.replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; });
+            }
+
+            function buscar(consulta) {
+                const q = consulta.trim().toLowerCase();
+                resultsBox.innerHTML = '';
+                if (q.length < 2) { resultsBox.classList.remove('open'); return; }
+
+                const encontrados = indice
+                    .map(function (sec) {
+                        const pos = sec.texto.toLowerCase().indexOf(q);
+                        return pos === -1 ? null : { sec: sec, pos: pos };
+                    })
+                    .filter(Boolean)
+                    .slice(0, 8);
+
+                if (encontrados.length === 0) {
+                    const vacio = document.createElement('div');
+                    vacio.className = 'manual-search-empty';
+                    vacio.textContent = 'Sin resultados para "' + consulta + '". Intente con otra palabra (por ejemplo, el nombre de un botón o un módulo).';
+                    resultsBox.appendChild(vacio);
+                    resultsBox.classList.add('open');
+                    return;
+                }
+
+                encontrados.forEach(function (r) {
+                    const inicio = Math.max(0, r.pos - 45);
+                    const fin = Math.min(r.sec.texto.length, r.pos + q.length + 55);
+                    let fragmento = (inicio > 0 ? '…' : '') + r.sec.texto.slice(inicio, fin) + (fin < r.sec.texto.length ? '…' : '');
+                    fragmento = escapeHtml(fragmento).replace(
+                        new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'),
+                        '<mark>$1</mark>'
+                    );
+                    const a = document.createElement('a');
+                    a.className = 'manual-search-result';
+                    a.href = '#' + r.sec.id;
+                    a.innerHTML = '<b>' + escapeHtml(r.sec.titulo) + '</b><span>' + fragmento + '</span>';
+                    a.addEventListener('click', function (ev) {
+                        ev.preventDefault();
+                        irASeccion(r.sec.id);
+                        resultsBox.classList.remove('open');
+                        input.value = '';
+                    });
+                    resultsBox.appendChild(a);
+                });
+                resultsBox.classList.add('open');
+            }
+
+            input.addEventListener('input', function () { buscar(input.value); });
+            input.addEventListener('focus', function () { if (input.value.trim().length >= 2) buscar(input.value); });
+            document.addEventListener('click', function (ev) {
+                if (!ev.target.closest('.manual-search-wrap')) resultsBox.classList.remove('open');
+            });
+            document.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Escape') resultsBox.classList.remove('open');
+            });
+        })();
     </script>
 </body>
 </html>

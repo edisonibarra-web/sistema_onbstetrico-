@@ -56,54 +56,52 @@ def calcular_score_desde_bd(codigo_parametro: str, valor: float) -> int:
 def score_fc(valor: int) -> int:
     """
     Calcula el puntaje para Frecuencia Cardiaca (FC).
-    
-    Args:
-        valor: Frecuencia cardiaca en lpm
-        
+
+    2026-09-10: alineado con la tabla física FRSPA-026
+    (meows/services/grid.py:FILAS_EXPLICITAS['fc'] y migración
+    meows/0023). Este es solo el respaldo si RangoParametro no tiene datos.
+
     Returns:
-        0: Normal (60-100)
-        1: Moderado (50-59 o 101-120)
-        2: Moderado-Alto (40-49 o 121-130)
-        3: Crítico (<40 o >130)
+        3: <60
+        0: 60-109
+        2: 110-149
+        3: >=150
     """
-    if valor < 40:
+    if valor < 60:
         return 3
-    elif 40 <= valor <= 49:
-        return 2
-    elif 50 <= valor <= 59:
-        return 1
-    elif 60 <= valor <= 100:
+    elif valor <= 109:
         return 0
-    elif 101 <= valor <= 120:
-        return 1
-    elif 121 <= valor <= 130:
+    elif valor <= 149:
         return 2
-    else:  # > 130
+    else:  # >= 150
         return 3
 
 
 def score_ta_sistolica(valor: int) -> int:
     """
     Calcula el puntaje para Tensión Arterial Sistólica (TA Sistólica).
-    
-    Args:
-        valor: TA sistólica en mmHg
-        
+
+    2026-09-10: alineado con la tabla física FRSPA-026
+    (meows/services/grid.py:FILAS_EXPLICITAS['ta_sys'] y migración
+    meows/0023). Este es solo el respaldo si RangoParametro no tiene datos.
+
     Returns:
-        0: Normal (90-139)
-        1: Moderado (140-149)
-        2: Moderado-Alto (80-89 o 150-159)
-        3: Crítico (<80 o >=160)
+        3: <90            (incluye 80-89, que es rojo en la tabla física)
+        2: 90-99
+        0: 100-139
+        1: 140-149
+        2: 150-159
+        3: >=160
     """
-    if valor < 80:
+    if valor < 90:
         return 3
-    elif 80 <= valor <= 89:
+    elif valor <= 99:
         return 2
-    elif 90 <= valor <= 139:
+    elif valor <= 139:
         return 0
-    elif 140 <= valor <= 149:
+    elif valor <= 149:
         return 1
-    elif 150 <= valor <= 159:
+    elif valor <= 159:
         return 2
     else:  # >= 160
         return 3
@@ -141,30 +139,37 @@ def score_fr(valor: int) -> int:
 def score_temp(valor: float) -> int:
     """
     Calcula el puntaje para Temperatura Corporal.
-    
-    Args:
-        valor: Temperatura en °C
-        
+
+    2026-09-10: alineado con la tabla física FRSPA-026
+    (meows/services/grid.py:FILAS_EXPLICITAS['temp'] y migración
+    meows/0023). Este es solo el respaldo si RangoParametro no tiene datos.
+
     Returns:
-        0: Normal (36.0-37.4)
-        1: Moderado (35.0-35.9 o 37.5-38.4)
-        2: Moderado-Alto (34.0-34.9 o 38.5-39.4)
-        3: Crítico (<34.0 o >=39.5)
+        3: <34.5
+        1: 34.5-35.49
+        0: 35.5-37.49
+        1: 37.5-38.49
+        3: >=38.5
     """
-    if valor < 34.0:
+    if valor < 34.5:
         return 3
-    elif 34.0 <= valor <= 34.9:
-        return 2
-    elif 35.0 <= valor <= 35.9:
+    elif valor < 35.5:
         return 1
-    elif 36.0 <= valor <= 37.4:
+    elif valor < 37.5:
         return 0
-    elif 37.5 <= valor <= 38.4:
+    elif valor < 38.5:
         return 1
-    elif 38.5 <= valor <= 39.4:
-        return 2
-    else:  # >= 39.5
+    else:  # >= 38.5
         return 3
+
+
+def score_fcf(valor: int) -> int:
+    """
+    Frecuencia Cardíaca Fetal. 2026-09-10: la tabla física FRSPA-026 NO tiene
+    ninguna franja de alerta para FCF -> siempre 0 (no aporta al puntaje MEOWS).
+    Respaldo si RangoParametro no tiene datos para 'fcf'.
+    """
+    return 0
 
 
 def score_glasgow(valor: int) -> int:
@@ -207,6 +212,7 @@ SCORE_FUNCTIONS = {
     "fr": score_fr,
     "temp": score_temp,
     "glasgow": score_glasgow,
+    "fcf": score_fcf,  # 2026-09-10: siempre 0 (FRSPA-026 no puntúa FCF)
 }
 
 

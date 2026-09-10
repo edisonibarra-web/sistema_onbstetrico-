@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="{% static 'css/vendor/cropper.min.css' %}" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
-  <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260814d">
+  <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260910g">
   <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
   <script src="{% static 'js/vendor/cropper.min.js' %}"></script>
   <script src="{% static 'js/vendor/signature_pad.umd.min.js' %}"></script>
@@ -2404,6 +2404,67 @@
       }
     }
 
+    /* 2026-09-10: tarjeta del campo RESPONSABLE. El pad de firma queda oculto
+       por ahora (ver #firma-oculta-por-ahora en el markup); este campo pasa a
+       ser el elemento principal de la sección, con presentación de tarjeta. */
+    .responsable-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid #0891b2;
+      border-radius: 16px;
+      padding: 20px 22px;
+      box-shadow: 0 10px 26px rgba(8, 145, 178, 0.08);
+    }
+    .responsable-card-icon {
+      flex-shrink: 0;
+      width: 42px;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #cffafe, #a5f3fc);
+      color: #0e7490;
+    }
+    .responsable-card-icon svg { width: 20px; height: 20px; }
+    .responsable-card-body { flex: 1; min-width: 0; }
+    .responsable-card-label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: #0e7490;
+      margin-bottom: 7px;
+    }
+    .responsable-card-input {
+      width: 100%;
+      padding: 11px 14px;
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: #0f172a;
+      border: 1.5px solid #a5d8e6;
+      border-radius: 10px;
+      background: #ffffff;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .responsable-card-input:focus {
+      outline: none;
+      border-color: #0891b2;
+      box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.18);
+    }
+    .responsable-card-hint {
+      margin: 8px 0 0;
+      font-size: 0.75rem;
+      color: #64748b;
+      line-height: 1.45;
+    }
+    @media (max-width: 560px) {
+      .responsable-card { padding: 16px; gap: 12px; }
+    }
+
     .signature-pad-card {
       padding: 0;
       border: 1px solid var(--border-color);
@@ -2603,34 +2664,37 @@
                  (ver FormularioRegistroView.get_context_data), así que cualquier medición nueva
                  registrada en el módulo MEOWS para este mismo documento aparece aquí también. -->
             <style>
-                /* meows-historial.css estiliza fondo/borde/padding de .timeline-section .section-title,
-                   pero el layout en fila (ícono + texto + botones) vive en la regla base .section-title
-                   de meows-form.css, que no se carga aquí a propósito (trae acentos morados globales
-                   que no queremos en esta página). Se repone solo el layout que hace falta. */
-                .timeline-section .section-title {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    flex-wrap: wrap;
-                    background: #64748b !important;
-                    color: #fff;
-                    border-color: #64748b !important;
-                }
-                /* meows-historial.css usa morado por defecto (identidad de MEOWS); en
-                   esta página se ajusta al cian que usa el resto de Frecuencia Fetal. */
+                /* 2026-09-10: en esta página la Línea de Tiempo Clínica se
+                   muestra como tarjeta compacta + modal (abrir_en_modal=True).
+                   El diseño de la tarjeta (.timeline-section--compact) vive en
+                   meows-historial.css; aquí solo se ajustan los colores de los
+                   botones al rojo de Frecuencia Fetal (meows-historial.css usa
+                   el morado de MEOWS por defecto). */
                 .timeline-section .btn-volver-parto,
-                .timeline-section .btn-toggle-timeline {
+                .timeline-section .btn-abrir-timeline {
                     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
                     border-color: #dc2626 !important;
                     box-shadow: 0 4px 10px rgba(220, 38, 38, 0.35) !important;
                 }
                 .timeline-section .btn-volver-parto:hover,
-                .timeline-section .btn-toggle-timeline:hover {
+                .timeline-section .btn-abrir-timeline:hover {
                     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
                     box-shadow: 0 6px 14px rgba(220, 38, 38, 0.45) !important;
                 }
+                /* Esta cuadrícula está dentro de #panel-paciente.doc-preview, y
+                   la regla ".doc-preview table { table-layout: fixed; width: 100% }"
+                   de más arriba aplasta sus 20+ columnas a un ancho igual e
+                   ignora el min-width de cada una -> los encabezados de
+                   fecha/hora se montan unos sobre otros. Se restaura el layout
+                   automático + ancho por contenido para que .meows-grid-scroll
+                   haga scroll horizontal como en el resto del sistema. */
+                .timeline-section .meows-grid-table {
+                    table-layout: auto;
+                    width: max-content;
+                    min-width: 100%;
+                }
             </style>
-            {% include 'meows/_timeline_grid.html' with mostrar_link_volver=False %}
+            {% include 'meows/_timeline_grid.html' with mostrar_link_volver=False abrir_en_modal=True %}
 
             <!-- Guía de Parámetros y Semáforo de Alerta (Globo de Seguridad / Sangrado Cuantificado / Sutura y Heridas) -->
             <style>
@@ -3086,60 +3150,77 @@
               </div>
             </div>
 
-            <div class="doc-section-title" id="panel-huella"><i data-lucide="pen-tool"></i> Firma del Responsable</div>
+            <div class="doc-section-title" id="panel-huella"><i data-lucide="user-check"></i> Responsable del Registro</div>
             <div class="doc-firma-panel" style="border:1px solid #cbd5e1;border-top:none;padding:18px;background:#fff">
               <div class="huella-signature-section" style="max-width:900px;width:100%;margin:0 auto">
-                <div id="signature-pad-container" class="signature-pad-card" style="padding: 20px;">
-                  <p class="huella-section-label"
-                    style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                    <i data-lucide="pen-tool" style="width:16px;height:16px"></i> Firma del responsable
-                  </p>
 
-                  <div class="signature-wrapper">
-                    <canvas id="signature-canvas"></canvas>
-                  </div>
-
-                  <div style="margin: 10px 0;">
-                    <input type="text" id="signature-name" class="form-control"
-                      placeholder="Nombre completo del responsable"
+                {# Campo RESPONSABLE — se precarga con el profesional en sesión #}
+                {# (igual que Trabajo de Parto / MEOWS) y es editable. Es el #}
+                {# nombre que aparece en el PDF. #}
+                <div class="responsable-card">
+                  <div class="responsable-card-icon"><i data-lucide="user-check"></i></div>
+                  <div class="responsable-card-body">
+                    <label for="signature-name" class="responsable-card-label">RESPONSABLE DEL REGISTRO</label>
+                    <input type="text" id="signature-name" class="responsable-card-input"
+                      placeholder="Nombre completo del responsable" maxlength="255" autocomplete="off"
                       value="{{ profesional_nombre_sesion|default:'' }}"
-                      style="width: 100%; padding: 0.5rem 0.75rem; font-size: 0.85rem;">
+                      title="Se precarga con el profesional que inició sesión; edítelo si es otro. Es el nombre que aparece en el PDF.">
+                    <p class="responsable-card-hint">
+                      Se completa automáticamente con quien inició sesión. Es el nombre que queda en el reporte PDF.
+                    </p>
                   </div>
-
-                  <div id="signature-signed-status" class="signature-badge" style="margin-bottom: 10px;">
-                    <i data-lucide="info" style="width:12px;height:12px"></i> Sin firmar
-                  </div>
-
-                  <div class="signature-actions">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="clearSignature()"
-                      style="flex:1; justify-content: center;">
-                      <i data-lucide="eraser" style="width:14px;height:14px"></i> Limpiar
-                    </button>
-                  </div>
-                  <p style="font-size:0.75rem;color:#64748b;margin-top:8px;text-align:center;">
-                    La firma se guarda automáticamente al presionar "Guardar Registro Completo".
-                  </p>
                 </div>
 
-                <div id="huella-signature-container"
-                  style="display:none; height: 100%; padding: 20px; border: 1px solid var(--border-color); border-radius: 14px; background: #fff; box-shadow: var(--shadow-sm); flex-direction: column;">
-                  <p class="huella-section-label"
-                    style="margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="check-square" style="width:16px;height:16px"></i> Firma del responsable registrada
-                  </p>
-                  <div
-                    style="background: #f0fdf4; border: 2px solid #bcf0da; border-radius: 12px; padding: 20px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; position: relative;">
-                    <button type="button" onclick="resetSignatureView()" title="Firmar de nuevo"
-                      style="position: absolute; top: 10px; right: 10px; background: #fff; border: 1px solid #ddd; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b;">
-                      <i data-lucide="rotate-ccw" style="width:16px;height:16px"></i>
-                    </button>
-                    <img id="huella-signature-img" src="" alt="Firma"
-                      style="max-width: 100%; max-height: 200px; display: block; margin: 0 auto 15px; filter: contrast(1.2);">
-                    <div id="huella-signature-name"
-                      style="font-weight: 700; color: #065f46; font-size: 1rem; border-top: 1px solid #bcf0da; padding-top: 10px;">
+                {# 2026-09-10: el pad de firma se oculta POR AHORA (no se elimina, #}
+                {# para poder reactivarlo). El <div hidden> oculta todo lo de #}
+                {# adentro pase lo que pase con su display; el JS de firma sigue #}
+                {# encontrando los elementos por id sin romperse. #}
+                <div id="firma-oculta-por-ahora" hidden>
+                  <div id="signature-pad-container" class="signature-pad-card" style="padding: 20px;">
+                    <p class="huella-section-label"
+                      style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+                      <i data-lucide="pen-tool" style="width:16px;height:16px"></i> Firma del responsable
+                    </p>
+
+                    <div class="signature-wrapper">
+                      <canvas id="signature-canvas"></canvas>
                     </div>
-                    <div id="huella-signature-date"
-                      style="font-size: 0.7rem; color: #047857; margin-top: 4px; font-style: italic;"></div>
+
+                    <div id="signature-signed-status" class="signature-badge" style="margin-bottom: 10px;">
+                      <i data-lucide="info" style="width:12px;height:12px"></i> Sin firmar
+                    </div>
+
+                    <div class="signature-actions">
+                      <button type="button" class="btn btn-secondary btn-sm" onclick="clearSignature()"
+                        style="flex:1; justify-content: center;">
+                        <i data-lucide="eraser" style="width:14px;height:14px"></i> Limpiar
+                      </button>
+                    </div>
+                    <p style="font-size:0.75rem;color:#64748b;margin-top:8px;text-align:center;">
+                      La firma se guarda automáticamente al presionar "Guardar Registro Completo".
+                    </p>
+                  </div>
+
+                  <div id="huella-signature-container"
+                    style="display:none; height: 100%; padding: 20px; border: 1px solid var(--border-color); border-radius: 14px; background: #fff; box-shadow: var(--shadow-sm); flex-direction: column;">
+                    <p class="huella-section-label"
+                      style="margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                      <i data-lucide="check-square" style="width:16px;height:16px"></i> Firma del responsable registrada
+                    </p>
+                    <div
+                      style="background: #f0fdf4; border: 2px solid #bcf0da; border-radius: 12px; padding: 20px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; position: relative;">
+                      <button type="button" onclick="resetSignatureView()" title="Firmar de nuevo"
+                        style="position: absolute; top: 10px; right: 10px; background: #fff; border: 1px solid #ddd; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b;">
+                        <i data-lucide="rotate-ccw" style="width:16px;height:16px"></i>
+                      </button>
+                      <img id="huella-signature-img" src="" alt="Firma"
+                        style="max-width: 100%; max-height: 200px; display: block; margin: 0 auto 15px; filter: contrast(1.2);">
+                      <div id="huella-signature-name"
+                        style="font-weight: 700; color: #065f46; font-size: 1rem; border-top: 1px solid #bcf0da; padding-top: 10px;">
+                      </div>
+                      <div id="huella-signature-date"
+                        style="font-size: 0.7rem; color: #047857; margin-top: 4px; font-style: italic;"></div>
+                    </div>
                   </div>
                 </div>
               </div>

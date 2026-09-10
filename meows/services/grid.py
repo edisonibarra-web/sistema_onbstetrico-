@@ -68,11 +68,18 @@ _ETIQUETAS_ESPECIALES = {
 #     de RangoParametro para PAS y FC — se corrigió también, en el mismo
 #     sentido que aquí.
 #
-# ⚠️ RIESGO DE DESINCRONIZACIÓN: como ya no salen de RangoParametro sino que
-# están fijos a mano contra la foto de la tabla física, si algún día cambia
-# un umbral clínico de temp/ta_sys/ta_dia/fc/fr/fcf desde el admin, ESTA
-# tabla (y la Guía de referencia MEOWS) NO se enteran solas — hay que
-# revisarlas y actualizarlas aparte.
+# 2026-09-10: RangoParametro (el motor de puntaje: meows_total, meows_riesgo,
+# alertas, estado de Sala de Partos, PDF MEOWS) SE ALINEÓ con esta tabla —
+# ver meows/migrations/0023_rangos_meows_frspa026.py y
+# meows/management/commands/cargar_rangos_meows.py. Ahora GRILLA == MOTOR ==
+# PDF para temp/ta_sys/fc/fcf. Esta tabla se conserva porque muestra una fila
+# por valor puntual (más fino que las 4-6 franjas consolidadas de
+# RangoParametro), pero YA NO contradice el puntaje.
+#
+# ⚠️ SI SE CAMBIA UN UMBRAL: hay que tocar LOS TRES a la vez -> (1) esta
+# tabla FILAS_EXPLICITAS, (2) RANGOS_MEOWS en cargar_rangos_meows.py, (3) los
+# rangos reales en la BD (una migración de datos como la 0023, o el admin).
+# Y la "Guía de referencia MEOWS" del template si aplica.
 FILAS_EXPLICITAS = {
     # Confirmado por el usuario (2026-09-09), tras revisar contra la tabla
     # física completa, que esta lista está correcta tal como estaba
@@ -87,9 +94,9 @@ FILAS_EXPLICITAS = {
         ('34', None, 34.5, 3),  # confirmado por el usuario: es roja
     ],
     'ta_sys': [
-        # Colores confirmados por foto (2026-09-09): 90 es amarillo (no
-        # blanco) y 80 es rojo (no amarillo) — no coinciden con los
-        # RangoParametro vigentes en esos dos puntos, ver nota arriba.
+        # Colores confirmados por foto (2026-09-09): 90-99 es amarillo (2),
+        # 80-89 es rojo (3). Desde 2026-09-10 RangoParametro coincide (ver
+        # migración 0023).
         ('>200', 200, None, 3),
         ('190', 190, 200, 3),
         ('180', 180, 190, 3),
@@ -118,9 +125,9 @@ FILAS_EXPLICITAS = {
         ('60', None, 70, 0),
     ],
     'fc': [
-        # Color confirmado por foto (2026-09-09): 110 es amarillo (no
-        # blanco) — no coincide con el RangoParametro vigente en ese punto
-        # (60-110->0), ver nota arriba.
+        # Color confirmado por foto (2026-09-09): 110 es amarillo (2), no
+        # blanco. Desde 2026-09-10 RangoParametro coincide (60-109->0,
+        # 110-149->2; ver migración 0023).
         ('>150', 150, None, 3),
         ('140', 140, 150, 2),
         ('130', 130, 140, 2),
@@ -147,10 +154,11 @@ FILAS_EXPLICITAS = {
     ],
     # Confirmado por foto (2026-09-09): las 6 filas son blancas (puntaje 0)
     # sin excepción, incluidas las dos filas abiertas de los extremos
-    # (">160" y "<120") — no rojas como calculaba antes por "peor caso" contra
-    # los RangoParametro vigentes (0-99->3, 100-109->2, 161-180->2, 181-999->3).
-    # Esta tabla física, a diferencia de ta_sys/ta_dia/fc/fr, NO tiene ninguna
-    # franja de alerta para FCF.
+    # (">160" y "<120"). Esta tabla física, a diferencia de ta_sys/ta_dia/fc/fr,
+    # NO tiene ninguna franja de alerta para FCF. Desde 2026-09-10
+    # RangoParametro coincide: un solo rango 0-999 -> 0, así FCF ya no aporta
+    # puntaje MEOWS ni dispara alerta (ver migración 0023). Antes daba
+    # 0-99->3, 100-109->2, 161-180->2, 181-999->3.
     'fcf': [
         ('>160', 161, None, 0),
         ('150-160', 150, 161, 0),

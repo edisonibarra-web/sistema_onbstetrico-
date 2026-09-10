@@ -880,6 +880,9 @@ def historial_meows_paciente(request, paciente_id):
         "columnas": columnas,
         "atencion_id": atencion_id,
         "documento": documento,
+        # Nombre del profesional en sesión, para precargar el campo
+        # "Responsable" (mismo criterio que Trabajo de Parto / Control Posparto).
+        "profesional_nombre_sesion": request.session.get('dgh_info', {}).get('nombre_completo') or '',
     })
 
 
@@ -908,9 +911,13 @@ def generar_pdf_meows_paciente(request, paciente_id):
     # Materializar una sola vez para evitar reevaluaciones del queryset durante la generación.
     mediciones = list(mediciones_qs)
 
-    # Generar el PDF
-    # Generar el PDF
-    return generar_pdf_meows(paciente, mediciones)
+    # Responsable = lo que quedó en el campo "Responsable" de la pantalla (se
+    # precarga con el profesional en sesión y es editable), y si no viene, el
+    # profesional en sesión. Mismo criterio que Trabajo de Parto / Control
+    # Posparto: MEOWS ya no se diligencia a mano.
+    from sistema_obstetrico.auth_utils import nombre_profesional_sesion
+    responsable = (request.GET.get('responsable') or '').strip() or nombre_profesional_sesion(request)
+    return generar_pdf_meows(paciente, mediciones, responsable=responsable)
 
 
 @login_required_if_enabled

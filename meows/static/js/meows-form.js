@@ -52,18 +52,24 @@ function getCookie(name) {
 let alertasNotificadas = new Set();
 let riesgoAnterior = null;
 
-// Rangos fallback (por si falla la carga desde el backend)
+// Rangos fallback (por si falla la carga de /api/rangos/ desde el backend).
+// 2026-09-10: alineados con la tabla física FRSPA-026 (misma fuente que
+// RangoParametro en BD, meows/services/grid.py:FILAS_EXPLICITAS y la
+// migración meows/0023). Si se cambia un umbral hay que tocarlos también.
+// NOTA: este formulario manual está deshabilitado por defecto
+// (PERMITIR_CREACION_MANUAL_MEOWS=False en meows/views.py); estos fallback
+// solo aplican si alguien lo reactiva como respaldo y además falla la API.
 const MEOWS_RANGOS_FALLBACK = {
     'fc': [
         { min: 0, max: 59, score: 3 },
-        { min: 60, max: 110, score: 0 },
-        { min: 111, max: 149, score: 2 },
+        { min: 60, max: 109, score: 0 },
+        { min: 110, max: 149, score: 2 },
         { min: 150, max: 999, score: 3 }
     ],
     'ta_sys': [
-        { min: 0, max: 79, score: 3 },
-        { min: 80, max: 89, score: 2 },
-        { min: 90, max: 139, score: 0 },
+        { min: 0, max: 89, score: 3 },
+        { min: 90, max: 99, score: 2 },
+        { min: 100, max: 139, score: 0 },
         { min: 140, max: 149, score: 1 },
         { min: 150, max: 159, score: 2 },
         { min: 160, max: 999, score: 3 }
@@ -85,28 +91,19 @@ const MEOWS_RANGOS_FALLBACK = {
         { min: 30, max: 999, score: 3 }
     ],
     'temp': [
-        { min: 0, max: 33.9, score: 3 },
-        { min: 34.0, max: 35.0, score: 1 },
-        { min: 35.1, max: 37.9, score: 0 },
-        { min: 38.0, max: 38.9, score: 1 },
-        { min: 39.0, max: 999, score: 3 }
-    ],
-    'spo2': [
-        { min: 0, max: 89, score: 3 },
-        { min: 90, max: 92, score: 2 },
-        { min: 93, max: 94, score: 1 },
-        { min: 95, max: 100, score: 0 }
+        { min: 0, max: 34.49, score: 3 },
+        { min: 34.5, max: 35.49, score: 1 },
+        { min: 35.5, max: 37.49, score: 0 },
+        { min: 37.5, max: 38.49, score: 1 },
+        { min: 38.5, max: 999, score: 3 }
     ],
     'glasgow': [
         { min: 0, max: 14, score: 3 },
         { min: 15, max: 15, score: 0 }
     ],
+    // FRSPA-026 no tiene franjas de alerta para FCF -> nunca puntúa.
     'fcf': [
-        { min: 0, max: 99, score: 3 },
-        { min: 100, max: 109, score: 2 },
-        { min: 110, max: 160, score: 0 },
-        { min: 161, max: 180, score: 2 },
-        { min: 181, max: 999, score: 3 }
+        { min: 0, max: 999, score: 0 }
     ]
 };
 
@@ -168,8 +165,9 @@ function calcularScore(parametro, valor) {
     }
 
     // Validación especial para frecuencia cardíaca fetal: solo se descartan valores
-    // fisiológicamente imposibles (error de digitación). Los valores de bradicardia/
-    // taquicardia real (fuera de 110-160) SÍ deben puntuar según MEOWS_RANGOS.
+    // fisiológicamente imposibles (error de digitación). 2026-09-10: la FCF ya NO
+    // aporta puntaje MEOWS (FRSPA-026 no tiene franjas de alerta para FCF), así
+    // que un valor válido siempre da score 0.
     if (parametro === 'fcf') {
         if (valorNum < 30 || valorNum > 300) {
             return null; // Retorna null para indicar que está fuera de rango válido

@@ -9,24 +9,32 @@ from django.core.management.base import BaseCommand
 from meows.models import Parametro, RangoParametro
 
 
-# Definición de rangos basados en la tabla oficial MEOWS
+# Definición de rangos basados en la tabla FÍSICA FRSPA-026 avalada por Calidad.
+#
+# 2026-09-10: temp / ta_sys / fc / fcf se alinearon EXACTAMENTE con
+# meows/services/grid.py:FILAS_EXPLICITAS (la transcripción de la foto de la
+# tabla física, verificada por el usuario 2026-09-09). Antes estos 4
+# parámetros tenían valores que hacían que el puntaje del motor NO coincidiera
+# con los colores de la Línea de Tiempo Clínica en pantalla. Ver la misma
+# corrección, reversible, en meows/migrations/0023_rangos_meows_frspa026.py.
+# Si se cambia algo aquí, cambiar también FILAS_EXPLICITAS y esa migración.
 RANGOS_MEOWS = {
-    "temp": [  # Temperatura (°C) — corregido para calzar con la tabla oficial MEOWS (imagen de referencia)
-        {"valor_min": 0, "valor_max": 33.9, "score": 3, "orden": 1},  # ROJO (<34)
-        {"valor_min": 34.0, "valor_max": 35.0, "score": 1, "orden": 2},  # VERDE (34-35) — antes daba 3 en 34.0-34.9
-        {"valor_min": 35.1, "valor_max": 37.9, "score": 0, "orden": 3},  # BLANCO (35.1-37.9) — antes el normal terminaba en 37.4
-        {"valor_min": 38.0, "valor_max": 38.9, "score": 1, "orden": 4},  # VERDE (38-38.9)
-        {"valor_min": 39.0, "valor_max": 999, "score": 3, "orden": 5},  # ROJO (>=39)
+    "temp": [  # Temperatura (°C) — FRSPA-026: cortes en .5
+        {"valor_min": 0,     "valor_max": 34.49,  "score": 3, "orden": 1},  # ROJO (<34.5)
+        {"valor_min": 34.50, "valor_max": 35.49,  "score": 1, "orden": 2},  # VERDE
+        {"valor_min": 35.50, "valor_max": 37.49,  "score": 0, "orden": 3},  # BLANCO
+        {"valor_min": 37.50, "valor_max": 38.49,  "score": 1, "orden": 4},  # VERDE
+        {"valor_min": 38.50, "valor_max": 999,    "score": 3, "orden": 5},  # ROJO (>=38.5)
     ],
-    "ta_sys": [  # Presión Arterial Sistólica (mmHg) — corregido para calzar con la tabla oficial MEOWS
-        {"valor_min": 0, "valor_max": 79, "score": 3, "orden": 1},  # ROJO (<80)
-        {"valor_min": 80, "valor_max": 89, "score": 2, "orden": 2},  # AMARILLO (80-90) — antes daba 3 (crítico)
-        {"valor_min": 90, "valor_max": 139, "score": 0, "orden": 3},  # BLANCO
+    "ta_sys": [  # Presión Arterial Sistólica (mmHg) — FRSPA-026
+        {"valor_min": 0,   "valor_max": 89,  "score": 3, "orden": 1},  # ROJO (<90) — 80-89 es rojo, no amarillo
+        {"valor_min": 90,  "valor_max": 99,  "score": 2, "orden": 2},  # AMARILLO (90-99) — antes daba 0 (blanco)
+        {"valor_min": 100, "valor_max": 139, "score": 0, "orden": 3},  # BLANCO
         {"valor_min": 140, "valor_max": 149, "score": 1, "orden": 4},  # VERDE
         {"valor_min": 150, "valor_max": 159, "score": 2, "orden": 5},  # AMARILLO
         {"valor_min": 160, "valor_max": 999, "score": 3, "orden": 6},  # ROJO (>=160)
     ],
-    "ta_dia": [  # Presión Arterial Diastólica (mmHg)
+    "ta_dia": [  # Presión Arterial Diastólica (mmHg) — sin cambio (ya coincidía con FRSPA-026)
         {"valor_min": 0, "valor_max": 59, "score": 0, "orden": 1},  # BLANCO (<60, asumiendo normal)
         {"valor_min": 60, "valor_max": 89, "score": 0, "orden": 2},  # BLANCO
         {"valor_min": 90, "valor_max": 99, "score": 1, "orden": 3},  # VERDE
@@ -34,13 +42,13 @@ RANGOS_MEOWS = {
         {"valor_min": 110, "valor_max": 120, "score": 3, "orden": 5},  # ROJO
         {"valor_min": 121, "valor_max": 999, "score": 3, "orden": 6},  # ROJO (>120)
     ],
-    "fc": [  # Frecuencia Cardiaca (lpm) — corregido para calzar con la tabla oficial MEOWS
-        {"valor_min": 0, "valor_max": 59, "score": 3, "orden": 1},  # ROJO (<60)
-        {"valor_min": 60, "valor_max": 110, "score": 0, "orden": 2},  # BLANCO (60-110) — antes el normal terminaba en 109
-        {"valor_min": 111, "valor_max": 149, "score": 2, "orden": 3},  # AMARILLO (111-149)
-        {"valor_min": 150, "valor_max": 999, "score": 3, "orden": 4},  # ROJO (>=150) — antes 150 exacto daba 2 en vez de 3
+    "fc": [  # Frecuencia Cardiaca (lpm) — FRSPA-026
+        {"valor_min": 0,   "valor_max": 59,  "score": 3, "orden": 1},  # ROJO (<60)
+        {"valor_min": 60,  "valor_max": 109, "score": 0, "orden": 2},  # BLANCO (60-109) — 110 ya NO es blanco
+        {"valor_min": 110, "valor_max": 149, "score": 2, "orden": 3},  # AMARILLO (110-149) — antes empezaba en 111
+        {"valor_min": 150, "valor_max": 999, "score": 3, "orden": 4},  # ROJO (>=150)
     ],
-    "fr": [  # Frecuencia Respiratoria (rpm)
+    "fr": [  # Frecuencia Respiratoria (rpm) — sin cambio (ya coincidía con FRSPA-026)
         {"valor_min": 0, "valor_max": 4, "score": 3, "orden": 1},  # ROJO (<5)
         {"valor_min": 5, "valor_max": 9, "score": 3, "orden": 2},  # ROJO (5-9)
         {"valor_min": 10, "valor_max": 17, "score": 0, "orden": 3},  # BLANCO
@@ -60,12 +68,14 @@ RANGOS_MEOWS = {
         {"valor_min": 0, "valor_max": 14, "score": 3, "orden": 1},  # ROJO (<15)
         {"valor_min": 15, "valor_max": 15, "score": 0, "orden": 2},  # BLANCO (Alerta=Glasgow 15)
     ],
-    "fcf": [  # Frecuencia Cardíaca Fetal (lpm) — rango normal FIGO/OMS 110-160 lpm
-        {"valor_min": 0, "valor_max": 99, "score": 3, "orden": 1},  # ROJO — bradicardia fetal severa (<100)
-        {"valor_min": 100, "valor_max": 109, "score": 2, "orden": 2},  # AMARILLO — bradicardia fetal
-        {"valor_min": 110, "valor_max": 160, "score": 0, "orden": 3},  # BLANCO — normal
-        {"valor_min": 161, "valor_max": 180, "score": 2, "orden": 4},  # AMARILLO — taquicardia fetal
-        {"valor_min": 181, "valor_max": 999, "score": 3, "orden": 5},  # ROJO — taquicardia fetal severa (>180)
+    "fcf": [  # Frecuencia Cardíaca Fetal (lpm)
+        # 2026-09-10: la tabla física FRSPA-026 NO tiene ninguna franja de
+        # alerta para FCF (todas sus filas son blancas, confirmado por foto por
+        # el usuario 2026-09-09). Antes acá se puntuaba con criterio clínico
+        # FIGO/OMS (bradi/taquicardia), pero eso hacía que una FCF anormal
+        # disparara alerta MEOWS y subiera el riesgo, algo que el formato
+        # avalado no contempla. Ahora FCF no aporta puntaje.
+        {"valor_min": 0, "valor_max": 999, "score": 0, "orden": 1},  # BLANCO — FCF nunca puntúa en FRSPA-026
     ],
 }
 

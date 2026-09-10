@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial MEOWS - {{ paciente.nombres }} {{ paciente.apellidos }}</title>
     <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260814d">
-    <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260814d">
+    <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260910g">
     <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
     <style>
@@ -19,6 +19,61 @@
            oscuro. Solo se ajusta aquí (no en ese CSS compartido) para no mover
            el resto de pantallas que usan el mismo shell. */
         .sidebar-main-content { margin-top: 28px !important; }
+
+        /* Campo RESPONSABLE del reporte MEOWS (mismo lenguaje visual que las
+           cards de esta vista). */
+        .meows-responsable-section {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #7c3aed;
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin: 0 0 1.25rem;
+            box-shadow: 0 8px 24px rgba(67, 56, 202, 0.06);
+        }
+        .meows-responsable-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            color: #5b21b6;
+            white-space: nowrap;
+        }
+        .meows-responsable-label .info-section-title-icon {
+            width: 30px; height: 30px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+            border-radius: 9px;
+            color: #6d28d9;
+        }
+        .meows-responsable-label svg { width: 16px; height: 16px; }
+        .meows-responsable-input {
+            flex: 1 1 320px;
+            min-width: 220px;
+            padding: 11px 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1e293b;
+            border: 1.5px solid #d8b4fe;
+            border-radius: 10px;
+            background: #faf5ff;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .meows-responsable-input:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+            background: #ffffff;
+        }
+        @media (max-width: 640px) {
+            .meows-responsable-section { padding: 14px 16px; }
+        }
     </style>
 </head>
 <body>
@@ -72,6 +127,23 @@
             </div>
         </section>
 
+        <!-- CAMPO RESPONSABLE: MEOWS ya no se diligencia a mano (las mediciones
+             llegan solas de Dinámica), pero el reporte PDF lo valida un
+             profesional. Este campo se precarga con quien inició sesión, igual
+             que en Trabajo de Parto y Control Posparto, y es editable. Su valor
+             es el que sale en el bloque "VALIDACIÓN DEL REPORTE MEOWS" del PDF. -->
+        <section class="section meows-responsable-section">
+            <label for="meows-responsable" class="meows-responsable-label">
+                <span class="info-section-title-icon"><i data-lucide="user-check"></i></span>
+                RESPONSABLE DEL REPORTE
+            </label>
+            <input type="text" id="meows-responsable" class="meows-responsable-input"
+                   maxlength="255" autocomplete="off"
+                   value="{{ profesional_nombre_sesion|default:'' }}"
+                   placeholder="Nombre del profesional responsable"
+                   title="Se precarga con el profesional que inició sesión; edítelo si es otro. Es el nombre que aparece en el PDF.">
+        </section>
+
         <!-- SECCIÓN: CUADRÍCULA CLÍNICA DE MEDICIONES (incluye "Generar PDF" junto a "Regresar a Trabajo de Parto"; 2026-09-09: se quitó "Nueva Medición", ver _timeline_grid.html) -->
         {% include 'meows/_timeline_grid.html' with meows_paciente=paciente mostrar_link_volver=True %}
     </div>
@@ -85,6 +157,20 @@
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+
+    // "Generar PDF" toma el nombre que quedó en el campo RESPONSABLE y lo pasa
+    // al PDF por ?responsable=. Si el campo se deja vacío, la vista cae en el
+    // profesional en sesión (ver generar_pdf_meows_paciente).
+    (function () {
+        var linkPdf = document.getElementById('btn-generar-pdf-meows');
+        var campo = document.getElementById('meows-responsable');
+        if (!linkPdf || !campo) return;
+        var baseHref = linkPdf.getAttribute('href').split('?')[0];
+        linkPdf.addEventListener('click', function () {
+            var val = (campo.value || '').trim();
+            linkPdf.setAttribute('href', val ? baseHref + '?responsable=' + encodeURIComponent(val) : baseHref);
+        });
+    })();
 </script>
 </body>
 </html>

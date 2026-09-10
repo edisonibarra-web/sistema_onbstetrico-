@@ -14,3 +14,17 @@ def login_required_if_enabled(view_func):
     if settings.REQUIRE_LOGIN:
         return login_required(view_func)
     return view_func
+
+
+# ---------------------------------------------------------------------------
+# Nombre del profesional en sesión (para autocompletar el campo "Responsable").
+# request.session['dgh_info'] lo llena frecuenciafetal.auth_dgh al validar
+# contra Dinámica y también registro_usuario_view para cuentas locales.
+# ---------------------------------------------------------------------------
+
+def nombre_profesional_sesion(request):
+    """Nombre completo del profesional en sesión, o '' si no hay."""
+    try:
+        return (request.session.get('dgh_info', {}) or {}).get('nombre_completo') or ''
+    except Exception:
+        return ''

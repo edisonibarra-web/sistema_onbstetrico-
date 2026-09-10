@@ -1,9 +1,16 @@
 import base64
 import hashlib
+import logging
 from django.db import connections
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.contrib.auth.backends import BaseBackend
+
+# 2026-09-10: logging en vez de print() sueltos. Este logger cuelga de
+# 'frecuenciafetal' (ver LOGGING en settings.py) y sale a consola/stdout.
+# REGLA: nunca registrar la contraseña, el hash de Dinámica (USUCLAVE) ni
+# ningún candidato de _candidatos_clave_dgh.
+logger = logging.getLogger('frecuenciafetal.auth')
 
 
 def _candidatos_clave_dgh(password: str):
@@ -97,7 +104,37 @@ class DGHBackend(BaseBackend):
                     user_obj, created = User.objects.get_or_create(username=username)
                     if created:
                         user_obj.set_unusable_password()
-                    
+                    elif user_obj.has_usable_password():
+                        # 🔒 HALLAZGO DE SEGURIDAD 2026-09-09 — "secuestro de identidad":
+                        # esta cuenta de Django YA existía con una contraseña local
+                        # utilizable, es decir, alguien la creó antes desde /registro/
+                        # (ver registro_usuario_view en views.py) usando este mismo
+                        # username. Como ese username ACABA de validarse con éxito
+                        # contra Dinámica, dos escenarios son posibles: (a) la misma
+                        # persona se registró localmente antes de tener cuenta en
+                        # Dinámica y ahora ya la tiene (caso normal, sin problema), o
+                        # (b) alguien más "reservó" este username localmente ANTES de
+                        # que su dueño real tuviera cuenta en Dinámica, y sin este
+                        # bloque conservaría acceso paralelo indefinido a la cuenta con
+                        # su clave local, aunque el dueño legítimo ya esté usando su
+                        # clave real de Dinámica (la clave local nunca se invalidaba).
+                        # No podemos distinguir (a) de (b) aquí, así que se invalida la
+                        # clave local en ambos casos: a partir de ahora este username
+                        # SOLO puede entrar por Dinámica, cerrando la ventana de acceso
+                        # paralelo. Se marca con un grupo para que Sistemas pueda
+                        # auditar cuándo pasó (y revisar si fue el caso (b)).
+                        user_obj.set_unusable_password()
+                        grupo_reclamo, _ = Group.objects.get_or_create(
+                            name='Cuenta local reclamada por Dinámica (revisar)'
+                        )
+                        user_obj.groups.add(grupo_reclamo)
+                        logger.warning(
+                            "Contraseña local invalidada para el usuario '%s': se "
+                            "confirmó como usuario válido de Dinámica Gerencial. "
+                            "Revisar en /admin/ si el registro local previo fue legítimo.",
+                            username,
+                        )
+
                     user_obj.first_name = row[2] or ""
                     user_obj.is_staff = False # No es admin de Django por defecto
                     user_obj.save()
@@ -114,8 +151,21 @@ class DGHBackend(BaseBackend):
                     
                     return user_obj
                     
-        except Exception as e:
-            print(f"Error en DGH Authentication: {e}")
+        except Exception:
+            # 2026-09-09: hallazgo "dependencia de disponibilidad de Dinámica"
+            # -- si Dinámica no responde (o cualquier otro error de conexión/
+            # consulta), esto NO significa que la contraseña esté mal, sino
+            # que no se pudo verificar. Se marca en el propio request para que
+            # login_view pueda mostrar un mensaje distinto y más útil ("no se
+            # pudo validar, intente de nuevo o use su cuenta local de
+            # respaldo") en vez del genérico "usuario o contraseña
+            # incorrectos", que sería engañoso en este caso.
+            # logger.exception incluye el traceback en el LOG (no en la
+            # respuesta al usuario). No se registra el username en el mensaje
+            # para no dejar en el log intentos de nombres inexistentes.
+            logger.exception("Error al validar credenciales contra Dinámica Gerencial")
+            if request is not None:
+                request.dgh_connection_error = True
             return None
 
         return None

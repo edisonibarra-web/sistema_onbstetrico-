@@ -372,6 +372,41 @@ class Huella(models.Model):
     class Meta:
         verbose_name = "Huella Biométrica"
         verbose_name_plural = "Huellas Biométricas"
+
+
+class IntentoLoginFallido(models.Model):
+    """
+    2026-09-09 — HALLAZGO DE SEGURIDAD "fuerza bruta sin límite": login_view
+    (ver views.py) no tenía ningún límite de intentos, lo que permitía probar
+    contraseñas de forma automatizada contra un usuario conocido, además de
+    generar carga extra sobre la base de datos de Dinámica en cada intento.
+
+    Este modelo guarda cada intento de login FALLIDO (no exitoso) por IP, para
+    poder frenar con una demora temporal a quien acumule demasiados fallos en
+    poco tiempo (ver _demasiados_intentos/_registrar_intento_fallido en
+    views.py). Se eligió bloquear por IP y no por cuenta/usuario a propósito:
+    bloquear por cuenta abriría una puerta para que alguien bloquee a una
+    enfermera real a propósito solo fallando su usuario repetidas veces --
+    algo especialmente peligroso en un sistema clínico donde esa cuenta puede
+    necesitarse de urgencia. Bloquear por IP sigue frenando un ataque
+    automatizado sin ese riesgo.
+
+    Se guarda en la base de datos (no en el cache en memoria del proceso)
+    para que el límite funcione igual sin importar cuántos procesos/workers
+    esté corriendo el servidor, y para que sobreviva un reinicio del
+    contenedor.
+    """
+    ip = models.GenericIPAddressField()
+    username = models.CharField(max_length=150, blank=True, default="")
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Intento de login fallido"
+        verbose_name_plural = "Intentos de login fallidos"
+        indexes = [models.Index(fields=["ip", "creado"])]
+
+    def __str__(self):
+        return f"{self.ip} -> '{self.username}' ({self.creado:%Y-%m-%d %H:%M:%S})"
         ordering = ['-fecha']
 
     def __str__(self):

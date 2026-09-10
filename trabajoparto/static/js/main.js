@@ -2302,7 +2302,16 @@ async function llenarFormularioDesdePaciente(data) {
         const estadoFormulario = (f.estado || '').toString().toLowerCase();
         set('estado', estadoFormulario || 'g');
         set('diagnostico', f.diagnostico || p.diagnostico || '');
-        set('responsable', f.responsable || p.responsable || '');
+        // 2026-09-10: RESPONSABLE = el profesional que está usando el sistema
+        // AHORA, igual que en MEOWS y Control Posparto. Ya viene precargado
+        // desde la plantilla (value="{{ profesional_nombre_sesion }}"); acá NO
+        // se sobreescribe con f.responsable (quien lo guardó en otro turno) ni
+        // con p.responsable (que es el acompañante/responsable del paciente,
+        // no el profesional). Solo se rellena desde lo guardado si el campo
+        // quedó vacío (sesión sin nombre — ej. REQUIRE_LOGIN=False).
+        if (!(obtenerValorInput('responsable') || '').trim()) {
+            set('responsable', f.responsable || '');
+        }
         const ase = document.getElementById('aseguradora_nombre');
         // El formulario propio manda si ya tiene aseguradora asignada; si no, se refleja
         // la del HUB (meows.Paciente) para no dejar el campo vacío teniendo el dato disponible.
