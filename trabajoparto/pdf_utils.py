@@ -206,43 +206,31 @@ def seccion_biometria(c, reg_huella, reg_firma, x, y, ancho, responsable_nombre=
         huella_content = [Spacer(1, 10), Paragraph("<i>Huella no registrada</i>", estilo_sub), Spacer(1, 10)]
     """
 
-    # 2. Preparar Firma Responsable (Antes etiquetada como Firma Paciente)
-    firma_responsable_content = [Spacer(1, 40)]
-    if reg_firma and reg_firma.imagen_firma:
-        try:
-            path_f = reg_firma.imagen_firma.path
-            if os.path.exists(path_f):
-                img_f = Image(path_f, width=4.5*cm, height=2.5*cm)
-                firma_responsable_content = [img_f]
-            else:
-                firma_responsable_content = [Paragraph("<i>Firma no disponible en sistema</i>", estilo_sub)]
-        except Exception as e:
-            logger.error(f"Error cargando imagen de firma: {e}")
-            firma_responsable_content = [Paragraph("<i>Error al cargar firma</i>", estilo_sub)]
-    else:
-        firma_responsable_content = [Spacer(1, 10), Paragraph("<i>Firma no registrada</i>", estilo_sub), Spacer(1, 10)]
+    # 2. Firma dibujada del responsable: por pedido explícito, este PDF (FRSPA-022,
+    # Trabajo de Parto) ya no debe traer la caja/imagen de firma -- solo el nombre
+    # del responsable. Se deja de leer/dibujar `reg_firma` aquí a propósito.
 
     # 3. Preparar Datos del Responsable
     responsable_content = [
-        Spacer(1, 40),
+        Spacer(1, 20),
         Paragraph(f"<b>{responsable_nombre.upper() if responsable_nombre else '—'}</b>", estilo_label),
         Paragraph("RESPONSABLE DEL REGISTRO", estilo_sub)
     ]
 
-    # 4. Construir Tabla (Ahora de 2 columnas: Firma y Nombre del Responsable)
+    # 4. Construir Tabla (una sola columna: Nombre del Responsable, sin firma)
     ancho_util = ancho - 2*cm
     data = [
-        [firma_responsable_content, responsable_content],
-        [Paragraph("FIRMA DEL RESPONSABLE", estilo_label), Paragraph("NOMBRE DEL RESPONSABLE", estilo_label)]
+        [responsable_content],
+        [Paragraph("NOMBRE DEL RESPONSABLE", estilo_label)]
     ]
-    
-    col_widths = [ancho_util * 0.50, ancho_util * 0.50]
+
+    col_widths = [ancho_util]
     tabla = Table(data, colWidths=col_widths)
-    
+
     tabla.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('LINEABOVE', (0, 1), (-1, 1), 0.5, colors.black), # Línea de firma
+        ('LINEABOVE', (0, 1), (-1, 1), 0.5, colors.black), # Línea sobre el nombre
         ('TOPPADDING', (0, 1), (-1, 1), 5),
         ('LEFTPADDING', (0, 0), (-1, -1), 10),
         ('RIGHTPADDING', (0, 0), (-1, -1), 10),
@@ -324,12 +312,27 @@ def datos_paciente(c, formulario, x, y):
 
 
 
+def _formatear_valor_numero(valor_number):
+    """Limpia un Decimal de la BD (ej. '144.000000') al mismo formato que ya
+    usa la Vista Previa en pantalla (construirGrillaVistaPrevia / main.js):
+    entero simple si no tiene parte decimal real, un decimal si la tiene.
+    Sin esto, la celda imprimía el Decimal crudo con 6 ceros de precisión,
+    que además desbordaba la columna angosta y se veía partido en dos líneas."""
+    try:
+        f = float(valor_number)
+    except (TypeError, ValueError):
+        return str(valor_number)
+    if f == int(f):
+        return str(int(f))
+    return f"{f:.1f}".rstrip('0').rstrip('.')
+
+
 def obtener_valor(valor):
     """
     Obtiene el valor de MedicionValor según su tipo.
     """
     if valor.valor_number is not None:
-        return str(valor.valor_number)
+        return _formatear_valor_numero(valor.valor_number)
     if valor.valor_text is not None:
         return valor.valor_text
     if valor.valor_boolean is not None:
@@ -339,103 +342,173 @@ def obtener_valor(valor):
     return ""
 
 
+# Frecuencia Cardiaca Fetal: mismo parámetro/comportamiento que ya tiene la
+# Vista Previa en pantalla (ver construirGrillaVistaPrevia en main.js) -- se
+# sincroniza sola desde Dinámica en sus propias horas, independientes de las
+# horas en que se registra el resto del examen a mano.
+_PARAMETRO_ID_FREC_CARD_FETAL = 8
+
+# Columnas de hora por página: con más no cabían en el ancho de la hoja y la
+# tabla quedaba desbordada/cortada (mismo problema ya corregido en el PDF de
+# MEOWS -- ver frecuenciafetal/pdf_generator.py).
+_HORAS_POR_PAGINA = 10
+
+
 def seccion_grid_mediciones(c, formulario, x, y, ancho_total):
     """
-    Dibuja el grid de mediciones estilo formulario (10 columnas de tiempo).
+    Dibuja el grid de mediciones estilo formulario, paginado de a
+    _HORAS_POR_PAGINA columnas de hora por página.
     Usa tablas de ReportLab para un acabado profesional.
     """
     from .models import Item, Medicion
     from reportlab.platypus import Table, TableStyle, Paragraph
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    
+
     styles = getSampleStyleSheet()
     estilo_celda = ParagraphStyle('CeldaGrid', parent=styles['Normal'], fontSize=7, alignment=1)
     estilo_header = ParagraphStyle('HeaderGrid', parent=styles['Normal'], fontSize=7, fontName='Helvetica-Bold', alignment=1)
     estilo_param = ParagraphStyle('ParamGrid', parent=styles['Normal'], fontSize=7, fontName='Helvetica-Bold', alignment=0)
+    estilo_heredado = ParagraphStyle('CeldaHeredada', parent=estilo_celda, fontName='Helvetica-Oblique', textColor=colors.HexColor('#7c8a5c'))
 
-    # 1. Obtener mediciones
-    mediciones = Medicion.objects.filter(formulario=formulario).prefetch_related('valores__campo', 'parametro')
-    horas_unicas = sorted(list(set(m.tomada_en for m in mediciones)))
-    horas_mostrar = horas_unicas[:10]
-    
-    # 2. Definir anchos
-    ancho_util = ancho_total - 2*cm
-    col_param = ancho_util * 0.25
-    col_hora = (ancho_util - col_param) / 10
-    col_widths = [col_param] + [col_hora] * 10
+    # 1. Obtener TODAS las mediciones (antes se cortaba a las primeras 10
+    # horas con horas_unicas[:10] -- si la paciente tenía más de 10 controles
+    # registrados, los más recientes simplemente no se imprimían, sin aviso).
+    mediciones = list(Medicion.objects.filter(formulario=formulario).prefetch_related('valores__campo', 'parametro'))
+    horas_unicas = sorted(set(m.tomada_en for m in mediciones))
+    if not horas_unicas:
+        return y
 
-    # 3. Dibujar Encabezado
-    header_data = [["PARÁMETRO"] + [h.strftime('%H:%M') for h in horas_mostrar] + [""] * (10 - len(horas_mostrar))]
-    t_header = Table(header_data, colWidths=col_widths)
-    t_header.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3b82f6')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.white),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 8),
-    ]))
-    
-    w_h, h_h = t_header.wrap(ancho_util, 1*cm)
-    t_header.drawOn(c, 1*cm, y - h_h)
-    y -= h_h
+    # Serie de FCF (parametro 8) para "arrastrar" el último valor conocido a
+    # cualquier columna posterior sin lectura exacta -- mismo criterio que
+    # valorFCFHeredado() en main.js, para que el PDF coincida con lo que se
+    # ve en pantalla en vez de mostrar la celda vacía.
+    serie_fcf = sorted(
+        (
+            (m.tomada_en, " / ".join(obtener_valor(v) for v in m.valores.all()))
+            for m in mediciones
+            if m.parametro_id == _PARAMETRO_ID_FREC_CARD_FETAL and m.valores.all()
+        ),
+        key=lambda par: par[0]
+    )
 
-    # 4. Dibujar Filas
+    def valor_fcf_heredado(hora):
+        ultimo = None
+        for hora_med, valor_str in serie_fcf:
+            if hora_med <= hora:
+                ultimo = valor_str
+            else:
+                break
+        return ultimo
+
     # Solo parámetros activos: los que ya no están disponibles en el formulario
     # (ej. Controles Maternos, Membranas Rotas) se desactivaron en vez de
     # borrarse, así que se excluyen aquí para no imprimir secciones/filas
     # vacías e inalcanzables desde la interfaz.
     items = Item.objects.prefetch_related('parametros__campos').all().order_by('id')
-    for item in items:
-        parametros_activos = [p for p in item.parametros.all() if p.activo]
-        if not parametros_activos:
-            continue
+    items_con_parametros = [
+        (item, [p for p in item.parametros.all() if p.activo])
+        for item in items
+    ]
+    items_con_parametros = [(item, params) for item, params in items_con_parametros if params]
 
-        # Fila de Item (Sección)
-        t_item = Table([[item.nombre.upper()]], colWidths=[ancho_util])
-        t_item.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#eff6ff')),
+    rangos = [
+        horas_unicas[i:i + _HORAS_POR_PAGINA]
+        for i in range(0, len(horas_unicas), _HORAS_POR_PAGINA)
+    ]
+    ancho_util = ancho_total - 2*cm
+
+    for pagina_idx, horas_pagina in enumerate(rangos):
+        n_cols = len(horas_pagina)
+        col_param = ancho_util * 0.25
+        col_hora = (ancho_util - col_param) / n_cols
+        col_widths = [col_param] + [col_hora] * n_cols
+
+        if pagina_idx > 0:
+            c.showPage()
+            y = A4[1] - 2*cm
+
+        # Título de página (solo si hay más de una) para que quede claro que
+        # la tabla continúa, igual que "página X de Y" en el PDF de MEOWS.
+        if len(rangos) > 1:
+            t_titulo = Table([[f"MEDICIONES — página {pagina_idx + 1} de {len(rangos)}"]], colWidths=[ancho_util])
+            t_titulo.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a5f')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            w_t, h_t = t_titulo.wrap(ancho_util, 1*cm)
+            t_titulo.drawOn(c, 1*cm, y - h_t)
+            y -= h_t
+
+        # 3. Encabezado de la página (fecha + hora de cada columna, igual
+        # que el resto de la vista en pantalla)
+        header_data = [["PARÁMETRO"] + [
+            Paragraph(f"{h.strftime('%d/%m/%y')}<br/>{h.strftime('%H:%M')}", estilo_header) for h in horas_pagina
+        ]]
+        t_header = Table(header_data, colWidths=col_widths)
+        t_header.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3b82f6')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 8),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ]))
-        w_i, h_i = t_item.wrap(ancho_util, 1*cm)
-        
-        if y - h_i < 2*cm:
-            c.showPage()
-            y = A4[1] - 2*cm # Reiniciar Y en nueva página
-            
-        t_item.drawOn(c, 1*cm, y - h_i)
-        y -= h_i
+        w_h, h_h = t_header.wrap(ancho_util, 1*cm)
+        t_header.drawOn(c, 1*cm, y - h_h)
+        y -= h_h
 
-        for param in parametros_activos:
-            row_vals = [Paragraph(param.nombre, estilo_param)]
-            
-            for hora in horas_mostrar:
-                med_h = next((m for m in mediciones if m.parametro_id == param.id and m.tomada_en == hora), None)
-                if med_h:
-                    vals_str = " / ".join(obtener_valor(v) for v in med_h.valores.all())
-                    row_vals.append(Paragraph(vals_str, estilo_celda))
-                else:
-                    row_vals.append("")
-            
-            # Rellenar vacíos
-            row_vals += [""] * (11 - len(row_vals))
-            
-            t_row = Table([row_vals], colWidths=col_widths)
-            t_row.setStyle(TableStyle([
-                ('GRID', (0, 0), (-1, -1), 0.3, colors.gray),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        # 4. Filas: una banda por ítem (sección) + una fila por parámetro
+        for item, parametros_activos in items_con_parametros:
+            t_item = Table([[item.nombre.upper()]], colWidths=[ancho_util])
+            t_item.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#eff6ff')),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
             ]))
-            
-            w_r, h_r = t_row.wrap(ancho_util, 2*cm)
-            if y - h_r < 1.5*cm:
+            w_i, h_i = t_item.wrap(ancho_util, 1*cm)
+
+            if y - h_i < 2*cm:
                 c.showPage()
                 y = A4[1] - 2*cm
-            
-            t_row.drawOn(c, 1*cm, y - h_r)
-            y -= h_r
+
+            t_item.drawOn(c, 1*cm, y - h_i)
+            y -= h_i
+
+            for param in parametros_activos:
+                row_vals = [Paragraph(param.nombre, estilo_param)]
+
+                for hora in horas_pagina:
+                    med_h = next((m for m in mediciones if m.parametro_id == param.id and m.tomada_en == hora), None)
+                    if med_h and med_h.valores.all():
+                        vals_str = " / ".join(obtener_valor(v) for v in med_h.valores.all())
+                        row_vals.append(Paragraph(vals_str, estilo_celda))
+                    elif param.id == _PARAMETRO_ID_FREC_CARD_FETAL:
+                        heredado = valor_fcf_heredado(hora)
+                        row_vals.append(Paragraph(heredado, estilo_heredado) if heredado else "")
+                    else:
+                        row_vals.append("")
+
+                t_row = Table([row_vals], colWidths=col_widths)
+                t_row.setStyle(TableStyle([
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors.gray),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+
+                w_r, h_r = t_row.wrap(ancho_util, 2*cm)
+                if y - h_r < 1.5*cm:
+                    c.showPage()
+                    y = A4[1] - 2*cm
+
+                t_row.drawOn(c, 1*cm, y - h_r)
+                y -= h_r
 
     return y
 

@@ -96,20 +96,24 @@
         .search-header {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 25px;
+            gap: 16px;
+            margin: -28px -28px 22px;
+            padding: 22px 28px;
+            border-radius: 20px 20px 0 0;
+            background: linear-gradient(135deg, #0b1220 0%, #0f1f38 55%, #123a5e 100%);
+            box-shadow: 0 6px 16px rgba(11, 18, 32, 0.25);
             cursor: pointer;
         }
         .search-header .icon-container {
             width: 56px;
             height: 56px;
-            background: linear-gradient(145deg, #eff6ff, #dbeafe);
-            color: var(--primary-blue);
+            background: rgba(255, 255, 255, 0.12);
+            color: #e0f2fe;
             border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: inset 0 0 0 1px #bfdbfe, 0 8px 18px rgba(37, 99, 235, 0.22);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 8px 18px rgba(0, 0, 0, 0.25);
             animation: iconPulse 2.4s ease-in-out infinite;
         }
         @keyframes iconPulse {
@@ -120,8 +124,8 @@
             flex: 1;
             text-align: left;
         }
-        .search-header .subtitle { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
-        .search-header .main-title { font-size: 20px; font-weight: 800; color: var(--primary-blue); }
+        .search-header .subtitle { font-size: 11px; color: #7dd3fc; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+        .search-header .main-title { font-size: 20px; font-weight: 800; color: #f8fafc; letter-spacing: -0.01em; }
         .search-helper {
             margin: 0 0 14px 0;
             font-size: 0.84rem;
@@ -168,19 +172,25 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 7px 12px;
+            padding: 9px 16px;
             border-radius: 10px;
-            border: 1px solid #cbd5e1;
-            background: #f8fafc;
-            color: #334155;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0f2fe;
             font-weight: 700;
             font-size: 0.8rem;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
         }
         .active-patients-refresh:hover {
-            background: #eef2f7;
+            background: #0891b2;
+            border-color: #0891b2;
+            color: #ffffff;
+            box-shadow: 0 6px 14px rgba(8, 145, 178, 0.35);
             transform: translateY(-1px);
+        }
+        .active-patients-refresh:active {
+            transform: translateY(0);
         }
         .active-patients-list {
             display: grid;

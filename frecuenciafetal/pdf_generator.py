@@ -14,7 +14,7 @@ from .models import (
 )
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    Image, KeepTogether
+    Image, KeepTogether, PageBreak
 )
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from django.conf import settings
@@ -122,7 +122,7 @@ def generar_pdf_registro(registro, es_plantilla=False):
         fontSize=9, leading=11
     )
     celda_titulo = Paragraph(
-        'CONTROL DE LA FRECUENCIA CARDIACA FETAL DURANTE EL EXPULSIVO Y CONTROL POS PARTO INMEDIATO',
+        'CONTROL DE PUERPERIO INMEDIATO',
         estilo_titulo_doc
     )
 
@@ -338,145 +338,10 @@ def generar_pdf_registro(registro, es_plantilla=False):
     elements.append(tbl_fc)
     elements.append(Spacer(1, 0.28*cm))
 
-    # ========== CONTROL POSPARTO INMEDIATO (MEOWS) ==========
-    # Refleja el grid clínico MEOWS embebido en esta misma página bajo el título
-    # "Control Posparto Inmediato" (meows/_timeline_grid.html), usando la misma
-    # fuente de datos (construir_grid_meows) para que el PDF coincida siempre
-    # con lo que se ve en pantalla.
-    from meows.services.grid import construir_grid_meows, obtener_paciente_meows_por_documento
-
-    meows_paciente = None if es_plantilla else obtener_paciente_meows_por_documento(registro.identificacion)
-    if meows_paciente:
-        grid_parametros_meows, columnas_meows = construir_grid_meows(meows_paciente)
-    else:
-        grid_parametros_meows, columnas_meows = [], []
-
-    if not columnas_meows:
-        tit_meows_vacio = Table(
-            [['CONTROL POSPARTO INMEDIATO (MEOWS)'], ['' if es_plantilla else 'Sin mediciones MEOWS registradas']],
-            colWidths=[ANCHO_UTIL]
-        )
-        tit_meows_vacio.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), COLOR_HEADER),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('BOX', (0, 0), (-1, -1), BORDE, COLOR_BORDE),
-            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
-        ]))
-        elements.append(tit_meows_vacio)
-    else:
-        COLOR_SCORE_MARCADO = {
-            0: (colors.HexColor('#e2e8f0'), colors.HexColor('#1e293b')),
-            1: (colors.HexColor('#16a34a'), colors.white),
-            2: (colors.HexColor('#d97706'), colors.white),
-            3: (colors.HexColor('#dc2626'), colors.white),
-        }
-        COLOR_SCORE_LIGHT = {
-            0: (colors.HexColor('#eef1f5'), colors.HexColor('#64748b')),
-            1: (colors.HexColor('#86efac'), colors.HexColor('#14532d')),
-            2: (colors.HexColor('#fcd34d'), colors.HexColor('#78350f')),
-            3: (colors.HexColor('#fca5a5'), colors.HexColor('#7f1d1d')),
-        }
-        COLOR_RIESGO_MEOWS = {
-            'BLANCO': colors.HexColor('#94a3b8'), 'VERDE': colors.HexColor('#22c55e'),
-            'AMARILLO': colors.HexColor('#eab308'), 'ROJO': colors.HexColor('#ef4444'),
-        }
-
-        estilo_meows_col = ParagraphStyle(name='MeowsCol', fontName='Helvetica-Bold', fontSize=5.5, leading=6.5, alignment=TA_CENTER)
-        estilo_meows_param = ParagraphStyle(name='MeowsParam', fontName='Helvetica-Bold', fontSize=6, leading=7, alignment=TA_LEFT)
-        estilo_meows_total = ParagraphStyle(name='MeowsTotal', fontName='Helvetica-Bold', fontSize=6, leading=7, alignment=TA_CENTER, textColor=colors.white)
-
-        n_cols_meows = len(columnas_meows)
-        ancho_param_m = 3.0*cm
-        ancho_valor_m = 1.5*cm
-        ancho_punt_m = 1.1*cm
-        ancho_col_m = max((ANCHO_UTIL - ancho_param_m - ancho_valor_m - ancho_punt_m) / n_cols_meows, 0.9*cm)
-        cw_meows = [ancho_param_m, ancho_valor_m] + [ancho_col_m]*n_cols_meows + [ancho_punt_m]
-
-        header_meows = ['PARÁMETRO', 'VALOR'] + [
-            Paragraph(f"{c['hora'].strftime('%d/%m/%y')}<br/>{c['hora'].strftime('%H:%M')}", estilo_meows_col)
-            for c in columnas_meows
-        ] + ['PUNTAJE']
-
-        data_meows = [header_meows]
-        grupos_meows = []  # (fila_inicio, fila_fin) para SPAN de la columna PARÁMETRO
-        celdas_color_meows = []  # (col, row, color_fondo, color_texto)
-        fila_idx = 2  # 0=título, 1=header_meows
-
-        for parametro in grid_parametros_meows:
-            filas = parametro['filas']
-            inicio = fila_idx
-            for i, fila in enumerate(filas):
-                etiqueta = Paragraph(parametro['nombre'], estilo_meows_param) if i == 0 else ''
-                fila_row = [etiqueta, fila['label']]
-                for col_idx, celda in enumerate(fila['celdas']):
-                    marcado = celda['marcado']
-                    fila_row.append('●' if marcado else '')
-                    color_bg, color_txt = (COLOR_SCORE_MARCADO if marcado else COLOR_SCORE_LIGHT)[fila['score']]
-                    celdas_color_meows.append((2 + col_idx, fila_idx, color_bg, color_txt))
-                fila_row.append(str(fila['score']))
-                data_meows.append(fila_row)
-                fila_idx += 1
-            fin = fila_idx - 1
-            if fin > inicio:
-                grupos_meows.append((inicio, fin))
-
-        fila_total_meows = ['Puntaje total MEOWS', '']
-        for c in columnas_meows:
-            riesgo = (c['riesgo'] or 'BLANCO').upper()
-            puntaje_txt = c['score_total'] if c['score_total'] is not None else '-'
-            fila_total_meows.append(Paragraph(f"<b>{puntaje_txt}</b><br/>{riesgo}", estilo_meows_total))
-        fila_total_meows.append('')
-        data_meows.append(fila_total_meows)
-        fila_idx_total = fila_idx
-
-        fila_titulo_meows = ['CONTROL POSPARTO INMEDIATO (MEOWS)'] + ['']*(len(cw_meows) - 1)
-        tbl_meows = Table([fila_titulo_meows] + data_meows, colWidths=cw_meows, repeatRows=2)
-        estilo_meows = [
-            ('SPAN', (0, 0), (-1, 0)),
-            ('BACKGROUND', (0, 0), (-1, 0), COLOR_HEADER),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#0c4a6e')),
-            ('TEXTCOLOR', (0, 1), (-1, 1), colors.white),
-            ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 1), (-1, 1), 6),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (1, 2), (1, -2), 'CENTER'),
-            ('ALIGN', (2, 2), (-1, -1), 'CENTER'),
-            ('FONTSIZE', (0, 2), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 2),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-            ('LEFTPADDING', (0, 0), (-1, -1), 2),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
-            ('BOX', (0, 0), (-1, -1), BORDE, COLOR_BORDE),
-            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
-            ('BACKGROUND', (0, fila_idx_total), (-1, fila_idx_total), colors.HexColor('#0c4a6e')),
-            ('TEXTCOLOR', (0, fila_idx_total), (1, fila_idx_total), colors.white),
-            ('FONTNAME', (0, fila_idx_total), (1, fila_idx_total), 'Helvetica-Bold'),
-            ('SPAN', (0, fila_idx_total), (1, fila_idx_total)),
-        ]
-        for inicio, fin in grupos_meows:
-            estilo_meows.append(('SPAN', (0, inicio), (0, fin)))
-        for col, row, bg, txt in celdas_color_meows:
-            estilo_meows.append(('BACKGROUND', (col, row), (col, row), bg))
-            estilo_meows.append(('TEXTCOLOR', (col, row), (col, row), txt))
-        for col_idx, c in enumerate(columnas_meows):
-            riesgo = (c['riesgo'] or 'BLANCO').upper()
-            color_riesgo = COLOR_RIESGO_MEOWS.get(riesgo, colors.HexColor('#94a3b8'))
-            estilo_meows.append(('BACKGROUND', (2 + col_idx, fila_idx_total), (2 + col_idx, fila_idx_total), color_riesgo))
-        tbl_meows.setStyle(TableStyle(estilo_meows))
-        elements.append(tbl_meows)
-
-    elements.append(Spacer(1, 0.28*cm))
-
     # ========== GUÍA DE PARÁMETROS Y SEMÁFORO DE ALERTA (POSPARTO INMEDIATO) ==========
+    # 2026-09-11: movida para ir justo debajo de "Control de Fetocardia durante
+    # el Expulsivo" (a pedido explícito) -- antes iba después de la Línea de
+    # Tiempo Clínica MEOWS, casi al final del documento.
     # Refleja las 3 cards de la vista "Globo de seguridad / Sangrado cuantificado /
     # Sutura y heridas", que hasta ahora no se imprimían en el PDF aunque ya
     # existen como campos del modelo y del formulario.
@@ -543,8 +408,185 @@ def generar_pdf_registro(registro, es_plantilla=False):
         ('BOX', (0, 0), (-1, -1), BORDE, COLOR_BORDE),
         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
     ]))
-    elements.append(Spacer(1, 0.28*cm))
     elements.append(tbl_param)
+    elements.append(Spacer(1, 0.28*cm))
+
+    # ========== CONTROL POSPARTO INMEDIATO (MEOWS) ==========
+    # Refleja el grid clínico MEOWS embebido en esta misma página bajo el título
+    # "Control Posparto Inmediato" (meows/_timeline_grid.html), usando la misma
+    # fuente de datos (construir_grid_meows) para que el PDF coincida siempre
+    # con lo que se ve en pantalla.
+    #
+    # 2026-09-11: la línea de tiempo MEOWS debe verse aunque la paciente NO
+    # tenga todavía un RegistroParto guardado en este módulo (expulsivo /
+    # pos-parto inmediato) -- a pedido explícito, "no importa si no tiene un
+    # registro guardado, la línea de tiempo MEOWS debe reflejarse en el PDF".
+    # Antes esto dependía de `es_plantilla`: una plantilla en blanco (sin
+    # registro guardado) nunca mostraba MEOWS, sin importar si ya se conocía
+    # el documento de la paciente. Ahora solo depende de si se conoce el
+    # documento (`registro.identificacion`), venga o no de un registro real.
+    from meows.services.grid import construir_grid_meows, obtener_paciente_meows_por_documento
+
+    documento_para_meows = (registro.identificacion or '').strip()
+    meows_paciente = obtener_paciente_meows_por_documento(documento_para_meows) if documento_para_meows else None
+    if meows_paciente:
+        grid_parametros_meows, columnas_meows = construir_grid_meows(meows_paciente)
+    else:
+        grid_parametros_meows, columnas_meows = [], []
+
+    if not columnas_meows:
+        tit_meows_vacio = Table(
+            [['CONTROL POSPARTO INMEDIATO (MEOWS)'], ['' if not documento_para_meows else 'Sin mediciones MEOWS registradas']],
+            colWidths=[ANCHO_UTIL]
+        )
+        tit_meows_vacio.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), COLOR_HEADER),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('BOX', (0, 0), (-1, -1), BORDE, COLOR_BORDE),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ]))
+        elements.append(tit_meows_vacio)
+    else:
+        COLOR_SCORE_MARCADO = {
+            0: (colors.HexColor('#e2e8f0'), colors.HexColor('#1e293b')),
+            1: (colors.HexColor('#16a34a'), colors.white),
+            2: (colors.HexColor('#d97706'), colors.white),
+            3: (colors.HexColor('#dc2626'), colors.white),
+        }
+        COLOR_SCORE_LIGHT = {
+            0: (colors.HexColor('#eef1f5'), colors.HexColor('#64748b')),
+            1: (colors.HexColor('#86efac'), colors.HexColor('#14532d')),
+            2: (colors.HexColor('#fcd34d'), colors.HexColor('#78350f')),
+            3: (colors.HexColor('#fca5a5'), colors.HexColor('#7f1d1d')),
+        }
+        COLOR_RIESGO_MEOWS = {
+            'BLANCO': colors.HexColor('#94a3b8'), 'VERDE': colors.HexColor('#22c55e'),
+            'AMARILLO': colors.HexColor('#eab308'), 'ROJO': colors.HexColor('#ef4444'),
+        }
+
+        # textColor blanco explícito: al ir dentro de un Paragraph, el texto
+        # no hereda el TEXTCOLOR blanco que la TableStyle le da a la fila del
+        # encabezado (fondo azul oscuro #0c4a6e) -- sin esto quedaba en negro,
+        # casi ilegible sobre ese fondo.
+        estilo_meows_col = ParagraphStyle(name='MeowsCol', fontName='Helvetica-Bold', fontSize=5.5, leading=6.5, alignment=TA_CENTER, textColor=colors.white)
+        estilo_meows_param = ParagraphStyle(name='MeowsParam', fontName='Helvetica-Bold', fontSize=6, leading=7, alignment=TA_LEFT)
+        estilo_meows_total = ParagraphStyle(name='MeowsTotal', fontName='Helvetica-Bold', fontSize=6, leading=7, alignment=TA_CENTER, textColor=colors.white)
+
+        # 2026-09-11: con muchas horas registradas (>10-12) la tabla ya no
+        # cabía en el ancho de la hoja A4 -- el ancho de columna se calculaba
+        # dividiendo el espacio disponible entre TODAS las columnas pero con
+        # un piso de 0.9cm que, pasado cierto número de columnas, hacía que
+        # la tabla completa se saliera de la página y quedara cortada/
+        # desbordada. Se pagina igual que el PDF MEOWS independiente
+        # (meows/generador_pdf_meows.py, MEDICIONES_POR_PAGINA=10): una tabla
+        # nueva cada 10 horas, cada una repitiendo PARÁMETRO/VALOR/PUNTAJE,
+        # en vez de una sola tabla imposible de encajar.
+        MEOWS_COLS_POR_PAGINA = 10
+        ancho_param_m = 3.0*cm
+        ancho_valor_m = 1.5*cm
+        ancho_punt_m = 1.1*cm
+        ancho_fijo_m = ancho_param_m + ancho_valor_m + ancho_punt_m
+
+        total_cols_meows = len(columnas_meows)
+        rangos_meows = [
+            (i, min(i + MEOWS_COLS_POR_PAGINA, total_cols_meows))
+            for i in range(0, total_cols_meows, MEOWS_COLS_POR_PAGINA)
+        ]
+
+        for pagina_idx, (ini, fin) in enumerate(rangos_meows):
+            columnas_pagina = columnas_meows[ini:fin]
+            n_cols_pagina = len(columnas_pagina)
+            ancho_col_m = (ANCHO_UTIL - ancho_fijo_m) / n_cols_pagina
+            cw_meows = [ancho_param_m, ancho_valor_m] + [ancho_col_m]*n_cols_pagina + [ancho_punt_m]
+
+            header_meows = ['PARÁMETRO', 'VALOR'] + [
+                Paragraph(f"{c['hora'].strftime('%d/%m/%y')}<br/>{c['hora'].strftime('%H:%M')}", estilo_meows_col)
+                for c in columnas_pagina
+            ] + ['PUNTAJE']
+
+            data_meows = [header_meows]
+            grupos_meows = []  # (fila_inicio, fila_fin) para SPAN de la columna PARÁMETRO
+            celdas_color_meows = []  # (col, row, color_fondo, color_texto)
+            fila_idx = 2  # 0=título, 1=header_meows
+
+            for parametro in grid_parametros_meows:
+                filas = parametro['filas']
+                inicio_grupo = fila_idx
+                for i, fila in enumerate(filas):
+                    etiqueta = Paragraph(parametro['nombre'], estilo_meows_param) if i == 0 else ''
+                    fila_row = [etiqueta, fila['label']]
+                    for col_idx, celda in enumerate(fila['celdas'][ini:fin]):
+                        marcado = celda['marcado']
+                        fila_row.append('●' if marcado else '')
+                        color_bg, color_txt = (COLOR_SCORE_MARCADO if marcado else COLOR_SCORE_LIGHT)[fila['score']]
+                        celdas_color_meows.append((2 + col_idx, fila_idx, color_bg, color_txt))
+                    fila_row.append(str(fila['score']))
+                    data_meows.append(fila_row)
+                    fila_idx += 1
+                fin_grupo = fila_idx - 1
+                if fin_grupo > inicio_grupo:
+                    grupos_meows.append((inicio_grupo, fin_grupo))
+
+            fila_total_meows = ['Puntaje total MEOWS', '']
+            for c in columnas_pagina:
+                riesgo = (c['riesgo'] or 'BLANCO').upper()
+                puntaje_txt = c['score_total'] if c['score_total'] is not None else '-'
+                fila_total_meows.append(Paragraph(f"<b>{puntaje_txt}</b><br/>{riesgo}", estilo_meows_total))
+            fila_total_meows.append('')
+            data_meows.append(fila_total_meows)
+            fila_idx_total = fila_idx
+
+            titulo_txt = 'CONTROL POSPARTO INMEDIATO (MEOWS)'
+            if len(rangos_meows) > 1:
+                titulo_txt += f' — página {pagina_idx + 1} de {len(rangos_meows)}'
+            fila_titulo_meows = [titulo_txt] + ['']*(len(cw_meows) - 1)
+            tbl_meows = Table([fila_titulo_meows] + data_meows, colWidths=cw_meows, repeatRows=2)
+            estilo_meows = [
+                ('SPAN', (0, 0), (-1, 0)),
+                ('BACKGROUND', (0, 0), (-1, 0), COLOR_HEADER),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#0c4a6e')),
+                ('TEXTCOLOR', (0, 1), (-1, 1), colors.white),
+                ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 1), (-1, 1), 6),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ALIGN', (1, 2), (1, -2), 'CENTER'),
+                ('ALIGN', (2, 2), (-1, -1), 'CENTER'),
+                ('FONTSIZE', (0, 2), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                ('BOX', (0, 0), (-1, -1), BORDE, COLOR_BORDE),
+                ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+                ('BACKGROUND', (0, fila_idx_total), (-1, fila_idx_total), colors.HexColor('#0c4a6e')),
+                ('TEXTCOLOR', (0, fila_idx_total), (1, fila_idx_total), colors.white),
+                ('FONTNAME', (0, fila_idx_total), (1, fila_idx_total), 'Helvetica-Bold'),
+                ('SPAN', (0, fila_idx_total), (1, fila_idx_total)),
+            ]
+            for inicio_grupo, fin_grupo in grupos_meows:
+                estilo_meows.append(('SPAN', (0, inicio_grupo), (0, fin_grupo)))
+            for col, row, bg, txt in celdas_color_meows:
+                estilo_meows.append(('BACKGROUND', (col, row), (col, row), bg))
+                estilo_meows.append(('TEXTCOLOR', (col, row), (col, row), txt))
+            for col_idx, c in enumerate(columnas_pagina):
+                riesgo = (c['riesgo'] or 'BLANCO').upper()
+                color_riesgo = COLOR_RIESGO_MEOWS.get(riesgo, colors.HexColor('#94a3b8'))
+                estilo_meows.append(('BACKGROUND', (2 + col_idx, fila_idx_total), (2 + col_idx, fila_idx_total), color_riesgo))
+            tbl_meows.setStyle(TableStyle(estilo_meows))
+            if pagina_idx > 0:
+                elements.append(PageBreak())
+            elements.append(tbl_meows)
+
+    elements.append(Spacer(1, 0.28*cm))
 
     # ========== FIRMA DEL RESPONSABLE + BIOMETRÍA ==========
     tiene_huella_paciente = bool(registro.identificacion) and FirmaPaciente.objects.filter(
@@ -554,7 +596,16 @@ def generar_pdf_registro(registro, es_plantilla=False):
     # si el responsable solo alcanzó a escribir su nombre (sin dibujar la firma en el
     # pad), no se imprimía nada, ni siquiera el nombre. Ahora también se imprime con
     # el nombre solo, para que el responsable y su nombre siempre queden en el PDF.
-    if registro.firma_paciente or tiene_huella_paciente or registro.nombre_firma_paciente or registro.fecha_hora_firma:
+    #
+    # 2026-09-11: `nombre_firma_paciente` ahora también puede llegar precargado
+    # desde el campo "RESPONSABLE DEL REGISTRO" aunque el registro todavía no
+    # se haya guardado (ver descargar_pdf_plantilla en views.py) -- a pedido
+    # explícito, el responsable debe quedar integrado en el PDF aunque
+    # todavía no haya una firma real dibujada, y sin mostrar una caja de
+    # firma en blanco simulando un espacio para firmar a mano que no existe.
+    tiene_firma_real = bool(registro.firma_paciente or tiene_huella_paciente or registro.fecha_hora_firma)
+    tiene_responsable = bool((registro.nombre_firma_paciente or registro.profesional_nombre or '').strip())
+    if tiene_firma_real or tiene_responsable:
         elements.append(Spacer(1, 0.5*cm))
         
         # Firma Manuscrita
@@ -631,7 +682,12 @@ def generar_pdf_registro(registro, es_plantilla=False):
         final_name = sig_name or prof_name or "—"
 
         col_firma.append(Paragraph(f"<b>{final_name}</b>", styles['Normal']))
-        col_firma.append(Paragraph(f"<font size='7' color='#64748b'>FIRMA DEL RESPONSABLE — {fecha_firma}</font>", styles['Normal']))
+        # Solo se rotula "FIRMA DEL RESPONSABLE" cuando de verdad hay una firma,
+        # huella o fecha de firma real -- si únicamente se conoce el nombre del
+        # responsable (aún sin firmar), se etiqueta "RESPONSABLE" a secas para
+        # no dar a entender que existe una firma que todavía no existe.
+        etiqueta_firma = f"FIRMA DEL RESPONSABLE — {fecha_firma}" if tiene_firma_real else "RESPONSABLE"
+        col_firma.append(Paragraph(f"<font size='7' color='#64748b'>{etiqueta_firma}</font>", styles['Normal']))
 
         col_biometria = []
         if img_biometrica:

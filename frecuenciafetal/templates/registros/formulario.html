@@ -4646,9 +4646,29 @@
           }
 
           async function descargarPDF() {
-            const url = savedRegistroId
-              ? `${API_BASE}/registros/${savedRegistroId}/pdf/?t=${Date.now()}`
-              : `${API_BASE}/registros/pdf-plantilla/?t=${Date.now()}`;
+            let url;
+            if (savedRegistroId) {
+              url = `${API_BASE}/registros/${savedRegistroId}/pdf/?t=${Date.now()}`;
+            } else {
+              // Aunque todavía no se haya guardado el registro de este
+              // formulario, si la paciente ya está identificada en pantalla
+              // se manda su documento para que el PDF (en blanco) igual
+              // pueda traer su Línea de Tiempo Clínica MEOWS -- a pedido
+              // explícito, eso no debe depender de tener ya un registro
+              // guardado aquí.
+              const idVal = (document.getElementById('identificacion')?.value || '').trim();
+              const nombreVal = (document.getElementById('nombre_paciente')?.value || '').trim();
+              // "RESPONSABLE DEL REGISTRO" ya se precarga con el profesional en
+              // sesión (ver signature-name arriba) -- se manda igual para que
+              // quede integrado en el PDF aunque todavía no se haya guardado
+              // nada ni dibujado una firma.
+              const responsableVal = (document.getElementById('signature-name')?.value || '').trim();
+              const params = new URLSearchParams({ t: Date.now() });
+              if (idVal) params.set('documento', idVal);
+              if (nombreVal) params.set('nombre', nombreVal);
+              if (responsableVal) params.set('responsable', responsableVal);
+              url = `${API_BASE}/registros/pdf-plantilla/?${params.toString()}`;
+            }
             try {
               const res = await fetch(url, { credentials: 'same-origin', headers: getHeaders() });
               if (!res.ok) {

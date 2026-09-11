@@ -109,6 +109,18 @@ class Command(BaseCommand):
             ultima_fecha = Medicion.objects.filter(
                 paciente=paciente, origen='dinamica'
             ).aggregate(m=Max('fecha_hora'))['m']
+            if ultima_fecha is not None:
+                # HCRHORREG en Dinámica es un datetime NAIVE en hora local (Bogotá).
+                # `ultima_fecha` sale del ORM como aware en UTC (USE_TZ=True) -- si
+                # se compara tal cual contra la columna naive (ej. "> 2026-09-11
+                # 12:00" contra valores como "2026-09-11 07:30"), toda lectura
+                # nueva del mismo día queda por debajo del corte y se pierde en
+                # silencio durante ~5 horas (el offset Bogotá/UTC) después de cada
+                # sincronización. Se convierte a naive-local antes de usarla como
+                # filtro -- mismo fix aplicado en trabajoparto/management/commands/
+                # sincronizar_frecuencia_fetal_dinamica.py (bug idéntico, mismo
+                # patrón de comparación de horas).
+                ultima_fecha = timezone.localtime(ultima_fecha).replace(tzinfo=None)
 
             try:
                 lecturas = obtener_signos_vitales_nuevos(folio, desde=ultima_fecha)

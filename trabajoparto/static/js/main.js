@@ -850,6 +850,32 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas) {
         }
     });
 
+    // 2026-09-11: la Frecuencia Cardiaca Fetal (parametro 8) llega sola desde
+    // Dinámica en SUS propias horas (ej. 07:00, 07:30), independientes de las
+    // horas en que la enfermera registra el resto del examen a mano (ej.
+    // 10:46). Antes de esto, la columna manual mostraba "—" en FCF aunque sí
+    // había un valor reciente conocido -- parecían dos registros
+    // desconectados. Se arma aquí una serie ordenada de FCF para "arrastrar"
+    // (carry-forward) el último valor conocido a cualquier columna posterior
+    // que no tenga su propia lectura exacta -- sin inventar ni mezclar datos,
+    // solo mostrando en cada columna lo último que se sabía a esa hora, igual
+    // que se leería un partograma en papel.
+    const _FCF_PARAM_ID = 8;
+    const serieFCF = mediciones
+        .filter(m => parseInt(m.parametro_id || (m.parametro && m.parametro.id) || m.parametro) === _FCF_PARAM_ID)
+        .map(m => ({ hora: m.tomada_en, valor: valoresPorParamHora[`${_FCF_PARAM_ID}|${m.tomada_en}`] }))
+        .filter(e => e.valor)
+        .sort((a, b) => new Date(a.hora) - new Date(b.hora));
+
+    const valorFCFHeredado = (horaColumna) => {
+        let ultimo = null;
+        for (const entry of serieFCF) {
+            if (new Date(entry.hora) <= new Date(horaColumna)) ultimo = entry;
+            else break;
+        }
+        return ultimo;
+    };
+
     // Encabezado: Ítem | Parámetro | una columna por hora
     let html = '<table class="preview-grid-table"><thead><tr>';
     html += '<th class="preview-grid-th-item" rowspan="2">Ítem</th>';
@@ -875,8 +901,18 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas) {
             html += `<td class="preview-grid-td-param">${param.nombre}${unidad}</td>`;
 
             horasUnicas.forEach(hora => {
-                const valor = valoresPorParamHora[`${param.id}|${hora}`];
-                html += `<td class="preview-grid-td-valor${valor ? ' tiene-valor' : ''}">${valor || '—'}</td>`;
+                let valor = valoresPorParamHora[`${param.id}|${hora}`];
+                let heredado = false;
+                if (!valor && param.id === _FCF_PARAM_ID) {
+                    const carry = valorFCFHeredado(hora);
+                    if (carry) {
+                        valor = carry.valor;
+                        heredado = true;
+                    }
+                }
+                const clase = heredado ? ' valor-heredado' : (valor ? ' tiene-valor' : '');
+                const titulo = heredado ? ' title="Último valor de Dinámica conocido a esta hora (no fue tomado exactamente en este momento)"' : '';
+                html += `<td class="preview-grid-td-valor${clase}"${titulo}>${valor || '—'}</td>`;
             });
 
             html += '</tr>';
@@ -2134,15 +2170,26 @@ async function buscarPacienteCompleto(cedula, usarCache = true) {
         console.log(`Buscando paciente completo para identificación: ${cedula}`);
         
         const cacheKey = 'paciente_completo_data_cache';
-        const CACHE_VERSION = 5; // Incrementar si cambia estructura (ej. diagnostico, aseguradora, edad_gestacional, n_controles, estado)
-        
+        const CACHE_VERSION = 6; // Incrementar si cambia estructura (ej. diagnostico, aseguradora, edad_gestacional, n_controles, estado)
+        // 2026-09-11: esta caché no vencía nunca por tiempo -- solo se
+        // invalidaba al cambiar de paciente o subir CACHE_VERSION. Eso
+        // dejaba la pantalla mostrando para siempre la Frecuencia Cardiaca
+        // Fetal (y cualquier otra medición) que había al momento de la
+        // PRIMERA consulta, aunque el sync automático de Dinámica (cada 2
+        // min) ya hubiera traído lecturas más nuevas al backend. TTL corto
+        // -- un poco más que el ciclo de sincronización -- para que se
+        // refresque sola sin perder el ahorro de peticiones en el uso normal.
+        const CACHE_TTL_MS = 3 * 60 * 1000;
+
         // Verificar si hay datos en caché para este paciente
         if (usarCache) {
             try {
                 const cacheData = localStorage.getItem(cacheKey);
                 if (cacheData) {
                     const parsedCache = JSON.parse(cacheData);
-                    if (parsedCache._cacheVersion !== CACHE_VERSION) {
+                    const vencida = parsedCache.timestamp && (Date.now() - parsedCache.timestamp) > CACHE_TTL_MS;
+                    if (parsedCache._cacheVersion !== CACHE_VERSION || vencida) {
+                        if (vencida) console.log('Caché vencida (>3 min), se pide de nuevo al servidor.');
                         localStorage.removeItem(cacheKey);
                     } else if (parsedCache.paciente && parsedCache.paciente.num_identificacion === cedula) {
                         console.log(`✅ Datos encontrados en caché para paciente: ${cedula}`);

@@ -199,13 +199,32 @@ class RegistroPartoViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='pdf-plantilla')
     def descargar_pdf_plantilla(self, request):
         """Genera el PDF FRSPA-007 con los campos vacíos (plantilla en blanco),
-        sin necesidad de haber guardado un registro previamente."""
+        sin necesidad de haber guardado un registro previamente.
+
+        2026-09-11: si la paciente ya está identificada en pantalla (documento
+        en la URL o en el campo de identificación) aunque todavía no se haya
+        guardado ningún registro de este formulario, se recibe ese documento
+        por query param para poder mostrar igual la Línea de Tiempo Clínica
+        MEOWS -- lo único que necesita esa sección es saber de quién es (ver
+        generar_pdf_registro). El resto del formulario sigue en blanco.
+
+        También se recibe (opcional) el nombre de quien está diligenciando
+        el formulario ahora mismo -- campo "RESPONSABLE DEL REGISTRO" en
+        pantalla -- para que quede integrado en el PDF sin necesidad de
+        haber guardado ya una firma. Se manda en `nombre_firma_paciente`
+        porque es el mismo campo que usa generar_pdf_registro para decidir
+        si el responsable ya quedó identificado (ver ese archivo).
+        """
         import re
         from django.http import HttpResponse
 
+        documento = (request.query_params.get('documento') or '').strip()
+        nombre = (request.query_params.get('nombre') or '').strip()
+        responsable = (request.query_params.get('responsable') or '').strip()
         registro_vacio = RegistroParto(
-            nombre_paciente='',
-            identificacion='',
+            nombre_paciente=nombre,
+            identificacion=documento,
+            nombre_firma_paciente=responsable,
             edad_gestacional=None,
             gestas=1,
         )

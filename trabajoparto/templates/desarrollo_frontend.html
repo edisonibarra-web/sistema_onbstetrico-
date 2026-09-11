@@ -326,6 +326,17 @@
             background: #f4f9e8;
             color: #558b2f;
         }
+        /* FCF "heredado": último valor conocido de Dinámica, mostrado por
+           continuidad en una columna donde no se tomó lectura exacta -- ver
+           construirGrillaVistaPrevia() en main.js. Distinto del valor exacto
+           (tiene-valor) para que la enfermería no lo confunda con una toma
+           real a esa hora. */
+        .preview-grid-td-valor.valor-heredado {
+            background: #f4f9e8;
+            color: #7c8a5c;
+            font-style: italic;
+            font-weight: 600;
+        }
         .preview-empty-state {
             min-width: 100%;
             border: 2px dashed #dbeafe;
@@ -1337,7 +1348,7 @@
         <script>window.API_BASE_URL = 'http://TU_HOST:8000/api';</script>
         Si no defines nada, config.js la infiere automáticamente con window.location.hostname.
     -->
-    <script src="{% static 'js/main.js' %}?v=20260910"></script>
+    <script src="{% static 'js/main.js' %}?v=20260911b"></script>
     <script>
     (function() {
       const docFromCard = "{{ documento|default:''|escapejs }}".trim();
