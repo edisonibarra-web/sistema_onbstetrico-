@@ -213,6 +213,14 @@ class Medicion(models.Model):
     )
     tomada_en = models.DateTimeField()
     observacion = models.TextField(null=True, blank=True)
+    # 2026-09-14: a diferencia de formulario.responsable (una sola persona
+    # para TODA la hoja, que se pisa cada vez que alguien vuelve a guardar),
+    # este campo queda fijo con quien diligenció ESTE registro puntual -- no
+    # siempre es la misma persona a lo largo del trabajo de parto. Se llena
+    # con el valor del input #responsable al momento de guardar esa columna
+    # (ver guardarMediciones() en main.js); queda null en lecturas que llegan
+    # solas desde Dinámica (FCF), que no las diligencia ninguna persona.
+    responsable = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         unique_together = ("formulario", "parametro", "tomada_en")
@@ -269,23 +277,5 @@ class MedicionValor(models.Model):
                     models.Q(valor_json__isnull=False)
                 ),
                 name="valor_unico_tipo",
-            )   
+            )
         ]
-
-
-
-class Huella(models.Model):
-    paciente_id = models.CharField(max_length=50)
-    formulario_id = models.CharField(max_length=50, null=True, blank=True)
-    template = models.TextField(null=True, blank=True)  # Datos biométricos
-    imagen = models.ImageField(upload_to="huellas_biometricas/", null=True, blank=True)
-    imagen_firma = models.ImageField(upload_to="firmas/", null=True, blank=True)
-    usuario = models.CharField(max_length=50)
-    fecha = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = "huella"
-        ordering = ["-fecha"]
-
-    def __str__(self):
-        return f"Huella {self.paciente_id} - {self.fecha}"

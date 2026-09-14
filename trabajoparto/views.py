@@ -17,31 +17,17 @@ from datetime import date
 import logging
 import re
 import json
-import base64
 import time
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 from django.http import JsonResponse
 from django.core.cache import cache
-from sistema_obstetrico.auth_utils import login_required_if_enabled
+from sistema_obstetrico.auth_utils import login_required_if_enabled, nombre_profesional_sesion
 
 logger = logging.getLogger(__name__)
 
 
-def _mas_reciente_con_archivo(queryset, campo):
-    """
-    Devuelve el registro más reciente (por -fecha) cuyo archivo en `campo`
-    exista realmente en el storage, saltando referencias huérfanas (filas
-    cuyo ImageField apunta a una ruta cuyo archivo físico ya no está,
-    p.ej. datos importados de otro entorno sin copiar el media completo).
-    """
-    for registro in queryset.order_by('-fecha'):
-        archivo = getattr(registro, campo)
-        if archivo and default_storage.exists(archivo.name):
-            return registro
-    return None
+# 2026-09-14: se eliminó _mas_reciente_con_archivo() -- solo se usaba para
+# buscar imágenes de huella/firma, retiradas a pedido explícito.
 
 
 @never_cache
@@ -112,7 +98,7 @@ def parto_home(request):
         "estructura_plana": estructura_plana,
         "items": items,
         "estructura_grid": estructura_grid,
-        "profesional_nombre_sesion": request.session.get('dgh_info', {}).get('nombre_completo') or '',
+        "profesional_nombre_sesion": nombre_profesional_sesion(request),
     }
     return render(request, "desarrollo_frontend.html", context)
 
@@ -149,7 +135,6 @@ from trabajoparto.models import (
     CampoParametro,
     Medicion,
     MedicionValor,
-    Huella
 )
 
 
@@ -1610,30 +1595,11 @@ class PacienteViewSet(viewsets.ModelViewSet):
             else:
                 logger.info(f'ℹ️ No hay formulario para este paciente')
             
-            # 10. Buscar biometría (consolidar última huella y última firma)
+            # 2026-09-14: se eliminó la captura de firma/huella biométrica (a
+            # pedido explícito, antes de salir a producción -- trabajoparto.models.Huella
+            # ya no existe). Se deja la clave 'huella' en null por compatibilidad
+            # con cualquier consumidor que todavía la lea.
             huella_data = None
-            try:
-                from .models import Huella
-                # Buscar por ID (OID) o por Cédula (num_identificacion)
-                base_query = Q(paciente_id=str(paciente.id)) | Q(paciente_id=paciente.num_identificacion)
-                
-                # Obtener la captura más reciente que tenga huella (con archivo real en disco)
-                reg_huella = _mas_reciente_con_archivo(Huella.objects.filter(base_query).exclude(imagen=''), 'imagen')
-                # Obtener la captura más reciente que tenga firma (con archivo real en disco)
-                reg_firma = _mas_reciente_con_archivo(Huella.objects.filter(base_query).exclude(imagen_firma=''), 'imagen_firma')
-                
-                if reg_huella or reg_firma:
-                    huella_data = {
-                        "id": reg_huella.id if reg_huella else (reg_firma.id if reg_firma else None),
-                        "fecha": reg_huella.fecha.isoformat() if reg_huella else (reg_firma.fecha.isoformat() if reg_firma else None),
-                        "imagen_huella": reg_huella.imagen.url if reg_huella and reg_huella.imagen else None,
-                        "imagen_firma": reg_firma.imagen_firma.url if reg_firma and reg_firma.imagen_firma else None,
-                        "usuario": reg_huella.usuario if reg_huella else (reg_firma.usuario if reg_firma else "Sistema")
-                    }
-                    if reg_huella: logger.info(f'🔐 Huella encontrada para paciente {paciente.num_identificacion}')
-                    if reg_firma: logger.info(f'✍️ Firma encontrada para paciente {paciente.num_identificacion}')
-            except Exception as e:
-                logger.warning(f"Error al recuperar biometría en buscar_completo: {e}")
 
             # 9. Construir respuesta consolidada
             response_data = {
@@ -2092,39 +2058,22 @@ def vista_impresion_formulario(request, formulario_id):
                 
             grid_data[p_id][h_str][v.campo_id] = valor
 
-    # Recuperar biometría (huella y firma) de forma independiente
-    from .models import Huella
-    # Refinar búsqueda de biometría (mismo logic que pdf_utils)
-    # 4. Biometría (HUELLA Y FIRMA)
+    # 2026-09-14: se eliminó la captura de firma/huella biométrica (a pedido
+    # explícito, antes de salir a producción -- trabajoparto.models.Huella ya
+    # no existe). Se dejan las variables de plantilla en blanco/"none" por
+    # compatibilidad con impresion_formulario.html.
     p = formulario.paciente
-    ident = str(p.num_identificacion).strip()
-    query_biometria = Q(paciente_id=ident) | Q(paciente_id=str(p.id))
-    
-    # Intentar también sin ceros a la izquierda si es numérico
-    if ident.isdigit():
-        query_biometria |= Q(paciente_id=str(int(ident)))
-    
-    reg_huella = _mas_reciente_con_archivo(Huella.objects.filter(query_biometria).exclude(imagen__exact='').exclude(imagen__isnull=True), 'imagen')
-    reg_firma = _mas_reciente_con_archivo(Huella.objects.filter(query_biometria).exclude(imagen_firma__exact='').exclude(imagen_firma__isnull=True), 'imagen_firma')
-    
-    # Preparar URLs de logos y biometría (Absolutas)
+
     base_url = request.build_absolute_uri('/')[:-1]
-    # Forzar localhost:8000 si estamos en el backend para que las imágenes se carguen bien desde el frontend
-    if "8000" not in base_url and "8001" not in base_url:
-        # Si es una IP externa o similar, se mantiene, pero si es localhost:8001 (frontend), hay que apuntar al 8000
-        pass
-    
     logo_hospital = f"{base_url}{settings.STATIC_URL}img/logo_hospital.png"
     logo_acreditacion = f"{base_url}{settings.STATIC_URL}img/logo_acreditacion.png"
-    
-    huella_img = f"{base_url}{reg_huella.imagen.url}" if reg_huella and reg_huella.imagen else ""
-    firma_img = f"{base_url}{reg_firma.imagen_firma.url}" if reg_firma and reg_firma.imagen_firma else ""
-    
-    # Variables de compatibilidad para el template
-    huella_display = "block" if huella_img else "none"
-    firma_display = "block" if firma_img else "none"
-    no_huella_display = "none" if huella_img else "block"
-    no_firma_display = "none" if firma_img else "block"
+
+    huella_img = ""
+    firma_img = ""
+    huella_display = "none"
+    firma_display = "none"
+    no_huella_display = "block"
+    no_firma_display = "block"
 
     context = {
         'f': formulario,
@@ -2446,187 +2395,16 @@ def generar_pdf_paciente(request, paciente_id):
         
         y -= 20
     
-    # ===== BIOMETRÍA (Al final del historial) =====
-    from .pdf_utils import seccion_biometria
-    from .models import Huella
-    from django.db.models import Q
-    
-    ident = str(paciente.num_identificacion).strip()
-    query_biometria = Q(paciente_id=ident) | Q(paciente_id=str(paciente.id))
-    if ident.isdigit():
-        query_biometria |= Q(paciente_id=str(int(ident)))
-        
-    reg_huella = _mas_reciente_con_archivo(Huella.objects.filter(query_biometria).exclude(imagen__exact='').exclude(imagen__isnull=True), 'imagen')
-    reg_firma = _mas_reciente_con_archivo(Huella.objects.filter(query_biometria).exclude(imagen_firma__exact='').exclude(imagen_firma__isnull=True), 'imagen_firma')
-    
-    if reg_huella or reg_firma:
-        y -= 20
-        y = seccion_biometria(p, reg_huella, reg_firma, 40, y, width)
-        
+    # 2026-09-14: se eliminó la sección de biometría (firma/huella) de este
+    # generador de PDF legacy, a pedido explícito -- trabajoparto.models.Huella
+    # ya no existe.
     p.showPage()
     p.save()
     
     return response
 
 
-@login_required_if_enabled
-@csrf_exempt
-def guardar_huella(request):
-    """
-    Recibe la huella y/o firma desde la App Android.
-    """
-    if request.method == "POST":
-        try:
-            body_unicode = request.body.decode('utf-8')
-            print(f"--- DATOS RECIBIDOS DESDE TABLET ---\n{body_unicode}\n----------------------------------")
-            
-            data = json.loads(body_unicode)
-            
-            # Extraer campos con más flexibilidad en los nombres
-            paciente_id = data.get("paciente_id") or data.get("paciente") or data.get("cc") or data.get("num_identificacion")
-            formulario_id = data.get("formulario_id") or data.get("formulario")
-            template = data.get("template")
-            imagen_b64 = data.get("imagen") or data.get("imagen_huella") or data.get("huella")
-            firma_b64 = data.get("firma") or data.get("imagen_firma") or data.get("firma_paciente")
-            usuario = data.get("usuario", "Sistema")
-
-            if not paciente_id:
-                # Si no viene paciente_id, intentamos buscarlo en el texto si el JSON viene deformado
-                import re
-                match = re.search(r'"paciente_id"\s*:\s*"(\d+)"', body_unicode)
-                if match:
-                    paciente_id = match.group(1)
-                    print(f"Extraído paciente_id mediante Regex: {paciente_id}")
-
-            if not paciente_id:
-                return JsonResponse({
-                    "status": "error", 
-                    "message": "Falta paciente_id. Recibido: " + str(data)
-                }, status=400)
-
-            # Crear el registro base
-            registro = Huella.objects.create(
-                paciente_id=paciente_id,
-                formulario_id=formulario_id,
-                template=template,
-                usuario=usuario
-            )
-
-            # Decodificar y guardar la imagen de la huella
-            if imagen_b64:
-                if ';base64,' in imagen_b64:
-                    _, imgstr = imagen_b64.split(';base64,')
-                else:
-                    imgstr = imagen_b64
-                
-                archivo = ContentFile(base64.b64decode(imgstr), name=f"huella_{paciente_id}.png")
-                registro.imagen.save(f"huella_{paciente_id}.png", archivo, save=True)
-
-            # Decodificar y guardar la imagen de la firma (si existe)
-            if firma_b64:
-                if ';base64,' in firma_b64:
-                    _, firmastr = firma_b64.split(';base64,')
-                else:
-                    firmastr = firma_b64
-                
-                archivo_firma = ContentFile(base64.b64decode(firmastr), name=f"firma_{paciente_id}.png")
-                registro.imagen_firma.save(f"firma_{paciente_id}.png", archivo_firma, save=True)
-
-            return JsonResponse({"status": "ok", "message": "Guardado exitoso", "id": registro.id})
-        except Exception as e:
-            return JsonResponse({"status": "error", "message": str(e)}, status=400)
-    return JsonResponse({"status": "error", "message": "Método no permitido"}, status=405)
-
-
-@login_required_if_enabled
-def consulta_huella(request, paciente_id):
-    """
-    Consulta la última huella capturada para un paciente.
-    Utilizado por el polling de JavaScript.
-    """
-    try:
-        # Buscar por ID o por Cédula (algunos logs sugieren que paciente_id puede ser cèdula)
-        from django.db.models import Q
-        from .models import Paciente
-        
-        # Si el paciente_id es numérico, intentamos buscar el paciente para obtener su cédula también
-        query = Q(paciente_id=str(paciente_id))
-        try:
-            pac = Paciente.objects.get(id=paciente_id)
-            query |= Q(paciente_id=pac.num_identificacion)
-        except:
-            pass
-            
-        # Consolidar la huella más reciente y la firma más reciente
-        # (pueden venir en registros diferentes o en el mismo)
-        reg_huella = _mas_reciente_con_archivo(Huella.objects.filter(query).exclude(imagen=''), 'imagen')
-        reg_firma = _mas_reciente_con_archivo(Huella.objects.filter(query).exclude(imagen_firma=''), 'imagen_firma')
-        
-        if reg_huella or reg_firma:
-            data = {
-                "status": "ok",
-                "paciente_id": paciente_id,
-                "fecha": reg_huella.fecha.isoformat() if reg_huella else reg_firma.fecha.isoformat(),
-                "imagen_huella": reg_huella.imagen.url if reg_huella and reg_huella.imagen else None,
-                "imagen_firma": reg_firma.imagen_firma.url if reg_firma and reg_firma.imagen_firma else None,
-                "usuario": reg_huella.usuario if reg_huella else reg_firma.usuario
-            }
-            response = JsonResponse(data)
-            response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            response["Pragma"] = "no-cache"
-            response["Expires"] = "0"
-            return response
-        else:
-            response = JsonResponse({"status": "pending", "message": "No se encontró biometría para este paciente"}, status=200)
-            response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            response["Pragma"] = "no-cache"
-            response["Expires"] = "0"
-            return response
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": str(e)}, status=500)
-
-@login_required_if_enabled
-@csrf_exempt
-def vincular_huella(request):
-    """
-    Asocia las últimas capturas (huella/firma) de un paciente con un formulario ID.
-    Útil cuando se captura la biometría antes de que el formulario tenga un ID (nuevo formulario).
-    """
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            paciente_id = data.get("paciente_id")
-            formulario_id = data.get("formulario_id")
-
-            if not paciente_id or not formulario_id:
-                return JsonResponse({"status": "error", "message": "Falta paciente_id o formulario_id"}, status=400)
-
-            # Buscar las huellas del paciente que no tengan formulario_id o las más recientes
-            # y vincularlas al formulario actual
-            huellas = Huella.objects.filter(paciente_id=paciente_id).order_by('-fecha')[:5]
-            
-            pudieron_vincular = 0
-            for h in huellas:
-                if not h.formulario_id:
-                    h.formulario_id = formulario_id
-                    h.save()
-                    pudieron_vincular += 1
-
-            return JsonResponse({
-                "status": "ok", 
-                "message": f"Vinculadas {pudieron_vincular} capturas al formulario {formulario_id}"
-            })
-        except Exception as e:
-            return JsonResponse({"status": "error", "message": str(e)}, status=500)
-    return JsonResponse({"status": "error", "message": "Método no permitido"}, status=405)
-    
-@login_required_if_enabled
-def ver_huella(request, documento):
-    """
-    Vista para visualizar la huella en una Card de Bootstrap.
-    """
-    huella = Huella.objects.filter(paciente_id=documento).order_by('-fecha').first()
-    
-    return render(request, "registros/huella.html", {
-        "huella": huella
-    })
+# 2026-09-14: se eliminaron guardar_huella(), consulta_huella(),
+# vincular_huella() y ver_huella() (captura y consulta de firma/huella
+# biométrica) a pedido explícito, antes de salir a producción --
+# trabajoparto.models.Huella ya no existe.

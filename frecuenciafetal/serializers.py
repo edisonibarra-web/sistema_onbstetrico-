@@ -2,34 +2,7 @@ from rest_framework import serializers
 from .models import (
     RegistroParto, ControlFetocardia, ControlRecienNacido,
     GlucometriaRecienNacido, ControlPostpartoInmediato, ControlSangrado,
-    FirmaPaciente, Huella
 )
-
-
-def _get_firma_url_and_cleanup(registro):
-    """
-    Devuelve la URL de firma solo si el archivo existe.
-    Si el registro apunta a un archivo inexistente, limpia el campo en BD.
-    """
-    firma = getattr(registro, 'firma_paciente', None)
-    if not firma:
-        return None
-    try:
-        if not firma.name:
-            return None
-        if firma.storage.exists(firma.name):
-            return firma.url
-    except Exception:
-        return None
-
-    # Si llegamos aqui, hay referencia huerfana a archivo faltante.
-    try:
-        registro.firma_paciente = None
-        registro.save(update_fields=['firma_paciente', 'updated_at'])
-    except Exception:
-        # Si falla la limpieza, evitar romper la respuesta API.
-        pass
-    return None
 
 
 class ControlFetocardiaSerializer(serializers.ModelSerializer):
@@ -92,8 +65,6 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
     control_recien_nacido = ControlRecienNacidoSerializer(required=False)
     controles_postparto = ControlPostpartoSerializer(many=True, required=False)
     controles_sangrado = ControlSangradoSerializer(many=True, required=False)
-    huella_biometrica = serializers.SerializerMethodField()
-    firma_paciente = serializers.SerializerMethodField()
 
     class Meta:
         model = RegistroParto
@@ -131,31 +102,6 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
             ControlSangrado.objects.create(registro=registro, **sc)
 
         return registro
-
-    def get_huella_biometrica(self, obj):
-        id_numerica = obj.identificacion.replace('.', '').replace('-', '')
-        
-        # 1. FirmaPaciente vinculada
-        huella = FirmaPaciente.objects.filter(formulario=obj).order_by('-fecha').first()
-        if not huella:
-            # 2. FirmaPaciente por ID
-            huella = FirmaPaciente.objects.filter(paciente_id=id_numerica).order_by('-fecha').first()
-            
-        if huella and huella.imagen_huella:
-            return huella.imagen_huella.url
-            
-        # 3. Modelo Huella (Android)
-        huella_raw = Huella.objects.filter(documento=obj.identificacion).order_by('-fecha').first()
-        if not huella_raw:
-            huella_raw = Huella.objects.filter(documento=id_numerica).order_by('-fecha').first()
-            
-        if huella_raw and huella_raw.imagen_huella:
-            return huella_raw.imagen_huella.url
-            
-        return None
-
-    def get_firma_paciente(self, obj):
-        return _get_firma_url_and_cleanup(obj)
 
     def update(self, instance, validated_data):
         fetocardia_data = validated_data.pop('controles_fetocardia', None)
@@ -198,19 +144,9 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
 
 class RegistroPartoListSerializer(serializers.ModelSerializer):
     """Serializer ligero para listados y búsqueda (incluye datos de paciente para autollenado)"""
-    firma_paciente = serializers.SerializerMethodField()
 
     class Meta:
         model = RegistroParto
         fields = ['id', 'nombre_paciente', 'identificacion', 'edad_gestacional',
-                  'gestas', 'nombre_acompanante', 'tipo_parto', 'nombre_firma_paciente', 
-                  'firma_paciente', 'created_at']
-
-    def get_firma_paciente(self, obj):
-        return _get_firma_url_and_cleanup(obj)
-
-
-class FirmaPacienteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FirmaPaciente
-        fields = '__all__'
+                  'gestas', 'nombre_acompanante', 'tipo_parto', 'nombre_firma_paciente',
+                  'created_at']

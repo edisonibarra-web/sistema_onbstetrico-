@@ -284,57 +284,27 @@
 
                 <!-- BOTONES DE ACCIÓN PROFESIONALES -->
                 <div class="form-actions">
-                    <!-- Card unificada: Responsable del registro + Firma -->
+                    <!-- Card de Responsable del registro -->
+                    <!-- 2026-09-14: se eliminó la captura de firma/huella biométrica
+                         (botones, canvas, modal) a pedido explícito, antes de salir a
+                         producción -- se conserva solo el campo de texto "Responsable
+                         del Registro", que es dato clínico normal, no biometría. -->
                     <div class="responsable-firma-card">
                         <div class="responsable-firma-header">
-                            <span class="responsable-firma-header-icon">🖊️</span>
+                            <span class="responsable-firma-header-icon">👤</span>
                             <div>
-                                <h4>Responsable y Firma del Registro</h4>
-                                <p class="responsable-firma-subtitle">Validación e identificación del profesional a cargo de esta medición</p>
+                                <h4>Responsable del Registro</h4>
+                                <p class="responsable-firma-subtitle">Identificación del profesional a cargo de esta medición</p>
                             </div>
                         </div>
 
-                        <!-- Módulo de Firma del Responsable -->
-                        <div class="biometric-module">
-                            <div class="biometric-module-label">
-                                <span class="icon">✍️</span> Firma del Responsable
-                            </div>
-
-                            <div class="biometric-capture-zone">
-                                <div class="capture-button-group">
-                                    <button type="button" class="btn btn-biometric btn-biometric-main" id="btn-capturar-huella">
-                                        <span class="btn-icon" style="font-size: 2.5rem; margin: 0;">✍️</span>
-                                        <span>Capturar Firma</span>
-                                    </button>
-                                    <button type="button" class="btn btn-secondary btn-biometric-refresh" id="btn-refrescar-firma">
-                                        <span class="btn-icon">🔄</span>
-                                        Refrescar firma
-                                    </button>
-                                </div>
-
-                                <!-- Columna: card de firma (se oculta hasta que exista firma) + Responsable,
-                                     que debe permanecer siempre visible/editable. -->
-                                <div class="signature-column">
-                                    <div id="firma-container-preview" class="biometric-card signature-card">
-                                        <div class="biometric-card-header">
-                                            Firma del responsable: <span id="nombre-firma-paciente" style="margin-left: 5px; color: #2c3e50;">—</span>
-                                        </div>
-                                        <div class="biometric-card-img-wrapper">
-                                            <img id="imgFirma" src="" alt="Firma" class="huella-img">
-                                        </div>
-                                        <span id="estadoFirma" class="biometric-card-status">Sin firmar</span>
-                                    </div>
-
-                                    <!-- Responsable del Registro: ubicado bajo la firma, como dato que la identifica -->
-                                    <div class="responsable-field responsable-field-inline">
-                                        <label for="responsable" class="responsable-label">
-                                            <span class="icon">👤</span> Responsable del Registro
-                                        </label>
-                                        <input type="text" id="responsable" name="responsable" class="responsable-input"
-                                            placeholder="Nombre del profesional responsable" value="{{ paciente.responsable|default:profesional_nombre_sesion|default:'' }}">
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="responsable-field responsable-field-inline">
+                            <label for="responsable" class="responsable-label">
+                                <span class="icon">👤</span> Responsable del Registro
+                            </label>
+                            <input type="text" id="responsable" name="responsable" class="responsable-input"
+                                placeholder="Nombre del profesional responsable" autocomplete="off"
+                                value="{{ paciente.responsable|default:profesional_nombre_sesion|default:'' }}">
                         </div>
                     </div>
                 </div>
@@ -343,34 +313,6 @@
     </div>
 
     <!-- Scripts -->
-    <!-- MODAL DE CAPTURA DE FIRMA -->
-    <div id="modal-biometria" class="modal-biometria" style="display: none;">
-        <div class="modal-content-biometria">
-            <div class="modal-header-biometria">
-                <h3>Firma del Responsable</h3>
-                <button type="button" class="btn-close-modal" id="btn-cerrar-modal-biometria">&times;</button>
-            </div>
-            <div class="modal-body-biometria">
-                <div class="capture-grid">
-                    <!-- Sección de Firma -->
-                    <div class="capture-item">
-                        <h4><span class="icon">✍️</span> Firma del Responsable</h4>
-                        <p>El responsable debe firmar dentro del recuadro</p>
-                        <div class="canvas-wrapper">
-                            <canvas id="firma-canvas" width="400" height="200"></canvas>
-                        </div>
-                        <div class="canvas-actions">
-                            <button type="button" class="btn btn-secondary" id="btn-limpiar-firma">Limpiar</button>
-                            <button type="button" class="btn btn-success" id="btn-guardar-firma">Guardar Firma</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer-biometria">
-                <button type="button" class="btn btn-info" id="btn-finalizar-biometria">Finalizar y Cerrar</button>
-            </div>
-        </div>
-    </div>
 
     <script>
         // Si la medición vino de Dinámica, los valores libres (ta_sys, ta_dia, fc,

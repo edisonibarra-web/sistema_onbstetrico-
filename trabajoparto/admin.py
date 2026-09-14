@@ -9,7 +9,6 @@ from .models import (
     CampoParametro,
     Medicion,
     MedicionValor,
-    Huella
 )
 
 
@@ -105,9 +104,3 @@ class MedicionValorAdmin(admin.ModelAdmin):
     list_filter = ('campo', 'campo__tipo_valor')
     search_fields = ('medicion__formulario__codigo', 'campo__nombre')
     autocomplete_fields = ('medicion', 'campo')
-@admin.register(Huella)
-class HuellaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'paciente_id', 'formulario_id', 'usuario', 'fecha')
-    search_fields = ('paciente_id', 'formulario_id', 'usuario')
-    list_filter = ('fecha', 'usuario')
-    readonly_fields = ('fecha',)

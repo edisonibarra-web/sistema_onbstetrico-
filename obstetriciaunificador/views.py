@@ -12,9 +12,10 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 
 from meows.models import Medicion, Paciente as MeowsPaciente  # noqa: F401
-from frecuenciafetal.models import ControlFetocardia, RegistroParto
+from frecuenciafetal.models import ControlFetocardia, ControlPostpartoInmediato, RegistroParto
 from trabajoparto.models import Formulario, Paciente as TrabajoPartoPaciente
 from sistema_obstetrico.auth_utils import login_required_if_enabled
+from datetime import datetime
 
 
 def get_patient_timeline(documento):
@@ -270,6 +271,70 @@ def get_parto_trazabilidad(documento):
     return {"labels": labels, "series": series}
 
 
+def get_fetal_trazabilidad(documento):
+    """
+    Trazabilidad de LA ATENCIÓN de Control Posparto Inmediato / Frecuencia
+    Fetal (frecuenciafetal.RegistroParto): una serie por cada parámetro
+    numérico registrado -- Frecuencia Cardiaca Fetal durante el expulsivo
+    (ControlFetocardia), los signos vitales del posparto inmediato
+    (ControlPostpartoInmediato: temperatura, pulso, respiración, saturación,
+    sangrado cuantificado por intervalo) Y el sangrado cuantificado total que
+    vive directo en el propio RegistroParto (campo `sangrado_cuantificado_cc`,
+    uno por cada registro/ronda -- NO es lo mismo que el de
+    ControlPostpartoInmediato, que es por intervalo de 15/30/60 min) -- todas
+    compartiendo el mismo eje de tiempo.
+
+    2026-09-14: antes solo se leían las subtablas (ControlFetocardia/
+    ControlPostpartoInmediato) y se perdía cualquier dato que viviera
+    directo en el RegistroParto -- una paciente con "sangrado_cuantificado_cc"
+    guardado ahí pero sin ninguna subtabla diligenciada aparecía sin ninguna
+    medición, aunque sí tuviera datos reales.
+    """
+    registros = RegistroParto.objects.filter(identificacion=documento)
+
+    puntos_por_parametro = {}  # nombre -> {"unidad": str, "puntos": [(datetime naive, valor)]}
+
+    def agregar(nombre, unidad, momento, valor):
+        if valor is None or momento is None:
+            return
+        if timezone.is_aware(momento):
+            momento = timezone.localtime(momento).replace(tzinfo=None)
+        info = puntos_por_parametro.setdefault(nombre, {"unidad": unidad, "puntos": []})
+        info["puntos"].append((momento, float(valor)))
+
+    fetocardias = ControlFetocardia.objects.filter(registro__in=registros).order_by("fecha", "hora")
+    for c in fetocardias:
+        agregar("Frecuencia Cardiaca Fetal", "lpm", datetime.combine(c.fecha, c.hora), c.fetocardia)
+
+    postparto = ControlPostpartoInmediato.objects.filter(registro__in=registros).order_by("fecha", "hora")
+    for c in postparto:
+        momento = datetime.combine(c.fecha, c.hora)
+        agregar("Temperatura", "°C", momento, c.temperatura)
+        agregar("Pulso", "lpm", momento, c.pulso)
+        agregar("Respiración", "rpm", momento, c.respiracion)
+        agregar("Saturación", "%", momento, c.saturacion)
+        agregar("Sangrado por intervalo", "g", momento, c.cuantificacion_gravimetrica_vaginal)
+
+    for r in registros:
+        agregar("Sangrado Cuantificado", "c.c.", r.created_at, r.sangrado_cuantificado_cc)
+
+    todas_las_horas = sorted({momento for info in puntos_por_parametro.values() for momento, _ in info["puntos"]})
+    labels = [h.strftime("%d/%m %H:%M") for h in todas_las_horas]
+
+    paleta = ["#0d9488", "#db2777", "#7c3aed", "#d97706", "#16a34a", "#2563eb", "#e11d48", "#0891b2"]
+    series = []
+    for idx, (nombre, info) in enumerate(puntos_por_parametro.items()):
+        valores_por_momento = dict(info["puntos"])
+        series.append({
+            "parametro": nombre,
+            "unidad": info["unidad"],
+            "color": paleta[idx % len(paleta)],
+            "data": [valores_por_momento.get(h) for h in todas_las_horas],
+        })
+
+    return {"labels": labels, "series": series}
+
+
 @login_required_if_enabled
 def dashboard(request):
     """
@@ -448,7 +513,8 @@ def api_datos_paciente_unificado(request):
             "estado_global": "CRÍTICO" if Medicion.objects.filter(paciente__numero_documento=doc, meows_riesgo="ROJO").exists() else "ALERTA" if Medicion.objects.filter(paciente__numero_documento=doc, meows_riesgo="AMARILLO").exists() else "ESTABLE",
             "timeline": get_patient_timeline(doc),
             "meows_trazabilidad": get_meows_trazabilidad(doc),
-            "parto_trazabilidad": get_parto_trazabilidad(doc)
+            "parto_trazabilidad": get_parto_trazabilidad(doc),
+            "fetal_trazabilidad": get_fetal_trazabilidad(doc)
         })
         response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response["Pragma"] = "no-cache"
@@ -493,7 +559,8 @@ def api_datos_paciente_unificado(request):
             "estado_global": "CRÍTICO" if Medicion.objects.filter(paciente__numero_documento=doc, meows_riesgo="ROJO").exists() else "ALERTA" if Medicion.objects.filter(paciente__numero_documento=doc, meows_riesgo="AMARILLO").exists() else "ESTABLE",
             "timeline": get_patient_timeline(doc),
             "meows_trazabilidad": get_meows_trazabilidad(doc),
-            "parto_trazabilidad": get_parto_trazabilidad(doc)
+            "parto_trazabilidad": get_parto_trazabilidad(doc),
+            "fetal_trazabilidad": get_fetal_trazabilidad(doc)
         })
         response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response["Pragma"] = "no-cache"

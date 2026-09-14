@@ -22,14 +22,8 @@ urlpatterns = [
     path('', FormularioRegistroView.as_view(), name='home'),
     # Puente para entornos donde este módulo queda montado en raíz.
     path('meows/', include('meows.urls')),
-    path('captura-huella/', views.captura_huella, name='captura_huella'),
     path('api/', include(router.urls)),
     path('api/', include(registros_router.urls)),
-    path('api/guardar-huella-bebe/', views.guardar_huella_bebe, name='guardar_huella_bebe'),
-    path('api/guardar-huella/', views.guardar_huella, name='guardar_huella'),
-    path('api/guardar-firma/', views.guardar_firma_digital, name='guardar_firma_digital'),
-    path('api/huella/<str:documento>/', views.ultima_huella, name='ultima_huella'),
-    path('ver-huella/<str:documento>/', views.ver_huella, name='ver_huella'),
 ]
 
 # ENDPOINTS DISPONIBLES:
@@ -38,7 +32,6 @@ urlpatterns = [
 # GET        /api/registros/buscar/?q=nombre
 # GET        /api/registros/sala-partos/?q=opcional  (DGEMPRES03, solo lectura)
 # GET        /api/registros/{id}/pdf/
-# GET/POST   /api/registros/{id}/huella-pie/  (GET: devuelve huella_base64 para vista)
 # GET/POST   /api/registros/{id}/fetocardia/
 # GET/POST   /api/registros/{id}/recien-nacido/
 # GET/POST   /api/registros/{id}/postparto/

@@ -327,22 +327,22 @@ def clasificar_riesgo(total: int, tiene_parametro_critico: bool = False) -> dict
     if total >= 6:
         return {
             "riesgo": "ROJO",
-            "mensaje": "RIESGO ALTO: OBSERVACION Monitoreo continuo de signos vitales LLAMADO :Emergente al equipo con conpetencias en estado critico y habilidades para el diagnostico"
+            "mensaje": "RIESGO ALTO: OBSERVACIÓN — MONITOREO CONTINUO DE SIGNOS VITALES.\nLLAMADO: EMERGENTE AL EQUIPO CON COMPETENCIAS EN ESTADO CRÍTICO Y HABILIDADES PARA EL DIAGNÓSTICO."
         }
     elif total >= 4 or tiene_parametro_critico:
         return {
             "riesgo": "AMARILLO",
-            "mensaje": "RIESGO INTERMEDIO: OBSERVACION -Minnimo cada hora LLAMADO: Urgente al equipo medico al de la paciente con las competencias para manejo de la emergencia obstetrica"
+            "mensaje": "RIESGO INTERMEDIO: OBSERVACIÓN — MÍNIMO CADA HORA.\nLLAMADO: URGENTE AL EQUIPO MÉDICO A CARGO DE LA PACIENTE, CON COMPETENCIAS PARA EL MANEJO DE LA EMERGENCIA OBSTÉTRICA."
         }
     elif total == 0:
         return {
             "riesgo": "BLANCO",
-            "mensaje": "RUTINA:  OBSERVACION -Minimo 12 horas de Observacion"
+            "mensaje": "RUTINA: OBSERVACIÓN — MÍNIMO 12 HORAS DE OBSERVACIÓN."
         }
     else:  # total 1 a 3, sin parámetro crítico
         return {
             "riesgo": "VERDE",
-            "mensaje": "RIESGO BAJO OBSERVACION: mínimo cada 4 horas. LLAMADO: Enfermera a cargo"
+            "mensaje": "RIESGO BAJO: OBSERVACIÓN — MÍNIMO CADA 4 HORAS.\nLLAMADO: ENFERMERA A CARGO."
         }
 
 

@@ -43,10 +43,6 @@ página, colapsable con el botón "Ocultar/Mostrar".
             <span>📄</span> Generar PDF
         </a>
         {% endif %}
-        {% elif meows_paciente %}
-        <a href="{% url 'historial_meows' paciente_id=meows_paciente.id %}?atencion={{ atencion_id|default:'' }}&doc={{ documento|default:'' }}" class="btn-volver-parto">
-            <span>📈</span> Ver historial MEOWS completo
-        </a>
         {% endif %}
         {# 2026-09-09: se quitó el botón "Nueva medición" -- los registros MEOWS #}
         {# vienen únicamente de la sincronización automática con Dinámica. #}
@@ -284,6 +280,12 @@ página, colapsable con el botón "Ocultar/Mostrar".
                         <span class="col-hora">{{ columna.hora|date:"h:i A" }}</span>
                         {% if columna.origen == 'dinamica' %}
                         <span class="col-origen-dinamica" title="Importado automáticamente desde Dinámica">🔗 Dinámica</span>
+                        {% if columna.responsable %}
+                        {# 2026-09-14: a pedido explícito -- el responsable real de una #}
+                        {# toma de Dinámica es quien la digitó ALLÁ, no quien tiene la #}
+                        {# sesión abierta en esta app (pueden ser personas distintas). #}
+                        <span class="col-responsable-dinamica" title="Diligenciado en Dinámica por {{ columna.responsable }}">👤 {{ columna.responsable }}</span>
+                        {% endif %}
                         {% endif %}
                     </th>
                     {% endfor %}

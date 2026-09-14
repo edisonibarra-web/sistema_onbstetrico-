@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'css/vendor/toastify.min.css' %}">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
-    <script src="{% static 'js/vendor/signature_pad.umd.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/vendor/toastify.min.js' %}"></script>
     <style>
         /* Esta vista usa el shell de encabezado + sidebar a borde completo (.app-layout-sidebar);
@@ -237,20 +236,22 @@
             background: #aed581;
             border-radius: 999px;
         }
-        /* Grilla Item -> Parámetro x Hora, misma estructura que el PDF FRSPA-022 */
+        /* Grilla Item -> Parámetro x Hora, misma estructura que el PDF FRSPA-022.
+           2026-09-14: letra más grande a pedido explícito -- el texto (0.74rem)
+           y los valores quedaban muy chicos para distinguirse de un vistazo. */
         .preview-grid-table {
             border-collapse: separate;
             border-spacing: 0;
             width: 100%;
             min-width: 560px;
             table-layout: fixed;
-            font-size: 0.74rem;
+            font-size: 0.94rem;
         }
         .preview-grid-table th,
         .preview-grid-table td {
             border-right: 1px solid #e2e8f0;
             border-bottom: 1px solid #e2e8f0;
-            padding: 6px 8px;
+            padding: 9px 10px;
             text-align: center;
             white-space: nowrap;
         }
@@ -271,22 +272,24 @@
         .preview-grid-th-item,
         .preview-grid-td-item {
             left: 0;
-            width: 130px;
-            min-width: 130px;
-            max-width: 130px;
+            width: 148px;
+            min-width: 148px;
+            max-width: 148px;
             z-index: 3;
             font-weight: 800;
+            font-size: 0.96rem;
             color: #0f172a;
             background: #f1f5f9;
         }
         .preview-grid-th-param,
         .preview-grid-td-param {
-            left: 130px;
-            width: 168px;
-            min-width: 168px;
-            max-width: 168px;
+            left: 148px;
+            width: 196px;
+            min-width: 196px;
+            max-width: 196px;
             z-index: 2;
             font-weight: 700;
+            font-size: 0.94rem;
             color: #334155;
             background: #f8fafc;
         }
@@ -302,40 +305,73 @@
             /* 2026-09-09: se ensanchó de 78px a 104px -- la fecha ahora es
                completa (dd/mm/aaaa) en vez de solo "día/mes" (más ancho aún
                con la letra más grande pedida después), para que no quede
-               apretada ni ambigua sobre a qué mes/año pertenece la toma. */
-            min-width: 104px;
+               apretada ni ambigua sobre a qué mes/año pertenece la toma.
+               2026-09-14: otro ensanche más, junto con el resto de la letra
+               de la tabla, y de nuevo para dejarle sitio al nombre del
+               responsable de esa columna (ver preview-grid-col-responsable). */
+            min-width: 132px;
         }
         .preview-grid-col-fecha,
-        .preview-grid-col-hora {
+        .preview-grid-col-hora,
+        .preview-grid-col-responsable {
             display: block;
         }
         .preview-grid-col-fecha {
-            font-size: 0.8rem;
+            font-size: 0.86rem;
             opacity: 0.85;
         }
         .preview-grid-col-hora {
-            font-size: 0.95rem;
+            font-size: 1.05rem;
             font-weight: 800;
         }
+        /* 2026-09-14: cada columna la puede haber diligenciado una persona
+           distinta a lo largo del trabajo de parto -- a diferencia del campo
+           RESPONSABLE del pie del formulario (uno solo para toda la hoja),
+           este nombre queda fijo por columna desde que se guardó (ver
+           medicion.responsable / guardarMediciones() en main.js). Truncado
+           con "..." si no cabe -- el nombre completo queda en el title. */
+        .preview-grid-col-responsable {
+            margin-top: 3px;
+            padding-top: 3px;
+            border-top: 1px solid rgba(255, 255, 255, 0.4);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            color: rgba(255, 255, 255, 0.95);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
         .preview-grid-td-valor {
-            min-width: 78px;
+            min-width: 92px;
             color: #0f172a;
             font-weight: 700;
+            font-size: 1rem;
         }
         .preview-grid-td-valor.tiene-valor {
             background: #f4f9e8;
             color: #558b2f;
+            font-weight: 800;
         }
         /* FCF "heredado": último valor conocido de Dinámica, mostrado por
            continuidad en una columna donde no se tomó lectura exacta -- ver
-           construirGrillaVistaPrevia() en main.js. Distinto del valor exacto
-           (tiene-valor) para que la enfermería no lo confunda con una toma
-           real a esa hora. */
+           construirGrillaVistaPrevia() en main.js. Mismo morado #7c3aed que
+           usa el resto de la app para marcar "dato de Dinámica" (no lo
+           escribió la enfermera a mano), con la hora real de la toma siempre
+           visible debajo del valor -- no solo al pasar el mouse. */
         .preview-grid-td-valor.valor-heredado {
-            background: #f4f9e8;
-            color: #7c8a5c;
-            font-style: italic;
-            font-weight: 600;
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            color: #6d28d9;
+            font-weight: 800;
+        }
+        .valor-heredado-hora {
+            display: block;
+            margin-top: 3px;
+            font-size: 0.74em;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            color: #7c3aed;
         }
         .preview-empty-state {
             min-width: 100%;
@@ -662,10 +698,11 @@
                              columna que la enfermera tenga abierta). Ver management command
                              trabajoparto/management/commands/sincronizar_frecuencia_fetal_dinamica.py.
                              disabled + sin onclick para que quede claro que no se puede tocar aquí. -->
-                        <button type="button" class="btn-parametro" id="btn-parametro-8" data-parametro-id="8" data-parametro-nombre="FRECUENCIA CARDIACA FETAL" disabled title="Se sincroniza automáticamente desde Dinámica, no se edita aquí" style="background: #eef0f2; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: not-allowed; transition: all 0.2s; font-weight: 600; color: #495057; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                        <button type="button" class="btn-parametro param-dinamica" id="btn-parametro-8" data-parametro-id="8" data-parametro-nombre="FRECUENCIA CARDIACA FETAL" disabled title="Se sincroniza automáticamente desde Dinámica, no se edita aquí" style="border-radius: 8px; padding: 10px; cursor: not-allowed; transition: all 0.2s; font-weight: 600; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; height: 46px; width: 100%;">
                             <span class="btn-parametro-top"><span class="status-indicator" id="indicator-8" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
                             ❤️ FRECUENCIA CARDIACA FETAL <span title="Dato automático de Dinámica">🔗</span></span>
                             <span class="btn-parametro-value" id="val-preview-8">-</span>
+                            <span class="dinamica-caption">🔗 Dato extraído desde Dinámica</span>
                         </button>
                         <button type="button" class="btn-parametro" id="btn-parametro-9" data-parametro-id="9" data-parametro-nombre="MOVIMIENTOS FETALES" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
                             <span class="btn-parametro-top"><span class="status-indicator" id="indicator-9" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
@@ -882,6 +919,45 @@
                         font-weight: 900;
                     }
 
+                    /* --- Parámetro que se sincroniza solo desde Dinámica (por ahora, solo
+                       FRECUENCIA CARDIACA FETAL, id 8): mismo morado #7c3aed que usa MEOWS
+                       para marcar "dato de Dinámica" en toda la app, pero bien visible en la
+                       tarjeta (no solo al pasar el mouse), para que quede claro de un vistazo
+                       que ese valor no lo escribió la enfermera a mano. --- */
+                    .btn-parametro.param-dinamica {
+                        border-color: #c4b5fd !important;
+                        border-left: 4px solid #7c3aed !important;
+                        background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%) !important;
+                        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.16) !important;
+                    }
+                    .btn-parametro.param-dinamica .btn-parametro-value {
+                        color: #6d28d9;
+                        font-style: normal;
+                        font-weight: 700;
+                    }
+                    /* Una vez que ya llegó el valor real desde Dinámica (con-dato, agregada
+                       por JS en actualizarPreviewFrecuenciaCardiacaFetal), se intensifica
+                       el morado para que se note aún más que en el reposo "esperando dato". */
+                    .btn-parametro.param-dinamica.con-dato {
+                        border-color: #7c3aed !important;
+                        background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%) !important;
+                        box-shadow: 0 3px 10px rgba(124, 58, 237, 0.26) !important;
+                    }
+                    .btn-parametro.param-dinamica.con-dato .btn-parametro-value {
+                        color: #5b21b6;
+                        font-size: 1.02em;
+                    }
+                    .dinamica-caption {
+                        display: block;
+                        width: 100%;
+                        margin-top: -2px;
+                        font-size: 0.68em;
+                        font-weight: 700;
+                        letter-spacing: 0.02em;
+                        color: #7c3aed;
+                        text-align: center;
+                    }
+
                     /* --- Selects dentro de los modales de parámetro: se reemplaza la flecha
                        nativa del navegador por una propia (coherente con el resto del sistema)
                        y se refuerza hover/focus, para que sea más práctico elegir una opción
@@ -1067,221 +1143,10 @@
                 {% endfor %}
                 </div>
 
-            <!-- SECCIÓN DE FIRMA DEL RESPONSABLE -->
-            <!-- 2026-09-10: la firma se OCULTA por ahora (no es necesaria). No se
-                 elimina: quitar el atributo `hidden` de .firma-card abajo la
-                 reactiva tal cual. El JS de firma sigue encontrando #imgFirma /
-                 #estadoFirma por id sin romperse (solo quedan dentro de un
-                 contenedor no renderizado). Guardar el formulario NUNCA exigió
-                 firma (ver guardarFormulario en main.js). -->
-            <style>
-            .firma-card[hidden] { display: none !important; }
-            .firma-card {
-                margin: 24px 0;
-                width: 100%;
-                background: linear-gradient(135deg, #b0b6bd 0%, #e2e6ea 45%, #ced3d9 100%);
-                border-radius: 20px;
-                border: 2px solid #0891b2;
-                box-shadow: 0 14px 34px -12px rgba(15, 23, 42, 0.18), 0 2px 8px rgba(15,23,42,0.05);
-                overflow: hidden;
-            }
-            .firma-card-header {
-                display: flex;
-                align-items: center;
-                gap: 18px;
-                padding: 24px 32px;
-                background: #64748b;
-                border-bottom: 1px solid #aab0b8;
-            }
-            .firma-card-header-icon {
-                flex-shrink: 0;
-                width: 54px; height: 54px;
-                border-radius: 16px;
-                background: rgba(255,255,255,0.18);
-                color: #fff;
-                display: flex; align-items: center; justify-content: center;
-                font-size: 1.6em;
-                box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
-            }
-            .firma-card-header-text h3 {
-                margin: 0 0 3px 0;
-                font-size: 1.25em;
-                font-weight: 800;
-                color: #ffffff;
-                letter-spacing: 0.01em;
-            }
-            .firma-card-header-text p {
-                margin: 0;
-                font-size: 0.86em;
-                font-weight: 600;
-                color: rgba(255,255,255,0.85);
-            }
-            .firma-card-body {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-wrap: wrap;
-                gap: 56px;
-                padding: 36px 48px;
-            }
-            .firma-preview-frame {
-                flex: 0 0 auto;
-                position: relative;
-                padding-right: 40px;
-            }
-            .firma-preview-frame::after {
-                content: '';
-                position: absolute;
-                top: 6px; bottom: 6px; right: 0;
-                width: 1px;
-                background: linear-gradient(180deg, transparent, #e2e8f0 15%, #e2e8f0 85%, transparent);
-            }
-            .firma-preview-box {
-                position: relative;
-                min-height: 220px;
-                min-width: 420px;
-                display: flex; align-items: center; justify-content: center;
-                border-radius: 16px;
-                border: 2px solid #0891b2;
-                background: linear-gradient(150deg, #f8fafc 0%, #eef0f2 100%);
-                box-shadow: inset 0 2px 10px rgba(15,23,42,0.06);
-                padding: 16px;
-                overflow: hidden;
-            }
-            .firma-preview-empty {
-                position: absolute; inset: 0;
-                display: flex; flex-direction: column; align-items: center; justify-content: center;
-                gap: 10px;
-                color: #94a3b8;
-            }
-            .firma-preview-empty-icon { font-size: 2.6em; opacity: 0.6; }
-            .firma-preview-empty-text { font-size: 0.85em; font-weight: 700; letter-spacing: 0.01em; }
-            #imgFirma {
-                position: relative; z-index: 1;
-                max-height: 190px; max-width: 380px;
-                border-radius: 8px;
-                box-shadow: 0 4px 14px rgba(30,27,75,0.12);
-                background: #fff;
-            }
-            .firma-info-panel {
-                flex: 1 1 260px;
-                min-width: 240px;
-                display: flex;
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 14px;
-            }
-            .firma-panel-kicker {
-                margin: 0;
-                font-size: 0.72em;
-                font-weight: 800;
-                letter-spacing: 0.09em;
-                text-transform: uppercase;
-                color: #94a3b8;
-            }
-            .firma-status-badge {
-                display: inline-flex; align-items: center; gap: 9px;
-                padding: 8px 18px 8px 14px;
-                border-radius: 999px;
-                background: #e2e8f0;
-                color: #475569;
-                font-weight: 800;
-                font-size: 0.9em;
-            }
-            .firma-status-badge::before {
-                content: '';
-                width: 9px; height: 9px;
-                border-radius: 50%;
-                background: #64748b;
-                box-shadow: 0 0 0 4px rgba(100,116,139,0.18);
-                flex-shrink: 0;
-            }
-            .firma-panel-hint {
-                margin: 0;
-                font-size: 0.86em;
-                line-height: 1.6;
-                color: #64748b;
-                max-width: 380px;
-            }
-            .firma-actions {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 12px;
-                margin-top: 4px;
-            }
-            .firma-btn {
-                display: inline-flex; align-items: center; gap: 10px;
-                height: 46px;
-                padding: 0 20px;
-                border-radius: 12px;
-                font-weight: 700;
-                font-size: 0.92em;
-                cursor: pointer;
-                border: none;
-                transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-            }
-            .firma-btn-icon {
-                width: 26px; height: 26px;
-                border-radius: 50%;
-                display: flex; align-items: center; justify-content: center;
-                font-size: 0.95em;
-                flex-shrink: 0;
-            }
-            .firma-btn-primary {
-                background: linear-gradient(135deg, #0891b2 0%, #155e75 100%);
-                color: #fff;
-                box-shadow: 0 10px 20px -8px rgba(8,145,178,0.6);
-            }
-            .firma-btn-primary .firma-btn-icon { background: rgba(255,255,255,0.22); }
-            .firma-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 24px -8px rgba(8,145,178,0.65); }
-            .firma-btn-secondary {
-                background: #fff;
-                color: #0891b2;
-                border: 1.5px solid #0891b2;
-            }
-            .firma-btn-secondary .firma-btn-icon { background: #ecfeff; }
-            .firma-btn-secondary:hover { background: #ecfeff; border-color: #155e75; transform: translateY(-1px); }
-            @media (max-width: 768px) {
-                .firma-card-body { justify-content: center; text-align: center; }
-                .firma-preview-frame { padding-right: 0; }
-                .firma-preview-frame::after { display: none; }
-                .firma-info-panel { align-items: center; }
-                .firma-panel-hint { max-width: 100%; }
-            }
-            </style>
-            <div class="firma-card" hidden>
-                <div class="firma-card-header">
-                    <div class="firma-card-header-icon">✍️</div>
-                    <div class="firma-card-header-text">
-                        <h3>Firma del Responsable</h3>
-                        <p>Captura digital requerida para completar el registro</p>
-                    </div>
-                </div>
-                <div class="firma-card-body">
-                    <div id="firma-container" class="firma-preview-frame">
-                        <div class="firma-preview-box">
-                            <div class="firma-preview-empty">
-                                <span class="firma-preview-empty-icon">✒️</span>
-                                <span class="firma-preview-empty-text">Sin firma registrada</span>
-                            </div>
-                            <img id="imgFirma" src="" alt="Firma" style="display:none;">
-                        </div>
-                    </div>
-                    <div class="firma-info-panel">
-                        <p class="firma-panel-kicker">Estado de la firma</p>
-                        <div id="estadoFirma" class="firma-status-badge">✍️ Pendiente de firma...</div>
-                        <p class="firma-panel-hint">La firma queda asociada al responsable de este registro y se incluye en el PDF del formulario.</p>
-                        <div class="firma-actions">
-                            <button type="button" id="btnCapturarFirma" class="firma-btn firma-btn-primary" onclick="abrirModalFirma()">
-                                <span class="firma-btn-icon">✍️</span> Firmar aquí
-                            </button>
-                            <button type="button" id="btnRefrescarBiometriaFirma" class="firma-btn firma-btn-secondary" onclick="refrescarBiometriaAhora()">
-                                <span class="firma-btn-icon">🔄</span> Refrescar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- 2026-09-14: se eliminó la sección de firma del responsable
+                 (captura digital, pad, tarjeta de estado) a pedido explícito,
+                 antes de salir a producción. Guardar el formulario nunca
+                 exigió firma, así que no hay nada más que ajustar aquí. -->
 
 <!-- Pie del Formulario -->
             <style>
@@ -1299,6 +1164,7 @@
                            class="responsible-input" required maxlength="255"
                            placeholder="Nombre del profesional responsable"
                            title="Se precarga con el profesional que inició sesión; si queda vacío, diligéncielo manualmente"
+                           autocomplete="off"
                            value="{{ profesional_nombre_sesion|default:'' }}">
                 </div>
                 <div class="form-actions">
@@ -1308,26 +1174,6 @@
                 </div>
             </div>
         </form>
-    </div>
-    </div>
-
-    <!-- Modal de captura de firma (PC) -->
-    <div id="modalFirma" class="modal-firma-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
-        <div class="modal-firma-content" style="background: #fff; border-radius: 14px; max-width: 820px; width: 94%; box-shadow: 0 20px 40px rgba(0,0,0,0.2); overflow: hidden;">
-            <div class="modal-firma-header" style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
-                <h3 style="margin: 0; font-size: 1.25em; color: #334155;">✍️ Capturar Firma del Responsable</h3>
-                <button type="button" class="close-modal-btn" onclick="cerrarModalFirma()" style="background: none; border: none; font-size: 1.6em; cursor: pointer; color: #64748b; padding: 0 8px;">&times;</button>
-            </div>
-            <div class="modal-firma-body" style="padding: 24px;">
-                <p style="margin: 0 0 14px 0; color: #64748b; font-size: 1em;">Por favor, firme dentro del recuadro:</p>
-                <div class="signature-pad-wrapper" style="border: 2px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;">
-                    <canvas id="signature-pad" class="signature-pad-canvas" style="width: 100%; height: 340px; touch-action: none; cursor: crosshair;"></canvas>
-                </div>
-            </div>
-            <div class="modal-firma-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 18px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
-                <button type="button" onclick="limpiarFirma()" style="padding: 10px 20px; font-size: 0.95em; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;">Limpiar</button>
-                <button type="button" onclick="guardarFirmaDigital()" style="padding: 10px 20px; font-size: 0.95em; background: #2563eb; color: #fff; border: none; border-radius: 8px; cursor: pointer;">Guardar Firma</button>
-            </div>
     </div>
     </div>
 
@@ -1348,7 +1194,7 @@
         <script>window.API_BASE_URL = 'http://TU_HOST:8000/api';</script>
         Si no defines nada, config.js la infiere automáticamente con window.location.hostname.
     -->
-    <script src="{% static 'js/main.js' %}?v=20260911b"></script>
+    <script src="{% static 'js/main.js' %}?v=20260914a"></script>
     <script>
     (function() {
       const docFromCard = "{{ documento|default:''|escapejs }}".trim();

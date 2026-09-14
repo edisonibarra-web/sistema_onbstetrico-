@@ -1316,6 +1316,28 @@
     padding: 1px 6px;
 }
 
+/* 2026-09-14: nombre de quien digitó ESTA toma en Dinámica (GENMEDICO),
+   distinto de quien tenga la sesión abierta en esta app -- ver
+   Medicion.responsable_dinamica. Mismo morado #7c3aed que usa el resto de
+   la app para marcar "dato de Dinámica". Truncado con "..." si no cabe en
+   la columna angosta -- el nombre completo queda en el title. */
+.col-responsable-dinamica {
+    display: block;
+    margin: 3px auto 0;
+    max-width: 88px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    background: rgba(124, 58, 237, 0.35);
+    color: #e9d5ff;
+    border: 1px solid rgba(196, 181, 253, 0.55);
+    border-radius: 999px;
+    padding: 1px 6px;
+}
+
 .grid-td-celda {
     min-width: 70px;
     white-space: nowrap;

@@ -135,6 +135,11 @@ class Command(BaseCommand):
 
             for lectura in lecturas:
                 fecha_hora = lectura.pop('fecha_hora')
+                # Quien digitó ESTA toma en Dinámica (ver docstring de
+                # obtener_signos_vitales_nuevos) -- se saca del dict ANTES de
+                # armar valores_dict, igual que fecha_hora, para que no se
+                # trate como si fuera un parámetro MEOWS más.
+                responsable_dinamica = lectura.pop('responsable', None)
 
                 # Salvaguarda extra ante lecturas repetidas por reintentos del job.
                 if Medicion.objects.filter(
@@ -159,6 +164,7 @@ class Command(BaseCommand):
                     fecha_hora=fecha_hora,
                     origen='dinamica',
                     dinamica_folio=folio,
+                    responsable_dinamica=responsable_dinamica,
                 )
                 for codigo, valor in valores_dict.items():
                     parametro = parametros_por_codigo.get(codigo)

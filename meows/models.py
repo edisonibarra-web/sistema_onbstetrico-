@@ -252,6 +252,19 @@ class Medicion(models.Model):
         null=True, blank=True,
         help_text="HCNFOLIO.OID de Dinámica del que se importó esta medición (solo si origen='dinamica').",
     )
+    # 2026-09-14: a pedido explícito -- el responsable real de una toma
+    # importada de Dinámica es quien la digitó ALLÁ (HCNSIGVIT.GENMEDICO), no
+    # necesariamente la persona logeada en esta app en ese momento (puede ser
+    # una enfermera distinta con turno abierto acá mientras otra diligencia
+    # en Dinámica). Se trae desde GENMEDICO.GMENOMCOM -- ver
+    # meows/services/dinamica_signos_vitales.py. Queda null en mediciones
+    # manuales (origen='manual'): esas sí las diligencia quien tiene la
+    # sesión abierta acá.
+    responsable_dinamica = models.CharField(
+        max_length=255, null=True, blank=True,
+        help_text="Nombre de quien digitó esta toma en Dinámica (GENMEDICO.GMENOMCOM). "
+                   "Solo aplica a mediciones origen='dinamica'.",
+    )
     alerta_pendiente = models.BooleanField(
         default=False,
         help_text="True si esta medición generó una alerta MEOWS (riesgo alto/medio).",
@@ -523,20 +536,4 @@ class Hcmwingin(models.Model):
     class Meta:
         managed = False
         db_table = 'HCMWINGIN'
-
-
-# ============================================================================
-# 8️⃣ MODELO FIRMA Y HUELLA (Captura Biométrica)
-# ============================================================================
-class FirmaPaciente(models.Model):
-    paciente_id = models.CharField(max_length=50)
-    formulario_id = models.CharField(max_length=50, null=True, blank=True)
-    template_huella = models.TextField()  # El código biométrico
-    imagen_huella = models.ImageField(upload_to="huellas_biometria/", null=True, blank=True)
-    imagen_firma = models.ImageField(upload_to="firmas/", null=True, blank=True)
-    usuario = models.CharField(max_length=100)
-    fecha = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Paciente {self.paciente_id} - {self.fecha}"
 

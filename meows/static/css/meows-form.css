@@ -3225,19 +3225,22 @@ select.patient-input-compact {
 }
 
 .summary-conducta {
-    font-size: 1.1rem;
+    font-size: 1.02rem;
     color: #495057;
-    line-height: 1.9;
-    padding: var(--spacing-lg);
+    line-height: 1.75;
+    padding: 2.6rem var(--spacing-lg) var(--spacing-lg);
     background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 50%, #f8f9fa 100%);
     border-radius: 16px;
     min-height: 120px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
     border: 3px solid #e9ecef;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.015em;
+    white-space: pre-line;
     box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.06),
                 0 2px 8px rgba(0, 0, 0, 0.08);
     position: relative;
@@ -3256,6 +3259,29 @@ select.patient-input-compact {
     transition: width 0.4s ease;
     border-radius: 16px 0 0 16px;
 }
+
+/* Eyebrow con ícono según el nivel de riesgo, encima del texto de la
+   conducta -- le da jerarquía visual a lo que antes era un párrafo corrido
+   sin ninguna estructura. Vive en ::after (el borde izquierdo de color ya
+   usa ::before) y no toca el texto real (mismo dato que llega al PDF/API
+   vía meows_mensaje, sin emoji incrustado ahí). */
+.summary-conducta::after {
+    content: '🩺 CONDUCTA SUGERIDA';
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    color: #868e96;
+    white-space: nowrap;
+}
+
+.summary-item.item-score-blanco .summary-conducta::after { content: '✅ CONDUCTA SUGERIDA'; color: #6c757d; }
+.summary-item.item-score-verde .summary-conducta::after { content: '🩺 CONDUCTA SUGERIDA'; color: #1e7e34; }
+.summary-item.item-score-amarillo .summary-conducta::after { content: '⚠️ CONDUCTA SUGERIDA'; color: #a66a00; }
+.summary-item.item-score-rojo .summary-conducta::after { content: '🚨 CONDUCTA SUGERIDA'; color: #a71d2a; }
 
 /* Colores según el score para summary-conducta */
 .summary-item.item-score-blanco .summary-conducta {

@@ -59,31 +59,38 @@
             </h3>
             
             <div class="resultado-card resultado-{{ medicion.meows_riesgo|lower }}">
-                <div class="resultado-header">
-                    <div class="resultado-badge riesgo-{{ medicion.meows_riesgo|lower }}">
-                        <span class="badge-dot" aria-hidden="true"></span>
-                        <span class="badge-text">{{ medicion.meows_riesgo }}</span>
+                <div class="resultado-main">
+                    <div class="resultado-header">
+                        <div class="resultado-badge riesgo-{{ medicion.meows_riesgo|lower }}">
+                            <span class="badge-dot" aria-hidden="true"></span>
+                            <span class="badge-text">{{ medicion.meows_riesgo }}</span>
+                        </div>
+                        {% if medicion.origen == 'dinamica' %}
+                        <div class="resultado-badge" style="background:#ffffff;color:#343a40;border:1px solid #dee2e6;" title="Esta medición se importó automáticamente desde Dinámica (folio {{ medicion.dinamica_folio }})">
+                            <span class="badge-text">🔗 IMPORTADO DE DINÁMICA</span>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% if medicion.origen == 'dinamica' %}
-                    <div class="resultado-badge" style="background:#ffffff;color:#343a40;border:1px solid #dee2e6;" title="Esta medición se importó automáticamente desde Dinámica (folio {{ medicion.dinamica_folio }})">
-                        <span class="badge-text">🔗 IMPORTADO DE DINÁMICA</span>
-                    </div>
-                    {% endif %}
-                    <div class="resultado-score">
-                        <span class="score-label">Puntaje total MEOWS</span>
-                        <span class="score-value">{{ medicion.meows_total }}</span>
+
+                    <div class="resultado-body">
+                        <div class="resultado-mensaje">
+                            <h4 class="mensaje-title">Grado de respuesta recomendada</h4>
+                            <p class="mensaje-text">{{ medicion.meows_mensaje }}</p>
+                        </div>
+                        <div class="resultado-meta">
+                            <span class="meta-label">Fecha y hora de la medición</span>
+                            <strong class="meta-value">{{ medicion.fecha_hora|date:"d/m/Y h:i A" }}</strong>
+                        </div>
                     </div>
                 </div>
 
-                <div class="resultado-body">
-                    <div class="resultado-mensaje">
-                        <h4 class="mensaje-title">Grado de respuesta recomendada</h4>
-                        <p class="mensaje-text">{{ medicion.meows_mensaje }}</p>
-                    </div>
-                    <div class="resultado-meta">
-                        <span class="meta-label">Fecha y hora de la medición</span>
-                        <strong class="meta-value">{{ medicion.fecha_hora|date:"d/m/Y h:i A" }}</strong>
-                    </div>
+                <!-- 2026-09-11: se saca del resultado-header para que ocupe todo el
+                     alto de la card (junto al mensaje y la fecha), no solo el alto
+                     de la fila de badges -- a pedido explícito, para que no quede
+                     espacio vacío debajo del puntaje. -->
+                <div class="resultado-score">
+                    <span class="score-label">Puntaje total MEOWS</span>
+                    <span class="score-value">{{ medicion.meows_total }}</span>
                 </div>
             </div>
         </section>

@@ -156,6 +156,16 @@ def _partir_tension(valor_texto):
     return _a_numero(sistolica_txt), _a_numero(diastolica_txt)
 
 
+def _limpiar_nombre(nombre_texto):
+    """GENMEDICO.GMENOMCOM llega con espacios de más (ej. 'FLOREZ HERNANDEZ
+    DEISY CAROLINA ', con espacio final) -- se recorta y se colapsan espacios
+    dobles internos."""
+    if not nombre_texto:
+        return None
+    limpio = " ".join(str(nombre_texto).split())
+    return limpio or None
+
+
 def obtener_signos_vitales_nuevos(folio: int, desde=None):
     """
     Trae las lecturas de signos vitales de Dinámica para un folio, agrupadas
@@ -165,11 +175,19 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
     Devuelve una lista de dicts, uno por hora de toma, con la forma:
         {
             "fecha_hora": datetime,
+            "responsable": "FLOREZ HERNANDEZ DEISY CAROLINA",  # o None
             "ta_sys": 120, "ta_dia": 80, "fc": 88, "fr": 18,
             "temp": 36.8, "glasgow": None, "fcf": 140,
             "o2_req": None,
         }
     (con None en los campos que esa toma no traiga diligenciados).
+
+    "responsable" es quien digitó ESTA toma en Dinámica (GENMEDICO de
+    HCNSIGVIT, resuelto contra GENMEDICO.GMENOMCOM) -- no confundir con quien
+    tenga la sesión abierta en esta app: pueden ser personas distintas. El
+    llamador (sincronizar_signos_vitales_dinamica.py) debe sacarlo del dict
+    ANTES de tratar el resto de claves como parámetros MEOWS a calcular,
+    igual que ya hace con "fecha_hora".
     """
     with connections['readonly'].cursor() as cur:
         cur.execute("SELECT ADNINGRESO FROM HCNFOLIO WHERE OID = %s", [folio])
@@ -180,9 +198,10 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
 
         placeholders = ", ".join(["%s"] * len(_OIDS_USADOS))
         sql = f"""
-            SELECT sv.HCRHORREG, sv.HCNTIPSVIT, sv.HCSVALOR
+            SELECT sv.HCRHORREG, sv.HCNTIPSVIT, sv.HCSVALOR, m.GMENOMCOM
             FROM HCNSIGVIT sv
             JOIN HCNREGENF re ON re.OID = sv.HCNREGENF
+            LEFT JOIN GENMEDICO m ON m.OID = sv.GENMEDICO
             WHERE re.ADNINGRESO = %s
               AND sv.HCNTIPSVIT IN ({placeholders})
         """
@@ -198,13 +217,20 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
     lecturas_por_hora = {}
     pulso_por_hora = {}
 
-    for hora, tipo_oid, valor in filas:
+    for hora, tipo_oid, valor, nombre_medico in filas:
         lectura = lecturas_por_hora.setdefault(hora, {
             "fecha_hora": hora,
+            "responsable": None,
             "ta_sys": None, "ta_dia": None, "fc": None, "fr": None,
             "temp": None, "glasgow": None, "fcf": None,
             "o2_req": None,
         })
+        # Responsable real (quien digitó en Dinámica, GENMEDICO de esta
+        # fila puntual) -- se toma el primer nombre no vacío que aparezca
+        # entre las filas de esa misma hora (en la práctica todas comparten
+        # el mismo GENMEDICO, porque se digitan juntas).
+        if lectura["responsable"] is None and nombre_medico:
+            lectura["responsable"] = _limpiar_nombre(nombre_medico)
         if tipo_oid == _OID_TEMPERATURA:
             lectura["temp"] = _a_numero(valor)
         elif tipo_oid == _OID_TENSION:

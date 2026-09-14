@@ -231,6 +231,9 @@ def construir_grid_meows(paciente):
             'riesgo': medicion.meows_riesgo,
             'valores_num': valores_num,
             'origen': medicion.origen,
+            # Quien digitó esta toma en Dinámica (GENMEDICO), no quien tiene
+            # la sesión abierta en esta app -- ver Medicion.responsable_dinamica.
+            'responsable': medicion.responsable_dinamica,
         })
 
     parametros = Parametro.objects.filter(activo=True).order_by('orden').prefetch_related('rangos')

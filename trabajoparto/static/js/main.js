@@ -737,22 +737,6 @@ async function guardarFormulario() {
         await guardarMediciones(formulario.id);
         console.log('Mediciones guardadas exitosamente');
 
-        // Vincular biometría (huella/firma) al formulario actual
-        try {
-            console.log('Vinculando biometría al formulario...');
-            const vincularRes = await fetch(`${API_BASE_URL}/vincular-huella/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    paciente_id: pacienteId,
-                    formulario_id: formulario.id
-                })
-            });
-            if (vincularRes.ok) console.log('✅ Biometría vinculada correctamente');
-        } catch (vincularError) {
-            console.warn('No se pudo vincular la biometría:', vincularError);
-        }
-        
         // Actualizar el ID del formulario en el campo oculto
         setValorInput('formulario_id', formulario.id);
         
@@ -795,6 +779,21 @@ async function guardarFormulario() {
  * Crea una card de medición para mostrar en la vista previa horizontal.
  * Corregido para mostrar TODOS los parámetros y usar los estilos premium.
  */
+/**
+ * Limpia un Decimal de la BD (ej. "144.000000") al mismo formato que ya usa
+ * el PDF (_formatear_valor_numero en trabajoparto/pdf_utils.py): entero
+ * simple si no tiene parte decimal real, un decimal si la tiene. Sin esto,
+ * la Vista Previa mostraba el Decimal crudo con 6 ceros de precisión.
+ */
+function formatearValorNumero(valorNumber) {
+    const f = parseFloat(valorNumber);
+    if (isNaN(f)) return String(valorNumber);
+    if (Number.isInteger(f)) return String(f);
+    let s = f.toFixed(1);
+    if (s.endsWith('.0')) s = s.slice(0, -2);
+    return s;
+}
+
 function normalizarTextoVistaPrevia(valor) {
     if (valor === null || valor === undefined) return '';
     let text = String(valor);
@@ -812,6 +811,36 @@ function normalizarTextoVistaPrevia(valor) {
         .replace(/`/g, "'");
 }
 
+const _FCF_PARAM_ID = 8;
+
+/**
+ * 2026-09-14: la Frecuencia Cardiaca Fetal (parámetro 8) llega sola desde
+ * Dinámica con SU PROPIA hora exacta (ver actualizarPreviewFrecuenciaCardiacaFetal),
+ * que casi nunca coincide con la hora en que la enfermera registra a mano el
+ * resto del examen. Antes, esa hora exclusiva de Dinámica generaba SU PROPIA
+ * columna en la grilla -- una columna donde únicamente esa fila tenía dato y
+ * el resto mostraba "—", como si fueran dos registros distintos cuando en
+ * realidad es un solo control visto en dos momentos. Ahora esa hora ya NO
+ * genera columna propia: se descarta de la lista de columnas y su valor se
+ * "hereda" (carry-forward) hacia la columna manual más cercana -- ver
+ * valorFCFHeredado() más abajo, en construirGrillaVistaPrevia().
+ */
+function calcularHorasColumnaVistaPrevia(mediciones) {
+    const horasConDatoManual = new Set();
+    mediciones.forEach(m => {
+        const pid = parseInt(m.parametro_id || (m.parametro && m.parametro.id) || m.parametro);
+        if (pid !== _FCF_PARAM_ID) horasConDatoManual.add(m.tomada_en);
+    });
+    // Caso borde: si TODAS las mediciones que hay son de FCF (formulario recién
+    // creado, solo llegó el dato de Dinámica y la enfermera aún no ha guardado
+    // nada a mano), no hay ninguna columna manual donde "colgar" el valor --
+    // ahí sí se muestran sus propias horas, para no perder el dato.
+    if (horasConDatoManual.size === 0) {
+        return [...new Set(mediciones.map(m => m.tomada_en))].sort();
+    }
+    return [...horasConDatoManual].sort();
+}
+
 /**
  * Construye la tabla de Vista Previa con la misma jerarquía Item -> Parámetro
  * x Hora que usa el PDF oficial (FRSPA-022): una fila por parámetro agrupada
@@ -820,7 +849,7 @@ function normalizarTextoVistaPrevia(valor) {
  * el servidor vía json_script), así nunca queda desactualizada respecto a los
  * parámetros realmente disponibles en el formulario.
  */
-function construirGrillaVistaPrevia(mediciones, horasUnicas) {
+function construirGrillaVistaPrevia(mediciones, horasUnicas, responsableFormulario) {
     const estructura = window.ESTRUCTURA_ITEMS || [];
     if (!estructura.length) {
         return `
@@ -840,7 +869,7 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas) {
         const textos = (m.valores || []).map(v => {
             let valor = null;
             if (v.valor_text !== null && v.valor_text !== undefined) valor = v.valor_text;
-            else if (v.valor_number !== null && v.valor_number !== undefined) valor = v.valor_number.toString();
+            else if (v.valor_number !== null && v.valor_number !== undefined) valor = formatearValorNumero(v.valor_number);
             else if (v.valor_boolean !== null && v.valor_boolean !== undefined) valor = v.valor_boolean ? 'SÍ' : 'NO';
             return valor !== null ? normalizarTextoVistaPrevia(valor) : null;
         }).filter(v => v !== null && v !== '');
@@ -849,6 +878,26 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas) {
             valoresPorParamHora[key] = textos.join(' / ');
         }
     });
+
+    // 2026-09-14: cada columna (hora) puede haberla diligenciado una persona
+    // distinta -- a diferencia de formulario.responsable (uno solo para toda
+    // la hoja), medicion.responsable queda fijo por columna desde que se
+    // guardó (ver guardarMediciones() en main.js). Se toma el primer nombre
+    // no vacío que aparezca entre las mediciones de esa hora -- normalmente
+    // todas comparten el mismo valor porque se guardaron juntas.
+    //
+    // Columnas guardadas ANTES de que existiera medicion.responsable (o
+    // creadas solo por Dinámica) no tienen ese dato propio -- para esas se
+    // usa como resguardo el responsable único del formulario, en vez de
+    // dejar la columna sin ningún nombre.
+    const responsablePorHora = {};
+    mediciones.forEach(m => {
+        if (!m.responsable) return;
+        if (!responsablePorHora[m.tomada_en]) {
+            responsablePorHora[m.tomada_en] = normalizarTextoVistaPrevia(m.responsable);
+        }
+    });
+    const responsableRespaldo = responsableFormulario ? normalizarTextoVistaPrevia(responsableFormulario) : null;
 
     // 2026-09-11: la Frecuencia Cardiaca Fetal (parametro 8) llega sola desde
     // Dinámica en SUS propias horas (ej. 07:00, 07:30), independientes de las
@@ -860,7 +909,6 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas) {
     // que no tenga su propia lectura exacta -- sin inventar ni mezclar datos,
     // solo mostrando en cada columna lo último que se sabía a esa hora, igual
     // que se leería un partograma en papel.
-    const _FCF_PARAM_ID = 8;
     const serieFCF = mediciones
         .filter(m => parseInt(m.parametro_id || (m.parametro && m.parametro.id) || m.parametro) === _FCF_PARAM_ID)
         .map(m => ({ hora: m.tomada_en, valor: valoresPorParamHora[`${_FCF_PARAM_ID}|${m.tomada_en}`] }))
@@ -886,7 +934,11 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas) {
         const d = new Date(hora);
         const fecha = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
         const horaTxt = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
-        html += `<th class="preview-grid-th-hora"><span class="preview-grid-col-fecha">${fecha}</span><span class="preview-grid-col-hora">${horaTxt}</span></th>`;
+        const nombreResp = responsablePorHora[hora] || responsableRespaldo;
+        const spanResp = nombreResp
+            ? `<span class="preview-grid-col-responsable" title="Registrado por ${nombreResp}">👤 ${nombreResp}</span>`
+            : '';
+        html += `<th class="preview-grid-th-hora"><span class="preview-grid-col-fecha">${fecha}</span><span class="preview-grid-col-hora">${horaTxt}</span>${spanResp}</th>`;
     });
     html += '</tr></thead><tbody>';
 
@@ -903,16 +955,21 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas) {
             horasUnicas.forEach(hora => {
                 let valor = valoresPorParamHora[`${param.id}|${hora}`];
                 let heredado = false;
+                let horaCarryTxt = '';
                 if (!valor && param.id === _FCF_PARAM_ID) {
                     const carry = valorFCFHeredado(hora);
                     if (carry) {
                         valor = carry.valor;
                         heredado = true;
+                        horaCarryTxt = new Date(carry.hora).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
                     }
                 }
                 const clase = heredado ? ' valor-heredado' : (valor ? ' tiene-valor' : '');
-                const titulo = heredado ? ' title="Último valor de Dinámica conocido a esta hora (no fue tomado exactamente en este momento)"' : '';
-                html += `<td class="preview-grid-td-valor${clase}"${titulo}>${valor || '—'}</td>`;
+                const titulo = heredado ? ` title="Frecuencia Cardiaca Fetal tomada de Dinámica a las ${horaCarryTxt}"` : '';
+                const contenido = heredado
+                    ? `${valor}<span class="valor-heredado-hora">🔗 ${horaCarryTxt}</span>`
+                    : (valor || '—');
+                html += `<td class="preview-grid-td-valor${clase}"${titulo}>${contenido}</td>`;
             });
 
             html += '</tr>';
@@ -966,16 +1023,6 @@ async function actualizarFormularioInformativo(formularioId, datosCompletos = nu
             const pacienteId = formulario.paciente ? (formulario.paciente.id || formulario.paciente) : null;
             if (pacienteId) {
                 paciente = await apiRequest(`/pacientes/${pacienteId}/?_=${timestamp}`);
-                
-                // Cargar biometría
-                try {
-                    const huellaData = await apiRequest(`/huella/${pacienteId}/?_=${timestamp}`);
-                    if (huellaData && typeof actualizarUIHuella === 'function') {
-                        actualizarUIHuella(huellaData);
-                    }
-                } catch (e) {
-                    console.warn('No se pudo cargar biometría para el dashboard:', e);
-                }
             }
         }
 
@@ -1047,13 +1094,14 @@ async function actualizarFormularioInformativo(formularioId, datosCompletos = nu
         const medicionesScroll = document.getElementById('preview-mediciones-scroll');
         if (medicionesScroll) {
             if (mediciones && mediciones.length > 0) {
-                // Identificar todas las horas únicas y ordenarlas
-                const horasUnicas = [...new Set(mediciones.map(m => m.tomada_en))].sort();
+                // Identificar las horas que forman columna (ver calcularHorasColumnaVistaPrevia:
+                // la hora exclusiva de Dinámica para FCF no genera columna propia).
+                const horasUnicas = calcularHorasColumnaVistaPrevia(mediciones);
                 const totalControlesDisplay = document.getElementById('preview-total-controles');
                 if (totalControlesDisplay) totalControlesDisplay.textContent = `${horasUnicas.length} REGISTROS`;
                 
                 // Construir la grilla Item -> Parámetro x Hora (misma estructura que el PDF)
-                medicionesScroll.innerHTML = construirGrillaVistaPrevia(mediciones, horasUnicas);
+                medicionesScroll.innerHTML = construirGrillaVistaPrevia(mediciones, horasUnicas, formulario.responsable);
 
                 // Sincronizar también con el grid principal (hidden columns/inputs) si es necesario
                 const mainTimeInputs = document.querySelectorAll('.time-input');
@@ -1363,6 +1411,9 @@ function actualizarPreviewFrecuenciaCardiacaFetal(mediciones) {
 
     const indicator = document.getElementById('indicator-8');
     if (indicator) indicator.style.backgroundColor = '#7c3aed'; // morado: mismo distintivo "dato de Dinámica" que usa MEOWS
+
+    const btnFrecFetal = document.getElementById('btn-parametro-8');
+    if (btnFrecFetal) btnFrecFetal.classList.add('con-dato'); // resalta más fuerte una vez que ya llegó el valor real
 }
 
 async function sincronizarMedicionesGuardadas(formularioId, horaRegistro) {
@@ -1993,7 +2044,14 @@ function guardarTemporalParametro(parametroId) {
 
 async function guardarMediciones(formularioId) {
     const medicionesMap = new Map();
-    
+
+    // 2026-09-14: a diferencia de formulario.responsable (una sola persona
+    // para TODA la hoja), cada medición individual queda marcada con quien
+    // diligenció ESA columna puntual -- no siempre es la misma persona a lo
+    // largo del trabajo de parto. Se toma el valor del input #responsable
+    // en el momento de este guardado.
+    const responsableActual = (document.getElementById('responsable')?.value || '').trim() || null;
+
     // 1. Extraer horas válidas definidas en el encabezado de la cuadrícula
     const timeInputs = document.querySelectorAll('.time-input');
     const horaMap = {};
@@ -2034,10 +2092,11 @@ async function guardarMediciones(formularioId) {
                 formulario: formularioId,
                 parametro: parseInt(parametroId),
                 tomada_en: horaIso,
+                responsable: responsableActual,
                 valores: []
             });
         }
-        
+
         const payloadValor = { campo_id: parseInt(campoId) };
         if (tipoValor === 'number') {
             const numero = parseFloat(valor);
@@ -2069,10 +2128,11 @@ async function guardarMediciones(formularioId) {
                     formulario: formularioId,
                     parametro: parseInt(med.parametro_id),
                     tomada_en: horaIso,
+                    responsable: responsableActual,
                     valores: []
                 });
             }
-            
+
             const payloadValor = { campo_id: parseInt(med.campo_id) };
             if (med.tipo_valor === 'number') {
                 const numero = parseFloat(med.valor);
@@ -2386,21 +2446,6 @@ async function llenarFormularioDesdePaciente(data) {
         }
     }
 
-    // Actualizar sección de biometría si existe data
-    if (data.huella && typeof actualizarUIHuella === 'function') {
-        console.log('🔐 Cargando biometría guardada en la interfaz...');
-        actualizarUIHuella(data.huella);
-    } else {
-        // Limpiar UI de biometría si no hay datos
-        const imgH = document.getElementById('imgHuella');
-        const imgF = document.getElementById('imgFirma');
-        if (imgH) { imgH.src = ''; imgH.style.display = 'none'; }
-        if (imgF) { imgF.src = ''; imgF.style.display = 'none'; }
-        const estH = document.getElementById('estadoHuella');
-        const estF = document.getElementById('estadoFirma');
-        if (estH) { estH.innerHTML = 'No capturada'; estH.style.display = 'block'; }
-        if (estF) { estF.innerHTML = 'No capturada'; estF.style.display = 'block'; }
-    }
 
     // Estos campos ya vinieron resueltos desde la historia clínica del paciente:
     // son informativos, no se editan aquí una vez identificado el paciente.
@@ -2671,18 +2716,6 @@ function limpiarFormulario() {
         }
     });
     
-    // Limpiar biometría
-    const imgH = document.getElementById('imgHuella');
-    const imgF = document.getElementById('imgFirma');
-    if (imgH) { imgH.src = ''; imgH.style.display = 'none'; }
-    if (imgF) { imgF.src = ''; imgF.style.display = 'none'; }
-    const estH = document.getElementById('estadoHuella');
-    const estF = document.getElementById('estadoFirma');
-    if (estH) { estH.innerHTML = 'No capturada'; estH.style.display = 'block'; }
-    if (estF) { estF.innerHTML = 'Firma pendiente'; estF.style.display = 'block'; }
-    const btnVerH = document.getElementById('btnVerHuella');
-    if (btnVerH) btnVerH.style.display = 'none';
-
     // Restablecer el botón a "Guardar"
     actualizarTextoBoton(false);
 }
@@ -2950,8 +2983,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // 1. Identificar todas las horas únicas y ordenarlas
-            const horasUnicas = [...new Set(mediciones.map(m => m.tomada_en))].sort();
+            // 1. Identificar las horas que forman columna (ver calcularHorasColumnaVistaPrevia:
+            // la hora exclusiva de Dinámica para FCF no ocupa una de las columnas editables).
+            const horasUnicas = calcularHorasColumnaVistaPrevia(mediciones);
             console.log('Horas detectadas:', horasUnicas);
 
             // 2. Llenar los inputs de tiempo (encabezado del grid)
@@ -3447,25 +3481,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Fetch biometrics
+        // 2026-09-14: se eliminó la captura/consulta de firma y huella
+        // biométrica a pedido explícito, antes de salir a producción -- el
+        // endpoint /huella/<id>/ ya no existe. Se dejan estas variables en
+        // blanco por compatibilidad con el resto de esta función y con el
+        // template HTML del PDF.
         let huellaUrl = '';
         let firmaUrl = '';
-        if (paciente && paciente.id) {
-            try {
-                // Usar apiRequest en lugar de fetch directo para asegurar la URL del backend correcta
-                const huellaData = await apiRequest(`/huella/${paciente.id}/`);
-                // Compatibilidad con ambas respuestas: legacy y actual del backend
-                if (huellaData && (huellaData.encontrado || huellaData.status === 'ok')) {
-                    const versionToken = huellaData.fecha || Date.now();
-                    huellaUrl = normalizarURLMedia(huellaData.imagen_huella || huellaData.imagen_url || '', versionToken);
-                    firmaUrl = normalizarURLMedia(huellaData.imagen_firma || huellaData.firma_url || '', versionToken);
-                }
-            } catch (error) {
-                console.error('Error fetching biometrics for PDF:', error);
-            }
-        }
-        
-        // Agregar biometrias a la respuesta para el fallback
         data.huella = huellaUrl;
         data.firma = firmaUrl;
 
@@ -3971,326 +3993,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.descargarPDF = descargarPDF;
 });
 
-// --- LÓGICA DE BIOMETRÍA Y FIRMA (GLOBAL) ---
-let pollingHuellaInterval = null;
-let signaturePad = null;
-
-// Inicialización de Biometría al cargar el documento
-document.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('signature-pad');
-    if (canvas) {
-        signaturePad = new SignaturePad(canvas, {
-            backgroundColor: 'rgb(255, 255, 255)'
-        });
-        
-        // Ajustar tamaño del canvas al abrir el modal o cambiar tamaño
-        window.addEventListener('resize', resizeCanvas);
-    }
-});
-
-function resizeCanvas() {
-    const canvas = document.getElementById('signature-pad');
-    if (!canvas) return;
-    const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    canvas.width = canvas.offsetWidth * ratio;
-    canvas.height = canvas.offsetHeight * ratio;
-    canvas.getContext("2d").scale(ratio, ratio);
-    if (signaturePad) signaturePad.clear(); // Limpiar al redimensionar para evitar artifacts
-}
-
-async function abrirModalFirma() {
-    // Si el paciente aún no se ha guardado (registro nuevo), guardarlo primero
-    // para poder asociar la firma. Mismo resguardo que antes tenía "Firmar en tablet".
-    let pacienteId = obtenerValorInput('paciente_id');
-    if (!pacienteId) {
-        try {
-            const paciente = await guardarPaciente();
-            if (!paciente || !paciente.id) return; // guardarPaciente ya muestra el error
-        } catch (error) {
-            console.error("❌ Error al guardar paciente previo a la firma:", error);
-            mostrarMensaje(error.message || "Guarde los datos del paciente primero.", "warning");
-            return;
-        }
-    }
-
-    const modal = document.getElementById('modalFirma');
-    if (modal) {
-        modal.style.display = 'flex';
-        // Ajustar tamaño del canvas después de mostrar el modal (importante para offsetWidth)
-        setTimeout(resizeCanvas, 100);
-    }
-}
-
-function cerrarModalFirma() {
-    const modal = document.getElementById('modalFirma');
-    if (modal) modal.style.display = 'none';
-}
-
-function limpiarFirma() {
-    if (signaturePad) signaturePad.clear();
-}
-
-async function guardarFirmaDigital() {
-    const pacienteId = obtenerValorInput('paciente_id');
-    const formularioId = obtenerValorInput('formulario_id');
-    
-    if (!pacienteId) {
-        mostrarMensaje("Seleccione un paciente primero", "error");
-        return;
-    }
-
-    if (!signaturePad || signaturePad.isEmpty()) {
-        mostrarMensaje("Por favor, realice la firma antes de guardar", "error");
-        return;
-    }
-
-    const firmaB64 = signaturePad.toDataURL(); // Obtiene PNG base64
-
-    try {
-        mostrarMensaje("Guardando firma...", "info");
-        const baseUrl = API_BASE_URL;
-        
-        const data = {
-            paciente_id: pacienteId,
-            formulario_id: formularioId || null,
-            firma: firmaB64,
-            usuario: obtenerValorInput('responsable') || "Sistema"
-        };
-
-        const response = await fetch(`${baseUrl}/guardar-huella/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-
-        if (response.ok) {
-            mostrarMensaje("✅ Firma guardada con éxito", "success");
-            cerrarModalFirma();
-            // Disparar una actualización inmediata de la UI
-            const resData = await response.json();
-            // Forzamos un fetch de la última captura para actualizar la tarjeta
-            const updateRes = await fetch(`${baseUrl}/huella/${pacienteId}/?_=${new Date().getTime()}`);
-            if (updateRes.ok) {
-                const updatedInfo = await updateRes.json();
-                actualizarUIHuella(updatedInfo);
-            }
-        } else {
-            throw new Error("Error al guardar en el servidor");
-        }
-    } catch (error) {
-        console.error("Error al guardar firma:", error);
-        mostrarMensaje("Error al guardar la firma: " + error.message, "error");
-    }
-}
-
-function iniciarPollingHuella(pacienteId) {
-    if (!pacienteId) return;
-    
-    console.log(`🔍 Iniciando polling de huella para paciente: ${pacienteId}`);
-    
-    if (pollingHuellaInterval) clearInterval(pollingHuellaInterval);
-    
-    const consultarHuellaUnaVez = async () => {
-        try {
-            const baseUrl = API_BASE_URL;
-            const response = await fetch(`${baseUrl}/huella/${pacienteId}/?_=${new Date().getTime()}`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data && (data.imagen_huella || data.imagen_firma)) {
-                    actualizarUIHuella(data);
-                    // Si ya tenemos lo que buscábamos, paramos el polling
-                    // Nota: Podríamos dejarlo si queremos capturar ambos, 
-                    // pero usualmente se hace uno por uno.
-                }
-            }
-        } catch (error) {
-            console.error("Error en polling de huella:", error);
-        }
-    };
-
-    // Primera consulta inmediata para evitar esperar el primer intervalo
-    consultarHuellaUnaVez();
-    pollingHuellaInterval = setInterval(consultarHuellaUnaVez, 3000);
-}
-
-function actualizarUIHuella(data) {
-    if (!data) return;
-    
-    const imgHuella = document.getElementById('imgHuella');
-    const imgFirma = document.getElementById('imgFirma');
-    const estadoHuella = document.getElementById('estadoHuella');
-    const estadoFirma = document.getElementById('estadoFirma');
-    const btnVerHuella = document.getElementById('btnVerHuella');
-    
-    let baseUrl = API_BASE_URL.replace('/api', '');
-    
-    // Forzar refresco visual cuando backend devuelve misma ruta de archivo
-    const versionToken = encodeURIComponent(data.fecha || Date.now());
-
-    // Actualizar Huella
-    if (imgHuella && data.imagen_huella) {
-        const urlAbsoluta = data.imagen_huella.startsWith('http') ? data.imagen_huella : `${baseUrl}${data.imagen_huella}`;
-        imgHuella.src = `${urlAbsoluta}${urlAbsoluta.includes('?') ? '&' : '?'}v=${versionToken}`;
-        imgHuella.style.display = 'block';
-        if (estadoHuella) estadoHuella.style.display = 'none';
-        if (btnVerHuella) btnVerHuella.style.display = 'inline-block';
-    } else if (imgHuella) {
-        imgHuella.src = '';
-        imgHuella.style.display = 'none';
-        if (estadoHuella) {
-            estadoHuella.innerHTML = 'No capturada';
-            estadoHuella.style.display = 'block';
-        }
-        if (btnVerHuella) btnVerHuella.style.display = 'none';
-    }
-
-    // Actualizar Firma
-    const previewFirmaImg = document.getElementById('preview-firma-img');
-    const previewFirmaWrapper = document.getElementById('preview-firma-wrapper');
-    const previewFirmaStatus = document.getElementById('preview-firma-status');
-
-    if (imgFirma && data.imagen_firma) {
-        const urlAbsolutaFirma = data.imagen_firma.startsWith('http') ? data.imagen_firma : `${baseUrl}${data.imagen_firma}`;
-        imgFirma.src = `${urlAbsolutaFirma}${urlAbsolutaFirma.includes('?') ? '&' : '?'}v=${versionToken}`;
-        imgFirma.style.display = 'block';
-        if (estadoFirma) estadoFirma.style.display = 'none';
-        
-        // Sincronizar con Dashboard de Vista Previa
-        if (previewFirmaStatus) {
-            previewFirmaStatus.textContent = 'FIRMA: ✅';
-            previewFirmaStatus.className = 'badge-tag badge-normal';
-        }
-        if (previewFirmaImg) {
-            previewFirmaImg.src = `${urlAbsolutaFirma}${urlAbsolutaFirma.includes('?') ? '&' : '?'}v=${versionToken}`;
-            if (previewFirmaWrapper) previewFirmaWrapper.style.display = 'block';
-        }
-    } else if (imgFirma) {
-        imgFirma.src = '';
-        imgFirma.style.display = 'none';
-        if (estadoFirma) {
-            estadoFirma.innerHTML = 'No capturada';
-            estadoFirma.style.display = 'block';
-        }
-
-        if (previewFirmaStatus) {
-            previewFirmaStatus.textContent = 'FIRMA: ❌';
-            previewFirmaStatus.className = 'badge-tag badge-alert';
-        }
-        if (previewFirmaWrapper) previewFirmaWrapper.style.display = 'none';
-    }
-
-    // Sincronizar Huella con Dashboard de Vista Previa
-    const previewHuellaStatus = document.getElementById('preview-huella-status');
-    const previewHuellaImg = document.getElementById('preview-huella-img');
-    const previewHuellaWrapper = document.getElementById('preview-huella-wrapper');
-
-    if (previewHuellaStatus) {
-        if (data.imagen_huella) {
-            const urlAbsolutaHuella = data.imagen_huella.startsWith('http') ? data.imagen_huella : `${baseUrl}${data.imagen_huella}`;
-            previewHuellaStatus.textContent = 'HUELLA: ✅';
-            previewHuellaStatus.className = 'badge-tag badge-normal';
-            if (previewHuellaImg) {
-                previewHuellaImg.src = `${urlAbsolutaHuella}${urlAbsolutaHuella.includes('?') ? '&' : '?'}v=${versionToken}`;
-                if (previewHuellaWrapper) previewHuellaWrapper.style.display = 'block';
-            }
-        } else {
-            previewHuellaStatus.textContent = 'HUELLA: ❌';
-            previewHuellaStatus.className = 'badge-tag badge-alert';
-            if (previewHuellaWrapper) previewHuellaWrapper.style.display = 'none';
-        }
-    }
-}
-
-function abrirDetalleHuella() {
-    const pacienteId = obtenerValorInput('paciente_id');
-    if (!pacienteId) {
-        mostrarMensaje("Seleccione un paciente primero", "error");
-        return;
-    }
-    const baseUrlFrontend = window.location.origin;
-    const url = `${baseUrlFrontend}/parto/huella/ver/${encodeURIComponent(pacienteId)}`;
-    window.open(url, 'DetalleHuella', 'width=600,height=800,scrollbars=yes');
-}
-
-async function refrescarBiometriaAhora() {
-    const pacienteId = obtenerValorInput('paciente_id');
-    if (!pacienteId) {
-        mostrarMensaje("Seleccione un paciente primero", "warning");
-        return;
-    }
-
-    try {
-        mostrarMensaje("Actualizando biometría...", "info");
-        const baseUrl = API_BASE_URL;
-        const response = await fetch(`${baseUrl}/huella/${pacienteId}/?_=${new Date().getTime()}`);
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        actualizarUIHuella(data);
-
-        if (data && (data.imagen_huella || data.imagen_firma)) {
-            mostrarMensaje("✅ Biometría actualizada", "success");
-        } else {
-            mostrarMensaje("No hay nueva biometría para este paciente", "info");
-        }
-    } catch (error) {
-        console.error("Error al refrescar biometría:", error);
-        mostrarMensaje("Error al refrescar biometría", "error");
-    }
-}
-
-async function activarCapturaTablet(tipo) {
-    let pacienteId = obtenerValorInput('paciente_id');
-    const formularioId = obtenerValorInput('formulario_id') || "";
-    
-    // Si no hay ID de paciente, intentar guardar el paciente primero (para pacientes nuevos)
-    if (!pacienteId) {
-        console.log("📝 Paciente nuevo detectado, intentando guardar antes de captura...");
-        try {
-            // Intentar guardar el paciente (esto validará nombres, identificación, etc.)
-            const paciente = await guardarPaciente();
-            if (paciente && paciente.id) {
-                pacienteId = paciente.id;
-                console.log("✅ Paciente guardado exitosamente con ID:", pacienteId);
-            } else {
-                console.error("❌ No se pudo obtener el ID del paciente tras guardar");
-                return; // guardarPaciente ya muestra los mensajes de error
-            }
-        } catch (error) {
-            console.error("❌ Error al guardar paciente previo a captura:", error);
-            mostrarMensaje(error.message || "Guarde los datos del paciente primero.", "warning");
-            return;
-        }
-    }
-
-    if (tipo === 'huella') {
-        mostrarMensaje("Iniciando captura de huella en la tablet...", "info");
-        const estadoHuella = document.getElementById('estadoHuella');
-        if (estadoHuella) {
-            estadoHuella.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"></div> Esperando huella...';
-        }
-        
-        // Disparar Intent corregido para la App de Veneve/Fingerprint
-        const intentUrl = `fingerprint://capture?paciente_id=${pacienteId}&formulario_id=${formularioId}`;
-        console.log("🚀 Disparando captura de huella:", intentUrl);
-        
-        // Intentar abrir el deep link
-        setTimeout(() => {
-            window.location.href = intentUrl;
-        }, 100);
-        
-        iniciarPollingHuella(pacienteId);
-    }
-}
-
-// Globalizar
-window.activarCapturaTablet = activarCapturaTablet;
-window.abrirDetalleHuella = abrirDetalleHuella;
-window.refrescarBiometriaAhora = refrescarBiometriaAhora;
-window.iniciarPollingHuella = iniciarPollingHuella;
-window.cerrarModalFirma = cerrarModalFirma;
-window.limpiarFirma = limpiarFirma;
-window.guardarFirmaDigital = guardarFirmaDigital;
+// 2026-09-14: se eliminó toda la lógica de biometría y firma (SignaturePad,
+// modal de firma, polling de huella, deep link a la app Android de captura
+// por hardware) a pedido explícito, antes de salir a producción.
 

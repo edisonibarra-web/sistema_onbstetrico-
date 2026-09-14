@@ -311,6 +311,7 @@ class MedicionSerializer(serializers.ModelSerializer):
             'parametro_id',
             'tomada_en',
             'observacion',
+            'responsable',
             'valores',
         ]
         read_only_fields = ['id']
@@ -380,30 +381,39 @@ class MedicionCreateSerializer(serializers.ModelSerializer):
             'parametro',
             'tomada_en',
             'observacion',
+            'responsable',
             'valores',
         ]
-        # Eliminamos validadores automáticos de unicidad para manejarlo 
+        # Eliminamos validadores automáticos de unicidad para manejarlo
         # manualmente en el método create con get_or_create
         validators = []
-    
+
     def create(self, validated_data):
         valores_data = validated_data.pop('valores', [])
         # Manejar si ya existe la medición para el mismo formulario, parámetro y hora
         formulario = validated_data.get('formulario')
         parametro = validated_data.get('parametro')
         tomada_en = validated_data.get('tomada_en')
-        
+
         medicion, created = Medicion.objects.get_or_create(
             formulario=formulario,
             parametro=parametro,
             tomada_en=tomada_en,
             defaults=validated_data
         )
-        
-        # Si no se creó (ya existe), actualizamos la observación si viene
-        if not created and 'observacion' in validated_data:
-            medicion.observacion = validated_data['observacion']
-            medicion.save()
+
+        # Si no se creó (ya existe), actualizamos observación/responsable si vienen
+        # -- por ejemplo, si otra persona corrige ese mismo registro más tarde.
+        if not created:
+            campos_actualizables = {}
+            if 'observacion' in validated_data:
+                campos_actualizables['observacion'] = validated_data['observacion']
+            if 'responsable' in validated_data:
+                campos_actualizables['responsable'] = validated_data['responsable']
+            if campos_actualizables:
+                for campo, valor in campos_actualizables.items():
+                    setattr(medicion, campo, valor)
+                medicion.save()
 
         # Crear o actualizar valores
         for valor_data in valores_data:

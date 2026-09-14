@@ -13,7 +13,6 @@
   <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260910g">
   <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
   <script src="{% static 'js/vendor/cropper.min.js' %}"></script>
-  <script src="{% static 'js/vendor/signature_pad.umd.min.js' %}"></script>
   <style>
     :root {
       --primary-color: #2563eb;
@@ -281,12 +280,37 @@
       color: #334155;
     }
 
-    .fc-intervalo-input {
-      width: 70px;
-      text-align: center;
-      border: 2px solid #d8dee8 !important;
-      border-radius: 6px;
-      padding: 4px 6px;
+    /* 2026-09-14: intervalo de Control de Fetocardia fijo en 5 minutos, ya
+       no editable -- se muestra como badge resaltado en vez del input
+       numérico que había antes (ver fc-toolbar). El selector ".fc-toolbar
+       span" de arriba (clase + elemento, más específico que una sola clase)
+       le ganaba el color al badge y el texto salía gris oscuro en vez de
+       blanco -- se scopea bajo ".fc-toolbar" para empatarle en especificidad
+       y ganar por venir después. */
+    .fc-toolbar .fc-intervalo-badge,
+    .fc-toolbar .fc-intervalo-badge strong {
+      color: #fff;
+    }
+    .fc-intervalo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #0f766e 0%, #0891b2 100%);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      box-shadow: 0 3px 10px rgba(8, 145, 178, 0.3);
+    }
+    .fc-intervalo-badge i {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+    .fc-intervalo-badge strong {
+      font-weight: 800;
+      font-size: 0.92rem;
     }
 
     input.doc-input,
@@ -2607,9 +2631,9 @@
             <div class="doc-section-title"><i data-lucide="activity"></i> Control de Fetocardia</div>
             <div class="fc-card-body">
               <div class="fc-toolbar">
-                <label for="fc-intervalo-minutos">Registrar cada</label>
-                <input type="number" id="fc-intervalo-minutos" class="doc-input fc-intervalo-input" value="15" min="1">
-                <span>minutos</span>
+                <span class="fc-intervalo-badge" title="Intervalo fijo de registro">
+                  <i data-lucide="timer"></i> Registro cada <strong>5 minutos</strong>
+                </span>
                 <button type="button" class="btn-pp-quick" onclick="agregarFilaFetocardia()"><i data-lucide="plus"></i> Agregar control</button>
               </div>
               <div class="fc-table-wrap">
@@ -2656,6 +2680,12 @@
                     <option value="DIRIGIDO">Dirigido</option>
                     <option value="MANUAL">Manual</option>
                   </select>
+                </td>
+              </tr>
+              <tr>
+                <td class="doc-label">Hora de Parto</td>
+                <td colspan="3">
+                  <input type="time" id="hora_parto" class="doc-input" style="max-width:160px;display:inline-block">
                 </td>
               </tr>
             </table>
@@ -3170,59 +3200,6 @@
                     </p>
                   </div>
                 </div>
-
-                {# 2026-09-10: el pad de firma se oculta POR AHORA (no se elimina, #}
-                {# para poder reactivarlo). El <div hidden> oculta todo lo de #}
-                {# adentro pase lo que pase con su display; el JS de firma sigue #}
-                {# encontrando los elementos por id sin romperse. #}
-                <div id="firma-oculta-por-ahora" hidden>
-                  <div id="signature-pad-container" class="signature-pad-card" style="padding: 20px;">
-                    <p class="huella-section-label"
-                      style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                      <i data-lucide="pen-tool" style="width:16px;height:16px"></i> Firma del responsable
-                    </p>
-
-                    <div class="signature-wrapper">
-                      <canvas id="signature-canvas"></canvas>
-                    </div>
-
-                    <div id="signature-signed-status" class="signature-badge" style="margin-bottom: 10px;">
-                      <i data-lucide="info" style="width:12px;height:12px"></i> Sin firmar
-                    </div>
-
-                    <div class="signature-actions">
-                      <button type="button" class="btn btn-secondary btn-sm" onclick="clearSignature()"
-                        style="flex:1; justify-content: center;">
-                        <i data-lucide="eraser" style="width:14px;height:14px"></i> Limpiar
-                      </button>
-                    </div>
-                    <p style="font-size:0.75rem;color:#64748b;margin-top:8px;text-align:center;">
-                      La firma se guarda automáticamente al presionar "Guardar Registro Completo".
-                    </p>
-                  </div>
-
-                  <div id="huella-signature-container"
-                    style="display:none; height: 100%; padding: 20px; border: 1px solid var(--border-color); border-radius: 14px; background: #fff; box-shadow: var(--shadow-sm); flex-direction: column;">
-                    <p class="huella-section-label"
-                      style="margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
-                      <i data-lucide="check-square" style="width:16px;height:16px"></i> Firma del responsable registrada
-                    </p>
-                    <div
-                      style="background: #f0fdf4; border: 2px solid #bcf0da; border-radius: 12px; padding: 20px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; position: relative;">
-                      <button type="button" onclick="resetSignatureView()" title="Firmar de nuevo"
-                        style="position: absolute; top: 10px; right: 10px; background: #fff; border: 1px solid #ddd; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b;">
-                        <i data-lucide="rotate-ccw" style="width:16px;height:16px"></i>
-                      </button>
-                      <img id="huella-signature-img" src="" alt="Firma"
-                        style="max-width: 100%; max-height: 200px; display: block; margin: 0 auto 15px; filter: contrast(1.2);">
-                      <div id="huella-signature-name"
-                        style="font-weight: 700; color: #065f46; font-size: 1rem; border-top: 1px solid #bcf0da; padding-top: 10px;">
-                      </div>
-                      <div id="huella-signature-date"
-                        style="font-size: 0.7rem; color: #047857; margin-top: 4px; font-style: italic;"></div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -3247,7 +3224,6 @@
         <script>
           // API base URL: SIEMPRE ruta absoluta /fetal/api/ para evitar 404 en registros/
           const API_BASE = (window.location.origin || '') + '/fetal/api';
-          // Biometría: solo firma del responsable + foto huella del pie del bebé (huella dactilar eliminada)
 
           function getCookie(name) {
             let cookieValue = null;
@@ -3412,7 +3388,10 @@
           }
 
           function agregarFilaFetocardia() {
-            const intervalo = parseInt(document.getElementById('fc-intervalo-minutos')?.value) || 15;
+            // 2026-09-14: intervalo fijo en 5 minutos, ya no editable (ver
+            // badge "fc-intervalo-badge" en el toolbar) -- antes era un input
+            // numérico libre.
+            const intervalo = 5;
             const rows = document.querySelectorAll('#fc-table-body .fc-row');
             const now = new Date();
             let fecha = '';
@@ -4181,11 +4160,20 @@
               gestas: int('gestas') || 1,
               nombre_acompanante: val('nombre_acompanante') || null,
               tipo_parto: val('tipo_parto') || null,
+              hora_parto: val('hora_parto') || null,
               episiotomia: getRadio('episiotomia'),
               tipo_alumbramiento: val('tipo_alumbramiento') || null,
               globo_seguridad: val('globo_seguridad') || null,
               sangrado_cuantificado_cc: int('sangrado_cuantificado_cc'),
               sutura_heridas: val('sutura_heridas') || null,
+              // 2026-09-14: antes el nombre de "RESPONSABLE DEL REGISTRO"
+              // (signature-name) solo se guardaba si además se dibujaba una
+              // firma a mano (ver persistSignatureIfPresent) -- si la
+              // enfermera solo lo escribía y guardaba el formulario normal,
+              // nunca llegaba a nombre_firma_paciente, así que el PDF no
+              // tenía de dónde tomar el responsable. Ahora viaja siempre en
+              // el guardado normal, sin depender de que exista una firma.
+              nombre_firma_paciente: val('signature-name') || null,
               controles_postparto: buildPostpartoData(),
               controles_fetocardia: buildFetocardiaData(),
               // Solo viaja en la creación inicial (ver submitForm: se borra en
@@ -4194,42 +4182,7 @@
               controles_sangrado: sangradoRegistros.filter(r => !r.id).map(r => ({
                 minuto_control: r.minuto, hora: r.hora, cc: Math.round(r.cc),
               })),
-              // Firma Profesional DGH
-              profesional_nombre: val('profesional_nombre') || null,
-              profesional_identificacion: val('profesional_identificacion_hidden') || null,
-              profesional_tarjeta_pro: val('profesional_tarjeta_pro') || null,
-              firma_profesional_base64: val('firma_profesional_base64') || null,
             };
-          }
-
-          async function loadMiFirmaDGH() {
-            if (savedRegistroId) return; // No cargar automáticamente en edición
-            if (!document.getElementById('profesional-firma-placeholder')) return; // Sección removida
-            const placeholder = document.getElementById('profesional-firma-placeholder');
-            try {
-              const res = await fetch(`${API_BASE}/registros/mi-firma/`, { credentials: 'same-origin' });
-              const data = await res.json().catch(() => ({}));
-              if (res.ok && data.firma_b64) {
-                document.getElementById('profesional-firma-img').src = data.firma_b64;
-                document.getElementById('profesional-firma-img').style.display = 'block';
-                document.getElementById('profesional-firma-placeholder').style.display = 'none';
-                document.getElementById('profesional-nombre-label').innerText = data.nombre || '—';
-                document.getElementById('profesional-id-label').innerText = data.identificacion || '—';
-                document.getElementById('profesional-tp-label').innerText = data.tarjeta_pro || '—';
-
-                document.getElementById('profesional_nombre').value = data.nombre || '';
-                document.getElementById('profesional_identificacion_hidden').value = data.identificacion || '';
-                document.getElementById('profesional_tarjeta_pro').value = data.tarjeta_pro || '';
-                document.getElementById('firma_profesional_base64').value = data.firma_b64;
-
-                const sigNameInput = document.getElementById('signature-name');
-                if (sigNameInput && !sigNameInput.value) sigNameInput.value = data.nombre || '';
-              } else {
-                if (placeholder) placeholder.innerText = (data.message || 'Sin firma en DGH');
-              }
-            } catch (err) {
-              if (placeholder) placeholder.innerText = 'Sin firma en DGH';
-            }
           }
 
           function validate(payload) {
@@ -4254,7 +4207,7 @@
             nombre_paciente: 'nombre_paciente', identificacion: 'identificacion',
             edad_gestacional: 'edad_gestacional', gestas: 'gestas',
             nombre_acompanante: 'nombre_acompanante', tipo_parto: 'tipo_parto',
-            tipo_alumbramiento: 'tipo_alumbramiento',
+            hora_parto: 'hora_parto', tipo_alumbramiento: 'tipo_alumbramiento',
           };
           const CAMPO_MAP_PP = {
             fecha: 'fecha', hora: 'hora', tension_arterial: 'ta', temperatura: 'temp',
@@ -4455,9 +4408,6 @@
                 marcarControlesGuardados(data);
               }
 
-              // Guardar automáticamente la firma del responsable, si ya fue dibujada
-              await persistSignatureIfPresent();
-
               showToast('✅ Registro guardado correctamente (ID: ' + savedRegistroId.substring(0, 8) + '...)', 'success');
               btn.innerHTML = '✅ Guardado';
               btn.style.color = 'var(--success-color)';
@@ -4507,6 +4457,7 @@
               document.getElementById('gestas').value = (data.gestas != null && data.gestas !== '') ? String(data.gestas) : '1';
               document.getElementById('nombre_acompanante').value = (data.nombre_acompanante != null && data.nombre_acompanante !== '') ? String(data.nombre_acompanante) : '';
               document.getElementById('tipo_parto').value = data.tipo_parto || '';
+              document.getElementById('hora_parto').value = data.hora_parto || '';
               document.querySelector(`input[name="episiotomia"][value="${!!data.episiotomia}"]`)?.click();
               document.getElementById('tipo_alumbramiento').value = data.tipo_alumbramiento || '';
               const globoSel = document.getElementById('globo_seguridad');
@@ -4544,59 +4495,6 @@
               const idRaw = (data.identificacion != null && data.identificacion !== '') ? String(data.identificacion) : '';
               document.getElementById('paciente_id').value = idRaw.replace(/\D/g, '');
               document.getElementById('formulario_id').value = data.id;
-
-              if (data.firma_paciente) {
-                updateSignatureStatus(true);
-              } else {
-                updateSignatureStatus(false);
-              }
-
-              // Sincronizar firma en pestaña de huella
-              const sigPad = document.getElementById('signature-pad-container');
-              const sigDisplay = document.getElementById('huella-signature-container');
-              const sigImg = document.getElementById('huella-signature-img');
-              const sigName = document.getElementById('huella-signature-name');
-              const sigDate = document.getElementById('huella-signature-date');
-
-              if (data.firma_paciente) {
-                sigPad.style.display = 'none';
-                sigDisplay.style.display = 'flex';
-                sigImg.src = data.firma_paciente;
-
-                let displaySigName = fixMojibakeText((data.nombre_firma_paciente || '').trim());
-                const displayProfName = fixMojibakeText((data.profesional_nombre || '').trim());
-                displaySigName = displaySigName || displayProfName || '—';
-
-                sigName.textContent = displaySigName;
-                sigDate.textContent = data.fecha_hora_firma ? 'Firmado el: ' + new Date(data.fecha_hora_firma).toLocaleString() : '';
-              } else {
-                sigPad.style.display = 'flex';
-                sigDisplay.style.display = 'none';
-              }
-
-              // Datos del Profesional (DGH) — sección removida del HTML actual;
-              // se protege con este guard para no interrumpir el resto de
-              // cargarRegistro() (fetocardia, etc.) si los elementos no existen.
-              if (document.getElementById('profesional-firma-placeholder')) {
-                if (data.firma_profesional_base64) {
-                  document.getElementById('profesional-firma-img').src = data.firma_profesional_base64;
-                  document.getElementById('profesional-firma-img').style.display = 'block';
-                  document.getElementById('profesional-firma-placeholder').style.display = 'none';
-                  document.getElementById('profesional-nombre-label').innerText = data.profesional_nombre || '—';
-                  document.getElementById('profesional-id-label').innerText = data.profesional_identificacion || '—';
-                  document.getElementById('profesional-tp-label').innerText = data.profesional_tarjeta_pro || '—';
-
-                  // Set hidden fields
-                  document.getElementById('profesional_nombre').value = data.profesional_nombre || '';
-                  document.getElementById('profesional_identificacion_hidden').value = data.profesional_identificacion || '';
-                  document.getElementById('profesional_tarjeta_pro').value = data.profesional_tarjeta_pro || '';
-                  document.getElementById('firma_profesional_base64').value = data.firma_profesional_base64 || '';
-                } else {
-                  // Si es un registro previo sin firma guardada, intentar cargar la del usuario actual
-                  loadMiFirmaDGH();
-                }
-              }
-
 
               if (data.controles_postparto && data.controles_postparto.length > 0) {
                 document.querySelectorAll('.pp-input').forEach(el => { el.removeAttribute('data-pp-saved'); el.removeAttribute('data-pp-id'); el.disabled = false; });
@@ -4743,12 +4641,6 @@
               }
             });
 
-            // Signature Pad Logic
-            initSignaturePad();
-
-            // Cargar firma del profesional responsable (DGH)
-            loadMiFirmaDGH();
-
             // Si viene doc desde la card de atencion, poblar datos del paciente
             const docFromUrl = "{{ documento|default:''|escapejs }}".trim();
             if (docFromUrl) {
@@ -4766,136 +4658,12 @@
                     if (eg) eg.value = (data.edad_gestacional != null && data.edad_gestacional !== '') ? String(data.edad_gestacional) : '';
                     if (gest) gest.value = (data.gestas != null && data.gestas !== '') ? String(data.gestas) : '1';
                     if (nac) nac.value = (data.nombre_acompanante || '').trim();
-                    // signature-name should be set by loadMiFirmaDGH or remain empty for the profesional to sign
                   }
                 })
                 .catch(() => {});
             }
           });
 
-          // Signature Pad Implementation
-          let signaturePad = null;
-
-          function initSignaturePad() {
-            const canvas = document.getElementById('signature-canvas');
-            if (!canvas) return;
-
-            signaturePad = new SignaturePad(canvas, {
-              backgroundColor: 'rgb(255, 255, 255)',
-              penColor: 'rgb(0, 0, 0)'
-            });
-
-            signaturePad.onEnd = function () {
-              updateSignatureStatus(true);
-            };
-
-            // Attempt initial resize
-            resizeSignatureCanvas();
-            window.addEventListener("resize", resizeSignatureCanvas);
-          }
-
-          function resizeSignatureCanvas() {
-            const canvas = document.getElementById('signature-canvas');
-            if (!canvas || !signaturePad) return;
-
-            const ratio = Math.max(window.devicePixelRatio || 1, 1);
-            const w = canvas.offsetWidth;
-            const h = canvas.offsetHeight;
-
-            // Only resize if visible and size changed
-            if (w > 0 && h > 0) {
-              if (canvas.width !== w * ratio || canvas.height !== h * ratio) {
-                canvas.width = w * ratio;
-                canvas.height = h * ratio;
-                canvas.getContext("2d").scale(ratio, ratio);
-                signaturePad.clear();
-                updateSignatureStatus(false);
-              }
-            }
-          }
-
-          function updateSignatureStatus(isSigned) {
-            const badge = document.getElementById('signature-signed-status');
-            const nameInput = document.getElementById('signature-name');
-            if (!badge) return;
-            if (isSigned) {
-              const name = nameInput ? nameInput.value.trim() : '';
-              badge.innerHTML = `<i data-lucide="check-circle-2" style="width:14px;height:14px"></i> Firma lista ${name ? 'por ' + name : ''}`;
-              badge.classList.add('signed');
-            } else {
-              badge.innerHTML = '<i data-lucide="info" style="width:14px;height:14px"></i> Sin firmar';
-              badge.classList.remove('signed');
-            }
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-          }
-
-          function clearSignature() {
-            if (signaturePad) {
-              signaturePad.clear();
-              updateSignatureStatus(false);
-            }
-          }
-
-          function resetSignatureView() {
-            document.getElementById('signature-pad-container').style.display = 'flex';
-            document.getElementById('huella-signature-container').style.display = 'none';
-            clearSignature();
-          }
-
-          // Guarda la firma dibujada (si hay una) contra el registro ya guardado.
-          // Se invoca automáticamente al final de submitForm() para no requerir un botón aparte.
-          async function persistSignatureIfPresent() {
-            if (!savedRegistroId) return;
-            if (!signaturePad || signaturePad.isEmpty()) return; // nada que firmar, no es un error
-
-            const name = document.getElementById('signature-name').value.trim();
-            if (!name) {
-              showToast('Registro guardado. Falta el nombre del responsable para guardar la firma.', 'error');
-              return;
-            }
-
-            try {
-              const signatureB64 = signaturePad.toDataURL();
-              const res = await fetch(`${API_BASE}/guardar-firma/`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({
-                  registro_id: savedRegistroId,
-                  firma: signatureB64,
-                  nombre_responsable: name
-                })
-              });
-
-              if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || 'Error al guardar la firma.');
-              }
-
-              // Actualizar vista en pestaña de huella inmediatamente
-              const sigPad = document.getElementById('signature-pad-container');
-              const sigDisplay = document.getElementById('huella-signature-container');
-              if (sigDisplay) {
-                sigPad.style.display = 'none';
-                sigDisplay.style.display = 'flex';
-                const sigImg = document.getElementById('huella-signature-img');
-                if (sigImg) sigImg.src = signatureB64;
-                const sigName = document.getElementById('huella-signature-name');
-                if (sigName) sigName.textContent = fixMojibakeText(name);
-                const sigDate = document.getElementById('huella-signature-date');
-                if (sigDate) sigDate.textContent = 'Firmado el: ' + new Date().toLocaleString();
-              }
-
-              // Automatización: Generar PDF firmado
-              setTimeout(() => {
-                showToast('Generando PDF firmado...', 'info');
-                descargarPDF();
-              }, 1000);
-
-            } catch (err) {
-              console.error(err);
-              showToast('Registro guardado, pero la firma no pudo guardarse: ' + err.message, 'error');
-            }
-          }
           window.submitform = window.submitForm; // Alias para evitar errores de mayúsculas
         </script>
       </div>

@@ -1,0 +1,13 @@
+Opción A: Servidor Windows propio (del hospital)
+Por qué encaja natural con lo que ya tienes: tu stack entero ya es Windows — SQL Server Express vía mssql-django/pyodbc, y las dos tareas de sincronización con Nexus corren como Tareas Programadas de Windows ejecutando .bat → venv\Scripts\python.exe. Con esta opción no tocas nada de esa arquitectura, solo la mueves del PC de desarrollo a un servidor real.
+
+Qué falta hacer:
+
+Servidor Windows del hospital con acceso de red al SQL Server de producción y al Nexus real (no el de pruebas).
+Instalar Python + crear el venv ahí, pip install -r requirements.txt.
+.env de producción: DEBUG=False, SECRET_KEY nueva, ALLOWED_HOSTS real, credenciales reales de Nexus y de SQL Server.
+En vez de manage.py runserver (servidor de desarrollo, no apto para producción), usar waitress (servidor WSGI puro-Python, funciona bien en Windows sin compilar nada) corriendo como Servicio de Windows (con NSSM, para que arranque solo y se reinicie si falla).
+IIS o un reverse proxy delante para HTTPS con certificado real.
+Recrear las 2 Tareas Programadas en el servidor nuevo — con las rutas bien citadas entre comillas (la lección que ya aprendimos hoy con el bug del sync de FCF).
+Backups: SQL Server (plan de mantenimiento) + carpeta media/ (firmas y huellas — son datos clínicos reales).
+Esfuerzo: bajo-medio. Es básicamente "mismo stack, servidor real". Es la ruta más directa desde donde estás hoy.

@@ -12,16 +12,6 @@ function getMeowsUrl(key, fallback = '') {
     return urls[key] || fallback;
 }
 
-function getApiGuardarBiometriaUrl() {
-    const explicit = getMeowsUrl('apiGuardarHuella', '');
-    if (explicit) return explicit;
-    const buscar = getMeowsUrl('apiBuscarPaciente', '/fetal/meows/api/buscar-paciente/');
-    if (buscar.includes('/api/buscar-paciente/')) {
-        return buscar.replace('/api/buscar-paciente/', '/api/save-biometrics/');
-    }
-    return '/fetal/meows/api/save-biometrics/';
-}
-
 function buildUrlFromTemplate(template, value, placeholder = '__PACIENTE_ID__') {
     if (!template) return '';
     const valor = encodeURIComponent(String(value ?? '').trim());
@@ -109,10 +99,10 @@ const MEOWS_RANGOS_FALLBACK = {
 
 // Mensajes de conducta por riesgo
 const CONDUCTAS = {
-    'BLANCO': 'RUTINA:  OBSERVACION -Minimo 12 horas de Observacion',
-    'VERDE': 'RIESGO BAJO OBSERVACION: mínimo cada 4 horas. LLAMADO: Enfermera a cargo',
-    'AMARILLO': 'RIESGO INTERMEDIO: OBSERVACION -Minnimo cada hora LLAMADO: Urgente al equipo medico al de la paciente con las competencias para manejo de la emergencia obstetrica',
-    'ROJO': 'RIESGO ALTO: OBSERVACION Monitoreo continuo de signos vitales LLAMADO :Emergente al equipo con conpetencias en estado critico y habilidades para el diagnostico'
+    'BLANCO': 'RUTINA: OBSERVACIÓN — MÍNIMO 12 HORAS DE OBSERVACIÓN.',
+    'VERDE': 'RIESGO BAJO: OBSERVACIÓN — MÍNIMO CADA 4 HORAS.\nLLAMADO: ENFERMERA A CARGO.',
+    'AMARILLO': 'RIESGO INTERMEDIO: OBSERVACIÓN — MÍNIMO CADA HORA.\nLLAMADO: URGENTE AL EQUIPO MÉDICO A CARGO DE LA PACIENTE, CON COMPETENCIAS PARA EL MANEJO DE LA EMERGENCIA OBSTÉTRICA.',
+    'ROJO': 'RIESGO ALTO: OBSERVACIÓN — MONITOREO CONTINUO DE SIGNOS VITALES.\nLLAMADO: EMERGENTE AL EQUIPO CON COMPETENCIAS EN ESTADO CRÍTICO Y HABILIDADES PARA EL DIAGNÓSTICO.'
 };
 
 /**
@@ -609,86 +599,6 @@ function sincronizarCamposPaciente() {
     });
 }
 
-function actualizarVistaFirmaPaciente(imagenFirmaUrl, estadoTexto = "Firma registrada") {
-    const firmaImg = document.getElementById("imgFirma");
-    const firmaContainer = document.getElementById("firma-container-preview");
-    const firmaEstado = document.getElementById("estadoFirma");
-
-    if (!imagenFirmaUrl) {
-        if (firmaContainer) firmaContainer.style.display = "none";
-        if (firmaEstado) {
-            firmaEstado.textContent = "Sin firmar";
-            firmaEstado.style.color = "";
-            firmaEstado.style.background = "";
-        }
-        return;
-    }
-
-    const timestampedUrl = `${imagenFirmaUrl}?t=${Date.now()}`;
-    if (firmaImg) {
-        firmaImg.src = timestampedUrl;
-        firmaImg.style.setProperty('display', 'block', 'important');
-    }
-    if (firmaContainer) {
-        firmaContainer.style.setProperty('display', 'flex', 'important');
-        firmaContainer.classList.add('is-visible');
-    }
-    if (firmaEstado) {
-        firmaEstado.textContent = estadoTexto;
-        firmaEstado.style.color = "#27ae60";
-        firmaEstado.style.background = "#e8f5e9";
-    }
-
-}
-
-async function refrescarFirmaPaciente(documento, opts = {}) {
-    const { silencioso = true, estado = "Firma registrada" } = opts;
-    const pacienteDoc = (documento || '').trim();
-    if (!pacienteDoc) return false;
-
-    const btnRefrescar = document.getElementById('btn-refrescar-firma');
-    const originalText = btnRefrescar ? btnRefrescar.innerHTML : '';
-    if (btnRefrescar) {
-        btnRefrescar.disabled = true;
-        btnRefrescar.innerHTML = '<span class="btn-icon">⏳</span>Actualizando...';
-    }
-
-    try {
-        // No dependemos del endpoint de huella: obtenemos solo la firma desde búsqueda de paciente.
-        const apiBuscar = getMeowsUrl('apiBuscarPaciente', '/api/buscar-paciente/');
-        const response = await fetch(`${apiBuscar}?documento=${encodeURIComponent(pacienteDoc)}&t=${Date.now()}`, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
-            credentials: 'same-origin',
-        });
-
-        if (!response.ok) {
-            actualizarVistaFirmaPaciente(null);
-            if (!silencioso) alert("No hay firma guardada para este paciente.");
-            return false;
-        }
-
-        const data = await response.json();
-        const firmaUrl = data?.paciente?.biometria?.imagen_firma || null;
-        if (data.success && firmaUrl) {
-            actualizarVistaFirmaPaciente(firmaUrl, estado);
-            return true;
-        }
-
-        actualizarVistaFirmaPaciente(null);
-        if (!silencioso) alert("No hay firma guardada para este paciente.");
-        return false;
-    } catch (error) {
-        if (!silencioso) alert("No fue posible refrescar la firma. Intente nuevamente.");
-        return false;
-    } finally {
-        if (btnRefrescar) {
-            btnRefrescar.disabled = false;
-            btnRefrescar.innerHTML = originalText;
-        }
-    }
-}
-
 /**
  * Calcula la edad a partir de la fecha de nacimiento
  */
@@ -995,240 +905,11 @@ function convertirSpo2ASelect() {
     spo2Input.parentNode.replaceChild(select, spo2Input);
 }
 
-/**
- * CLASE PARA MANEJO DE FIRMA DIGITAL
- */
-class FirmaDigital {
-    constructor(canvasId) {
-        this.canvas = document.getElementById(canvasId);
-        if (!this.canvas) return;
-        this.ctx = this.canvas.getContext('2d');
-        this.dibujando = false;
-        this.hayFirma = false;
-        
-        // Ajustar resolución para pantallas retina
-        const ratio = window.devicePixelRatio || 1;
-        this.canvas.width = 400 * ratio;
-        this.canvas.height = 200 * ratio;
-        this.ctx.scale(ratio, ratio);
-        
-        this.ctx.lineWidth = 2;
-        this.ctx.lineJoin = 'round';
-        this.ctx.lineCap = 'round';
-        this.ctx.strokeStyle = '#182848';
-
-        this.initEvents();
-    }
-
-    initEvents() {
-        const getPos = (e) => {
-            const rect = this.canvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            // Factor de escala entre el tamaño visual (rect) y el lógico (400x200)
-            const scaleX = 400 / rect.width;
-            const scaleY = 200 / rect.height;
-            
-            return {
-                x: (clientX - rect.left) * scaleX,
-                y: (clientY - rect.top) * scaleY
-            };
-        };
-
-        const start = (e) => {
-            this.dibujando = true;
-            this.hayFirma = true;
-            const pos = getPos(e);
-            this.ctx.beginPath();
-            this.ctx.moveTo(pos.x, pos.y);
-            e.preventDefault();
-        };
-
-        const move = (e) => {
-            if (!this.dibujando) return;
-            const pos = getPos(e);
-            this.ctx.lineTo(pos.x, pos.y);
-            this.ctx.stroke();
-            e.preventDefault();
-        };
-
-        const stop = () => {
-            this.dibujando = false;
-        };
-
-        this.canvas.addEventListener('mousedown', start);
-        this.canvas.addEventListener('mousemove', move);
-        window.addEventListener('mouseup', stop);
-
-        this.canvas.addEventListener('touchstart', start, { passive: false });
-        this.canvas.addEventListener('touchmove', move, { passive: false });
-        this.canvas.addEventListener('touchend', stop);
-    }
-
-    limpiar() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.hayFirma = false;
-    }
-
-    obtenerBase64() {
-        if (!this.hayFirma) return null;
-        return this.canvas.toDataURL('image/png');
-    }
-}
-
-let firmaPad = null;
-
-/**
- * Lanza el modal de biometría en lugar del deep link directo
- * AHORA: Se comporta como un popover posicionado sobre el botón
- */
-function abrirModalBiometria() {
-    const pacienteDoc = document.getElementById("numero_documento").value;
-    if (!pacienteDoc) {
-        alert("Por favor, ingrese el número de documento del paciente.");
-        return;
-    }
-
-    const btnTrigger = document.getElementById('btn-capturar-huella');
-    const modal = document.getElementById('modal-biometria');
-    
-    if (!btnTrigger || !modal) return;
-
-    // Activar modo popover
-    modal.classList.add('is-popover');
-    
-    // Calcular posición
-    const rect = btnTrigger.getBoundingClientRect();
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
-    // Posicionar encima del botón (850px es el ancho en el CSS)
-    const popoverWidth = 850;
-    let left = rect.left + scrollLeft - (popoverWidth / 2) + (rect.width / 2);
-    let top = rect.top + scrollTop - 480; // Ajuste para que quede arriba del botón
-    
-    // Validar bordes de pantalla
-    if (left < 10) left = 10;
-    if (left + popoverWidth > window.innerWidth - 10) {
-        left = window.innerWidth - popoverWidth - 10;
-    }
-    if (top < 10) top = rect.bottom + scrollTop + 20; // Si no cabe arriba, poner abajo
-
-    modal.style.left = `${left}px`;
-    modal.style.top = `${top}px`;
-    modal.style.display = 'block';
-    
-    // Inicializar Firma si no existe
-    if (!firmaPad) {
-        firmaPad = new FirmaDigital('firma-canvas');
-    } else {
-        firmaPad.limpiar();
-    }
-
-    // Limpiar previews de huella en el modal
-    const preview = document.getElementById('huella-modal-preview');
-    const status = document.getElementById('huella-modal-status');
-    if (preview) preview.innerHTML = '<span class="placeholder-icon">🖱️</span>';
-    if (status) status.innerHTML = 'Esperando captura...';
-
-    // Cerrar al hacer clic fuera
-    const closeOnOutsideClick = (e) => {
-        if (!modal.contains(e.target) && e.target !== btnTrigger && !btnTrigger.contains(e.target)) {
-            modal.style.display = 'none';
-            document.removeEventListener('mousedown', closeOnOutsideClick);
-        }
-    };
-    
-    setTimeout(() => {
-        document.addEventListener('mousedown', closeOnOutsideClick);
-    }, 100);
-}
-
-/**
- * Guarda la firma digital vía API
- */
-async function guardarFirmaDigital() {
-    const b64 = firmaPad.obtenerBase64();
-    if (!b64) {
-        alert("Por favor, el paciente debe firmar primero.");
-        return;
-    }
-
-    const pacienteDoc = document.getElementById("numero_documento").value;
-    const btn = document.getElementById('btn-guardar-firma');
-    const originalText = btn.innerHTML;
-    
-    btn.disabled = true;
-    btn.innerHTML = "Guardando...";
-
-    try {
-        const response = await fetch(getApiGuardarBiometriaUrl(), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                paciente_id: pacienteDoc,
-                firma: b64,
-                usuario: "Sistema"
-            })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            alert("✅ Firma guardada con éxito");
-            btn.innerHTML = "✓ Guardada";
-            btn.classList.replace('btn-success', 'btn-secondary');
-            
-            if (data.imagen_firma) {
-                actualizarVistaFirmaPaciente(data.imagen_firma, "Firma Capturada");
-                await refrescarFirmaPaciente(pacienteDoc, { silencioso: true, estado: "Firma Guardada" });
-
-                // Cerrar modal automáticamente después de un pequeño delay
-                setTimeout(() => {
-                    const modal = document.getElementById('modal-biometria');
-                    if (modal) modal.style.display = 'none';
-                }, 1500);
-            }
-        } else {
-            throw new Error("Error al guardar");
-        }
-    } catch (err) {
-        alert("❌ Error al conectar con el servidor");
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-    }
-}
-
-/**
- * Polling mejorado para el modal y la vista principal
- */
-function iniciarPollingHuellaModal(pacienteDoc) {
-    // Huella deshabilitada en este desarrollo.
-    // Se mantiene la función para compatibilidad con llamadas legacy.
-    if (pacienteDoc) {
-        refrescarFirmaPaciente(pacienteDoc, { silencioso: true, estado: "Firma actualizada" });
-    }
-}
-
-/**
- * Lanza la captura de huella vía Deep Link
- */
-function capturarHuella() {
-    const pacienteDoc = document.getElementById("numero_documento").value;
-    
-    if (!pacienteDoc) {
-        alert("Por favor, ingrese el número de documento del paciente.");
-        return;
-    }
-    refrescarFirmaPaciente(pacienteDoc, { silencioso: false, estado: "Firma actualizada" });
-}
-
-/**
- * Redirige a la función de polling unificada
- */
-function iniciarPollingHuella(pacienteDoc) {
-    iniciarPollingHuellaModal(pacienteDoc);
-}
+// 2026-09-14: se eliminaron la clase FirmaDigital (canvas de firma a mano),
+// abrirModalBiometria/guardarFirmaDigital y el polling de huella/firma
+// (iniciarPollingHuellaModal/capturarHuella/iniciarPollingHuella) -- captura
+// de firma/huella biométrica retirada a pedido explícito, antes de salir a
+// producción.
 
 /**
  * Inicializa los event listeners
@@ -1305,21 +986,6 @@ async function inicializar() {
             }
         });
         if (numeroDocumentoInput.value.trim()) buscarPacienteUnificadoMeows();
-    }
-
-    // Mostrar/actualizar usuario responsable en la card de firma
-    const responsableInput = document.getElementById('responsable');
-    if (responsableInput) {
-        const nombreFirmaSpan = document.getElementById('nombre-firma-paciente');
-        if (nombreFirmaSpan) {
-            nombreFirmaSpan.textContent = responsableInput.value || '—';
-        }
-        responsableInput.addEventListener('input', function() {
-            const nombreFirmaSpan = document.getElementById('nombre-firma-paciente');
-            if (nombreFirmaSpan) {
-                nombreFirmaSpan.textContent = this.value || '—';
-            }
-        });
     }
 
     async function procesarCambioParametro(input, usarApi = false) {
@@ -1463,66 +1129,6 @@ async function inicializar() {
         });
     }
 
-    // Botón capturar huella (ahora abre modal)
-    const btnCapturarHuella = document.getElementById('btn-capturar-huella');
-    if (btnCapturarHuella) {
-        btnCapturarHuella.removeEventListener('click', capturarHuella); // Limpiar anterior
-        btnCapturarHuella.addEventListener('click', abrirModalBiometria);
-    }
-
-    const btnRefrescarFirma = document.getElementById('btn-refrescar-firma');
-    if (btnRefrescarFirma) {
-        btnRefrescarFirma.addEventListener('click', async () => {
-            const doc = (document.getElementById("numero_documento")?.value || '').trim();
-            if (!doc) {
-                alert("Ingrese el documento del paciente para refrescar la firma.");
-                return;
-            }
-            await refrescarFirmaPaciente(doc, { silencioso: false, estado: "Firma actualizada" });
-        });
-    }
-
-    // Eventos del Modal
-    const btnCerrarModal = document.getElementById('btn-cerrar-modal-biometria');
-    if (btnCerrarModal) {
-        btnCerrarModal.addEventListener('click', () => {
-            document.getElementById('modal-biometria').style.display = 'none';
-        });
-    }
-
-    const btnFinalizar = document.getElementById('btn-finalizar-biometria');
-    if (btnFinalizar) {
-        btnFinalizar.addEventListener('click', () => {
-            document.getElementById('modal-biometria').style.display = 'none';
-        });
-    }
-
-    const btnGuardarFirma = document.getElementById('btn-guardar-firma');
-    if (btnGuardarFirma) {
-        btnGuardarFirma.addEventListener('click', guardarFirmaDigital);
-    }
-
-    const btnLimpiarFirma = document.getElementById('btn-limpiar-firma');
-    if (btnLimpiarFirma) {
-        btnLimpiarFirma.addEventListener('click', () => {
-            if (firmaPad) firmaPad.limpiar();
-            const btnG = document.getElementById('btn-guardar-firma');
-            btnG.disabled = false;
-            btnG.innerHTML = "Guardar Firma";
-            btnG.classList.replace('btn-secondary', 'btn-success');
-        });
-    }
-
-    const btnTriggerHuellaModal = document.getElementById('btn-trigger-huella-modal');
-    if (btnTriggerHuellaModal) {
-        btnTriggerHuellaModal.addEventListener('click', capturarHuella);
-    }
-
-    // Si la vista abre con un paciente ya cargado, mostrar su firma guardada.
-    const docInicial = (document.getElementById("numero_documento")?.value || '').trim();
-    if (docInicial) {
-        refrescarFirmaPaciente(docInicial, { silencioso: true, estado: "Firma Histórica" });
-    }
 }
 
 // Inicializar cuando el DOM esté listo

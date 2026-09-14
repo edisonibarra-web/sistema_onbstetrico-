@@ -48,6 +48,7 @@ class RegistroParto(models.Model):
     )
 
     # Datos del parto
+    hora_parto = models.TimeField(blank=True, null=True, verbose_name="Hora de Parto")
     tipo_parto = models.CharField(max_length=20, choices=PARTO_CHOICES, blank=True, null=True)
     episiotomia = models.BooleanField(default=False, verbose_name="Episiotomía")
     tipo_alumbramiento = models.CharField(
@@ -68,20 +69,18 @@ class RegistroParto(models.Model):
         verbose_name="Sutura y heridas (descarte de hematomas e infección)"
     )
 
-    # Firma digital del responsable
-    firma_paciente = models.ImageField(
-        upload_to='firmas/',
-        blank=True, null=True,
-        verbose_name="Firma del Responsable"
-    )
-    nombre_firma_paciente = models.CharField(max_length=200, blank=True, null=True, verbose_name="Nombre del Responsable que firma")
-    fecha_hora_firma = models.DateTimeField(blank=True, null=True)
+    # 2026-09-14: se eliminó la captura de firma/huella biométrica (imagen
+    # dibujada, firma del profesional en base64) a pedido explícito, antes de
+    # salir a producción. `nombre_firma_paciente` se conserva -- es el nombre
+    # en texto de "RESPONSABLE DEL REGISTRO" (dato clínico normal, no
+    # biometría), y sigue siendo lo que se imprime en el PDF.
+    nombre_firma_paciente = models.CharField(max_length=200, blank=True, null=True, verbose_name="Nombre del Responsable del Registro")
 
-    # Datos del profesional responsable (DGH)
+    # Datos del profesional responsable (DGH) -- solo identificación en texto,
+    # sin la firma capturada (ver nota arriba).
     profesional_nombre = models.CharField(max_length=200, blank=True, null=True)
     profesional_identificacion = models.CharField(max_length=50, blank=True, null=True)
     profesional_tarjeta_pro = models.CharField(max_length=50, blank=True, null=True)
-    firma_profesional_base64 = models.TextField(blank=True, null=True, verbose_name="Firma del Profesional (Base64)")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -241,17 +240,8 @@ class ControlRecienNacido(models.Model):
     neonato_atendido_por = models.CharField(max_length=200, blank=True, null=True)
     valorado_pediatra = models.BooleanField(default=False, verbose_name="Valorado por Pediatra antes del Egreso")
 
-    # Huella del pie del recién nacido (imagen)
-    huella_pie = models.ImageField(
-        upload_to='huellas_pie/%Y/%m/',
-        blank=True, null=True,
-        verbose_name="Huella del Pie del Recién Nacido"
-    )
-    # Alternativamente como base64 para captura directa desde dispositivo
-    huella_pie_base64 = models.TextField(
-        blank=True, null=True,
-        verbose_name="Huella del Pie (Base64)"
-    )
+    # 2026-09-14: se eliminó la captura de huella plantar del recién nacido
+    # (foto/base64) a pedido explícito, antes de salir a producción.
 
     class Meta:
         verbose_name = "Control del Recién Nacido"
@@ -335,43 +325,9 @@ class ControlPostpartoInmediato(models.Model):
         verbose_name_plural = "Controles Postparto Inmediato"
         ordering = ['fecha', 'hora']
 
-class HuellaBebe(models.Model):
-    bebe_id = models.IntegerField()
-    tipo = models.CharField(
-        max_length=20,
-        choices=[
-            ("derecho", "Pie Derecho"),
-            ("izquierdo", "Pie Izquierdo")
-        ]
-    )
-    imagen = models.ImageField(upload_to="huellas_bebe/")
-    fecha = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Huella {self.tipo} - Bebe {self.bebe_id}"
-
-
-class FirmaPaciente(models.Model):
-    formulario = models.ForeignKey('RegistroParto', on_delete=models.CASCADE, null=True, blank=True, related_name='firmas')
-    paciente_id = models.IntegerField()
-    template_huella = models.TextField()
-    imagen_huella = models.ImageField(upload_to="huellas/", null=True, blank=True)
-    fecha = models.DateTimeField(auto_now_add=True)
-    usuario = models.CharField(max_length=100)
-
-    def __str__(self):
-        return f"Paciente {self.paciente_id} - Form {self.formulario} - {self.fecha}"
-
-class Huella(models.Model):
-    documento = models.CharField(max_length=50, verbose_name="Identificación del Paciente")
-    template = models.TextField(verbose_name="Template de la Huella")
-    imagen_huella = models.ImageField(upload_to="huellas_biometricas/", null=True, blank=True)
-    fecha = models.DateTimeField(auto_now_add=True)
-    usuario = models.CharField(max_length=100, default="SYSTEM")
-
-    class Meta:
-        verbose_name = "Huella Biométrica"
-        verbose_name_plural = "Huellas Biométricas"
+# 2026-09-14: se eliminaron HuellaBebe, FirmaPaciente y Huella (modelos de
+# captura de huella/firma biométrica) a pedido explícito, antes de salir a
+# producción.
 
 
 class IntentoLoginFallido(models.Model):
@@ -407,7 +363,3 @@ class IntentoLoginFallido(models.Model):
 
     def __str__(self):
         return f"{self.ip} -> '{self.username}' ({self.creado:%Y-%m-%d %H:%M:%S})"
-        ordering = ['-fecha']
-
-    def __str__(self):
-        return f"Huella Paciente {self.documento} - {self.fecha}"

@@ -12,15 +12,11 @@ from meows.services.grid import construir_grid_meows
 # Importación diferida del generador PDF para evitar errores de WeasyPrint al iniciar
 # from meows.generador_pdf_meows import generar_pdf_meows
 import json
-import base64
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
-from django.core.files.base import ContentFile
-from meows.models import FirmaPaciente
 from datetime import date, datetime, timedelta
 from django.utils import timezone
 from django.utils.timesince import timesince
-from sistema_obstetrico.auth_utils import login_required_if_enabled
+from sistema_obstetrico.auth_utils import login_required_if_enabled, nombre_profesional_sesion
 
 
 @login_required_if_enabled
@@ -400,7 +396,7 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
         "ultima_lectura_dinamica": ultima_lectura_dinamica,
         "atencion_id": request.GET.get("atencion") or (medicion_editar.atencion_id if medicion_editar else None),
         "documento": request.GET.get("doc") or paciente.numero_documento,
-        "profesional_nombre_sesion": request.session.get('dgh_info', {}).get('nombre_completo') or '',
+        "profesional_nombre_sesion": nombre_profesional_sesion(request),
     })
 
 
@@ -584,38 +580,14 @@ def api_buscar_paciente(request):
             'error': 'Número de documento requerido'
         }, status=400)
 
-    # Buscar biometría (Firma y Huella independientes para asegurar visualización completa)
-    # Buscamos por documento original y por documento sin ceros (lstrip) por si acaso
-    documento_limpio = numero_documento.lstrip('0') or '0'
-    IDs_busqueda = [numero_documento]
-    if documento_limpio != numero_documento:
-        IDs_busqueda.append(documento_limpio)
-        
-    # Intentar en FirmaPaciente (meows) - SOLAMENTE EN ESTE MÓDULO como solicitó el usuario
-    huella_reciente = FirmaPaciente.objects.filter(paciente_id__in=IDs_busqueda).exclude(imagen_huella=None).exclude(imagen_huella='').order_by('-fecha').first()
-    firma_reciente = FirmaPaciente.objects.filter(paciente_id__in=IDs_busqueda).exclude(imagen_firma=None).exclude(imagen_firma='').order_by('-fecha').first()
-    
-    import os
-    
-    huella_url = None
-    if huella_reciente and huella_reciente.imagen_huella:
-        try:
-            if os.path.exists(huella_reciente.imagen_huella.path):
-                huella_url = huella_reciente.imagen_huella.url
-        except Exception:
-            pass
-
-    firma_url = None
-    if firma_reciente and firma_reciente.imagen_firma:
-        try:
-            if os.path.exists(firma_reciente.imagen_firma.path):
-                firma_url = firma_reciente.imagen_firma.url
-        except Exception:
-            pass
-            
+    # 2026-09-14: se eliminó la captura de firma/huella biométrica (a pedido
+    # explícito, antes de salir a producción -- ver meows.models sin
+    # FirmaPaciente). Se deja la clave 'biometria' en null por compatibilidad
+    # con cualquier consumidor que todavía la lea, en vez de quitarla y
+    # arriesgar un KeyError en el frontend.
     biometria_data = {
-        'imagen_huella': huella_url,
-        'imagen_firma': firma_url,
+        'imagen_huella': None,
+        'imagen_firma': None,
     }
 
     try:
@@ -882,7 +854,7 @@ def historial_meows_paciente(request, paciente_id):
         "documento": documento,
         # Nombre del profesional en sesión, para precargar el campo
         # "Responsable" (mismo criterio que Trabajo de Parto / Control Posparto).
-        "profesional_nombre_sesion": request.session.get('dgh_info', {}).get('nombre_completo') or '',
+        "profesional_nombre_sesion": nombre_profesional_sesion(request),
     })
 
 
@@ -920,161 +892,6 @@ def generar_pdf_meows_paciente(request, paciente_id):
     return generar_pdf_meows(paciente, mediciones, responsable=responsable)
 
 
-@login_required_if_enabled
-@csrf_exempt
-def guardar_huella(request):
-    """
-    Recibe la huella desde la App Android.
-    """
-    if request.method == "POST":
-        try:
-            # Intentar obtener datos de JSON (Android enviará JSON en el body)
-            data = {}
-            if request.body:
-                data = json.loads(request.body)
-            
-            # --- TRASA SOLICITADA POR EL USUARIO ---
-            print("\n" + "="*50)
-            print(f"DATOS JSON RECIBIDOS: {list(data.keys())}")
-            for key, value in data.items():
-                length = len(str(value)) if value else 0
-                print(f"Campo JSON: {key}, Longitud: {length}")
-            
-            # Mostrar si llegan archivos (multipart/form-data)
-            archivos = list(request.FILES.keys())
-            print(f"ARCHIVOS RECIBIDOS (FILES): {archivos}")
-            print("="*50 + "\n")
-            # --------------------------------------
-
-            # Extraer campos del JSON
-            paciente_id = data.get("paciente_id")
-            formulario_id = data.get("formulario_id")
-            template = data.get("template")
-            
-            # Soporte para ambas llaves: 'imagen' (web) o 'imagen_huella' (Android)
-            imagen_b64 = data.get("imagen_huella") or data.get("imagen")
-            firma_b64 = data.get("firma")
-            usuario = data.get("usuario", "Sistema")
-            
-            print(f"DEBUG: paciente_id={paciente_id}, firma_b64_len={len(str(firma_b64)) if firma_b64 else 0}")
-
-            if not paciente_id:
-                return JsonResponse({"status": "error", "message": "paciente_id es requerido"}, status=400)
-
-            # Crear o actualizar el registro biométrico (Module-specific logic)
-            # Buscamos si ya existe para este paciente en este módulo para actualizarlo
-            registro, created = FirmaPaciente.objects.update_or_create(
-                paciente_id=str(paciente_id),
-                defaults={
-                    'formulario_id': str(formulario_id) if formulario_id else None,
-                    'template_huella': template if template else "",
-                    'usuario': str(usuario)
-                }
-            )
-
-            # Decodificar y guardar la imagen de la huella
-            if imagen_b64:
-                try:
-                    if ';base64,' in str(imagen_b64):
-                        _, imgstr = str(imagen_b64).split(';base64,')
-                    else:
-                        imgstr = str(imagen_b64)
-                    
-                    archivo_huella = ContentFile(base64.b64decode(imgstr), name=f"huella_{paciente_id}.png")
-                    # Para FileField/ImageField, el save() del campo ya hace el commit al modelo si save=True
-                    registro.imagen_huella.save(f"huella_{paciente_id}.png", archivo_huella, save=True)
-                except Exception as e_img:
-                    print(f"Error procesando imagen_huella: {e_img}")
-                    return JsonResponse({"status": "error", "message": f"Error en huella: {str(e_img)}"}, status=500)
-
-            # Decodificar y guardar la imagen de la firma
-            if firma_b64:
-                try:
-                    if ';base64,' in str(firma_b64):
-                        _, imgstr = str(firma_b64).split(';base64,')
-                    else:
-                        imgstr = str(firma_b64)
-                    
-                    archivo_firma = ContentFile(base64.b64decode(imgstr), name=f"firma_{paciente_id}.png")
-                    registro.imagen_firma.save(f"firma_{paciente_id}.png", archivo_firma, save=True)
-                except Exception as e_sig:
-                    print(f"Error procesando firma: {e_sig}")
-                    return JsonResponse({"status": "error", "message": f"Error en firma: {str(e_sig)}"}, status=500)
-
-            return JsonResponse({
-                "status": "ok", 
-                "message": "Datos biométricos guardados correctamente",
-                "id": registro.id,
-                "imagen_huella": registro.imagen_huella.url if registro.imagen_huella else None,
-                "imagen_firma": registro.imagen_firma.url if registro.imagen_firma else None,
-            })
-            
-        except json.JSONDecodeError:
-            return JsonResponse({"status": "error", "message": "JSON inválido"}, status=400)
-        except Exception as e:
-            import traceback
-            print(traceback.format_exc())
-            return JsonResponse({"status": "error", "message": str(e)}, status=500)
-    
-    return JsonResponse({"status": "error", "message": "Método no permitido"}, status=405)
-
-
-@login_required_if_enabled
-def ultima_huella(request, paciente_id):
-    """
-    Retorna la última huella capturada para un paciente (usado por el polling del frontend).
-    """
-    def _url_if_exists(field_file):
-        if not field_file:
-            return None
-        try:
-            # Evita devolver rutas rotas (archivo borrado o nombre legacy).
-            if field_file.storage.exists(field_file.name):
-                return field_file.url
-        except Exception:
-            return None
-        return None
-
-    huella_url = None
-    huella_obj = None
-    huella_qs = (
-        FirmaPaciente.objects
-        .filter(paciente_id=paciente_id)
-        .exclude(imagen_huella=None)
-        .exclude(imagen_huella='')
-        .order_by('-fecha')
-    )
-    for obj in huella_qs:
-        url = _url_if_exists(obj.imagen_huella)
-        if url:
-            huella_url = url
-            huella_obj = obj
-            break
-
-    firma_url = None
-    firma_obj = None
-    firma_qs = (
-        FirmaPaciente.objects
-        .filter(paciente_id=paciente_id)
-        .exclude(imagen_firma=None)
-        .exclude(imagen_firma='')
-        .order_by('-fecha')
-    )
-    for obj in firma_qs:
-        url = _url_if_exists(obj.imagen_firma)
-        if url:
-            firma_url = url
-            firma_obj = obj
-            break
-
-    if huella_url or firma_url:
-        referencia = huella_obj or firma_obj
-        return JsonResponse({
-            "status": "ok",
-            "paciente_id": paciente_id,
-            "template": huella_obj.template_huella if huella_obj else "",
-            "imagen_huella": huella_url,
-            "imagen_firma": firma_url,
-            "fecha": referencia.fecha.strftime('%Y-%m-%d %H:%M:%S') if referencia else None
-        })
-    return JsonResponse({"status": "error", "message": "No se encontró biometría válida"}, status=404)
+# 2026-09-14: se eliminaron guardar_huella() y ultima_huella() (captura de
+# firma/huella biométrica) a pedido explícito, antes de salir a producción --
+# dependían de meows.models.FirmaPaciente, que también se eliminó.

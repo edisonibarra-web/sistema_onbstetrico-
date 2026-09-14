@@ -3,15 +3,10 @@ Generador de PDF para el formato FRSPA-007 - Control Fetocardia y Postparto
 Estructura ordenada tipo plantilla hospitalaria.
 """
 import io
-import base64
-import os
 from reportlab.lib import colors, utils
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
-from .models import (
-    FirmaPaciente, Huella
-)
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
     Image, KeepTogether, PageBreak
@@ -235,6 +230,12 @@ def generar_pdf_registro(registro, es_plantilla=False):
     estilo_tipo_label = ParagraphStyle(name='TipoLabel', fontName='Helvetica-Bold', fontSize=7, leading=9, alignment=TA_LEFT)
     tipo_cell = Paragraph('Tipo de parto:', estilo_tipo_label)
 
+    # Hora de parto: registro manual (no viene de Dinámica ni se calcula),
+    # la enfermera la diligencia igual que tipo de parto/episiotomía.
+    hora_parto_str = ''
+    if not es_plantilla:
+        hora_parto_str = registro.hora_parto.strftime('%H:%M') if registro.hora_parto else '—'
+
     data_part = [
         ['CARACTERÍSTICAS DEL PARTO', '', '', '', '', ''],
         [tipo_cell, '', '', '', '', ''],
@@ -244,8 +245,10 @@ def generar_pdf_registro(registro, es_plantilla=False):
         _fila_booleana('Episiotomía:', registro.episiotomia),
         ['Alumbramiento:', '', '', '', '', ''],
         _fila_booleana('   Activo', registro.tipo_alumbramiento in ('DIRIGIDO', 'MANUAL')),
+        ['Hora de parto:', hora_parto_str, '', '', '', ''],
     ]
     fila_subtitulo_alumbramiento = 6
+    fila_hora_parto = len(data_part) - 1
     tbl_part = Table(data_part, colWidths=cw_part)
     tbl_part.setStyle(TableStyle([
         ('SPAN', (0, 0), (-1, 0)),
@@ -260,6 +263,9 @@ def generar_pdf_registro(registro, es_plantilla=False):
         ('BACKGROUND', (0, fila_subtitulo_alumbramiento), (-1, fila_subtitulo_alumbramiento), COLOR_LABEL),
         ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
         ('FONTNAME', (0, fila_subtitulo_alumbramiento), (-1, fila_subtitulo_alumbramiento), 'Helvetica-Bold'),
+        ('SPAN', (1, fila_hora_parto), (-1, fila_hora_parto)),
+        ('FONTNAME', (0, fila_hora_parto), (0, fila_hora_parto), 'Helvetica-Bold'),
+        ('ALIGN', (1, fila_hora_parto), (1, fila_hora_parto), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN', (2, 0), (2, -1), 'LEFT'),
         ('ALIGN', (4, 0), (4, -1), 'LEFT'),
@@ -473,9 +479,9 @@ def generar_pdf_registro(registro, es_plantilla=False):
         # no hereda el TEXTCOLOR blanco que la TableStyle le da a la fila del
         # encabezado (fondo azul oscuro #0c4a6e) -- sin esto quedaba en negro,
         # casi ilegible sobre ese fondo.
-        estilo_meows_col = ParagraphStyle(name='MeowsCol', fontName='Helvetica-Bold', fontSize=5.5, leading=6.5, alignment=TA_CENTER, textColor=colors.white)
-        estilo_meows_param = ParagraphStyle(name='MeowsParam', fontName='Helvetica-Bold', fontSize=6, leading=7, alignment=TA_LEFT)
-        estilo_meows_total = ParagraphStyle(name='MeowsTotal', fontName='Helvetica-Bold', fontSize=6, leading=7, alignment=TA_CENTER, textColor=colors.white)
+        estilo_meows_col = ParagraphStyle(name='MeowsCol', fontName='Helvetica-Bold', fontSize=5, leading=5.8, alignment=TA_CENTER, textColor=colors.white)
+        estilo_meows_param = ParagraphStyle(name='MeowsParam', fontName='Helvetica-Bold', fontSize=5.5, leading=6.5, alignment=TA_LEFT)
+        estilo_meows_total = ParagraphStyle(name='MeowsTotal', fontName='Helvetica-Bold', fontSize=5.5, leading=6.5, alignment=TA_CENTER, textColor=colors.white)
 
         # 2026-09-11: con muchas horas registradas (>10-12) la tabla ya no
         # cabía en el ancho de la hoja A4 -- el ancho de columna se calculaba
@@ -484,12 +490,17 @@ def generar_pdf_registro(registro, es_plantilla=False):
         # la tabla completa se saliera de la página y quedara cortada/
         # desbordada. Se pagina igual que el PDF MEOWS independiente
         # (meows/generador_pdf_meows.py, MEDICIONES_POR_PAGINA=10): una tabla
-        # nueva cada 10 horas, cada una repitiendo PARÁMETRO/VALOR/PUNTAJE,
-        # en vez de una sola tabla imposible de encajar.
-        MEOWS_COLS_POR_PAGINA = 10
-        ancho_param_m = 3.0*cm
-        ancho_valor_m = 1.5*cm
-        ancho_punt_m = 1.1*cm
+        # nueva cada N horas, cada una repitiendo PARÁMETRO/VALOR/PUNTAJE, en
+        # vez de una sola tabla imposible de encajar.
+        #
+        # 2026-09-14: comprimido más (columnas más angostas, fuente/padding
+        # más chico) para que quepan más horas por página -- a pedido
+        # explícito, para que una medición con muchas horas registradas
+        # genere menos hojas en total.
+        MEOWS_COLS_POR_PAGINA = 16
+        ancho_param_m = 2.3*cm
+        ancho_valor_m = 1.0*cm
+        ancho_punt_m = 0.9*cm
         ancho_fijo_m = ancho_param_m + ancho_valor_m + ancho_punt_m
 
         total_cols_meows = len(columnas_meows)
@@ -556,15 +567,15 @@ def generar_pdf_registro(registro, es_plantilla=False):
                 ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#0c4a6e')),
                 ('TEXTCOLOR', (0, 1), (-1, 1), colors.white),
                 ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 1), (-1, 1), 6),
+                ('FONTSIZE', (0, 1), (-1, 1), 5.5),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('ALIGN', (1, 2), (1, -2), 'CENTER'),
                 ('ALIGN', (2, 2), (-1, -1), 'CENTER'),
-                ('FONTSIZE', (0, 2), (-1, -1), 6),
-                ('TOPPADDING', (0, 0), (-1, -1), 2),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                ('LEFTPADDING', (0, 0), (-1, -1), 2),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                ('FONTSIZE', (0, 2), (-1, -1), 5.5),
+                ('TOPPADDING', (0, 0), (-1, -1), 1),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                ('LEFTPADDING', (0, 0), (-1, -1), 1.5),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 1.5),
                 ('BOX', (0, 0), (-1, -1), BORDE, COLOR_BORDE),
                 ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
                 ('BACKGROUND', (0, fila_idx_total), (-1, fila_idx_total), colors.HexColor('#0c4a6e')),
@@ -588,122 +599,40 @@ def generar_pdf_registro(registro, es_plantilla=False):
 
     elements.append(Spacer(1, 0.28*cm))
 
-    # ========== FIRMA DEL RESPONSABLE + BIOMETRÍA ==========
-    tiene_huella_paciente = bool(registro.identificacion) and FirmaPaciente.objects.filter(
-        paciente_id=registro.identificacion.replace('.', '').replace('-', '')
-    ).exists()
-    # Antes solo se imprimía este bloque si había imagen de firma dibujada o huella;
-    # si el responsable solo alcanzó a escribir su nombre (sin dibujar la firma en el
-    # pad), no se imprimía nada, ni siquiera el nombre. Ahora también se imprime con
-    # el nombre solo, para que el responsable y su nombre siempre queden en el PDF.
-    #
-    # 2026-09-11: `nombre_firma_paciente` ahora también puede llegar precargado
-    # desde el campo "RESPONSABLE DEL REGISTRO" aunque el registro todavía no
-    # se haya guardado (ver descargar_pdf_plantilla en views.py) -- a pedido
-    # explícito, el responsable debe quedar integrado en el PDF aunque
-    # todavía no haya una firma real dibujada, y sin mostrar una caja de
-    # firma en blanco simulando un espacio para firmar a mano que no existe.
-    tiene_firma_real = bool(registro.firma_paciente or tiene_huella_paciente or registro.fecha_hora_firma)
+    # ========== RESPONSABLE DEL REGISTRO ==========
+    # 2026-09-14: se eliminó la captura de firma/huella biométrica (imagen
+    # dibujada, huella digital, firma profesional en base64) a pedido
+    # explícito, antes de salir a producción. Solo queda el nombre en texto
+    # del responsable, que siempre se imprime cuando existe.
     tiene_responsable = bool((registro.nombre_firma_paciente or registro.profesional_nombre or '').strip())
-    if tiene_firma_real or tiene_responsable:
+    if tiene_responsable:
         elements.append(Spacer(1, 0.5*cm))
-        
-        # Firma Manuscrita
-        img_manuscrita = None
-        if registro.firma_paciente:
-            try:
-                # 1. Intentar por path físico si existe
-                if os.path.exists(registro.firma_paciente.path):
-                    img_manuscrita = Image(registro.firma_paciente.path, width=5.0*cm, height=2.0*cm, kind='proportional')
-                else:
-                    # 2. Fallback memoria
-                    registro.firma_paciente.open('rb')
-                    img_bytes = io.BytesIO(registro.firma_paciente.read())
-                    registro.firma_paciente.close()
-                    img_manuscrita = Image(img_bytes, width=5.0*cm, height=2.0*cm, kind='proportional')
-            except Exception as e_sig:
-                print(f"Error cargando firma manuscrita Fetal: {e_sig}")
-                img_manuscrita = None
 
-        # Huella Biométrica
-        img_biometrica = None
-        id_numerica = registro.identificacion.replace('.', '').replace('-', '')
-        
-        # 1. Buscar en FirmaPaciente vinculada al formulario
-        huella_obj = FirmaPaciente.objects.filter(formulario=registro).order_by('-fecha').first()
-        
-        # 2. Si no hay, buscar en FirmaPaciente por ID de paciente
-        if not huella_obj:
-            huella_obj = FirmaPaciente.objects.filter(paciente_id=id_numerica).order_by('-fecha').first()
-            
-        if huella_obj and huella_obj.imagen_huella:
-            try:
-                # Intentar por path físico si existe
-                if os.path.exists(huella_obj.imagen_huella.path):
-                    img_biometrica = Image(huella_obj.imagen_huella.path, width=2.5*cm, height=3.0*cm, kind='proportional')
-                else:
-                    # Fallback memoria
-                    huella_obj.imagen_huella.open('rb')
-                    img_bytes = io.BytesIO(huella_obj.imagen_huella.read())
-                    huella_obj.imagen_huella.close()
-                    img_biometrica = Image(img_bytes, width=2.5*cm, height=3.0*cm, kind='proportional')
-            except Exception as e_huella:
-                print(f"Error cargando huella biométrica Fetal: {e_huella}")
-                img_biometrica = None
-        
-        # 3. Si aún no hay, buscar en el modelo Huella (capturas directas Android)
-        if not img_biometrica:
-            huella_raw = Huella.objects.filter(documento=registro.identificacion).order_by('-fecha').first()
-            if not huella_raw:
-                # Reintentar con ID numérica por si acaso
-                huella_raw = Huella.objects.filter(documento=id_numerica).order_by('-fecha').first()
-                
-            if huella_raw and huella_raw.imagen_huella:
-                try:
-                    try:
-                        huella_path = huella_raw.imagen_huella.path
-                        img_biometrica = Image(huella_path, width=2.5*cm, height=3.0*cm, kind='proportional')
-                    except Exception:
-                        huella_raw.imagen_huella.open('rb')
-                        img_bytes = io.BytesIO(huella_raw.imagen_huella.read())
-                        huella_raw.imagen_huella.close()
-                        img_biometrica = Image(img_bytes, width=2.5*cm, height=3.0*cm, kind='proportional')
-                except Exception:
-                    pass
-
-        fecha_firma = registro.fecha_hora_firma.strftime('%d/%m/%Y %H:%M') if registro.fecha_hora_firma else (huella_obj.fecha.strftime('%d/%m/%Y %H:%M') if huella_obj else '—')
-        
-        # Organizar en tabla
         col_firma = []
-        if img_manuscrita:
-            col_firma.append(img_manuscrita)
         sig_name = (_fix_mojibake_text(registro.nombre_firma_paciente) or "").strip()
         prof_name = (_fix_mojibake_text(registro.profesional_nombre) or "").strip()
         final_name = sig_name or prof_name or "—"
 
         col_firma.append(Paragraph(f"<b>{final_name}</b>", styles['Normal']))
-        # Solo se rotula "FIRMA DEL RESPONSABLE" cuando de verdad hay una firma,
-        # huella o fecha de firma real -- si únicamente se conoce el nombre del
-        # responsable (aún sin firmar), se etiqueta "RESPONSABLE" a secas para
-        # no dar a entender que existe una firma que todavía no existe.
-        etiqueta_firma = f"FIRMA DEL RESPONSABLE — {fecha_firma}" if tiene_firma_real else "RESPONSABLE"
-        col_firma.append(Paragraph(f"<font size='7' color='#64748b'>{etiqueta_firma}</font>", styles['Normal']))
+        col_firma.append(Paragraph("<font size='7' color='#64748b'>RESPONSABLE</font>", styles['Normal']))
 
-        col_biometria = []
-        if img_biometrica:
-            col_biometria.append(img_biometrica)
-            col_biometria.append(Paragraph("<font size='7' color='#64748b'>HUELLA BIOMÉTRICA</font>", ParagraphStyle(name='CenterGray', parent=styles['Normal'], alignment=TA_CENTER)))
-
-        data_firmas = [[col_firma, col_biometria]]
-        tbl_firmas = Table(data_firmas, colWidths=[13.2*cm*ESCALA, 6.0*cm*ESCALA])
+        data_firmas = [[col_firma]]
+        tbl_firmas = Table(data_firmas, colWidths=[ANCHO_UTIL])
         tbl_firmas.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
-            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
             ('LINEABOVE', (0, 0), (0, 0), 0.5, colors.black),
             ('TOPPADDING', (0, 0), (-1, -1), 4),
         ]))
         elements.append(tbl_firmas)
-    elif es_plantilla:
+    else:
+        # 2026-09-14: antes esto era "elif es_plantilla" -- un registro REAL
+        # ya guardado (es_plantilla=False) que todavía no tuviera firma,
+        # huella ni nombre de responsable capturado no entraba en ninguna de
+        # las dos ramas, así que la sección de responsable/firma
+        # desaparecía por completo del PDF, sin ningún aviso. Ahora, sin
+        # importar si es un registro real o la plantilla en blanco, si no
+        # hay nada capturado todavía se imprime igual la caja para firmar a
+        # mano -- la sección nunca queda ausente.
         elements.append(Spacer(1, 0.4*cm))
         estilo_firma_label = ParagraphStyle(
             name='FirmaLabel', fontSize=7.5, fontName='Helvetica-Bold', textColor=colors.HexColor('#1e293b')
@@ -739,44 +668,6 @@ def generar_pdf_registro(registro, es_plantilla=False):
             ('BOX', (0, 0), (-1, -1), BORDE, COLOR_BORDE),
         ]))
         elements.append(tbl_firma_vacia)
-
-    # ========== FIRMA PROFESIONAL (DGH) ==========
-    if registro.firma_profesional_base64:
-        elements.append(Spacer(1, 0.5*cm))
-        try:
-            b64 = registro.firma_profesional_base64
-            if ',' in b64:
-                b64 = b64.split(',')[1]
-            img_bytes = io.BytesIO(base64.b64decode(b64))
-            img_prof = Image(img_bytes, width=5.0*cm, height=2.0*cm, kind='proportional')
-            
-            # Bloque de Validación similar a MEOWS
-            elements.append(Spacer(1, 0.4*cm))
-            valid_estilo = ParagraphStyle('ValidProf', parent=styles['Normal'], fontSize=8.5, fontName='Helvetica-Bold')
-            valid_texto = (
-                f"<b>VALIDACIÓN DE DILIGENCIAMIENTO (PROFESIONAL RESPONSABLE)</b><br/>"
-                f"Responsable: {registro.profesional_nombre or '—'} | ID: {registro.profesional_identificacion or '—'} | T.P.: {registro.profesional_tarjeta_pro or '—'}<br/>"
-                f"Fecha de Registro: {registro.created_at.strftime('%d/%m/%Y %H:%M')}"
-            )
-            
-            data_prof = [
-                [img_prof, ''],
-                [Paragraph(valid_texto, valid_estilo), '']
-            ]
-            tbl_prof = Table(data_prof, colWidths=[6.0*cm*ESCALA, 13.2*cm*ESCALA])
-            tbl_prof.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f1f5f9')),
-                ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('LINEABOVE', (0, 0), (-1, -1), 0.5, colors.black),
-                ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-            ]))
-            elements.append(tbl_prof)
-        except Exception as e:
-            elements.append(Paragraph(f"<font size='7' color='red'>Error al cargar firma profesional: {str(e)}</font>", styles['Normal']))
 
     doc.build(elements)
     return buffer.getvalue()

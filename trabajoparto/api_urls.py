@@ -13,11 +13,5 @@ router.register(r'formularios-items-parametros', views.FormularioItemParametroVi
 router.register(r'mediciones', views.MedicionViewSet, basename='medicion')
 router.register(r'mediciones-valores', views.MedicionValorViewSet, basename='medicion-valor')
 
-from django.urls import path
-
-urlpatterns = router.urls + [
-    path('guardar-huella/', views.guardar_huella, name='guardar_huella'),
-    path('huella/<int:paciente_id>/', views.consulta_huella, name='consulta_huella'),
-    path('vincular-huella/', views.vincular_huella, name='vincular_huella'),
-]
+urlpatterns = router.urls
 

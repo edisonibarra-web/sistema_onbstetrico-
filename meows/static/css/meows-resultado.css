@@ -227,6 +227,27 @@ body {
     box-shadow: 0 14px 32px rgba(124, 58, 237, 0.16);
 }
 
+/* "Detalle de Parámetros": plateado oscuro (gris grafito), a pedido
+   explícito -- antes se quedaba con el fondo blanco genérico de .section,
+   sin distinguirse visualmente del resto de la página. Al ser un fondo
+   oscuro, el título y la nota de solo-lectura se pasan a un tono claro para
+   que sigan siendo legibles (ver reglas de texto justo debajo). */
+.section.detalle-section {
+    background: linear-gradient(135deg, #64748b 0%, #334155 100%);
+    border: 1px solid #475569;
+    border-bottom: 1px solid #475569;
+    border-radius: 14px;
+    box-shadow: 0 14px 32px rgba(51, 65, 85, 0.3);
+}
+
+.section.detalle-section .section-title {
+    color: #f0fdfa;
+}
+
+.section.detalle-section .detalle-solo-lectura-nota {
+    color: #e2e8f0;
+}
+
 .section-title {
     font-size: 1.5rem;
     font-weight: 600;
@@ -260,6 +281,20 @@ body {
 .resultado-card {
     border-radius: 20px;
     padding: 1.5rem;
+    display: flex;
+    align-items: stretch;
+    gap: 1.5rem;
+}
+
+/* Columna izquierda (badges + mensaje + fecha); la card de puntaje queda como
+   segundo hijo de .resultado-card y se estira (align-items:stretch, default)
+   hasta igualar el alto de esta columna -- así no queda espacio vacío debajo
+   del número, como pedía la captura. */
+.resultado-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .resultado-card.resultado-blanco {
@@ -390,7 +425,7 @@ body {
 
 .resultado-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     margin-bottom: 1.25rem;
     flex-wrap: wrap;
@@ -464,32 +499,64 @@ body {
     border-color: var(--color-amarillo);
 }
 
+/* ROJO es el nivel más crítico de MEOWS -- a diferencia de blanco/verde/
+   amarillo (badges discretos), este se agranda y se encierra en una "card"
+   propia con degradado rojo y un pulso animado (efecto de anillo expandiéndose,
+   no parpadeo) para que salte a la vista de inmediato como alerta urgente. */
 .riesgo-rojo {
-    background: #fdecef;
-    color: #b4232d;
-    border-color: #f3bcc3;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    color: #ffffff;
+    border-color: #7f1d1d;
     position: relative;
     z-index: 2;
-    animation: none;
-    box-shadow: none;
-    text-shadow: none;
+    padding: 0.9rem 1.85rem;
+    font-size: 1.3rem;
+    border-radius: 16px;
+    border-width: 2px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 10px 24px rgba(185, 28, 28, 0.35), 0 0 0 0 rgba(220, 38, 38, 0.55);
+    animation: meowsPulsoRojo 1.8s ease-out infinite;
+}
+
+.riesgo-rojo .badge-dot {
+    width: 13px;
+    height: 13px;
+    background: #ffffff;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
 }
 
 .riesgo-rojo::before {
     content: none;
 }
 
+@keyframes meowsPulsoRojo {
+    0% {
+        box-shadow: 0 10px 24px rgba(185, 28, 28, 0.35), 0 0 0 0 rgba(220, 38, 38, 0.55);
+    }
+    70% {
+        box-shadow: 0 10px 24px rgba(185, 28, 28, 0.35), 0 0 0 16px rgba(220, 38, 38, 0);
+    }
+    100% {
+        box-shadow: 0 10px 24px rgba(185, 28, 28, 0.35), 0 0 0 0 rgba(220, 38, 38, 0);
+    }
+}
+
 .resultado-score {
     text-align: center;
     background: #ffffff;
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
+    padding: 1.35rem 2.25rem;
+    border-radius: 16px;
     box-shadow: none;
     border: 1px solid #e9ecef;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
     z-index: 2;
+    min-width: 9.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 /* La caja de "Puntaje total MEOWS" ahora se pinta por completo según el
@@ -568,9 +635,9 @@ body {
 
 .score-label {
     display: block;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: #495057;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.35rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -578,7 +645,7 @@ body {
 }
 
 .score-value {
-    font-size: 2.4rem;
+    font-size: 3.6rem;
     font-weight: 900;
     color: #212529;
     line-height: 1;
@@ -1352,6 +1419,10 @@ body {
         gap: var(--spacing-xs);
     }
     
+    .resultado-card {
+        flex-direction: column;
+    }
+
     .resultado-header {
         flex-direction: column;
         text-align: center;

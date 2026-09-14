@@ -10,10 +10,10 @@ from datetime import datetime
 from django.http import HttpResponse
 from django.conf import settings
 from django.utils.timezone import localtime
-from django.db.models import Q
 import os
 import logging
 import tempfile
+from html import escape
 from PIL import Image
 
 # Configurar logger básico
@@ -163,15 +163,20 @@ def encabezado(c, formulario, ancho, y_inicial):
 
     return y_inicial - h_t
 
-def seccion_biometria(c, reg_huella, reg_firma, x, y, ancho, responsable_nombre=""):
+def seccion_biometria(c, x, y, ancho, responsable_nombre=""):
     """
-    Dibuja la sección de biometría (huella y firma del paciente) y el área del responsable.
+    Dibuja el área del responsable en el PDF (solo nombre en texto).
+
+    2026-09-14: se eliminó la captura de firma/huella biométrica a pedido
+    explícito, antes de salir a producción -- esta función ya no recibe ni
+    dibuja imágenes de huella/firma (trabajoparto.models.Huella tampoco
+    existe más), solo el nombre del responsable en texto.
     """
-    from reportlab.platypus import Table, TableStyle, Paragraph, Image, Spacer
+    from reportlab.platypus import Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    
+
     styles = getSampleStyleSheet()
-    
+
     estilo_label = ParagraphStyle(
         'LabelBiometria',
         parent=styles['Normal'],
@@ -179,7 +184,7 @@ def seccion_biometria(c, reg_huella, reg_firma, x, y, ancho, responsable_nombre=
         fontName='Helvetica-Bold',
         alignment=1,
     )
-    
+
     estilo_sub = ParagraphStyle(
         'SubBiometria',
         parent=styles['Normal'],
@@ -188,29 +193,7 @@ def seccion_biometria(c, reg_huella, reg_firma, x, y, ancho, responsable_nombre=
         alignment=1,
     )
 
-    # 1. Preparar Huella (COMENTADO POR SOLICITUD DEL USUARIO)
-    """
-    huella_content = [Spacer(1, 40)]
-    if reg_huella and reg_huella.imagen:
-        try:
-            path_h = reg_huella.imagen.path
-            if os.path.exists(path_h):
-                img_h = Image(path_h, width=2.5*cm, height=3*cm)
-                huella_content = [img_h]
-            else:
-                huella_content = [Paragraph("<i>Huella no disponible en sistema</i>", estilo_sub)]
-        except Exception as e:
-            logger.error(f"Error cargando imagen de huella: {e}")
-            huella_content = [Paragraph("<i>Error al cargar huella</i>", estilo_sub)]
-    else:
-        huella_content = [Spacer(1, 10), Paragraph("<i>Huella no registrada</i>", estilo_sub), Spacer(1, 10)]
-    """
-
-    # 2. Firma dibujada del responsable: por pedido explícito, este PDF (FRSPA-022,
-    # Trabajo de Parto) ya no debe traer la caja/imagen de firma -- solo el nombre
-    # del responsable. Se deja de leer/dibujar `reg_firma` aquí a propósito.
-
-    # 3. Preparar Datos del Responsable
+    # Preparar Datos del Responsable
     responsable_content = [
         Spacer(1, 20),
         Paragraph(f"<b>{responsable_nombre.upper() if responsable_nombre else '—'}</b>", estilo_label),
@@ -374,9 +357,31 @@ def seccion_grid_mediciones(c, formulario, x, y, ancho_total):
     # horas con horas_unicas[:10] -- si la paciente tenía más de 10 controles
     # registrados, los más recientes simplemente no se imprimían, sin aviso).
     mediciones = list(Medicion.objects.filter(formulario=formulario).prefetch_related('valores__campo', 'parametro'))
-    horas_unicas = sorted(set(m.tomada_en for m in mediciones))
+
+    # 2026-09-14: misma regla que calcularHorasColumnaVistaPrevia() en
+    # main.js -- la hora exclusiva de Dinámica para FCF (parámetro 8) no
+    # genera columna propia en el PDF, para que no aparezca una columna
+    # donde solo esa fila tiene dato y el resto está en blanco.
+    horas_con_dato_manual = sorted(set(
+        m.tomada_en for m in mediciones if m.parametro_id != _PARAMETRO_ID_FREC_CARD_FETAL
+    ))
+    horas_unicas = horas_con_dato_manual if horas_con_dato_manual else sorted(set(m.tomada_en for m in mediciones))
     if not horas_unicas:
         return y
+
+    # 2026-09-14: cada columna la puede haber diligenciado una persona
+    # distinta a lo largo del trabajo de parto (a diferencia de
+    # formulario.responsable, uno solo para toda la hoja) -- ver
+    # medicion.responsable / guardarMediciones() en main.js. Se toma el
+    # primer nombre no vacío encontrado entre las mediciones de esa hora.
+    responsable_por_hora = {}
+    for m in mediciones:
+        if m.responsable and m.tomada_en not in responsable_por_hora:
+            responsable_por_hora[m.tomada_en] = m.responsable
+    # Columnas guardadas antes de que existiera medicion.responsable (o solo
+    # con dato de Dinámica) no tienen nombre propio -- se usa de resguardo el
+    # responsable único del formulario en vez de dejar la columna sin nombre.
+    responsable_respaldo = formulario.responsable or None
 
     # Serie de FCF (parametro 8) para "arrastrar" el último valor conocido a
     # cualquier columna posterior sin lectura exacta -- mismo criterio que
@@ -445,9 +450,17 @@ def seccion_grid_mediciones(c, formulario, x, y, ancho_total):
             y -= h_t
 
         # 3. Encabezado de la página (fecha + hora de cada columna, igual
-        # que el resto de la vista en pantalla)
+        # que el resto de la vista en pantalla) -- con el nombre de quien
+        # diligenció esa columna debajo, cuando se conoce.
+        def _texto_header_columna(h):
+            texto = f"{h.strftime('%d/%m/%y')}<br/>{h.strftime('%H:%M')}"
+            nombre = responsable_por_hora.get(h) or responsable_respaldo
+            if nombre:
+                texto += f'<br/><font size="6">{escape(nombre)}</font>'
+            return texto
+
         header_data = [["PARÁMETRO"] + [
-            Paragraph(f"{h.strftime('%d/%m/%y')}<br/>{h.strftime('%H:%M')}", estilo_header) for h in horas_pagina
+            Paragraph(_texto_header_columna(h), estilo_header) for h in horas_pagina
         ]]
         t_header = Table(header_data, colWidths=col_widths)
         t_header.setStyle(TableStyle([
@@ -522,7 +535,7 @@ def generar_pdf_formulario_clinico(formulario, response=None):
     from django.shortcuts import get_object_or_404
     from rest_framework.decorators import api_view, permission_classes
     from rest_framework.permissions import AllowAny
-    from .models import Formulario, Huella
+    from .models import Formulario
 
     if response is None:
         response = HttpResponse(content_type='application/pdf')
@@ -547,24 +560,9 @@ def generar_pdf_formulario_clinico(formulario, response=None):
     y = seccion_grid_mediciones(c, formulario, margen_x, y, ancho)
     y -= 1*cm
     
-    # 4. Firma del Responsable (Basado en el formulario o en el paciente como respaldo)
-    p = formulario.paciente
-    
-    # Intentar buscar firma asociada directamente a este formulario primero
-    reg_firma = Huella.objects.filter(formulario_id=str(formulario.id)).exclude(imagen_firma__exact='').exclude(imagen_firma__isnull=True).order_by('-fecha').first()
-    
-    # Si no hay firma por formulario, buscar la última firma del paciente (fallback)
-    if not reg_firma:
-        ident = str(p.num_identificacion).strip()
-        query_biometria = Q(paciente_id=ident) | Q(paciente_id=str(p.id))
-        if ident.isdigit():
-            query_biometria |= Q(paciente_id=str(int(ident)))
-        reg_firma = Huella.objects.filter(query_biometria).exclude(imagen_firma__exact='').exclude(imagen_firma__isnull=True).order_by('-fecha').first()
-    
-    # La huella no se consulta ya que ha sido comentada en la sección_biometria
-    reg_huella = None 
-    
-    # Forzar salto de página si queda poco espacio para la biometría (necesita ~6cm)
+    # 4. Responsable (nombre en texto; la firma/huella biométrica se eliminó
+    # a pedido explícito -- ver seccion_biometria).
+    # Forzar salto de página si queda poco espacio (necesita ~6cm)
     if y < 6*cm:
         c.showPage()
         y = alto - 1*cm
@@ -572,7 +570,7 @@ def generar_pdf_formulario_clinico(formulario, response=None):
         y = encabezado(c, formulario, ancho, y)
         y -= 0.5*cm
 
-    y = seccion_biometria(c, reg_huella, reg_firma, margen_x, y, ancho, responsable_nombre=formulario.responsable)
+    y = seccion_biometria(c, margen_x, y, ancho, responsable_nombre=formulario.responsable)
     
     # 5. Footer (en todas las páginas que se generen después o al final)
     # Nota: ReportLab dibuja en la página actual. Si queremos footer en todas, hay que usar canvas.Canvas.setPageCallBack o similar.

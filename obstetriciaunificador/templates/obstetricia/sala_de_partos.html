@@ -1271,6 +1271,22 @@
         </div>
     </div>
 
+    <!-- Visor ampliado genérico: reutilizado por el resumen de Parto (Dilatación)
+         y por cualquier mini-gráfica individual (Parto/MEOWS/Fetal) -- mismo
+         patrón que el visor dedicado de MEOWS arriba, pero parametrizado por
+         título + config de Chart.js en vez de estar atado a una sola gráfica. -->
+    <div class="chart-lightbox" id="generic-chart-lightbox" onclick="cerrarGraficaGenericaGrande()">
+        <div class="chart-lightbox-card" onclick="event.stopPropagation()">
+            <button type="button" class="chart-lightbox-close" onclick="cerrarGraficaGenericaGrande()" title="Cerrar">
+                <i data-lucide="x" size="20"></i>
+            </button>
+            <h4 class="chart-lightbox-title"><i data-lucide="activity"></i> <span id="generic-chart-lightbox-title-text"></span></h4>
+            <div class="chart-lightbox-canvas-wrap">
+                <canvas id="chart-generico-grande"></canvas>
+            </div>
+        </div>
+    </div>
+
     <script>
         lucide.createIcons();
 
@@ -1280,12 +1296,53 @@
         let chartMeows = null;
         let chartsMeowsVitales = [];
         let chartPartoResumen = null;
-        let chartsParto = [];
         // Última trazabilidad MEOWS recibida: se reutiliza para redibujar la
         // misma gráfica, más grande, en el visor ampliado (botón "Visualizar
         // gráfica de trazabilidad").
         let ultimaTrazaMeows = null;
         let chartMeowsGrande = null;
+
+        // Config de Chart.js para una mini-gráfica individual (un parámetro),
+        // compartida entre la card pequeña del grid y el visor ampliado
+        // genérico (`grande` sube fuentes/puntos/grosor) -- mismo patrón que
+        // construirConfigChartMeows.
+        function construirConfigMiniChart(traza, serie, rangoEjeYPorParametro, grande) {
+            const tamFuente = grande ? 13 : 8;
+            return {
+                type: 'line',
+                data: {
+                    labels: traza.labels,
+                    datasets: [{
+                        label: serie.parametro,
+                        data: serie.data,
+                        borderColor: serie.color,
+                        backgroundColor: serie.color + '22',
+                        pointRadius: grande ? 5 : 3,
+                        pointHoverRadius: grande ? 7 : 5,
+                        borderWidth: grande ? 3 : 2,
+                        tension: 0.3,
+                        fill: true,
+                        spanGaps: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => serie.unidad ? `${ctx.parsed.y} ${serie.unidad}` : `${ctx.parsed.y}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { font: { size: tamFuente } }, grid: { display: false } },
+                        y: { ticks: { font: { size: tamFuente } }, ...((rangoEjeYPorParametro || {})[serie.parametro] || {}) }
+                    }
+                }
+            };
+        }
 
         // Dibuja un grid de mini-gráficas de línea, una por parámetro, cada una
         // con su propia escala Y (evita aplastar valores pequeños al lado de
@@ -1315,40 +1372,7 @@
                 card.appendChild(canvas);
                 grid.appendChild(card);
 
-                const chart = new Chart(canvas, {
-                    type: 'line',
-                    data: {
-                        labels: traza.labels,
-                        datasets: [{
-                            label: serie.parametro,
-                            data: serie.data,
-                            borderColor: serie.color,
-                            backgroundColor: serie.color + '22',
-                            pointRadius: 3,
-                            pointHoverRadius: 5,
-                            borderWidth: 2,
-                            tension: 0.3,
-                            fill: true,
-                            spanGaps: true,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: (ctx) => serie.unidad ? `${ctx.parsed.y} ${serie.unidad}` : `${ctx.parsed.y}`
-                                }
-                            }
-                        },
-                        scales: {
-                            x: { ticks: { font: { size: 8 } }, grid: { display: false } },
-                            y: { ticks: { font: { size: 8 } }, ...((rangoEjeYPorParametro || {})[serie.parametro] || {}) }
-                        }
-                    }
-                });
+                const chart = new Chart(canvas, construirConfigMiniChart(traza, serie, rangoEjeYPorParametro, false));
                 nuevosCharts.push(chart);
             });
             return nuevosCharts;
@@ -1447,97 +1471,191 @@
             if (chartMeowsGrande) { chartMeowsGrande.destroy(); chartMeowsGrande = null; }
         }
 
+        // Visor ampliado GENÉRICO: reutilizado por el resumen de Parto
+        // (Dilatación) y por cada mini-gráfica individual (Parto/MEOWS/Fetal
+        // cuando exista). Recibe el título a mostrar y la config de Chart.js
+        // ya armada en su versión "grande" -- igual patrón que
+        // construirConfigChartMeows(traza, grande), pero sin atar el visor a
+        // un solo módulo.
+        let chartGenericoGrande = null;
+
+        function abrirGraficaGenericaGrande(titulo, configGrande) {
+            if (!configGrande) return;
+            const tituloEl = document.getElementById('generic-chart-lightbox-title-text');
+            if (tituloEl) tituloEl.textContent = titulo;
+            const canvas = document.getElementById('chart-generico-grande');
+            if (chartGenericoGrande) { chartGenericoGrande.destroy(); chartGenericoGrande = null; }
+            chartGenericoGrande = new Chart(canvas, configGrande);
+            document.getElementById('generic-chart-lightbox').classList.add('open');
+            lucide.createIcons();
+        }
+
+        function cerrarGraficaGenericaGrande() {
+            document.getElementById('generic-chart-lightbox').classList.remove('open');
+            if (chartGenericoGrande) { chartGenericoGrande.destroy(); chartGenericoGrande = null; }
+        }
+
         document.addEventListener('keydown', function (ev) {
-            if (ev.key === 'Escape') cerrarGraficaMeowsGrande();
+            if (ev.key !== 'Escape') return;
+            cerrarGraficaMeowsGrande();
+            cerrarGraficaGenericaGrande();
         });
 
-        // Parámetro usado como "resumen" grande de Parto, igual que MEOWS
-        // destaca su puntaje total: Dilatación cervical es la métrica clásica
-        // de un partograma para seguir el avance del trabajo de parto.
-        const PARAMETRO_RESUMEN_PARTO = 'Dilatación';
+        // Rango fijo del eje Y para parámetros con escala clínica conocida (en
+        // vez de auto-ajustar al rango de los datos registrados).
+        const RANGO_EJE_Y_PARTO = {
+            'Dilatación': { min: 1, max: 10 },
+        };
 
-        function renderGraficaPartoResumen(traza) {
-            const canvas = document.getElementById('chart-parto-resumen');
-            if (!canvas) return;
-            if (chartPartoResumen) { chartPartoResumen.destroy(); chartPartoResumen = null; }
+        // 2026-09-14: trazabilidad de LA ATENCIÓN (Trabajo de Parto y Control
+        // Posparto Inmediato / Fetal) -- a pedido explícito, una sola gráfica
+        // combinada con todos los parámetros superpuestos (como un
+        // partograma real), en vez de una gráfica separada por cada
+        // parámetro. Cada serie usa su propio eje Y (oculto salvo el primero)
+        // para no aplastar valores pequeños al lado de otros mucho más
+        // grandes al compartir una sola escala; comparten el mismo eje X
+        // (tiempo) y un tooltip combinado ("mode: index") para poder leer, en
+        // una hora dada, qué pasaba con todos los parámetros a la vez -- esa
+        // es "la atención", no un parámetro suelto. Genérica: la usan tanto
+        // Parto como Fetal (`parametroArrastre` es opcional, solo Parto lo
+        // usa para Dilatación).
+        function construirConfigChartCombinado(traza, grande, parametroArrastre, rangoEjeYPorParametro) {
+            const tamFuente = grande ? 13 : 9;
 
-            const serie = traza && traza.series && traza.series.find(s => s.parametro === PARAMETRO_RESUMEN_PARTO);
-            const wrap = canvas.closest('.timeline-group-chart-wrap');
-            if (!serie) {
-                if (wrap) wrap.style.display = 'none';
-                return;
-            }
-            if (wrap) wrap.style.display = '';
-
-            // Cada ronda de mediciones nueva debe reflejarse en la gráfica aunque
-            // esa ronda en particular no haya vuelto a registrar Dilatación: se
-            // arrastra el último valor conocido (igual que un partograma real),
-            // marcando esos puntos "arrastrados" en hueco en vez de rellenos.
-            let ultimoValor = null;
-            const datosConArrastre = serie.data.map(v => {
-                if (v !== null && v !== undefined) { ultimoValor = v; return v; }
-                return ultimoValor;
+            const datasets = traza.series.map((serie, idx) => {
+                const conArrastre = !!parametroArrastre && serie.parametro === parametroArrastre;
+                // El parámetro de arrastre (ej. Dilatación) se "arrastra" (igual
+                // que un partograma real): si una ronda no volvió a medirlo, se
+                // repite el último valor conocido, marcando esos puntos
+                // arrastrados en hueco.
+                let datos = serie.data;
+                let esValorReal = serie.data.map(v => v !== null && v !== undefined);
+                if (conArrastre) {
+                    let ultimoValor = null;
+                    datos = serie.data.map(v => {
+                        if (v !== null && v !== undefined) { ultimoValor = v; return v; }
+                        return ultimoValor;
+                    });
+                }
+                return {
+                    label: serie.unidad ? `${serie.parametro} (${serie.unidad})` : serie.parametro,
+                    data: datos,
+                    borderColor: serie.color,
+                    backgroundColor: serie.color + '22',
+                    pointBackgroundColor: conArrastre ? esValorReal.map(real => real ? serie.color : '#ffffff') : serie.color,
+                    pointBorderColor: conArrastre ? esValorReal.map(real => real ? '#ffffff' : serie.color) : serie.color,
+                    pointBorderWidth: conArrastre ? 2 : 1,
+                    pointRadius: grande ? 4 : 3,
+                    pointHoverRadius: grande ? 7 : 5,
+                    borderWidth: grande ? 3 : 2,
+                    tension: 0.3,
+                    fill: false,
+                    spanGaps: true,
+                    yAxisID: `y${idx}`,
+                    _unidad: serie.unidad || '',
+                    _esValorReal: esValorReal,
+                };
             });
-            const esValorReal = serie.data.map(v => v !== null && v !== undefined);
 
-            chartPartoResumen = new Chart(canvas, {
+            const scales = {
+                x: { ticks: { font: { size: tamFuente } }, grid: { display: false } },
+            };
+            traza.series.forEach((serie, idx) => {
+                scales[`y${idx}`] = {
+                    display: idx === 0,
+                    position: 'left',
+                    ticks: { font: { size: tamFuente }, precision: 0 },
+                    grid: { display: idx === 0 },
+                    ...((rangoEjeYPorParametro || {})[serie.parametro] || {}),
+                };
+            });
+
+            return {
                 type: 'line',
-                data: {
-                    labels: traza.labels,
-                    datasets: [{
-                        label: serie.unidad ? `${serie.parametro} (${serie.unidad})` : serie.parametro,
-                        data: datosConArrastre,
-                        borderColor: serie.color,
-                        backgroundColor: serie.color + '22',
-                        pointBackgroundColor: esValorReal.map(real => real ? serie.color : '#ffffff'),
-                        pointBorderColor: esValorReal.map(real => real ? '#ffffff' : serie.color),
-                        pointBorderWidth: 2,
-                        pointRadius: esValorReal.map(real => real ? 5 : 4),
-                        pointHoverRadius: 6,
-                        borderWidth: 2,
-                        tension: 0.3,
-                        fill: true,
-                        spanGaps: true,
-                    }]
-                },
+                data: { labels: traza.labels, datasets },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
-                        legend: { display: false },
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: { boxWidth: 10, font: { size: grande ? 12 : 8 }, padding: grande ? 12 : 6 }
+                        },
                         tooltip: {
                             callbacks: {
                                 label: (ctx) => {
-                                    const unidadTxt = serie.unidad ? ` ${serie.unidad}` : '';
-                                    return esValorReal[ctx.dataIndex]
-                                        ? `${ctx.parsed.y}${unidadTxt}`
-                                        : `${ctx.parsed.y}${unidadTxt} (sin nueva medición en esta ronda)`;
+                                    const ds = ctx.dataset;
+                                    const unidadTxt = ds._unidad ? ` ${ds._unidad}` : '';
+                                    const esReal = ds._esValorReal[ctx.dataIndex];
+                                    return `${ds.label}: ${ctx.parsed.y}${unidadTxt}${esReal ? '' : ' (sin nueva medición en esta ronda)'}`;
                                 }
                             }
                         }
                     },
-                    scales: {
-                        x: { ticks: { font: { size: 9 } }, grid: { display: false } },
-                        y: { min: 1, max: 10, ticks: { font: { size: 9 }, precision: 0 } }
-                    }
+                    scales,
                 }
-            });
+            };
         }
 
-        function renderGraficaParto(traza) {
-            renderGraficaPartoResumen(traza);
+        // Última traza de Parto/Fetal: se reutiliza para redibujar la misma
+        // gráfica combinada, más grande, en el visor ampliado.
+        let ultimaTrazaParto = null;
+        let ultimaTrazaFetal = null;
+        let chartFetal = null;
 
-            // Rango fijo del eje Y para parámetros con escala clínica conocida
-            // (en vez de auto-ajustar al rango de los datos registrados).
-            const rangoEjeYPorParametro = {
-                'Dilatación': { min: 1, max: 10 },
-            };
-            // Dilatación ya se destaca arriba como resumen; se excluye aquí para
-            // no repetir la misma gráfica dos veces en la misma card.
-            const trazaSinResumen = traza && traza.series
-                ? { labels: traza.labels, series: traza.series.filter(s => s.parametro !== PARAMETRO_RESUMEN_PARTO) }
-                : traza;
-            chartsParto = renderMiniChartsGrid('parto-charts-grid', chartsParto, trazaSinResumen, rangoEjeYPorParametro);
+        function renderGraficaParto(traza) {
+            const canvas = document.getElementById('chart-parto-resumen');
+            if (!canvas) return;
+            if (chartPartoResumen) { chartPartoResumen.destroy(); chartPartoResumen = null; }
+
+            const wrap = canvas.closest('.timeline-group-chart-wrap');
+            const btnVerTrazabilidad = wrap?.querySelector('.btn-ver-trazabilidad');
+            const hayAlgo = !!(traza && traza.labels && traza.labels.length > 0 && traza.series && traza.series.length > 0);
+            ultimaTrazaParto = hayAlgo ? traza : null;
+
+            if (wrap) wrap.style.display = hayAlgo ? '' : 'none';
+            canvas.style.display = hayAlgo ? '' : 'none';
+            if (btnVerTrazabilidad) btnVerTrazabilidad.style.display = hayAlgo ? '' : 'none';
+
+            if (!hayAlgo) return;
+            chartPartoResumen = new Chart(canvas, construirConfigChartCombinado(traza, false, 'Dilatación', RANGO_EJE_Y_PARTO));
+        }
+
+        function abrirGraficaPartoGrande() {
+            if (!ultimaTrazaParto) return;
+            abrirGraficaGenericaGrande(
+                'Trazabilidad de la Atención — Trabajo de Parto',
+                construirConfigChartCombinado(ultimaTrazaParto, true, 'Dilatación', RANGO_EJE_Y_PARTO)
+            );
+        }
+
+        function renderGraficaFetal(traza) {
+            const canvas = document.getElementById('chart-fetal-combinado');
+            if (!canvas) return;
+            if (chartFetal) { chartFetal.destroy(); chartFetal = null; }
+
+            const wrap = canvas.closest('.timeline-group-chart-wrap');
+            const btnVerTrazabilidad = wrap?.querySelector('.btn-ver-trazabilidad');
+            const pendiente = document.getElementById('fetal-chart-pendiente');
+            const hayAlgo = !!(traza && traza.labels && traza.labels.length > 0 && traza.series && traza.series.length > 0);
+            ultimaTrazaFetal = hayAlgo ? traza : null;
+
+            if (wrap) wrap.style.display = hayAlgo ? '' : 'none';
+            if (pendiente) pendiente.style.display = hayAlgo ? 'none' : '';
+            if (btnVerTrazabilidad) btnVerTrazabilidad.style.display = hayAlgo ? '' : 'none';
+
+            if (!hayAlgo) return;
+            chartFetal = new Chart(canvas, construirConfigChartCombinado(traza, false));
+        }
+
+        function abrirGraficaFetalGrande() {
+            if (!ultimaTrazaFetal) return;
+            abrirGraficaGenericaGrande(
+                'Trazabilidad de la Atención — Control Posparto Inmediato',
+                construirConfigChartCombinado(ultimaTrazaFetal, true)
+            );
         }
 
         function toggleRegistrosGrupo(tipoSlug, btn) {
@@ -1723,25 +1841,45 @@
                         vitalesGrid.id = 'meows-vitales-grid';
                         groupWrap.appendChild(vitalesGrid);
                     } else if (tipo === 'PARTO') {
-                        // Resumen grande (Dilatación, la métrica clásica de un partograma),
-                        // igual que MEOWS destaca su puntaje total, + un mini-gráfico por
-                        // cada otro parámetro (cada uno con su propia escala: cm, %, lpm,
-                        // escala 0-4...), ya que compartir un eje Y los volvería ilegibles.
+                        // Trazabilidad de LA ATENCIÓN: una sola gráfica combinada con
+                        // todos los parámetros superpuestos (cada uno con su propia
+                        // escala interna), no una gráfica separada por parámetro.
                         const chartWrapParto = document.createElement('div');
                         chartWrapParto.className = 'timeline-group-chart-wrap';
                         const canvasParto = document.createElement('canvas');
                         canvasParto.id = 'chart-parto-resumen';
                         chartWrapParto.appendChild(canvasParto);
+                        const btnVerTrazabilidadParto = document.createElement('button');
+                        btnVerTrazabilidadParto.type = 'button';
+                        btnVerTrazabilidadParto.className = 'btn-ver-trazabilidad';
+                        btnVerTrazabilidadParto.style.display = 'none';
+                        btnVerTrazabilidadParto.innerHTML = '<i data-lucide="maximize-2"></i> Visualizar gráfica de trazabilidad';
+                        btnVerTrazabilidadParto.onclick = abrirGraficaPartoGrande;
+                        chartWrapParto.appendChild(btnVerTrazabilidadParto);
                         groupWrap.appendChild(chartWrapParto);
-
-                        const chartsGrid = document.createElement('div');
-                        chartsGrid.className = 'timeline-mini-charts-grid';
-                        chartsGrid.id = 'parto-charts-grid';
-                        groupWrap.appendChild(chartsGrid);
                     } else if (tipo === 'FETAL') {
+                        // Trazabilidad de LA ATENCIÓN (Control Posparto Inmediato /
+                        // Frecuencia Fetal): mismo patrón combinado que Trabajo de
+                        // Parto -- ver renderGraficaFetal / construirConfigChartCombinado.
+                        const chartWrapFetal = document.createElement('div');
+                        chartWrapFetal.className = 'timeline-group-chart-wrap';
+                        const canvasFetal = document.createElement('canvas');
+                        canvasFetal.id = 'chart-fetal-combinado';
+                        canvasFetal.style.display = 'none';
+                        chartWrapFetal.appendChild(canvasFetal);
+                        const btnVerTrazabilidadFetal = document.createElement('button');
+                        btnVerTrazabilidadFetal.type = 'button';
+                        btnVerTrazabilidadFetal.className = 'btn-ver-trazabilidad';
+                        btnVerTrazabilidadFetal.style.display = 'none';
+                        btnVerTrazabilidadFetal.innerHTML = '<i data-lucide="maximize-2"></i> Visualizar gráfica de trazabilidad';
+                        btnVerTrazabilidadFetal.onclick = abrirGraficaFetalGrande;
+                        chartWrapFetal.appendChild(btnVerTrazabilidadFetal);
+                        groupWrap.appendChild(chartWrapFetal);
+
                         const pendiente = document.createElement('div');
                         pendiente.className = 'timeline-group-chart-pendiente';
-                        pendiente.textContent = 'Gráfica de trazabilidad pendiente';
+                        pendiente.id = 'fetal-chart-pendiente';
+                        pendiente.textContent = 'Sin mediciones registradas todavía';
                         groupWrap.appendChild(pendiente);
                     }
 
@@ -1750,14 +1888,14 @@
 
                 renderGraficaMeows(data.meows_trazabilidad);
                 renderGraficaParto(data.parto_trazabilidad);
+                renderGraficaFetal(data.fetal_trazabilidad);
             } else {
                 timelineSection.style.display = 'none';
                 if (chartMeows) { chartMeows.destroy(); chartMeows = null; }
                 chartsMeowsVitales.forEach(c => c.destroy());
                 chartsMeowsVitales = [];
                 if (chartPartoResumen) { chartPartoResumen.destroy(); chartPartoResumen = null; }
-                chartsParto.forEach(c => c.destroy());
-                chartsParto = [];
+                if (chartFetal) { chartFetal.destroy(); chartFetal = null; }
             }
 
             // Configurar links de módulos
