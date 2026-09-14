@@ -449,28 +449,43 @@ def seccion_grid_mediciones(c, formulario, x, y, ancho_total):
             t_titulo.drawOn(c, 1*cm, y - h_t)
             y -= h_t
 
-        # 3. Encabezado de la página (fecha + hora de cada columna, igual
-        # que el resto de la vista en pantalla) -- con el nombre de quien
-        # diligenció esa columna debajo, cuando se conoce.
-        def _texto_header_columna(h):
-            texto = f"{h.strftime('%d/%m/%y')}<br/>{h.strftime('%H:%M')}"
-            nombre = responsable_por_hora.get(h) or responsable_respaldo
-            if nombre:
-                texto += f'<br/><font size="6">{escape(nombre)}</font>'
-            return texto
+        # 3. Encabezado de la página: dos filas separadas por su propia
+        # celda -- fecha/hora arriba, RESPONSABLE de esa columna abajo (antes
+        # las 3 líneas se apretaban dentro de UNA sola celda con <br/>, y un
+        # nombre largo se veía amontonado envolviendo varias líneas dentro
+        # del mismo casillero azul, sin ninguna separación real). "PARÁMETRO"
+        # ocupa las dos filas (SPAN) igual que en la vista en pantalla.
+        def _nombre_columna(h):
+            return responsable_por_hora.get(h) or responsable_respaldo or ''
 
-        header_data = [["PARÁMETRO"] + [
-            Paragraph(_texto_header_columna(h), estilo_header) for h in horas_pagina
-        ]]
+        estilo_responsable_header = ParagraphStyle(
+            'ResponsableHeaderGrid', parent=styles['Normal'], fontSize=6.5,
+            fontName='Helvetica-Bold', alignment=1, textColor=colors.white,
+        )
+
+        header_data = [
+            ["PARÁMETRO"] + [
+                Paragraph(f"{h.strftime('%d/%m/%y')}<br/>{h.strftime('%H:%M')}", estilo_header)
+                for h in horas_pagina
+            ],
+            [""] + [
+                Paragraph(escape(_nombre_columna(h)), estilo_responsable_header)
+                for h in horas_pagina
+            ],
+        ]
         t_header = Table(header_data, colWidths=col_widths)
         t_header.setStyle(TableStyle([
+            ('SPAN', (0, 0), (0, 1)),
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3b82f6')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#64748b')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 8),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 1), (-1, 1), 4),
+            ('BOTTOMPADDING', (0, 1), (-1, 1), 4),
         ]))
         w_h, h_h = t_header.wrap(ancho_util, 1*cm)
         t_header.drawOn(c, 1*cm, y - h_h)

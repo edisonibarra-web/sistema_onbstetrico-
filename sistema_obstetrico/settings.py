@@ -184,6 +184,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'sistema_obstetrico.auth_utils.profesional_actual_context',
             ],
         },
     },

@@ -186,6 +186,62 @@
     stroke-width: 3;
 }
 
+/* 2026-09-14: tarjeta de "quién tiene la sesión iniciada" -- margin-top
+   despeja el botón de colapsar (top:22px + 30px de alto), que va posicionado
+   absolute y si no quedaría montado encima. */
+.sidebar-user-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 56px 14px 14px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sidebar-user-emoji {
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.sidebar-user-info {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.sidebar-user-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.sidebar-user-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar.collapsed .sidebar-user-card {
+    margin: 56px 10px 14px;
+    padding: 8px 0;
+    justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-user-info {
+    display: none;
+}
+
+.sidebar.collapsed .sidebar-user-emoji {
+    margin: 0 auto;
+}
+
 .sidebar.collapsed .sidebar-module {
     margin: 10px 10px;
 }

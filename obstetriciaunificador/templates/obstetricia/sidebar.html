@@ -7,6 +7,21 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         <i data-lucide="chevron-left" class="nav-icon" id="sidebar-toggle-icon"></i>
     </button>
 
+    <!-- 2026-09-14: a pedido explícito -- quién tiene la sesión iniciada
+         ahora mismo, visible de un vistazo (antes no había ningún indicio en
+         pantalla de con qué usuario se estaba trabajando). Usa
+         profesional_nombre_sesion, que ya trae el nombre real de Dinámica si
+         el login fue por DGH, o el nombre/usuario de la cuenta local si no
+         (ver nombre_profesional_sesion en sistema_obstetrico/auth_utils.py) --
+         nunca queda vacío para una sesión real. -->
+    <div class="sidebar-user-card" title="Sesión iniciada como: {{ profesional_nombre_sesion|default:'—' }}">
+        <span class="sidebar-user-emoji" aria-hidden="true">👩‍⚕️</span>
+        <div class="sidebar-user-info">
+            <div class="sidebar-user-label">Sesión iniciada</div>
+            <div class="sidebar-user-name">{{ profesional_nombre_sesion|default:"—" }}</div>
+        </div>
+    </div>
+
     <!-- La campana de alertas MEOWS vive ahora en el encabezado (ver
          obstetricia/header_formatos.html) — este comentario queda como
          referencia de dónde buscarla. El resto del mecanismo (JS, sonido,

@@ -710,6 +710,21 @@ body {
     word-break: break-word;
 }
 
+/* 2026-09-14: a pedido explícito -- letra más chica en la card "Información
+   del Paciente" (formulario.html e historial.html, ambas usan
+   .patient-section-redesigned). Scoped a esta card en particular para no
+   afectar .info-label/.info-value en otras secciones que comparten esas
+   mismas clases base. */
+.patient-section-redesigned .info-section-title {
+    font-size: 0.92rem;
+}
+.patient-section-redesigned .info-label {
+    font-size: 0.7rem;
+}
+.patient-section-redesigned .info-value {
+    font-size: 0.92rem;
+}
+
 .patient-input {
     width: 100%;
     padding: 12px 16px;
@@ -1496,7 +1511,14 @@ select.patient-input-compact {
 .summary-section-lateral .summary-conducta {
     font-size: 1rem;
     line-height: 1.6;
-    padding: 1rem 1.1rem;
+    /* 2026-09-14: HALLAZGO -- este padding (más específico que la regla base
+       .summary-conducta) pisaba el padding-top de 2.6rem que reserva espacio
+       para el eyebrow "CONDUCTA SUGERIDA" (ver .summary-conducta::after);
+       con solo 1rem arriba, el texto del mensaje arrancaba prácticamente
+       encima del eyebrow. Se conserva el padding lateral/inferior angosto de
+       esta variante, pero el superior vuelve a los 2.6rem que sí le dejan
+       espacio al eyebrow. */
+    padding: 2.6rem 1.1rem 1rem;
     min-height: 0;
 }
 
@@ -1619,7 +1641,11 @@ select.patient-input-compact {
 
 .summary-section-lateral .summary-card .summary-conducta {
     text-align: center;
-    justify-content: center;
+    /* 2026-09-14: justify-content:center (no flex-start como la base) era
+       justo lo que causaba el desborde hacia arriba del eyebrow "CONDUCTA
+       SUGERIDA" en esta variante angosta del sidebar -- ver el comentario
+       completo junto a .summary-conducta (regla base). */
+    justify-content: flex-start;
     background: #f8fafc;
     border: 1px solid #e2e5e9;
     box-shadow: none;
@@ -3232,10 +3258,20 @@ select.patient-input-compact {
     background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 50%, #f8f9fa 100%);
     border-radius: 16px;
     min-height: 120px;
+    height: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    /* 2026-09-14: HALLAZGO -- con justify-content:center, un mensaje largo
+       (ej. AMARILLO/ROJO con línea de LLAMADO aparte) que necesitara más
+       alto que el que el contenedor padre le dejaba se centraba igual,
+       desbordando PARA ARRIBA por encima del padding-top reservado para el
+       eyebrow "CONDUCTA SUGERIDA" -- el texto quedaba montado sobre el
+       eyebrow y, con overflow:hidden, a veces recortado a la mitad (se veía
+       "MÍN" / "IMO" como si la palabra se hubiera partido mal). Con
+       flex-start el texto arranca siempre justo debajo del padding-top y
+       crece hacia abajo, sin importar cuántas líneas necesite. */
+    justify-content: flex-start;
     text-align: center;
     border: 3px solid #e9ecef;
     font-weight: 700;

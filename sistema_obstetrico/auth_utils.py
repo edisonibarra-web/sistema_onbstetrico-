@@ -53,3 +53,15 @@ def nombre_profesional_sesion(request):
         return ''
     except Exception:
         return ''
+
+
+def profesional_actual_context(request):
+    """
+    Context processor: expone 'profesional_nombre_sesion' en TODOS los
+    templates (ej. sidebar.html, para mostrar quién tiene la sesión
+    iniciada), sin que cada vista tenga que pasarlo a mano. Las vistas que
+    ya lo pasan explícitamente en su propio context (trabajoparto, meows,
+    frecuenciafetal) no se ven afectadas: ese valor explícito sigue ganando
+    igual, este solo cubre las páginas que no lo pasaban.
+    """
+    return {'profesional_nombre_sesion': nombre_profesional_sesion(request)}
