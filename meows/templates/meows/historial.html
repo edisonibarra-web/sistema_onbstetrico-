@@ -128,10 +128,13 @@
         </section>
 
         <!-- CAMPO RESPONSABLE: MEOWS ya no se diligencia a mano (las mediciones
-             llegan solas de Dinámica), pero el reporte PDF lo valida un
-             profesional. Este campo se precarga con quien inició sesión, igual
-             que en Trabajo de Parto y Control Posparto, y es editable. Su valor
-             es el que sale en el bloque "VALIDACIÓN DEL REPORTE MEOWS" del PDF. -->
+             llegan solas de Dinámica). 2026-09-14: a pedido explícito, este
+             campo YA NO se precarga con el profesional en sesión de esta app
+             (esa persona no es necesariamente quien hizo el registro real) --
+             se precarga con quien digitó en Dinámica la medición más reciente
+             (ver responsable_meows_mas_reciente en meows/views.py), y sigue
+             siendo editable. Su valor es el que sale en el bloque
+             "VALIDACIÓN DEL REPORTE MEOWS" del PDF. -->
         <section class="section meows-responsable-section">
             <label for="meows-responsable" class="meows-responsable-label">
                 <span class="info-section-title-icon"><i data-lucide="user-check"></i></span>
@@ -139,9 +142,9 @@
             </label>
             <input type="text" id="meows-responsable" class="meows-responsable-input"
                    maxlength="255" autocomplete="off"
-                   value="{{ profesional_nombre_sesion|default:'' }}"
+                   value="{{ responsable_meows_default|default:'' }}"
                    placeholder="Nombre del profesional responsable"
-                   title="Se precarga con el profesional que inició sesión; edítelo si es otro. Es el nombre que aparece en el PDF.">
+                   title="Se precarga con quien digitó en Dinámica el registro más reciente; edítelo si es otro. Es el nombre que aparece en el PDF.">
         </section>
 
         <!-- SECCIÓN: CUADRÍCULA CLÍNICA DE MEDICIONES (incluye "Generar PDF" junto a "Regresar a Trabajo de Parto"; 2026-09-09: se quitó "Nueva Medición", ver _timeline_grid.html) -->

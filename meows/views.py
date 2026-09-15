@@ -823,6 +823,29 @@ def api_pacientes_activos(request):
         })
 
 
+def responsable_meows_mas_reciente(paciente):
+    """
+    2026-09-14: a pedido explícito -- MEOWS ya no se diligencia a mano, todas
+    las mediciones llegan solas desde Dinámica (ver
+    sincronizar_signos_vitales_dinamica), así que el profesional en sesión de
+    ESTA app (quien tenga la pantalla abierta) casi nunca es quien de verdad
+    hizo el registro en Dinámica -- puede ser una enfermera distinta con
+    turno abierto acá mientras otra digita allá. El campo "RESPONSABLE DEL
+    REPORTE" debe reflejar a quien SÍ lo hizo: se toma
+    Medicion.responsable_dinamica (GENMEDICO.GMENOMCOM, ver
+    meows/services/dinamica_signos_vitales.py) de la medición más reciente
+    de este paciente, no nombre_profesional_sesion().
+    """
+    medicion = (
+        Medicion.objects.filter(paciente=paciente)
+        .exclude(responsable_dinamica__isnull=True)
+        .exclude(responsable_dinamica='')
+        .order_by('-fecha_hora')
+        .first()
+    )
+    return medicion.responsable_dinamica if medicion else ''
+
+
 @login_required_if_enabled
 def historial_meows_paciente(request, paciente_id):
     """
@@ -852,9 +875,11 @@ def historial_meows_paciente(request, paciente_id):
         "columnas": columnas,
         "atencion_id": atencion_id,
         "documento": documento,
-        # Nombre del profesional en sesión, para precargar el campo
-        # "Responsable" (mismo criterio que Trabajo de Parto / Control Posparto).
-        "profesional_nombre_sesion": nombre_profesional_sesion(request),
+        # 2026-09-14: el campo "RESPONSABLE DEL REPORTE" ya NO se precarga con
+        # el profesional en sesión de esta app -- MEOWS se diligencia solo
+        # desde Dinámica, así que se usa a quien realmente digitó la última
+        # medición allá (ver responsable_meows_mas_reciente arriba).
+        "responsable_meows_default": responsable_meows_mas_reciente(paciente),
     })
 
 
@@ -884,11 +909,10 @@ def generar_pdf_meows_paciente(request, paciente_id):
     mediciones = list(mediciones_qs)
 
     # Responsable = lo que quedó en el campo "Responsable" de la pantalla (se
-    # precarga con el profesional en sesión y es editable), y si no viene, el
-    # profesional en sesión. Mismo criterio que Trabajo de Parto / Control
-    # Posparto: MEOWS ya no se diligencia a mano.
-    from sistema_obstetrico.auth_utils import nombre_profesional_sesion
-    responsable = (request.GET.get('responsable') or '').strip() or nombre_profesional_sesion(request)
+    # precarga con quien digitó en Dinámica la medición más reciente, ver
+    # responsable_meows_mas_reciente, y es editable); si llega vacío, se usa
+    # el mismo criterio de resguardo.
+    responsable = (request.GET.get('responsable') or '').strip() or responsable_meows_mas_reciente(paciente)
     return generar_pdf_meows(paciente, mediciones, responsable=responsable)
 
 

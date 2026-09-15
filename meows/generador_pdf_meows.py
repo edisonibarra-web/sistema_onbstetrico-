@@ -13,6 +13,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from datetime import datetime
+from html import escape
 import os
 
 
@@ -455,6 +456,12 @@ def generar_pdf_meows(paciente, mediciones, responsable=None):
         mediciones_agrupadas.append({
             'fecha': fecha_str,
             'hora': hora_str,
+            # 2026-09-14: a pedido explícito -- quién digitó ESTA medición en
+            # Dinámica (GENMEDICO.GMENOMCOM, ver Medicion.responsable_dinamica
+            # / meows/services/dinamica_signos_vitales.py), no necesariamente
+            # el profesional en sesión que generó el PDF. Null en mediciones
+            # sincronizadas antes de que existiera este campo.
+            'responsable': medicion.responsable_dinamica or '',
             'medicion': medicion,
             'valores': valores_dict
         })
@@ -549,8 +556,30 @@ def generar_pdf_meows(paciente, mediciones, responsable=None):
             ))
         encabezado_grilla.append('PUNTOS')
 
+        # 2026-09-14: fila propia para el responsable de cada medición
+        # individual -- a pedido explícito, en su propia celda separada (no
+        # amontonado dentro de la misma celda de FECHA/HORA, que es justo lo
+        # que se corrigió antes en el PDF de Trabajo de Parto). Fondo un tono
+        # más claro que el encabezado de fecha/hora para diferenciarla sin
+        # perder la jerarquía de "todavía es encabezado".
+        estilo_encabezado_responsable = ParagraphStyle(
+            'EncabezadoResponsable',
+            parent=styles['Normal'],
+            fontSize=5.5,
+            textColor=colors.white,
+            fontName='Helvetica-Bold',
+            alignment=1,
+            leading=6.5,
+            spaceAfter=0,
+            spaceBefore=0,
+        )
+        fila_responsable = ['', '']
+        for item in mediciones_pagina:
+            fila_responsable.append(Paragraph(escape(item['responsable']), estilo_encabezado_responsable))
+        fila_responsable.append('')
+
         # Datos de la grilla
-        datos_grilla = [encabezado_grilla]
+        datos_grilla = [encabezado_grilla, fila_responsable]
 
         # Agregar filas de parámetros
         for parametro in parametros:
@@ -661,28 +690,37 @@ def generar_pdf_meows(paciente, mediciones, responsable=None):
 
         # Calcular altura de filas - debe ser suficiente para la sub-tabla de puntos (4 filas)
         altura_fila = 1.2*cm
-        alturas_filas = [0.8*cm]
+        # 2026-09-14: +1 altura (0.45cm) por la nueva fila de RESPONSABLE
+        # insertada justo debajo del encabezado de fecha/hora -- todo índice
+        # de fila de aquí en adelante que antes asumía "el cuerpo empieza en
+        # la fila 1" ahora empieza en la fila 2 (ver estilo_grilla más abajo).
+        alturas_filas = [0.8*cm, 0.45*cm]
         for _ in range(len(parametros)):
             alturas_filas.append(altura_fila)
         alturas_filas.append(0.7*cm)
 
-        # Crear tabla de grilla de esta página
-        tabla_grilla = Table(datos_grilla, colWidths=anchos_columnas, rowHeights=alturas_filas, repeatRows=1)
+        # Crear tabla de grilla de esta página (repeatRows=2: se repiten
+        # AMBAS filas de encabezado -- fecha/hora y responsable -- si la
+        # tabla continúa en una página nueva).
+        tabla_grilla = Table(datos_grilla, colWidths=anchos_columnas, rowHeights=alturas_filas, repeatRows=2)
 
         estilo_grilla = [
-            # Encabezado
+            # Encabezado -- fila 0 (fecha/hora) y fila 1 (responsable), cada
+            # una con su propio tono para diferenciarse sin perder la
+            # jerarquía de "las dos son encabezado".
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#64748b')),
+            ('TEXTCOLOR', (0, 0), (-1, 1), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 6),
-            ('FONTSIZE', (0, 1), (-1, -2), 6.5),
+            ('FONTNAME', (0, 0), (-1, 1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 1), 6),
+            ('FONTSIZE', (0, 2), (-1, -2), 6.5),
             ('FONTSIZE', (0, -1), (-1, -1), 6.5),
-            ('LEFTPADDING', (2, 1), (-2, -2), 2),
-            ('RIGHTPADDING', (2, 1), (-2, -2), 2),
-            ('TOPPADDING', (2, 1), (-2, -2), 2),
-            ('BOTTOMPADDING', (2, 1), (-2, -2), 2),
+            ('LEFTPADDING', (2, 2), (-2, -2), 2),
+            ('RIGHTPADDING', (2, 2), (-2, -2), 2),
+            ('TOPPADDING', (2, 2), (-2, -2), 2),
+            ('BOTTOMPADDING', (2, 2), (-2, -2), 2),
             ('LEFTPADDING', (-1, 0), (-1, -1), 1),
             ('RIGHTPADDING', (-1, 0), (-1, -1), 1),
             ('TOPPADDING', (-1, 0), (-1, -1), 1),
@@ -691,16 +729,16 @@ def generar_pdf_meows(paciente, mediciones, responsable=None):
             ('VALIGN', (-1, 0), (-1, -1), 'MIDDLE'),
             ('BOX', (0, 0), (-1, -1), 0.8, colors.HexColor('#1f2937')),
             ('INNERGRID', (0, 0), (-1, -1), 0.35, colors.HexColor('#6b7280')),
-            ('ALIGN', (0, 1), (0, -2), 'LEFT'),
-            ('FONTNAME', (0, 1), (0, -2), 'Helvetica-Bold'),
-            ('BACKGROUND', (0, 1), (0, -2), colors.HexColor('#f9fafb')),
-            ('BACKGROUND', (1, 1), (1, -2), colors.HexColor('#f3f4f6')),
+            ('ALIGN', (0, 2), (0, -2), 'LEFT'),
+            ('FONTNAME', (0, 2), (0, -2), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, 2), (0, -2), colors.HexColor('#f9fafb')),
+            ('BACKGROUND', (1, 2), (1, -2), colors.HexColor('#f3f4f6')),
             ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
             ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#dbeafe')),
         ]
 
         # Aplicar colores según scores en las celdas de valores
-        fila_idx = 1
+        fila_idx = 2
         for parametro in parametros:
             col_idx = 2
             for item in mediciones_pagina:
