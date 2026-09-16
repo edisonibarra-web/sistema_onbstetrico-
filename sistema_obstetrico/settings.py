@@ -125,7 +125,7 @@ if _HTTPS_ENABLED:
     # X-Forwarded-Proto correctamente; con SECURE_PROXY_SSL_HEADER, Django
     # confía en ella para saber que la petición original sí venía por HTTPS
     # (evita un bucle de redirección infinito detrás del proxy).
-    SECURE_SSL_REDIRECT = True
+    SECURE_SSL_REDIRECT =False
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     # HSTS se deja pendiente a propósito: una vez el navegador lo cachea es
     # difícil de revertir si HTTPS llega a fallar. Activarlo (SECURE_HSTS_*)
