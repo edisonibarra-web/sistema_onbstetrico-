@@ -99,6 +99,7 @@ Mapeo DE PRUEBA — % de O2 requerido y Nivel de Conciencia (2026-09-08, ajustad
     franjas en la Línea de Tiempo Clínica.
 """
 from django.db import connections
+from django.utils import timezone
 
 # OIDs reales de HCNTIPSVIT, confirmados contra Nexus (ver docstring arriba).
 _OID_TEMPERATURA = 15
@@ -218,6 +219,9 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
     pulso_por_hora = {}
 
     for hora, tipo_oid, valor, nombre_medico in filas:
+        if timezone.is_naive(hora):
+            hora = timezone.make_aware(hora, timezone.get_current_timezone())
+
         lectura = lecturas_por_hora.setdefault(hora, {
             "fecha_hora": hora,
             "responsable": None,
