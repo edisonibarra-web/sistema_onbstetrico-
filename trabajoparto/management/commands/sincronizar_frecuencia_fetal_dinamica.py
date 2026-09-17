@@ -183,6 +183,9 @@ class Command(BaseCommand):
 
         lecturas = _obtener_fetocardio_nuevo(folio, desde=ultima_hora)
         for hora, valor_texto in lecturas:
+            if timezone.is_naive(hora):
+                hora = timezone.make_aware(hora, timezone.get_current_timezone())
+
             valor_decimal = _a_numero(valor_texto)
             if valor_decimal is None:
                 continue

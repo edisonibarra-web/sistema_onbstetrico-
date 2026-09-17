@@ -404,10 +404,10 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
      */
     (function iniciarSondeoAlertasMeows() {
         // 2026-09-08: ya en uso normal (no en pruebas de cerca) — la tarea
-        // programada real corre cada 2 minutos (ver
-        // sincronizar_signos_vitales_dinamica.bat), así que sondear cada 20s
-        // sigue siendo mucho más rápido que eso sin golpear el servidor de más.
-        var INTERVALO_MS = 20000;
+        // La sincronización automática de signos vitales se ejecutará
+        // independientemente de este sondeo del navegador. La campana
+        // consulta las alertas pendientes cada 5 segundos.
+        var INTERVALO_MS = 5000;
 
         // El servidor ya no "consume" la alerta al primero que pregunta — devuelve
         // todo lo disparado en las últimas VENTANA_ALERTA_MINUTOS (24h) a
