@@ -2803,6 +2803,23 @@
                   <input type="time" id="hora_parto" class="doc-input" style="max-width:160px;display:inline-block">
                 </td>
               </tr>
+              <tr>
+                <td class="doc-label">Desgarro</td>
+                <td colspan="3">
+                  <select id="desgarro" class="doc-input" style="max-width:220px;display:inline-block" onchange="toggleDesgarroSubgrado(this)">
+                    <option value="">— Seleccionar —</option>
+                    <option value="GRADO_I">Grado I</option>
+                    <option value="GRADO_II">Grado II</option>
+                    <option value="GRADO_III">Grado III</option>
+                    <option value="GRADO_IV">Grado IV</option>
+                  </select>
+                  <span id="desgarro-subgrado-group" class="doc-radio-inline" style="display:none; margin-left:14px;">
+                    <label><input type="radio" name="desgarro_subgrado" value="A"> A</label>
+                    <label><input type="radio" name="desgarro_subgrado" value="B"> B</label>
+                    <label><input type="radio" name="desgarro_subgrado" value="C"> C</label>
+                  </span>
+                </td>
+              </tr>
             </table>
 
             <!-- Línea de Tiempo Clínica MEOWS: se calcula de nuevo en cada carga de esta página
@@ -3188,12 +3205,16 @@
                         <span class="status-dot" aria-hidden="true"></span>
                     </h3>
                     <div class="buttons-container">
-                        <select id="globo_seguridad" class="doc-input semaforo-select" data-val="" onchange="actualizarSemaforoSelect(this, 'globo-hint')">
+                        <select id="globo_seguridad" class="doc-input semaforo-select" data-val="" disabled title="Se sincroniza automáticamente con el último control del historial -- use 'Historial / Agregar control' para registrar uno nuevo.">
                             <option value="">— Seleccionar —</option>
-                            <option value="NORMAL">Normal: útero firme y contraído, altura ±1cm del ombligo</option>
-                            <option value="ALERTA">Alerta: útero blando, relajado o desviado (atonía), fondo uterino por encima del ombligo</option>
+                            <option value="NORMAL">Normal: útero firme y contraído</option>
+                            <option value="ALERTA">Alerta: útero blando, relajado, atonía</option>
                         </select>
                         <p id="globo-hint" class="semaforo-hint"></p>
+                        <button type="button" class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="abrirModalSemaforo('globo')">
+                            <i data-lucide="history" style="width:14px;height:14px;vertical-align:-2px"></i> Historial / Agregar control
+                            (<span id="globo-registros-count">0</span>)
+                        </button>
                     </div>
                 </div>
 
@@ -3224,13 +3245,17 @@
                         <span class="status-dot" aria-hidden="true"></span>
                     </h3>
                     <div class="buttons-container">
-                        <select id="sutura_heridas" class="doc-input semaforo-select" data-val="" onchange="actualizarSemaforoSelect(this, 'sutura-hint')">
+                        <select id="sutura_heridas" class="doc-input semaforo-select" data-val="" disabled title="Se sincroniza automáticamente con el último control del historial -- use 'Historial / Agregar control' para registrar uno nuevo.">
                             <option value="">— Seleccionar —</option>
-                            <option value="NORMAL">Normal: bordes afrontados, sin secreción, dolor tolerable, sin cambios de coloración</option>
-                            <option value="HEMATOMA">Alerta: hematoma (masa violácea, tensa, dolor intenso, rectal, vaginal, insoportable)</option>
-                            <option value="INFECCION">Alerta: infección (eritema, calor local, edema, secreción purulenta)</option>
+                            <option value="NORMAL">Normal: bordes afrontados, dolor tolerable, sin cambios de coloración</option>
+                            <option value="HEMATOMA">Alerta: hematoma (masa violácea, tensa, dolor intenso)</option>
+                            <option value="INFECCION">Alerta: (eritema, calor local, edema, secreción purulenta)</option>
                         </select>
                         <p id="sutura-hint" class="semaforo-hint"></p>
+                        <button type="button" class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="abrirModalSemaforo('sutura')">
+                            <i data-lucide="history" style="width:14px;height:14px;vertical-align:-2px"></i> Historial / Agregar control
+                            (<span id="sutura-registros-count">0</span>)
+                        </button>
                     </div>
                 </div>
 
@@ -3273,6 +3298,77 @@
                   <span>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="cerrarModalSangrado()">Cerrar</button>
                     <button type="button" id="sangrado-guardar-btn" class="btn btn-primary btn-sm" onclick="guardarRegistroSangrado()">💾 Guardar control (<span id="sangrado-guardar-label">15 min</span>)</button>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div id="globo-modal-overlay" class="preview-modal-overlay" onclick="if(event.target===this) cerrarModalSemaforo('globo')">
+              <div class="preview-modal sangrado-modal">
+                <div class="preview-modal-header sangrado-modal-header">
+                  <span class="sangrado-modal-header-title">🎈 Historial de Globo de Seguridad</span>
+                  <div class="sangrado-hora-manual-row">
+                    <label for="globo-hora-manual"><i data-lucide="clock"></i> Hora del control</label>
+                    <input type="time" id="globo-hora-manual" class="form-control">
+                  </div>
+                  <span class="preview-modal-close" onclick="cerrarModalSemaforo('globo')" title="Cerrar">&times;</span>
+                </div>
+                <div class="preview-modal-body">
+                  <p class="sangrado-modal-intro">
+                    Registre el estado del globo de seguridad en cada control periódico: cada 15 min las primeras
+                    2 horas, cada 30 min la hora siguiente y cada hora hasta completar las 6 horas.
+                  </p>
+                  <select id="globo-estado-nuevo" class="form-input" style="width:100%; padding:12px; border-radius:6px; border:1px solid #cbd5e1; font-size:1em; margin-bottom:14px;">
+                    <option value="">— Seleccionar —</option>
+                    <option value="NORMAL">Normal: útero firme y contraído</option>
+                    <option value="ALERTA">Alerta: útero blando, relajado, atonía</option>
+                  </select>
+                  <div id="globo-registros-list" class="sangrado-registros-list"></div>
+                  <div id="globo-registros-empty" class="sangrado-registros-empty">Aún no hay controles guardados.</div>
+                </div>
+                <div class="preview-modal-footer sangrado-modal-footer">
+                  <span class="sangrado-modal-total-label">
+                    <span class="sangrado-modal-proximo">Próximo control: <span id="globo-proximo-control">15 min</span></span>
+                  </span>
+                  <span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="cerrarModalSemaforo('globo')">Cerrar</button>
+                    <button type="button" id="globo-guardar-btn" class="btn btn-primary btn-sm" onclick="guardarRegistroSemaforo('globo')">💾 Guardar control (<span id="globo-guardar-label">15 min</span>)</button>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div id="sutura-modal-overlay" class="preview-modal-overlay" onclick="if(event.target===this) cerrarModalSemaforo('sutura')">
+              <div class="preview-modal sangrado-modal">
+                <div class="preview-modal-header sangrado-modal-header">
+                  <span class="sangrado-modal-header-title">🧵 Historial de Sutura y Heridas</span>
+                  <div class="sangrado-hora-manual-row">
+                    <label for="sutura-hora-manual"><i data-lucide="clock"></i> Hora del control</label>
+                    <input type="time" id="sutura-hora-manual" class="form-control">
+                  </div>
+                  <span class="preview-modal-close" onclick="cerrarModalSemaforo('sutura')" title="Cerrar">&times;</span>
+                </div>
+                <div class="preview-modal-body">
+                  <p class="sangrado-modal-intro">
+                    Registre el estado de sutura y heridas en cada control periódico: cada 15 min las primeras
+                    2 horas, cada 30 min la hora siguiente y cada hora hasta completar las 6 horas.
+                  </p>
+                  <select id="sutura-estado-nuevo" class="form-input" style="width:100%; padding:12px; border-radius:6px; border:1px solid #cbd5e1; font-size:1em; margin-bottom:14px;">
+                    <option value="">— Seleccionar —</option>
+                    <option value="NORMAL">Normal: bordes afrontados, dolor tolerable, sin cambios de coloración</option>
+                    <option value="HEMATOMA">Alerta: hematoma (masa violácea, tensa, dolor intenso)</option>
+                    <option value="INFECCION">Alerta: (eritema, calor local, edema, secreción purulenta)</option>
+                  </select>
+                  <div id="sutura-registros-list" class="sangrado-registros-list"></div>
+                  <div id="sutura-registros-empty" class="sangrado-registros-empty">Aún no hay controles guardados.</div>
+                </div>
+                <div class="preview-modal-footer sangrado-modal-footer">
+                  <span class="sangrado-modal-total-label">
+                    <span class="sangrado-modal-proximo">Próximo control: <span id="sutura-proximo-control">15 min</span></span>
+                  </span>
+                  <span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="cerrarModalSemaforo('sutura')">Cerrar</button>
+                    <button type="button" id="sutura-guardar-btn" class="btn btn-primary btn-sm" onclick="guardarRegistroSemaforo('sutura')">💾 Guardar control (<span id="sutura-guardar-label">15 min</span>)</button>
                   </span>
                 </div>
               </div>
@@ -3324,6 +3420,10 @@
           </div>
 
           <div class="submit-bar submit-bar-final">
+            <button type="button" class="btn btn-success btn-large" id="submit-btn-temporal"
+              title="Guarda el avance registrado hasta ahora (p.ej. el control del rango de minutos actual) sin cerrar el monitoreo. Puede seguir registrando los siguientes controles después.">
+              💾 Guardado Temporal
+            </button>
             <button type="button" class="btn btn-primary btn-large" id="submit-btn">Guardar
               Registro Completo</button>
             <button type="button" class="btn btn-secondary btn-large" onclick="descargarPDF()" id="btn-pdf">
@@ -3390,6 +3490,19 @@
           function getRadio(name) {
             const el = document.querySelector(`input[name="${name}"]:checked`);
             return el ? el.value === 'true' : false;
+          }
+
+          // Desgarro Grado III exige subclasificación A/B/C (única, no
+          // excluyente con nada más); para los demás grados no aplica.
+          function toggleDesgarroSubgrado(selectEl) {
+            const grupo = document.getElementById('desgarro-subgrado-group');
+            if (!grupo) return;
+            if (selectEl.value === 'GRADO_III') {
+              grupo.style.display = 'inline-flex';
+            } else {
+              grupo.style.display = 'none';
+              grupo.querySelectorAll('input[name="desgarro_subgrado"]').forEach(r => { r.checked = false; });
+            }
           }
 
           // Minutos acumulados desde inicio para cada columna (15, 30, 45, 60, 75, 90, 105, 120, 150, 180, 240, 300, 360)
@@ -3635,8 +3748,23 @@
             if (data.controles_sangrado && data.controles_sangrado.length > 0) {
               data.controles_sangrado.forEach((sc) => {
                 const control = sangradoRegistros.find(r => !r.id && r.minuto === sc.minuto_control);
-                if (control) control.id = sc.id;
+                if (control) { control.id = sc.id; control.estado = sc.estado || null; }
               });
+              renderRegistrosSangrado();
+            }
+            if (data.controles_globo && data.controles_globo.length > 0) {
+              data.controles_globo.forEach((cg) => {
+                const control = SEMAFORO_TIPOS.globo.registros.find(r => !r.id && r.minuto === cg.minuto_control);
+                if (control) control.id = cg.id;
+              });
+              renderRegistrosSemaforo('globo');
+            }
+            if (data.controles_sutura && data.controles_sutura.length > 0) {
+              data.controles_sutura.forEach((cs) => {
+                const control = SEMAFORO_TIPOS.sutura.registros.find(r => !r.id && r.minuto === cs.minuto_control);
+                if (control) control.id = cs.id;
+              });
+              renderRegistrosSemaforo('sutura');
             }
           }
 
@@ -3790,8 +3918,8 @@
                     <div class="buttons-container">
                       <select id="fc-preview-globo_seguridad" class="doc-input semaforo-select" onchange="actualizarSemaforoSelect(this, 'fc-preview-globo-hint')">
                         <option value="">— Seleccionar —</option>
-                        <option value="NORMAL" ${globo === 'NORMAL' ? 'selected' : ''}>Normal: útero firme y contraído, altura ±1cm del ombligo</option>
-                        <option value="ALERTA" ${globo === 'ALERTA' ? 'selected' : ''}>Alerta: útero blando, relajado o desviado (atonía), fondo uterino por encima del ombligo</option>
+                        <option value="NORMAL" ${globo === 'NORMAL' ? 'selected' : ''}>Normal: útero firme y contraído</option>
+                        <option value="ALERTA" ${globo === 'ALERTA' ? 'selected' : ''}>Alerta: útero blando, relajado, atonía</option>
                       </select>
                       <p id="fc-preview-globo-hint" class="semaforo-hint"></p>
                     </div>
@@ -4439,7 +4567,7 @@
             // creación (ver buildPayload/controles_sangrado) o, como respaldo,
             // en el flujo de actualización (ver submitForm).
             if (savedRegistroId) {
-              persistirControlSangrado(nuevoControl, 'crear');
+              persistirControlSangrado(nuevoControl, 'crear').then(() => renderRegistrosSangrado());
             }
           }
 
@@ -4454,10 +4582,12 @@
                 body: JSON.stringify({ minuto_control: control.minuto, hora: control.hora, cc: Math.round(control.cc) }),
               });
               if (!res.ok) return false;
-              if (accion === 'crear') {
-                const creado = await res.json();
-                control.id = creado.id;
-              }
+              const guardado = await res.json();
+              control.id = guardado.id;
+              // `estado` (semáforo) lo calcula el backend según el acumulado
+              // hasta este control -- nunca se manda, siempre se refleja el
+              // que devuelve la respuesta.
+              control.estado = guardado.estado || null;
               return true;
             } catch (e) {
               console.warn('No se pudo sincronizar el control de sangrado con el servidor:', e);
@@ -4556,12 +4686,16 @@
                   </div>
                 `;
               }
+              const estadoBadge = r.estado
+                ? `<span class="semaforo-badge badge-${r.estado.toLowerCase()}">${r.estado}</span>`
+                : '';
               return `
                 <div class="sangrado-registro-row" data-idx="${idx}">
                   <span class="sangrado-registro-min">${r.minuto} min</span>
                   <span class="sangrado-registro-hora">${r.hora}</span>
                   <span class="sangrado-registro-cc">${r.cc.toFixed(0)} cc</span>
                   <span class="sangrado-registro-acum">Acumulado: ${acumulado.toFixed(0)} cc</span>
+                  ${estadoBadge}
                   <span class="sangrado-registro-actions">
                     <button type="button" class="btn-icon-editar" onclick="editarRegistroSangrado(${idx})" title="Editar control">✏️</button>
                     <button type="button" class="btn-remove-row" onclick="eliminarRegistroSangrado(${idx})" title="Eliminar control">&times;</button>
@@ -4575,6 +4709,255 @@
             const total = sangradoBaseAnterior + sangradoRegistros.reduce((sum, r) => sum + r.cc, 0);
             document.getElementById('sangrado_cuantificado_cc').value = total.toFixed(0);
             actualizarSemaforoSangrado();
+          }
+
+          // --- Historial de Globo de Seguridad y Sutura y Heridas: mismo
+          // cronograma de PP_MINUTOS que Sangrado (15/30/60 min hasta 6h),
+          // pero cada control es directamente el estado elegido (no se
+          // deriva de ningún cálculo, a diferencia de sangrado). Un solo
+          // conjunto de funciones genéricas, parametrizadas por `tipo`
+          // ('globo' o 'sutura'), en vez de duplicar todo el patrón de
+          // sangrado dos veces.
+          const SEMAFORO_TIPOS = {
+            globo: { apiSegment: 'globo', selectId: 'globo_seguridad', hintId: 'globo-hint', registros: [], editandoIdx: null },
+            sutura: { apiSegment: 'sutura', selectId: 'sutura_heridas', hintId: 'sutura-hint', registros: [], editandoIdx: null },
+          };
+
+          function proximoControlSemaforo(tipo) {
+            const usados = SEMAFORO_TIPOS[tipo].registros.map(r => r.minuto);
+            return PP_MINUTOS.find(m => !usados.includes(m)) || null;
+          }
+
+          function actualizarProximoControlSemaforo(tipo) {
+            const proximo = proximoControlSemaforo(tipo);
+            const label = proximo ? `${proximo} min` : 'Completo (6 h)';
+            const proximoEl = document.getElementById(`${tipo}-proximo-control`);
+            const guardarLabelEl = document.getElementById(`${tipo}-guardar-label`);
+            const guardarBtn = document.getElementById(`${tipo}-guardar-btn`);
+            if (proximoEl) proximoEl.textContent = label;
+            if (guardarLabelEl) guardarLabelEl.textContent = label;
+            if (guardarBtn) guardarBtn.disabled = !proximo;
+            const countEl = document.getElementById(`${tipo}-registros-count`);
+            if (countEl) countEl.textContent = String(SEMAFORO_TIPOS[tipo].registros.length);
+          }
+
+          function abrirModalSemaforo(tipo) {
+            renderRegistrosSemaforo(tipo);
+            actualizarProximoControlSemaforo(tipo);
+            const horaInput = document.getElementById(`${tipo}-hora-manual`);
+            if (horaInput && !horaInput.value) {
+              const now = new Date();
+              horaInput.value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            }
+            const estadoSel = document.getElementById(`${tipo}-estado-nuevo`);
+            if (estadoSel) estadoSel.value = '';
+            document.getElementById(`${tipo}-modal-overlay`).classList.add('show');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          }
+
+          function cerrarModalSemaforo(tipo) {
+            document.getElementById(`${tipo}-modal-overlay`).classList.remove('show');
+          }
+
+          function guardarRegistroSemaforo(tipo) {
+            const proximo = proximoControlSemaforo(tipo);
+            if (!proximo) {
+              showToast('Ya se completaron los controles programados (6 horas).', 'error');
+              return;
+            }
+            const estadoSel = document.getElementById(`${tipo}-estado-nuevo`);
+            const estado = estadoSel?.value;
+            if (!estado) {
+              showToast('Seleccione el estado antes de guardar el control.', 'error');
+              return;
+            }
+            const horaInput = document.getElementById(`${tipo}-hora-manual`);
+            const ahora = new Date();
+            const horaAutomatica = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+            const horaGuardada = horaInput?.value || horaAutomatica;
+            const nuevoControl = { minuto: proximo, estado, hora: horaGuardada };
+            SEMAFORO_TIPOS[tipo].registros.push(nuevoControl);
+            renderRegistrosSemaforo(tipo);
+            actualizarProximoControlSemaforo(tipo);
+            aplicarUltimoEstadoSemaforo(tipo);
+            if (estadoSel) estadoSel.value = '';
+
+            const siguienteControl = proximoControlSemaforo(tipo);
+            if (horaInput && siguienteControl) {
+              horaInput.value = addMinutesToTime(horaGuardada, siguienteControl - proximo);
+            }
+
+            showToast(`Control de ${proximo} min guardado.`, 'success');
+
+            // Si el registro principal ya existe, persistir este control de
+            // inmediato (mismo criterio que sangrado). Si aún no existe,
+            // viaja en el payload de creación (ver buildPayload) o, como
+            // respaldo, en el flujo de actualización (ver submitForm).
+            if (savedRegistroId) {
+              persistirControlSemaforo(tipo, nuevoControl, 'crear');
+            }
+          }
+
+          async function persistirControlSemaforo(tipo, control, accion) {
+            try {
+              const seg = SEMAFORO_TIPOS[tipo].apiSegment;
+              const url = accion === 'crear'
+                ? `${API_BASE}/registros/${savedRegistroId}/${seg}/`
+                : `${API_BASE}/registros/${savedRegistroId}/${seg}/${control.id}/`;
+              const res = await fetch(url, {
+                method: accion === 'crear' ? 'POST' : 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify({ minuto_control: control.minuto, hora: control.hora, estado: control.estado }),
+              });
+              if (!res.ok) return false;
+              if (accion === 'crear') {
+                const creado = await res.json();
+                control.id = creado.id;
+              }
+              return true;
+            } catch (e) {
+              console.warn(`No se pudo sincronizar el control de ${tipo} con el servidor:`, e);
+              return false;
+            }
+          }
+
+          async function eliminarRegistroSemaforo(tipo, idx) {
+            const cfg = SEMAFORO_TIPOS[tipo];
+            const control = cfg.registros[idx];
+            if (control?.id && savedRegistroId) {
+              const res = await fetch(`${API_BASE}/registros/${savedRegistroId}/${cfg.apiSegment}/${control.id}/`, {
+                method: 'DELETE',
+                headers: getHeaders(),
+              }).catch(() => null);
+              if (!res || !res.ok) {
+                showToast('No se pudo eliminar el control en el servidor. Intente de nuevo.', 'error');
+                return;
+              }
+            }
+            cfg.registros.splice(idx, 1);
+            if (cfg.editandoIdx === idx) cfg.editandoIdx = null;
+            renderRegistrosSemaforo(tipo);
+            actualizarProximoControlSemaforo(tipo);
+            aplicarUltimoEstadoSemaforo(tipo);
+          }
+
+          function editarRegistroSemaforo(tipo, idx) {
+            SEMAFORO_TIPOS[tipo].editandoIdx = idx;
+            renderRegistrosSemaforo(tipo);
+          }
+
+          function cancelarEdicionRegistroSemaforo(tipo) {
+            SEMAFORO_TIPOS[tipo].editandoIdx = null;
+            renderRegistrosSemaforo(tipo);
+          }
+
+          async function guardarEdicionRegistroSemaforo(tipo, idx) {
+            const cfg = SEMAFORO_TIPOS[tipo];
+            const row = document.querySelector(`.semaforo-registro-row[data-tipo="${tipo}"][data-idx="${idx}"]`);
+            const control = cfg.registros[idx];
+            if (!row || !control) return;
+            const nuevaHora = row.querySelector('.semaforo-edit-hora')?.value;
+            const nuevoEstado = row.querySelector('.semaforo-edit-estado')?.value;
+            if (!nuevaHora || !nuevoEstado) {
+              showToast('Ingrese una hora y un estado válidos.', 'error');
+              return;
+            }
+            const estadoAnterior = control.estado;
+            const horaAnterior = control.hora;
+            control.hora = nuevaHora;
+            control.estado = nuevoEstado;
+
+            if (control.id && savedRegistroId) {
+              const ok = await persistirControlSemaforo(tipo, control, 'editar');
+              if (!ok) {
+                control.estado = estadoAnterior;
+                control.hora = horaAnterior;
+                showToast('No se pudo guardar la corrección en el servidor.', 'error');
+                cfg.editandoIdx = null;
+                renderRegistrosSemaforo(tipo);
+                return;
+              }
+            }
+
+            cfg.editandoIdx = null;
+            renderRegistrosSemaforo(tipo);
+            aplicarUltimoEstadoSemaforo(tipo);
+            showToast('Control corregido correctamente.', 'success');
+          }
+
+          function badgeClaseEstadoSemaforo(estado) {
+            if (estado === 'NORMAL') return 'badge-normal';
+            if (estado === 'VIGILAR') return 'badge-vigilar';
+            if (estado === 'ALERTA' || estado === 'HEMATOMA' || estado === 'INFECCION') return 'badge-alerta';
+            return 'badge-vacio';
+          }
+
+          function textoEstadoSemaforo(tipo, estado) {
+            const sel = document.getElementById(SEMAFORO_TIPOS[tipo].selectId);
+            const opt = sel ? Array.from(sel.options).find(o => o.value === estado) : null;
+            return opt ? opt.text : (estado || '-');
+          }
+
+          function renderRegistrosSemaforo(tipo) {
+            const cfg = SEMAFORO_TIPOS[tipo];
+            const list = document.getElementById(`${tipo}-registros-list`);
+            const empty = document.getElementById(`${tipo}-registros-empty`);
+            const countEl = document.getElementById(`${tipo}-registros-count`);
+            if (countEl) countEl.textContent = String(cfg.registros.length);
+            if (!list) return;
+            if (cfg.registros.length === 0) {
+              list.innerHTML = '';
+              if (empty) empty.style.display = 'block';
+              return;
+            }
+            if (empty) empty.style.display = 'none';
+            const opcionesHtml = document.getElementById(`${tipo}-estado-nuevo`)?.innerHTML || '';
+            list.innerHTML = cfg.registros.map((r, idx) => {
+              if (idx === cfg.editandoIdx) {
+                return `
+                  <div class="sangrado-registro-row semaforo-registro-row" data-tipo="${tipo}" data-idx="${idx}">
+                    <span class="sangrado-registro-min">${r.minuto} min</span>
+                    <input type="time" class="form-control semaforo-edit-hora" value="${r.hora}">
+                    <select class="form-control semaforo-edit-estado" style="max-width:220px;">${opcionesHtml}</select>
+                    <span class="sangrado-registro-actions">
+                      <button type="button" class="btn-icon-guardar" onclick="guardarEdicionRegistroSemaforo('${tipo}', ${idx})" title="Guardar corrección">✔ Guardar</button>
+                      <button type="button" class="btn-remove-row" onclick="cancelarEdicionRegistroSemaforo('${tipo}')" title="Cancelar">&times;</button>
+                    </span>
+                  </div>
+                `;
+              }
+              return `
+                <div class="sangrado-registro-row semaforo-registro-row" data-tipo="${tipo}" data-idx="${idx}">
+                  <span class="sangrado-registro-min">${r.minuto} min</span>
+                  <span class="sangrado-registro-hora">${r.hora}</span>
+                  <span class="semaforo-badge ${badgeClaseEstadoSemaforo(r.estado)}">${textoEstadoSemaforo(tipo, r.estado)}</span>
+                  <span class="sangrado-registro-actions">
+                    <button type="button" class="btn-icon-editar" onclick="editarRegistroSemaforo('${tipo}', ${idx})" title="Editar control">✏️</button>
+                    <button type="button" class="btn-remove-row" onclick="eliminarRegistroSemaforo('${tipo}', ${idx})" title="Eliminar control">&times;</button>
+                  </span>
+                </div>
+              `;
+            }).join('');
+            // Al reflejar la edición justo hecha, aplicar el select oculto
+            // con el valor real (innerHTML no preserva `selected`).
+            if (cfg.editandoIdx !== null) {
+              const selEdit = document.querySelector(`.semaforo-registro-row[data-tipo="${tipo}"][data-idx="${cfg.editandoIdx}"] .semaforo-edit-estado`);
+              if (selEdit) selEdit.value = cfg.registros[cfg.editandoIdx].estado;
+            }
+          }
+
+          function aplicarUltimoEstadoSemaforo(tipo) {
+            const cfg = SEMAFORO_TIPOS[tipo];
+            const sel = document.getElementById(cfg.selectId);
+            if (!sel) return;
+            if (cfg.registros.length === 0) {
+              sel.value = '';
+              actualizarSemaforoSelect(sel, cfg.hintId);
+              return;
+            }
+            const ultimo = cfg.registros.reduce((a, b) => (b.minuto > a.minuto ? b : a));
+            sel.value = ultimo.estado;
+            actualizarSemaforoSelect(sel, cfg.hintId);
           }
 
           function buildPayload() {
@@ -4595,6 +4978,8 @@
               hora_parto: val('hora_parto') || null,
               episiotomia: getRadio('episiotomia'),
               tipo_alumbramiento: val('tipo_alumbramiento') || null,
+              desgarro: val('desgarro') || null,
+              desgarro_subgrado: document.querySelector('input[name="desgarro_subgrado"]:checked')?.value || null,
               globo_seguridad: val('globo_seguridad') || null,
               sangrado_cuantificado_cc: int('sangrado_cuantificado_cc'),
               sutura_heridas: val('sutura_heridas') || null,
@@ -4613,6 +4998,12 @@
               // (persistencia inmediata pendiente o registro recién creado).
               controles_sangrado: sangradoRegistros.filter(r => !r.id).map(r => ({
                 minuto_control: r.minuto, hora: r.hora, cc: Math.round(r.cc),
+              })),
+              controles_globo: SEMAFORO_TIPOS.globo.registros.filter(r => !r.id).map(r => ({
+                minuto_control: r.minuto, hora: r.hora, estado: r.estado,
+              })),
+              controles_sutura: SEMAFORO_TIPOS.sutura.registros.filter(r => !r.id).map(r => ({
+                minuto_control: r.minuto, hora: r.hora, estado: r.estado,
               })),
             };
           }
@@ -4701,17 +5092,18 @@
             }
           });
 
-          window.submitForm = async function() {
+          window.submitForm = async function(btnId = 'submit-btn', temporal = false) {
             limpiarErroresCampos();
             const payload = buildPayload();
 
             const error = validate(payload);
-            if (error) { 
-              showToast(error, 'error'); 
-              return; 
+            if (error) {
+              showToast(error, 'error');
+              return;
             }
 
-            const btn = document.getElementById('submit-btn');
+            const btn = document.getElementById(btnId);
+            const labelOriginal = btn.innerHTML;
             btn.innerHTML = '<span class="spinner"></span> Guardando...';
             btn.disabled = true;
 
@@ -4722,6 +5114,8 @@
               if (isUpdate) delete payload.controles_postparto;
               if (isUpdate) delete payload.controles_fetocardia;
               if (isUpdate) delete payload.controles_sangrado;
+              if (isUpdate) delete payload.controles_globo;
+              if (isUpdate) delete payload.controles_sutura;
 
               const res = await fetch(url, {
                 method,
@@ -4832,6 +5226,18 @@
                 for (const control of sangradoRegistros.filter(r => !r.id)) {
                   await persistirControlSangrado(control, 'crear');
                 }
+                renderRegistrosSangrado();
+
+                // Igual que sangrado: controles de globo/sutura que no se
+                // alcanzaron a persistir en el momento.
+                for (const control of SEMAFORO_TIPOS.globo.registros.filter(r => !r.id)) {
+                  await persistirControlSemaforo('globo', control, 'crear');
+                }
+                for (const control of SEMAFORO_TIPOS.sutura.registros.filter(r => !r.id)) {
+                  await persistirControlSemaforo('sutura', control, 'crear');
+                }
+                renderRegistrosSemaforo('globo');
+                renderRegistrosSemaforo('sutura');
               } else {
                 // Primer guardado: el registro se creó junto con sus controles
                 // anidados (postparto/fetocardia/sangrado) en una sola llamada,
@@ -4840,9 +5246,21 @@
                 marcarControlesGuardados(data);
               }
 
-              showToast('✅ Registro guardado correctamente (ID: ' + savedRegistroId.substring(0, 8) + '...)', 'success');
+              showToast(temporal
+                ? '✅ Progreso guardado. Puede continuar registrando los siguientes controles.'
+                : '✅ Registro guardado correctamente (ID: ' + savedRegistroId.substring(0, 8) + '...)', 'success');
               btn.innerHTML = '✅ Guardado';
               btn.style.color = 'var(--success-color)';
+              // El registro admite más controles a medida que avanza el
+              // monitoreo (siguientes rangos de minutos), así que el botón
+              // se reactiva tras un momento en vez de quedar deshabilitado
+              // para siempre -- de lo contrario no se podría volver a
+              // guardar sin recargar la página.
+              setTimeout(() => {
+                btn.innerHTML = labelOriginal;
+                btn.style.color = '';
+                btn.disabled = false;
+              }, 1500);
 
               return true;
             } catch (err) {
@@ -4853,7 +5271,7 @@
               }
               console.error('submitForm error:', err);
               showToast('❌ ' + msg, 'error');
-              btn.innerHTML = '💾 Guardar Registro Completo';
+              btn.innerHTML = labelOriginal;
               btn.disabled = false;
             }
           }
@@ -4878,7 +5296,7 @@
             }
           }
 
-          async function cargarRegistro(id) {
+          async function cargarRegistro(id, { silencioso = false } = {}) {
             try {
               const res = await fetch(`${API_BASE}/registros/${id}/`, { headers: getHeaders() });
               if (!res.ok) throw new Error('No se pudo cargar');
@@ -4892,6 +5310,13 @@
               document.getElementById('hora_parto').value = data.hora_parto || '';
               document.querySelector(`input[name="episiotomia"][value="${!!data.episiotomia}"]`)?.click();
               document.getElementById('tipo_alumbramiento').value = data.tipo_alumbramiento || '';
+              const desgarroSel = document.getElementById('desgarro');
+              desgarroSel.value = data.desgarro || '';
+              toggleDesgarroSubgrado(desgarroSel);
+              if (data.desgarro_subgrado) {
+                const radioSub = document.querySelector(`input[name="desgarro_subgrado"][value="${data.desgarro_subgrado}"]`);
+                if (radioSub) radioSub.checked = true;
+              }
               const globoSel = document.getElementById('globo_seguridad');
               globoSel.value = data.globo_seguridad || '';
               actualizarSemaforoSelect(globoSel, 'globo-hint');
@@ -4911,6 +5336,7 @@
                   minuto: sc.minuto_control,
                   hora: String(sc.hora || '').length > 5 ? String(sc.hora).substring(0, 5) : (sc.hora || ''),
                   cc: parseFloat(sc.cc) || 0,
+                  estado: sc.estado || null,
                 })).sort((a, b) => a.minuto - b.minuto);
                 sangradoBaseAnterior = 0;
               } else {
@@ -4919,6 +5345,31 @@
               }
               renderRegistrosSangrado();
               actualizarProximoControlSangrado();
+
+              SEMAFORO_TIPOS.globo.registros = (data.controles_globo || []).map(cg => ({
+                id: cg.id,
+                minuto: cg.minuto_control,
+                hora: String(cg.hora || '').length > 5 ? String(cg.hora).substring(0, 5) : (cg.hora || ''),
+                estado: cg.estado,
+              })).sort((a, b) => a.minuto - b.minuto);
+              SEMAFORO_TIPOS.sutura.registros = (data.controles_sutura || []).map(cs => ({
+                id: cs.id,
+                minuto: cs.minuto_control,
+                hora: String(cs.hora || '').length > 5 ? String(cs.hora).substring(0, 5) : (cs.hora || ''),
+                estado: cs.estado,
+              })).sort((a, b) => a.minuto - b.minuto);
+              SEMAFORO_TIPOS.globo.editandoIdx = null;
+              SEMAFORO_TIPOS.sutura.editandoIdx = null;
+              renderRegistrosSemaforo('globo');
+              renderRegistrosSemaforo('sutura');
+              actualizarProximoControlSemaforo('globo');
+              actualizarProximoControlSemaforo('sutura');
+              // Solo si ya hay historial: si el registro es anterior a que
+              // existiera esta tabla, no hay controles todavía y se conserva
+              // el valor plano (`data.globo_seguridad`/`sutura_heridas`) ya
+              // aplicado arriba en vez de dejarlo en blanco.
+              if (SEMAFORO_TIPOS.globo.registros.length > 0) aplicarUltimoEstadoSemaforo('globo');
+              if (SEMAFORO_TIPOS.sutura.registros.length > 0) aplicarUltimoEstadoSemaforo('sutura');
 
               const pName = (data.nombre_paciente != null && data.nombre_paciente !== '') ? String(data.nombre_paciente) : '';
               savedRegistroId = data.id;
@@ -4968,10 +5419,15 @@
                 });
               }
 
-              switchTab('paciente');
-              showToast('Registro cargado. Puede editar y guardar (actualizar).', 'success');
+              if (!silencioso) {
+                switchTab('paciente');
+                showToast('Registro cargado. Puede editar y guardar (actualizar).', 'success');
+              } else {
+                showToast('Se recuperó el registro guardado de esta atención.', 'success');
+              }
             } catch (err) {
-              showToast('Error al cargar: ' + err.message, 'error');
+              if (!silencioso) showToast('Error al cargar: ' + err.message, 'error');
+              else console.error('Auto-carga de registro por atención falló:', err);
             }
           }
 
@@ -5047,12 +5503,23 @@
 
             if (!document.querySelector('#fc-table-body .fc-row')) agregarFilaFetocardia();
 
-            // Conexión del botón de guardar
+            // Conexión del botón de guardar (registro completo / cierre del monitoreo)
             const btn = document.getElementById("submit-btn");
             if (btn) {
               btn.addEventListener("click", function() {
                 if (typeof submitForm === 'function') {
-                  submitForm();
+                  submitForm('submit-btn', false);
+                }
+              });
+            }
+
+            // Conexión del botón de guardado temporal (progreso a mitad de
+            // monitoreo -- misma lógica de guardado, solo cambia el rótulo).
+            const btnTemporal = document.getElementById("submit-btn-temporal");
+            if (btnTemporal) {
+              btnTemporal.addEventListener("click", function() {
+                if (typeof submitForm === 'function') {
+                  submitForm('submit-btn-temporal', true);
                 }
               });
             }
@@ -5073,28 +5540,54 @@
               }
             });
 
-            // Si viene doc desde la card de atencion, poblar datos del paciente
+            // Si ya existe un registro FRSPA-007 guardado para esta atención
+            // (p.ej. se diligenció el control de los 15 min en una visita
+            // anterior a esta página), recuperarlo automáticamente para que
+            // no aparezca en blanco -- antes solo se recargaba manualmente
+            // desde "vista previa". Si no hay registro previo, se conserva
+            // el comportamiento anterior: precargar los datos del paciente
+            // desde el sistema unificado (para pacientes nuevas en este
+            // formulario).
             const docFromUrl = "{{ documento|default:''|escapejs }}".trim();
+            const atencionIdUrl = "{{ atencion_id|default:''|escapejs }}".trim();
             if (docFromUrl) {
               document.getElementById('identificacion').value = docFromUrl;
               document.getElementById('paciente_id').value = docFromUrl.replace(/\D/g, '');
-              fetch(`${window.location.origin}/atencion/api/datos-paciente-unificado/?doc=${encodeURIComponent(docFromUrl)}`)
+            }
+            if (atencionIdUrl || docFromUrl) {
+              const params = new URLSearchParams();
+              if (atencionIdUrl) params.set('atencion', atencionIdUrl);
+              if (docFromUrl) params.set('documento', docFromUrl);
+              fetch(`${API_BASE}/registros/por-atencion/?${params.toString()}`, { headers: getHeaders() })
                 .then(r => r.json())
                 .then(data => {
-                  if (data.ok && data.encontrado) {
-                    const np = document.getElementById('nombre_paciente');
-                    const eg = document.getElementById('edad_gestacional');
-                    const gest = document.getElementById('gestas');
-                    const nac = document.getElementById('nombre_acompanante');
-                    if (np) np.value = (data.nombre_paciente || data.nombre_completo || '').trim();
-                    if (eg) eg.value = (data.edad_gestacional != null && data.edad_gestacional !== '') ? String(data.edad_gestacional) : '';
-                    if (gest) gest.value = (data.gestas != null && data.gestas !== '') ? String(data.gestas) : '1';
-                    if (nac) nac.value = (data.nombre_acompanante || '').trim();
+                  if (data && data.encontrado && data.id) {
+                    cargarRegistro(data.id, { silencioso: true });
+                  } else if (docFromUrl) {
+                    precargarDatosPacienteUnificado(docFromUrl);
                   }
                 })
-                .catch(() => {});
+                .catch(() => { if (docFromUrl) precargarDatosPacienteUnificado(docFromUrl); });
             }
           });
+
+          function precargarDatosPacienteUnificado(docFromUrl) {
+            fetch(`${window.location.origin}/atencion/api/datos-paciente-unificado/?doc=${encodeURIComponent(docFromUrl)}`)
+              .then(r => r.json())
+              .then(data => {
+                if (data.ok && data.encontrado) {
+                  const np = document.getElementById('nombre_paciente');
+                  const eg = document.getElementById('edad_gestacional');
+                  const gest = document.getElementById('gestas');
+                  const nac = document.getElementById('nombre_acompanante');
+                  if (np) np.value = (data.nombre_paciente || data.nombre_completo || '').trim();
+                  if (eg) eg.value = (data.edad_gestacional != null && data.edad_gestacional !== '') ? String(data.edad_gestacional) : '';
+                  if (gest) gest.value = (data.gestas != null && data.gestas !== '') ? String(data.gestas) : '1';
+                  if (nac) nac.value = (data.nombre_acompanante || '').trim();
+                }
+              })
+              .catch(() => {});
+          }
 
           window.submitform = window.submitForm; // Alias para evitar errores de mayúsculas
         </script>

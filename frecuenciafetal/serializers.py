@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import (
     RegistroParto, ControlFetocardia, ControlRecienNacido,
     GlucometriaRecienNacido, ControlPostpartoInmediato, ControlSangrado,
+    ControlGlobo, ControlSutura, recalcular_estados_sangrado,
 )
 
 
@@ -57,6 +58,22 @@ class ControlSangradoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ControlSangrado
         fields = '__all__'
+        # `estado` (semáforo) se calcula en el backend -- ver
+        # `recalcular_estados_sangrado` en models.py -- nunca lo manda el cliente.
+        read_only_fields = ['registro', 'estado']
+
+
+class ControlGloboSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ControlGlobo
+        fields = '__all__'
+        read_only_fields = ['registro']
+
+
+class ControlSuturaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ControlSutura
+        fields = '__all__'
         read_only_fields = ['registro']
 
 
@@ -65,6 +82,8 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
     control_recien_nacido = ControlRecienNacidoSerializer(required=False)
     controles_postparto = ControlPostpartoSerializer(many=True, required=False)
     controles_sangrado = ControlSangradoSerializer(many=True, required=False)
+    controles_globo = ControlGloboSerializer(many=True, required=False)
+    controles_sutura = ControlSuturaSerializer(many=True, required=False)
 
     class Meta:
         model = RegistroParto
@@ -75,6 +94,8 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
         rn_data = validated_data.pop('control_recien_nacido', None)
         postparto_data = validated_data.pop('controles_postparto', []) or []
         sangrado_data = validated_data.pop('controles_sangrado', []) or []
+        globo_data = validated_data.pop('controles_globo', []) or []
+        sutura_data = validated_data.pop('controles_sutura', []) or []
 
         registro = RegistroParto.objects.create(**validated_data)
 
@@ -100,6 +121,14 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
 
         for sc in sangrado_data:
             ControlSangrado.objects.create(registro=registro, **sc)
+        if sangrado_data:
+            recalcular_estados_sangrado(registro)
+
+        for cg in globo_data:
+            ControlGlobo.objects.create(registro=registro, **cg)
+
+        for cs in sutura_data:
+            ControlSutura.objects.create(registro=registro, **cs)
 
         return registro
 
@@ -108,6 +137,8 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
         rn_data = validated_data.pop('control_recien_nacido', None)
         postparto_data = validated_data.pop('controles_postparto', None)
         sangrado_data = validated_data.pop('controles_sangrado', None)
+        globo_data = validated_data.pop('controles_globo', None)
+        sutura_data = validated_data.pop('controles_sutura', None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -137,6 +168,14 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
             # Igual que fetocardia/postparto: los controles de sangrado se
             # agregan/corrigen uno por uno vía ControlSangradoViewSet, nunca
             # reemplazando todo el conjunto desde el PUT principal.
+            pass
+        if globo_data is not None:
+            # Igual que sangrado: se agregan/corrigen uno por uno vía
+            # ControlGloboViewSet, nunca reemplazando todo el conjunto.
+            pass
+        if sutura_data is not None:
+            # Igual que sangrado: se agregan/corrigen uno por uno vía
+            # ControlSuturaViewSet, nunca reemplazando todo el conjunto.
             pass
 
         return instance

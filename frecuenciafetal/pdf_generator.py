@@ -14,6 +14,8 @@ from reportlab.platypus import (
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from django.conf import settings
 
+from .models import estado_sangrado as _estado_sangrado
+
 # Dimensiones A4: 21 x 29.7 cm. Márgenes 1.3cm = 18.4 x 27.1 cm útil (deja borde visible en toda la hoja)
 MARGIN = 1.3 * cm
 ANCHO_UTIL = A4[0] - 2 * MARGIN
@@ -236,6 +238,17 @@ def generar_pdf_registro(registro, es_plantilla=False):
     if not es_plantilla:
         hora_parto_str = registro.hora_parto.strftime('%H:%M') if registro.hora_parto else '—'
 
+    # Desgarro: registro manual igual que tipo de parto/hora de parto. Si es
+    # Grado III, se agrega la subclasificación A/B/C entre paréntesis.
+    desgarro_str = ''
+    if not es_plantilla:
+        if registro.desgarro:
+            desgarro_str = registro.get_desgarro_display()
+            if registro.desgarro == 'GRADO_III' and registro.desgarro_subgrado:
+                desgarro_str += f" ({registro.desgarro_subgrado})"
+        else:
+            desgarro_str = '—'
+
     data_part = [
         ['CARACTERÍSTICAS DEL PARTO', '', '', '', '', ''],
         [tipo_cell, '', '', '', '', ''],
@@ -246,9 +259,11 @@ def generar_pdf_registro(registro, es_plantilla=False):
         ['Alumbramiento:', '', '', '', '', ''],
         _fila_booleana('   Activo', registro.tipo_alumbramiento in ('DIRIGIDO', 'MANUAL')),
         ['Hora de parto:', hora_parto_str, '', '', '', ''],
+        ['Desgarro:', desgarro_str, '', '', '', ''],
     ]
     fila_subtitulo_alumbramiento = 6
-    fila_hora_parto = len(data_part) - 1
+    fila_hora_parto = len(data_part) - 2
+    fila_desgarro = len(data_part) - 1
     tbl_part = Table(data_part, colWidths=cw_part)
     tbl_part.setStyle(TableStyle([
         ('SPAN', (0, 0), (-1, 0)),
@@ -266,6 +281,9 @@ def generar_pdf_registro(registro, es_plantilla=False):
         ('SPAN', (1, fila_hora_parto), (-1, fila_hora_parto)),
         ('FONTNAME', (0, fila_hora_parto), (0, fila_hora_parto), 'Helvetica-Bold'),
         ('ALIGN', (1, fila_hora_parto), (1, fila_hora_parto), 'LEFT'),
+        ('SPAN', (1, fila_desgarro), (-1, fila_desgarro)),
+        ('FONTNAME', (0, fila_desgarro), (0, fila_desgarro), 'Helvetica-Bold'),
+        ('ALIGN', (1, fila_desgarro), (1, fila_desgarro), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN', (2, 0), (2, -1), 'LEFT'),
         ('ALIGN', (4, 0), (4, -1), 'LEFT'),
@@ -353,16 +371,6 @@ def generar_pdf_registro(registro, es_plantilla=False):
     # existen como campos del modelo y del formulario.
     COLOR_ESTADO_HEX = {'NORMAL': '#059669', 'VIGILAR': '#d97706', 'ALERTA': '#dc2626'}
     estilo_valor_param = ParagraphStyle(name='ValorParam', fontName='Helvetica', fontSize=7, leading=9, alignment=TA_LEFT)
-
-    def _estado_sangrado(cc, tipo_parto):
-        if cc is None:
-            return None
-        umbral = 1000 if tipo_parto == 'CESAREA' else 500
-        if cc >= umbral:
-            return 'ALERTA'
-        if cc < 250:
-            return 'NORMAL'
-        return 'VIGILAR'
 
     def _fila_valor_simple(etiqueta, valor):
         texto = valor if (valor or es_plantilla) else '—'

@@ -23,14 +23,29 @@ class RegistroParto(models.Model):
         ('DIRIGIDO', 'Dirigido'),
         ('MANUAL', 'Manual'),
     ]
+    # 2026-09-18: de vuelta a 2 opciones (Normal/Alerta) con texto corto --
+    # "Alerta" activa el semáforo rojo de la tarjeta (ver .semaforo-select
+    # con data-val="ALERTA" en el CSS de formulario.html).
     GLOBO_SEGURIDAD_CHOICES = [
-        ('NORMAL', 'Normal: útero firme y contraído, altura ±1cm del ombligo'),
-        ('ALERTA', 'Alerta: útero blando, relajado o desviado (atonía), fondo uterino por encima del ombligo'),
+        ('NORMAL', 'Normal: útero firme y contraído'),
+        ('ALERTA', 'Alerta: útero blando, relajado, atonía'),
     ]
     SUTURA_HERIDAS_CHOICES = [
-        ('NORMAL', 'Normal: bordes afrontados, sin secreción, dolor tolerable, sin cambios de coloración'),
-        ('HEMATOMA', 'Alerta: hematoma (masa violácea, tensa, dolor intenso, rectal, vaginal, insoportable)'),
-        ('INFECCION', 'Alerta: infección (eritema, calor local, edema, secreción purulenta)'),
+        ('NORMAL', 'Normal: bordes afrontados, dolor tolerable, sin cambios de coloración'),
+        ('HEMATOMA', 'Alerta: hematoma (masa violácea, tensa, dolor intenso)'),
+        ('INFECCION', 'Alerta: (eritema, calor local, edema, secreción purulenta)'),
+    ]
+    DESGARRO_CHOICES = [
+        ('GRADO_I', 'Grado I'),
+        ('GRADO_II', 'Grado II'),
+        ('GRADO_III', 'Grado III'),
+        ('GRADO_IV', 'Grado IV'),
+    ]
+    # Subclasificación obligatoria solo cuando desgarro == GRADO_III.
+    DESGARRO_SUBGRADO_CHOICES = [
+        ('A', 'A'),
+        ('B', 'B'),
+        ('C', 'C'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -53,6 +68,14 @@ class RegistroParto(models.Model):
     episiotomia = models.BooleanField(default=False, verbose_name="Episiotomía")
     tipo_alumbramiento = models.CharField(
         max_length=20, choices=ALUMBRAMIENTO_CHOICES, blank=True, null=True
+    )
+    desgarro = models.CharField(
+        max_length=20, choices=DESGARRO_CHOICES, blank=True, null=True,
+        verbose_name="Desgarro"
+    )
+    desgarro_subgrado = models.CharField(
+        max_length=5, choices=DESGARRO_SUBGRADO_CHOICES, blank=True, null=True,
+        verbose_name="Subclasificación del desgarro Grado III (A/B/C)"
     )
     parto_atendido_por = models.CharField(max_length=200, blank=True, null=True)
 
@@ -117,6 +140,46 @@ class ControlFetocardia(models.Model):
         return f"Fetocardia {self.fetocardia} lpm - {self.fecha} {self.hora}"
 
 
+ESTADO_SANGRADO_CHOICES = [
+    ('NORMAL', 'NORMAL'),
+    ('VIGILAR', 'VIGILAR'),
+    ('ALERTA', 'ALERTA'),
+]
+
+
+def estado_sangrado(cc, tipo_parto):
+    """Semáforo de alerta por sangrado cuantificado, según el total
+    acumulado (c.c.) y el tipo de parto. Fuente única de verdad para el PDF
+    (`pdf_generator.generar_pdf_registro`) y para el `estado` guardado por
+    cada `ControlSangrado` (ver `recalcular_estados_sangrado` en views.py).
+    """
+    if cc is None:
+        return None
+    umbral = 1000 if tipo_parto == 'CESAREA' else 500
+    if cc >= umbral:
+        return 'ALERTA'
+    if cc < 250:
+        return 'NORMAL'
+    return 'VIGILAR'
+
+
+def recalcular_estados_sangrado(registro):
+    """Recalcula y persiste el `estado` (semáforo) de cada `ControlSangrado`
+    de este registro, en orden de `minuto_control`, según el acumulado hasta
+    ese punto inclusive. Se llama tras crear, editar o borrar cualquier
+    control de sangrado del registro -- así una corrección a un control
+    temprano también actualiza el estado guardado de los controles
+    posteriores (queda trazabilidad de en qué control se cruzó un umbral).
+    """
+    acumulado = 0
+    for control in registro.controles_sangrado.order_by('minuto_control'):
+        acumulado += control.cc
+        nuevo_estado = estado_sangrado(acumulado, registro.tipo_parto)
+        if control.estado != nuevo_estado:
+            control.estado = nuevo_estado
+            control.save(update_fields=['estado'])
+
+
 class ControlSangrado(models.Model):
     """
     Control periódico de cuantificación gravimétrica del sangrado postparto
@@ -134,6 +197,14 @@ class ControlSangrado(models.Model):
     )
     hora = models.TimeField(verbose_name="Hora del control")
     cc = models.PositiveIntegerField(verbose_name="Sangrado cuantificado en este control (c.c.)")
+    # Semáforo (Normal/Vigilar/Alerta) que tenía el acumulado justo en este
+    # control -- se calcula en el backend (ver `estado_sangrado` arriba y
+    # `recalcular_estados_sangrado` en views.py), nunca lo manda el cliente,
+    # para que quede trazabilidad de en qué control exacto se cruzó un umbral.
+    estado = models.CharField(
+        max_length=20, choices=ESTADO_SANGRADO_CHOICES, blank=True, null=True,
+        verbose_name="Estado del semáforo en este control"
+    )
 
     class Meta:
         verbose_name = "Control de Sangrado"
@@ -143,6 +214,60 @@ class ControlSangrado(models.Model):
 
     def __str__(self):
         return f"Sangrado {self.cc}cc - min {self.minuto_control}"
+
+
+class ControlGlobo(models.Model):
+    """Control periódico del globo de seguridad (mismo cronograma que
+    ControlSangrado: 15/30/60 min hasta completar 6h)."""
+    registro = models.ForeignKey(
+        RegistroParto,
+        on_delete=models.CASCADE,
+        related_name='controles_globo'
+    )
+    minuto_control = models.PositiveSmallIntegerField(
+        verbose_name="Minuto del control (cronograma 15/30/60)"
+    )
+    hora = models.TimeField(verbose_name="Hora del control")
+    estado = models.CharField(
+        max_length=20, choices=RegistroParto.GLOBO_SEGURIDAD_CHOICES,
+        verbose_name="Estado del globo de seguridad en este control"
+    )
+
+    class Meta:
+        verbose_name = "Control de Globo de Seguridad"
+        verbose_name_plural = "Controles de Globo de Seguridad"
+        ordering = ['minuto_control']
+        unique_together = ('registro', 'minuto_control')
+
+    def __str__(self):
+        return f"Globo {self.estado} - min {self.minuto_control}"
+
+
+class ControlSutura(models.Model):
+    """Control periódico de sutura y heridas (mismo cronograma que
+    ControlSangrado: 15/30/60 min hasta completar 6h)."""
+    registro = models.ForeignKey(
+        RegistroParto,
+        on_delete=models.CASCADE,
+        related_name='controles_sutura'
+    )
+    minuto_control = models.PositiveSmallIntegerField(
+        verbose_name="Minuto del control (cronograma 15/30/60)"
+    )
+    hora = models.TimeField(verbose_name="Hora del control")
+    estado = models.CharField(
+        max_length=20, choices=RegistroParto.SUTURA_HERIDAS_CHOICES,
+        verbose_name="Estado de sutura y heridas en este control"
+    )
+
+    class Meta:
+        verbose_name = "Control de Sutura y Heridas"
+        verbose_name_plural = "Controles de Sutura y Heridas"
+        ordering = ['minuto_control']
+        unique_together = ('registro', 'minuto_control')
+
+    def __str__(self):
+        return f"Sutura {self.estado} - min {self.minuto_control}"
 
 
 class ControlRecienNacido(models.Model):

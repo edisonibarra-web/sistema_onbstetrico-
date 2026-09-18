@@ -4,7 +4,8 @@ from . import views
 from .views import (
     FormularioRegistroView,
     RegistroPartoViewSet, ControlFetocardiaViewSet,
-    ControlRecienNacidoViewSet, ControlPostpartoViewSet, ControlSangradoViewSet
+    ControlRecienNacidoViewSet, ControlPostpartoViewSet, ControlSangradoViewSet,
+    ControlGloboViewSet, ControlSuturaViewSet,
 )
 
 # Router principal
@@ -17,6 +18,8 @@ registros_router.register(r'fetocardia', ControlFetocardiaViewSet, basename='fet
 registros_router.register(r'recien-nacido', ControlRecienNacidoViewSet, basename='recien-nacido')
 registros_router.register(r'postparto', ControlPostpartoViewSet, basename='postparto')
 registros_router.register(r'sangrado', ControlSangradoViewSet, basename='sangrado')
+registros_router.register(r'globo', ControlGloboViewSet, basename='globo')
+registros_router.register(r'sutura', ControlSuturaViewSet, basename='sutura')
 
 urlpatterns = [
     path('', FormularioRegistroView.as_view(), name='home'),
@@ -30,9 +33,12 @@ urlpatterns = [
 # GET/POST   /api/registros/
 # GET/PUT/PATCH/DELETE /api/registros/{id}/
 # GET        /api/registros/buscar/?q=nombre
+# GET        /api/registros/por-atencion/?atencion=<id>&documento=<doc>  (repoblar formulario al reabrir)
 # GET        /api/registros/sala-partos/?q=opcional  (DGEMPRES03, solo lectura)
 # GET        /api/registros/{id}/pdf/
 # GET/POST   /api/registros/{id}/fetocardia/
 # GET/POST   /api/registros/{id}/recien-nacido/
 # GET/POST   /api/registros/{id}/postparto/
-# GET/POST/PUT/PATCH/DELETE /api/registros/{id}/sangrado/[{id}/]
+# GET/POST/PUT/PATCH/DELETE /api/registros/{id}/sangrado/[{id}/]  (estado se calcula en backend)
+# GET/POST/PUT/PATCH/DELETE /api/registros/{id}/globo/[{id}/]
+# GET/POST/PUT/PATCH/DELETE /api/registros/{id}/sutura/[{id}/]

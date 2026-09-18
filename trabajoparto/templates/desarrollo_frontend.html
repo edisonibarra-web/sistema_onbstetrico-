@@ -624,7 +624,7 @@
                     <div style="flex: 0 0 auto;">
                         <label for="hora_registro_actual" style="display: block; font-weight: 700; font-size: 0.82em; letter-spacing: 0.02em; text-transform: uppercase; color: #334155; margin-bottom: 4px;">Hora del control actual</label>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="datetime-local" id="hora_registro_actual" class="form-input" readonly tabindex="-1" style="width: 220px; font-size: 1em; font-weight: 600; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #eef0f2; color: #495057; cursor: not-allowed;">
+                            <input type="datetime-local" id="hora_registro_actual" class="form-input" style="width: 220px; font-size: 1em; font-weight: 600; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #fff; color: #334155;">
                             <button type="button" id="btn-hora-ahora" class="btn btn-primary" onclick="establecerHoraActual()" title="Fijar la hora actual del sistema" style="height: 40px; padding: 0 16px; font-size: 0.82em; font-weight: 600; margin: 0; white-space: nowrap;">
                                 ⟳ Ahora
                             </button>
@@ -1071,8 +1071,10 @@
                                         {% elif parametro.id == 13 and campo.id == 12 %}
                                         <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
                                             <option value="">Seleccione...</option>
-                                            <option value="Claro">Claro</option><option value="Meconio leve">Meconio leve</option><option value="Meconio espeso">Meconio espeso</option><option value="Hemático">Hemático</option><option value="Turbio">Turbio</option><option value="Fétido">Fétido</option>
+                                            <option value="Meconio grado I">Meconio grado I</option><option value="Meconio grado II">Meconio grado II</option><option value="Meconio grado III">Meconio grado III</option>
                                         </select>
+                                        {% elif parametro.id == 13 and campo.id == 28 %}
+                                        <textarea class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Observaciones (opcional)" rows="2" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em; resize: vertical;"></textarea>
                                         {% elif parametro.id == 14 and campo.id == 18 %}
                                         <input type="time" class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Tiempo" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
                                         {% elif parametro.id == 15 and campo.id == 7 %}
@@ -1096,7 +1098,7 @@
                                         {% elif parametro.id == 18 and campo.id == 13 %}
                                         <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
                                             <option value="">Seleccione...</option>
-                                            <option value="Categoría I (Normal)">Categoría I (Normal)</option><option value="Categoría II (Indeterminada)">Categoría II (Indeterminada)</option><option value="Categoría III (Patológica)">Categoría III (Patológica)</option><option value="No evaluable">No evaluable</option>
+                                            <option value="Categoría I (Normal)">Categoría I (Normal)</option><option value="Categoría II (Indeterminada)">Categoría II (Indeterminada)</option><option value="Categoría III (Patológica)">Categoría III (Patológica)</option>
                                         </select>
                                         {% elif parametro.id == 19 and campo.id == 20 %}
                                         <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">

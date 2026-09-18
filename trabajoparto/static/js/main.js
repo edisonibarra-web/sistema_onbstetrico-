@@ -1572,10 +1572,10 @@ function obtenerFechaHoraLocalInput() {
 function inicializarHoraRegistroAutomatica() {
     const timeInput = getLiveElementById('hora_registro_actual');
     if (!timeInput) return;
-    // Es un campo informativo: se fija con la hora real del sistema y solo
-    // puede actualizarse presionando el botón "Ahora" (no se edita a mano).
+    // Se precarga con la hora real del sistema (botón "Ahora" la vuelve a
+    // fijar en cualquier momento), pero queda editable a mano por si el
+    // control se está registrando con retraso respecto a cuándo ocurrió.
     timeInput.value = obtenerFechaHoraLocalInput();
-    timeInput.readOnly = true;
 }
 
 
@@ -2860,7 +2860,7 @@ document.addEventListener('DOMContentLoaded', function() {
         inicializarHoraRegistroAutomatica();
         horaRegistroInput.addEventListener('change', function() {
             console.log('Cambio de hora detectado, actualizando botones...');
-            document.querySelectorAll('.btn-parametro-premium').forEach(btn => {
+            document.querySelectorAll('.btn-parametro').forEach(btn => {
                 const id = btn.getAttribute('data-parametro-id');
                 if (id) actualizarBotonUI(id);
             });
@@ -2882,7 +2882,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Excepción: el select de MEMBRANAS en "Rotas" deja el modal abierto
             // para que se alcance a diligenciar la hora de la ruptura debajo.
             const esMembranasRotas = e.target.id === 'select-membranas' && e.target.value === 'Rotas';
-            if (!esMembranasRotas) {
+            // Excepción general: si el modal tiene otro campo además de este
+            // select (ej. LÍQUIDO AMNIÓTICO: select + observaciones), no se
+            // cierra solo -- se deja abierto para que se alcance a diligenciar
+            // el resto antes de cerrar (blur o el botón × lo guardan igual).
+            const modalActual = e.target.closest('.modal-parametro');
+            const tieneOtrosCampos = modalActual
+                ? modalActual.querySelectorAll('.data-input-modal').length > 1 && e.target.id !== 'select-membranas'
+                : false;
+            if (!esMembranasRotas && !tieneOtrosCampos) {
                 // Cerrar automáticamente el modal de medición tras seleccionar un valor.
                 cerrarModalDesdeElemento(e.target);
             }

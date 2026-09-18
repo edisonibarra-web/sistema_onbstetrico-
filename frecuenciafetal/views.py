@@ -21,12 +21,14 @@ from .models import (
     RegistroParto, ControlFetocardia,
     ControlRecienNacido, GlucometriaRecienNacido,
     ControlPostpartoInmediato, ControlSangrado,
+    ControlGlobo, ControlSutura, recalcular_estados_sangrado,
     IntentoLoginFallido
 )
 from .serializers import (
     RegistroPartoSerializer, RegistroPartoListSerializer,
     ControlFetocardiaSerializer, ControlRecienNacidoSerializer,
-    ControlPostpartoSerializer, ControlSangradoSerializer, GlucometriaSerializer
+    ControlPostpartoSerializer, ControlSangradoSerializer, GlucometriaSerializer,
+    ControlGloboSerializer, ControlSuturaSerializer,
 )
 from .pdf_generator import generar_pdf_registro
 from .sala_partos_db import listar_pacientes_sala_partos
@@ -194,6 +196,27 @@ class RegistroPartoViewSet(viewsets.ModelViewSet):
         serializer = RegistroPartoListSerializer(qs, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'], url_path='por-atencion')
+    def por_atencion(self, request):
+        """Busca el RegistroParto más reciente de una atención (o, si no
+        hay coincidencia por atencion_id, por documento) para repoblar el
+        formulario FRSPA-007 al reabrirlo -- así los datos ya guardados en
+        una visita anterior a esta misma atención (p.ej. controles postparto
+        de un rango de minutos ya diligenciado) no aparecen en blanco.
+        """
+        atencion_id = (request.query_params.get('atencion') or '').strip()
+        documento = (request.query_params.get('documento') or '').strip()
+        registro = None
+        if atencion_id.isdigit():
+            registro = self.queryset.filter(atencion_id=atencion_id).order_by('-created_at').first()
+        if registro is None and documento:
+            registro = self.queryset.filter(identificacion=documento).order_by('-created_at').first()
+        if registro is None:
+            return Response({'encontrado': False})
+        data = RegistroPartoSerializer(registro).data
+        data['encontrado'] = True
+        return Response(data)
+
     @action(detail=False, methods=['get'], url_path='sala-partos')
     def sala_partos(self, request):
         """
@@ -359,6 +382,57 @@ class ControlSangradoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         registro_id = self.kwargs.get('registro_pk')
         return ControlSangrado.objects.filter(registro_id=registro_id)
+
+    def perform_create(self, serializer):
+        registro = get_object_or_404(RegistroParto, pk=self.kwargs['registro_pk'])
+        serializer.save(registro=registro)
+        # El `estado` (semáforo) de cada control se calcula en el backend
+        # según el acumulado hasta ese punto -- nunca lo manda el cliente.
+        # recalcular_estados_sangrado reconsulta las filas desde la BD (para
+        # recalcular también los controles posteriores), así que la instancia
+        # de este serializer queda desactualizada -- se refresca para que la
+        # respuesta HTTP de este POST ya traiga el estado correcto.
+        recalcular_estados_sangrado(registro)
+        serializer.instance.refresh_from_db()
+
+    def perform_update(self, serializer):
+        serializer.save()
+        recalcular_estados_sangrado(serializer.instance.registro)
+        serializer.instance.refresh_from_db()
+
+    def perform_destroy(self, instance):
+        registro = instance.registro
+        instance.delete()
+        # Borrar un control cambia el acumulado de todos los posteriores.
+        recalcular_estados_sangrado(registro)
+
+
+@method_decorator(never_cache, name='dispatch')
+class ControlGloboViewSet(viewsets.ModelViewSet):
+    """Controles periódicos del globo de seguridad. El `estado` es el valor
+    elegido directamente por quien registra (no se deriva de nada más),
+    a diferencia de ControlSangrado."""
+    serializer_class = ControlGloboSerializer
+
+    def get_queryset(self):
+        registro_id = self.kwargs.get('registro_pk')
+        return ControlGlobo.objects.filter(registro_id=registro_id)
+
+    def perform_create(self, serializer):
+        registro = get_object_or_404(RegistroParto, pk=self.kwargs['registro_pk'])
+        serializer.save(registro=registro)
+
+
+@method_decorator(never_cache, name='dispatch')
+class ControlSuturaViewSet(viewsets.ModelViewSet):
+    """Controles periódicos de sutura y heridas. El `estado` es el valor
+    elegido directamente por quien registra (no se deriva de nada más),
+    a diferencia de ControlSangrado."""
+    serializer_class = ControlSuturaSerializer
+
+    def get_queryset(self):
+        registro_id = self.kwargs.get('registro_pk')
+        return ControlSutura.objects.filter(registro_id=registro_id)
 
     def perform_create(self, serializer):
         registro = get_object_or_404(RegistroParto, pk=self.kwargs['registro_pk'])
