@@ -5012,6 +5012,7 @@
             if (!payload.nombre_paciente) { marcarCampoError('nombre_paciente'); return 'El nombre de la paciente es requerido.'; }
             if (!payload.identificacion) { marcarCampoError('identificacion'); return 'La identificación es requerida.'; }
             if (!payload.edad_gestacional) { marcarCampoError('edad_gestacional'); return 'La edad gestacional es requerida.'; }
+            if (!payload.nombre_acompanante) { marcarCampoError('nombre_acompanante'); return 'El nombre del acompañante en el parto es requerido.'; }
             for (let i = 0; i < (payload.controles_postparto || []).length; i++) {
               const cp = payload.controles_postparto[i];
               if (!cp.fecha || !cp.hora) {
