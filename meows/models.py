@@ -216,6 +216,29 @@ class Parametro(models.Model):
 # ============================================================================
 # 4️⃣ MODELO MEDICIÓN (Cabecera de la toma)
 # ============================================================================
+class MedicionManager(models.Manager):
+    """
+    Manager por defecto de Medicion: excluye las marcadas como eliminadas en
+    Dinámica (ver Medicion.eliminado_en, 2026-09-22). Se declara como el
+    PRIMER manager para que también lo hereden los accesos inversos por FK
+    (ej. paciente.mediciones.all(), atencion.mediciones_meows.all()) -- así
+    una medición "borrada" desaparece de verdad en todas partes (Línea de
+    Tiempo, PDF, alertas, conteos), sin tener que tocar cada vista una por
+    una y arriesgarse a dejar alguna sin actualizar.
+
+    Antes de que existiera eliminado_en, todas las filas ya guardadas tenían
+    ese campo en NULL -- agregar este filtro no cambia nada del
+    comportamiento anterior para ningún dato existente, solo empieza a
+    ocultar lo que de ahora en adelante se detecte borrado en Dinámica.
+
+    Para ver también lo eliminado (uso interno: el propio job de
+    sincronización, que necesita revisar si algo reapareció en Dinámica
+    para restaurarlo) usar Medicion.todas.
+    """
+    def get_queryset(self):
+        return super().get_queryset().filter(eliminado_en__isnull=True)
+
+
 class Medicion(models.Model):
     atencion = models.ForeignKey(
         "obstetricia.AtencionParto",
@@ -319,10 +342,27 @@ class Medicion(models.Model):
     # alerta -- ver api_correcciones_recientes en views.py.
     ultima_correccion_en = models.DateTimeField(null=True, blank=True)
 
+    # 2026-09-22: borrado suave -- si esta medición (origen='dinamica') deja
+    # de existir en Dinámica (alguien la borró allá), se marca aquí en vez
+    # de eliminarse de verdad: desaparece de todas las vistas (ver
+    # MedicionManager arriba), pero el dato queda recuperable por si el
+    # "borrado" resultó ser un problema pasajero de la consulta a Nexus en
+    # vez de una eliminación real. Si la toma reaparece en una corrida
+    # posterior del sincronizador, este campo se limpia solo (se
+    # "restaura") -- ver sincronizar_signos_vitales_dinamica.py.
+    eliminado_en = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    objects = MedicionManager()
+    todas = models.Manager()  # incluye eliminadas -- uso interno (sync/admin/debug)
+
     class Meta:
         verbose_name = "Medición"
         verbose_name_plural = "Mediciones"
         ordering = ['-fecha_hora']
+        # 'todas' (sin filtrar) como manager base: así una cascada de borrado
+        # real (ej. Paciente.delete()) sigue encontrando y limpiando también
+        # las mediciones marcadas como eliminadas, y no las deja huérfanas.
+        base_manager_name = 'todas'
 
     def __str__(self):
         return f"Medición {self.id} - {self.fecha_hora}"
@@ -331,6 +371,15 @@ class Medicion(models.Model):
 # ============================================================================
 # 5️⃣ MODELO MEDICIÓN VALOR (Detalle por parámetro)
 # ============================================================================
+class MedicionValorManager(models.Manager):
+    """Mismo criterio que MedicionManager (ver arriba), pero para ocultar un
+    solo valor puntual (ej. solo la temperatura) sin tener que marcar toda
+    la medición como eliminada, cuando en Dinámica desapareció ese dato
+    puntual pero el resto de la toma sigue existiendo."""
+    def get_queryset(self):
+        return super().get_queryset().filter(eliminado_en__isnull=True)
+
+
 class MedicionValor(models.Model):
     medicion = models.ForeignKey(
         Medicion,
@@ -350,12 +399,20 @@ class MedicionValor(models.Model):
     # nunca volvía a mirar una fila ya traída) -- ver
     # meows/management/commands/sincronizar_signos_vitales_dinamica.py.
     dinamica_oid = models.IntegerField(null=True, blank=True, db_index=True)
+    # 2026-09-22: borrado suave -- ver MedicionValorManager y el mismo campo
+    # en Medicion. Se marca cuando este valor puntual (no toda la toma) deja
+    # de existir en Dinámica.
+    eliminado_en = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    objects = MedicionValorManager()
+    todas = models.Manager()  # incluye eliminados -- uso interno (sync/admin/debug)
 
     class Meta:
         verbose_name = "Valor de Medición"
         verbose_name_plural = "Valores de Medición"
         unique_together = ("medicion", "parametro")
         ordering = ['parametro__orden']
+        base_manager_name = 'todas'
 
     def __str__(self):
         return f"{self.parametro.codigo}: {self.valor}"

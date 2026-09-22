@@ -68,6 +68,55 @@ class FormularioRegistroView(TemplateView):
         return context
 
 
+# 2026-09-22: a pedido -- para mitigar que un área cierre el ciclo por error
+# antes de que la otra haya terminado, "Guardar Registro Completo" no puede
+# cerrar el registro antes de que pasen estas horas desde que se creó (ver
+# RegistroParto.created_at) -- coincide con el propio cronograma de
+# vigilancia posparto (controles cada 15/30/60 min hasta completar 6h), así
+# el cierre nunca llega antes de que razonablemente haya terminado el
+# monitoreo. El botón se oculta en pantalla antes de tiempo (ver
+# formulario.html), pero esto es lo que de verdad lo impide -- nunca hay que
+# confiar solo en que un botón esté oculto en el cliente.
+HORAS_MINIMAS_PARA_COMPLETAR = 6
+
+
+def _intentar_cerrar_registro(instance, request):
+    """
+    Cierra el ciclo (completado_en/completado_por) si ya pasaron al menos
+    HORAS_MINIMAS_PARA_COMPLETAR desde que se creó el registro. Devuelve un
+    mensaje de advertencia (str) si NO se pudo cerrar por eso, o None si se
+    cerró ahora mismo (o ya estaba cerrado de antes -- no es un error volver
+    a intentarlo, simplemente no hace nada).
+    """
+    if instance.completado_en is not None:
+        return None
+
+    from datetime import timedelta
+    from django.utils import timezone
+
+    faltante = (
+        instance.created_at + timedelta(hours=HORAS_MINIMAS_PARA_COMPLETAR)
+        - timezone.now()
+    )
+    if faltante > timedelta(0):
+        horas = int(faltante.total_seconds() // 3600)
+        minutos = int((faltante.total_seconds() % 3600) // 60)
+        disponible_desde = timezone.localtime(
+            instance.created_at + timedelta(hours=HORAS_MINIMAS_PARA_COMPLETAR)
+        )
+        return (
+            f"Aún no se puede cerrar el registro: el ciclo de vigilancia "
+            f"posparto dura {HORAS_MINIMAS_PARA_COMPLETAR} horas desde que "
+            f"se creó. Faltan {horas}h {minutos}min (disponible desde las "
+            f"{disponible_desde:%d/%m %H:%M})."
+        )
+
+    instance.completado_en = timezone.now()
+    instance.completado_por = nombre_profesional_sesion(request)
+    instance.save(update_fields=['completado_en', 'completado_por'])
+    return None
+
+
 @method_decorator(never_cache, name='dispatch')
 class RegistroPartoViewSet(viewsets.ModelViewSet):
     queryset = RegistroParto.objects.all().order_by('-created_at')
@@ -96,14 +145,75 @@ class RegistroPartoViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        
+
         # Guardar pasando el objeto atencion explícitamente si existe
         if atencion_obj:
             instance = serializer.save(atencion=atencion_obj)
         else:
             instance = serializer.save()
 
-        return Response(self.get_serializer(instance).data)
+        response_data = self.get_serializer(instance).data
+
+        # 2026-09-22: el flujo normal (por-atencion, ver esa acción más
+        # abajo) ya debería encontrar y continuar un registro existente por
+        # documento antes de llegar a crear uno nuevo -- si aun así se llega
+        # aquí y ya existía otro registro FRSPA-007 para la misma paciente,
+        # es una señal de que algo se saltó ese flujo (ej. un enlace viejo
+        # sin ?doc=/?atencion=, o dos personas guardando por primera vez casi
+        # al mismo tiempo). No se bloquea la creación -- solo se avisa, para
+        # que quien lo diligenció revise si correspondía continuar el
+        # anterior en vez de crear uno aparte.
+        identificacion = (data.get("identificacion") or "").strip()
+        if identificacion:
+            duplicado = RegistroParto.objects.filter(
+                identificacion=identificacion
+            ).exclude(id=instance.id).order_by('-created_at').first()
+            if duplicado:
+                from django.utils import timezone
+                fecha_local = timezone.localtime(duplicado.created_at)
+                response_data['advertencia_duplicado'] = (
+                    f"Ya existía un registro FRSPA-007 para esta paciente "
+                    f"(creado {fecha_local:%d/%m/%Y %H:%M}). Se creó uno "
+                    f"nuevo -- revise si correspondía continuar el anterior "
+                    f"en vez de crear uno aparte."
+                )
+
+        # 2026-09-22: "completar" solo debería llegar en un PUT/PATCH sobre
+        # un registro ya existente (el botón "Guardar Registro Completo" no
+        # se habilita hasta que ya hay un registro guardado, ni antes de las
+        # HORAS_MINIMAS_PARA_COMPLETAR) -- se maneja igual aquí por si acaso
+        # llega en la creación misma, para no dejar un registro "completo" a
+        # medias sin su sello de cierre.
+        if bool(request.data.get('completar')):
+            advertencia_cierre = _intentar_cerrar_registro(instance, request)
+            if advertencia_cierre:
+                response_data['advertencia_cierre'] = advertencia_cierre
+            else:
+                response_data['completado_en'] = instance.completado_en
+                response_data['completado_por'] = instance.completado_por
+
+        return Response(response_data)
+
+    def update(self, request, *args, **kwargs):
+        completar = bool(request.data.get('completar'))
+        response = super().update(request, *args, **kwargs)
+        # 2026-09-22: el cierre del ciclo ("Guardar Registro Completo") es un
+        # paso APARTE del guardado normal de campos -- primero corre el PUT
+        # de siempre (con lo que esa pantalla tenga en ese momento), y solo
+        # si viene el flag explícito se intenta el cierre después. Así ningún
+        # autoguardado ni corrección desde la Vista Previa (que reutilizan el
+        # mismo submitForm() sin este flag) puede cerrar el registro por
+        # accidente -- ver formulario.html, solo el botón "Guardar Registro
+        # Completo" lo manda.
+        if completar and response.status_code == 200:
+            instance = self.get_object()
+            advertencia_cierre = _intentar_cerrar_registro(instance, request)
+            if advertencia_cierre:
+                response.data['advertencia_cierre'] = advertencia_cierre
+            else:
+                response.data['completado_en'] = instance.completado_en
+                response.data['completado_por'] = instance.completado_por
+        return response
 
     @action(detail=True, methods=['get'], url_path='pdf')
     def descargar_pdf(self, request, pk=None):

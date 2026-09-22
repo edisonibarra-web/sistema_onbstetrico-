@@ -19,6 +19,16 @@ identifica la misma fila de Dinámica entre corridas por su OID
 Si una edición cambia el riesgo a AMARILLO/ROJO, se dispara alerta igual que
 con una toma nueva.
 
+2026-09-22: mismo mecanismo de re-chequeo, ahora también para ELIMINACIONES
+-- si un valor que ya habíamos importado deja de aparecer en la respuesta de
+Dinámica (alguien lo borró allá), se marca como eliminado (borrado SUAVE,
+ver Medicion.eliminado_en / MedicionValor.eliminado_en en models.py): deja
+de verse en la Línea de Tiempo, el PDF y las alertas de inmediato, pero el
+dato no se destruye -- si algo así resultó ser un problema pasajero de la
+consulta a Nexus en vez de un borrado real, y la fila reaparece en una
+corrida posterior, se restaura sola. Si a una medición no le queda NINGÚN
+valor visible, la medición completa también se marca como eliminada.
+
 Ejecutar manualmente para probar:
     python manage.py sincronizar_signos_vitales_dinamica
     python manage.py sincronizar_signos_vitales_dinamica --verbosity 2
@@ -101,6 +111,7 @@ class Command(BaseCommand):
         total_nuevas = 0
         total_alertas = 0
         total_editadas = 0
+        total_eliminadas = 0
 
         for p in pacientes:
             folio = p.get('folio')
@@ -126,7 +137,11 @@ class Command(BaseCommand):
             # diligencia el personal directamente en esta app.
             self._actualizar_datos_basicos_paciente(paciente, p)
 
-            ultima_fecha = Medicion.objects.filter(
+            # 'todas' (no el manager filtrado) porque una medición marcada
+            # como eliminada igual debe contar para calcular la ventana de
+            # re-chequeo -- si no, una paciente cuya última toma quedó
+            # eliminada podría terminar sin re-chequearse nunca más.
+            ultima_fecha = Medicion.todas.filter(
                 paciente=paciente, origen='dinamica'
             ).aggregate(m=Max('fecha_hora'))['m']
             if ultima_fecha is not None:
@@ -169,6 +184,13 @@ class Command(BaseCommand):
                 continue
 
             mediciones_a_recalcular = set()
+            # OIDs de HCNSIGVIT que Dinámica SÍ devolvió en esta corrida,
+            # dentro de la ventana re-chequeada -- lo que quedó guardado acá
+            # con un dinamica_oid que ya NO aparece en este conjunto es lo
+            # que se borró en Dinámica (ver detección de eliminaciones más
+            # abajo). Solo tiene sentido compararlo cuando de verdad hubo
+            # ventana de re-chequeo (desde_consulta is not None).
+            oids_frescos = set()
 
             for lectura in lecturas:
                 fecha_hora = lectura.pop('fecha_hora')
@@ -178,30 +200,51 @@ class Command(BaseCommand):
                 # trate como si fuera un parámetro MEOWS más.
                 responsable_dinamica = lectura.pop('responsable', None)
                 oids_por_campo = lectura.pop('_oids', {}) or {}
+                oids_frescos.update(oid for oid in oids_por_campo.values() if oid is not None)
 
                 valores_dict = {k: v for k, v in lectura.items() if v is not None}
                 if not valores_dict:
                     continue
 
-                medicion_existente = Medicion.objects.filter(
+                # 'todas' para poder encontrar también una medición marcada
+                # como eliminada y restaurarla si reapareció, en vez de
+                # crear una fila duplicada para la misma fecha_hora.
+                medicion_existente = Medicion.todas.filter(
                     paciente=paciente, origen='dinamica', fecha_hora=fecha_hora
                 ).first()
 
                 if medicion_existente is not None:
+                    hubo_cambio = False
+                    if medicion_existente.eliminado_en is not None:
+                        # La medición completa había quedado marcada como
+                        # eliminada (ya no aparecía en Dinámica) y ahora
+                        # volvió a aparecer -- se restaura antes de seguir.
+                        medicion_existente.eliminado_en = None
+                        medicion_existente.save(update_fields=['eliminado_en'])
+                        hubo_cambio = True
+                        if verbosity >= 2:
+                            self.stdout.write(
+                                f'  ↩ Medición #{medicion_existente.id} restaurada '
+                                f'({documento}, había sido marcada como eliminada)'
+                            )
+
                     # Ya está importada -- revisar campo por campo si el
                     # valor cambió en Dinámica desde que se trajo (ver
                     # docstring del módulo). Se identifica la misma fila de
                     # Dinámica por su OID, no por el valor -- así se detecta
                     # la edición aunque el nuevo valor coincida por
                     # casualidad con el de otro campo.
-                    hubo_cambio = False
                     for codigo, valor_nuevo in valores_dict.items():
                         parametro = parametros_por_codigo.get(codigo)
                         if parametro is None:
                             continue
                         oid_campo = oids_por_campo.get(codigo)
                         valor_texto_nuevo = str(valor_nuevo)
-                        mv = MedicionValor.objects.filter(
+                        # 'todas' -- si este valor puntual había quedado
+                        # marcado como eliminado, hay que encontrarlo para
+                        # restaurarlo en vez de crear uno nuevo (chocaría
+                        # con unique_together medicion+parametro).
+                        mv = MedicionValor.todas.filter(
                             medicion=medicion_existente, parametro=parametro
                         ).first()
                         if mv is None:
@@ -212,6 +255,17 @@ class Command(BaseCommand):
                                 medicion=medicion_existente, parametro=parametro,
                                 valor=valor_texto_nuevo, dinamica_oid=oid_campo,
                             )
+                            hubo_cambio = True
+                        elif mv.eliminado_en is not None:
+                            if verbosity >= 2:
+                                self.stdout.write(
+                                    f'  ↩ Valor {codigo} restaurado (medición #{medicion_existente.id}, {documento})'
+                                )
+                            mv.eliminado_en = None
+                            mv.valor = valor_texto_nuevo
+                            if oid_campo is not None:
+                                mv.dinamica_oid = oid_campo
+                            mv.save(update_fields=['valor', 'dinamica_oid', 'eliminado_en'])
                             hubo_cambio = True
                         elif mv.valor != valor_texto_nuevo:
                             if verbosity >= 2:
@@ -281,12 +335,41 @@ class Command(BaseCommand):
                     disparar_alerta(medicion, resultado)
                     total_alertas += 1
 
+            # 2026-09-22: detectar valores que YA NO aparecen en Dinámica
+            # (se borraron allá) -- cualquier valor local con dinamica_oid
+            # dentro de la misma ventana re-chequeada cuyo OID no esté en
+            # oids_frescos ya no existe en Dinámica. Solo aplica cuando de
+            # verdad hubo ventana de re-chequeo (primera sincronización de
+            # una paciente no re-chequea nada, igual que las correcciones).
+            if desde_consulta is not None:
+                valores_a_revisar = MedicionValor.objects.filter(
+                    medicion__paciente=paciente,
+                    medicion__origen='dinamica',
+                    medicion__fecha_hora__gte=desde_consulta,
+                    dinamica_oid__isnull=False,
+                ).select_related('medicion', 'parametro')
+                for mv in valores_a_revisar:
+                    if mv.dinamica_oid in oids_frescos:
+                        continue
+                    if verbosity >= 2:
+                        self.stdout.write(
+                            f'  ✕ Eliminación detectada: {documento} {mv.parametro.codigo} '
+                            f'(medición #{mv.medicion_id}, oid {mv.dinamica_oid})'
+                        )
+                    mv.eliminado_en = timezone.now()
+                    mv.save(update_fields=['eliminado_en'])
+                    mediciones_a_recalcular.add(mv.medicion_id)
+                    total_eliminadas += 1
+
             # Recalcular puntaje/riesgo total de cada medición que tuvo al
-            # menos un valor corregido en Dinámica, y re-alertar si el nuevo
-            # riesgo lo amerita (confirmado explícitamente: una corrección
-            # que revela un riesgo real no debe quedar en silencio).
+            # menos un valor corregido o eliminado en Dinámica, y re-alertar
+            # si el nuevo riesgo lo amerita (confirmado explícitamente: una
+            # corrección que revela un riesgo real no debe quedar en
+            # silencio). Si a una medición no le queda NINGÚN valor visible
+            # (se eliminaron todos), la medición completa se marca como
+            # eliminada también -- "todas" porque puede que ya lo esté.
             for medicion_id in mediciones_a_recalcular:
-                medicion = Medicion.objects.get(id=medicion_id)
+                medicion = Medicion.todas.get(id=medicion_id)
                 valores_medicion = list(medicion.valores.select_related('parametro'))
                 valores_dict = {
                     mv.parametro.codigo: _a_numero(mv.valor)
@@ -294,6 +377,14 @@ class Command(BaseCommand):
                 }
                 valores_dict = {k: v for k, v in valores_dict.items() if v is not None}
                 if not valores_dict:
+                    if medicion.eliminado_en is None:
+                        medicion.eliminado_en = timezone.now()
+                        medicion.save(update_fields=['eliminado_en'])
+                        if verbosity >= 2:
+                            self.stdout.write(
+                                f'  ✕ Medición #{medicion.id} eliminada por completo '
+                                f'({documento}, sin valores restantes)'
+                            )
                     continue
 
                 resultado = calcular_meows(valores_dict)
@@ -328,8 +419,9 @@ class Command(BaseCommand):
                     total_alertas += 1
 
         self.stdout.write(self.style.SUCCESS(
-            f'[OK] {total_nuevas} medición(es) nueva(s), {total_editadas} corregida(s) '
-            f'importada(s) desde Dinámica ({total_alertas} con alerta).'
+            f'[OK] {total_nuevas} medición(es) nueva(s), {total_editadas} corregida(s), '
+            f'{total_eliminadas} valor(es) eliminado(s) -- importada(s) desde Dinámica '
+            f'({total_alertas} con alerta).'
         ))
 
     @staticmethod

@@ -37,20 +37,32 @@ class ParametroAdmin(admin.ModelAdmin):
 
 @admin.register(Medicion)
 class MedicionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'paciente', 'formulario', 'fecha_hora', 'meows_total', 'meows_riesgo')
-    list_filter = ('formulario', 'meows_riesgo', 'fecha_hora')
+    # 2026-09-22: 'Medicion.objects' (el manager por defecto) oculta las
+    # marcadas como eliminadas en Dinámica (ver eliminado_en en models.py) --
+    # el admin usa 'todas' para que sigan siendo auditables/recuperables acá
+    # aunque ya no aparezcan en la Línea de Tiempo ni el PDF.
+    list_display = ('id', 'paciente', 'formulario', 'fecha_hora', 'meows_total', 'meows_riesgo', 'eliminado_en')
+    list_filter = ('formulario', 'meows_riesgo', 'fecha_hora', 'eliminado_en')
     search_fields = ('paciente__numero_documento', 'paciente__nombres', 'paciente__apellidos')
     ordering = ('-fecha_hora',)
     readonly_fields = ('fecha_hora',)
     date_hierarchy = 'fecha_hora'
 
+    def get_queryset(self, request):
+        return Medicion.todas.all()
+
 
 @admin.register(MedicionValor)
 class MedicionValorAdmin(admin.ModelAdmin):
-    list_display = ('medicion', 'parametro', 'valor', 'puntaje')
-    list_filter = ('parametro', 'puntaje')
+    # Mismo criterio que MedicionAdmin -- 'todas' para poder auditar también
+    # los valores puntuales marcados como eliminados.
+    list_display = ('medicion', 'parametro', 'valor', 'puntaje', 'eliminado_en')
+    list_filter = ('parametro', 'puntaje', 'eliminado_en')
     search_fields = ('medicion__id', 'parametro__codigo', 'parametro__nombre')
     ordering = ('medicion', 'parametro__orden')
+
+    def get_queryset(self, request):
+        return MedicionValor.todas.all()
 
 
 @admin.register(RangoParametro)

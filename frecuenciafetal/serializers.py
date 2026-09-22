@@ -105,6 +105,21 @@ class ControlSuturaSerializer(serializers.ModelSerializer):
         read_only_fields = ['registro']
 
 
+# 2026-09-22: una vez que el registro tiene completado_en (se cerró con
+# "Guardar Registro Completo"), solo estos campos siguen pudiéndose
+# corregir -- son exactamente los que la Vista Previa del formulario sabe
+# editar (características del parto y vigilancia posparto inmediato). El
+# resto del payload de una actualización posterior (autoguardado que
+# alcance a dispararse, u otro intento) se ignora en silencio en vez de
+# rechazar la petición completa -- así no hace falta que el cliente avise
+# "esto viene de la Vista Previa": cualquier cambio a un campo no listado
+# aquí simplemente no tiene efecto mientras el registro esté cerrado.
+CAMPOS_EDITABLES_POST_CIERRE = {
+    'tipo_parto', 'episiotomia', 'tipo_alumbramiento', 'hora_parto',
+    'globo_seguridad', 'sutura_heridas', 'sangrado_cuantificado_cc',
+}
+
+
 class RegistroPartoSerializer(serializers.ModelSerializer):
     atencion = AtencionToleranteField(
         queryset=AtencionParto.objects.all(), required=False, allow_null=True
@@ -119,6 +134,10 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
     class Meta:
         model = RegistroParto
         fields = '__all__'
+        # Solo la vista (RegistroPartoViewSet, al recibir el flag "completar"
+        # del botón "Guardar Registro Completo") puede escribir estos dos --
+        # nunca directo desde el payload de un guardado normal.
+        read_only_fields = ['completado_en', 'completado_por']
 
     def create(self, validated_data):
         fetocardia_data = validated_data.pop('controles_fetocardia', []) or []
@@ -164,6 +183,16 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
         return registro
 
     def update(self, instance, validated_data):
+        if instance.completado_en is not None:
+            # Registro cerrado -- ver CAMPOS_EDITABLES_POST_CIERRE arriba.
+            # No se tocan controles anidados (fetocardia/postparto/
+            # sangrado/globo/sutura/recién nacido) desde aquí en este caso.
+            for attr, value in validated_data.items():
+                if attr in CAMPOS_EDITABLES_POST_CIERRE:
+                    setattr(instance, attr, value)
+            instance.save()
+            return instance
+
         fetocardia_data = validated_data.pop('controles_fetocardia', None)
         rn_data = validated_data.pop('control_recien_nacido', None)
         postparto_data = validated_data.pop('controles_postparto', None)

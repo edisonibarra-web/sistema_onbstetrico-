@@ -108,6 +108,24 @@ class RegistroParto(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # 2026-09-22: a pedido -- el ciclo de Control Posparto Inmediato se da
+    # por cerrado únicamente cuando se usa el botón "Guardar Registro
+    # Completo" (nunca el autoguardado). Una vez cerrado, el formulario
+    # principal queda de solo lectura; la única vía de corrección es la
+    # Vista Previa (características del parto, vigilancia posparto y
+    # fetocardia -- ver RegistroPartoSerializer.CAMPOS_EDITABLES_POST_CIERRE
+    # en serializers.py). completado_por es el profesional en sesión al
+    # momento del cierre (nombre_profesional_sesion), no el texto libre de
+    # "Responsable del Registro", que puede haber quedado desactualizado.
+    completado_en = models.DateTimeField(
+        null=True, blank=True, db_index=True,
+        verbose_name="Cerrado (Guardar Registro Completo)",
+    )
+    completado_por = models.CharField(
+        max_length=255, blank=True, null=True,
+        verbose_name="Cerrado por",
+    )
+
     class Meta:
         verbose_name = "Registro de Parto"
         verbose_name_plural = "Registros de Parto"

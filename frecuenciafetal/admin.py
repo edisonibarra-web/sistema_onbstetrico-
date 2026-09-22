@@ -30,8 +30,11 @@ class ControlPostpartoInmediatoInline(admin.TabularInline):
 
 @admin.register(RegistroParto)
 class RegistroPartoAdmin(admin.ModelAdmin):
-    list_display = ('nombre_paciente', 'identificacion', 'edad_gestacional', 'tipo_parto', 'created_at')
-    list_filter = ('tipo_parto', 'episiotomia', 'created_at')
+    # 2026-09-22: completado_en/completado_por -- ver "Guardar Registro
+    # Completo" en formulario.html. Visibles/filtrables acá para poder
+    # auditar qué registros quedaron cerrados y cuáles siguen abiertos.
+    list_display = ('nombre_paciente', 'identificacion', 'edad_gestacional', 'tipo_parto', 'created_at', 'completado_en')
+    list_filter = ('tipo_parto', 'episiotomia', 'created_at', 'completado_en')
     search_fields = ('nombre_paciente', 'identificacion')
     inlines = [
         ControlFetocardiaInline,
