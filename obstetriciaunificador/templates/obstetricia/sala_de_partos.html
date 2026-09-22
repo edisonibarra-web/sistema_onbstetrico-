@@ -251,39 +251,103 @@
         .area-tabs {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
             margin-top: 18px;
+            align-items: center;
         }
         .area-tab {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 14px;
-            border-radius: 10px;
-            border: 1px solid #e2e8f0;
+            padding: 11px 18px;
+            border-radius: 12px;
+            border: 1.5px solid #e2e8f0;
             background: #f8fafc;
             color: #475569;
-            font-size: 0.82rem;
+            font-size: 0.92rem;
             font-weight: 700;
+            line-height: 1.2;
             cursor: pointer;
             transition: all 0.16s ease;
         }
-        .area-tab:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .area-tab:hover { filter: brightness(0.97); transform: translateY(-1px); }
         .area-tab-count {
-            font-size: 0.72rem;
+            font-size: 0.8rem;
             font-weight: 800;
-            padding: 1px 7px;
+            padding: 2px 9px;
             border-radius: 999px;
             background: rgba(100, 116, 139, 0.14);
             color: inherit;
         }
         .area-tab-activa { color: #ffffff; border-color: transparent; }
         .area-tab-activa .area-tab-count { background: rgba(255, 255, 255, 0.28); }
+
+        /* Cada pestaña con su propio color de identidad SIEMPRE visible (no
+           solo cuando está seleccionada) -- tinte suave en reposo, relleno
+           sólido cuando está activa. A pedido: "alinéalos, hazlos más
+           grandes, píntalos de color". */
+        .area-tab-todas { background: #e2e8f5; color: var(--primary-blue); border-color: #c7d2e8; }
         .area-tab-todas.area-tab-activa { background: var(--primary-blue); }
+        .area-tab-partos { background: #ede9fe; color: #6d28d9; border-color: #ddd6fe; }
         .area-tab-partos.area-tab-activa { background: #6d28d9; }
+        .area-tab-gineco { background: #dbeafe; color: #2563eb; border-color: #bfdbfe; }
         .area-tab-gineco.area-tab-activa { background: #2563eb; }
+        .area-tab-intermedio { background: #ccfbf1; color: #0d9488; border-color: #99f6e4; }
         .area-tab-intermedio.area-tab-activa { background: #0d9488; }
+        .area-tab-otra { background: #fef3c7; color: #d97706; border-color: #fde68a; }
         .area-tab-otra.area-tab-activa { background: #d97706; }
+        .area-tab-triaje { background: #cffafe; color: #0891b2; border-color: #a5f3fc; }
+        .area-tab-triaje.area-tab-activa { background: #0891b2; }
+        /* El emoji 🩺 rendeaba distinto según fuente/SO (más grande y
+           desplazado hacia abajo, desalineado del texto) -- se reemplazó por
+           un ícono SVG (lucide, igual que el resto de íconos de esta
+           pantalla). Tamaño (size=) y display:block van directo en el <i>
+           -- las clases CSS propias no sobrevivían de forma confiable al
+           createIcons() de esta versión de lucide.min.js. */
+
+        /* Card "Iniciar Triaje" -- 2026-09-22: dejó de ser un modal detrás de
+           un botón (a pedido explícito, para ahorrar ese paso); queda
+           siempre visible en el módulo Triaje. Mismo lenguaje visual que el
+           resto de tarjetas del sistema (encabezado oscuro, acento cian). */
+        .triaje-modal {
+            background: #fff; border-radius: 14px; overflow: hidden;
+            width: 100%; max-width: 420px;
+            box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+        }
+        .triaje-modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+            color: #fff; padding: 14px 18px; font-weight: 800; font-size: 1.02rem;
+        }
+        .triaje-modal-body { padding: 18px; }
+        .triaje-modal-intro {
+            font-size: 0.85rem; color: #475569; margin: 0 0 14px; line-height: 1.5;
+        }
+        .triaje-modal-label {
+            display: block; font-size: 0.78rem; font-weight: 700; color: #334155;
+            margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.02em;
+        }
+        .triaje-modal-input {
+            width: 100%; padding: 10px 12px; border-radius: 8px;
+            border: 1.5px solid #cbd5e1; font-size: 0.95rem; box-sizing: border-box;
+        }
+        .triaje-modal-input:focus { outline: none; border-color: #0891b2; }
+        .triaje-modal-resultado { margin-top: 12px; font-size: 0.85rem; font-weight: 600; }
+        .triaje-modal-resultado-ok { color: #0e7490; }
+        .triaje-modal-resultado-nuevo { color: #b45309; }
+        .triaje-modal-footer {
+            display: flex; justify-content: flex-end; gap: 8px;
+            padding: 14px 18px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+        }
+        .triaje-modal-btn {
+            padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 700;
+            cursor: pointer; border: none;
+        }
+        .triaje-modal-btn-primary {
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%); color: #fff;
+        }
+        .triaje-modal-btn-primary:hover { box-shadow: 0 4px 12px rgba(8, 145, 178, 0.4); }
+        .triaje-modal-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .active-patient-name {
             font-weight: 800;
@@ -1084,34 +1148,73 @@
             <!-- Identificar Paciente = Pacientes activos en Sala de Partos (DGEMPRES_NEXUS, solo lectura) -->
             <div class="search-container" id="search-section">
                 <div class="search-header">
-                    <div class="icon-container">
+                    <div class="icon-container" id="search-header-icon">
                         <i data-lucide="bed-double" size="24"></i>
                     </div>
                     <div class="title-group">
-                        <div class="subtitle">Consulta</div>
-                        <div class="main-title">Pacientes activos en Sala de Partos</div>
+                        <div class="subtitle" id="search-header-subtitle">Consulta</div>
+                        <div class="main-title" id="search-header-title">Pacientes activos en Sala de Partos</div>
                     </div>
                     <button type="button" class="active-patients-refresh" id="btn-refrescar-activos" onclick="cargarPacientesActivosSalaPartos()">
                         <i data-lucide="refresh-cw" size="14"></i> Actualizar
                     </button>
                 </div>
-                <p class="search-helper">Filtra por nombre o documento y selecciona un paciente para abrir de inmediato su tablero clínico unificado.</p>
 
-                <div class="search-form">
-                    <div class="search-input-wrap">
-                        <i data-lucide="badge-check"></i>
-                        <input type="text" id="cedula-input" placeholder="Buscar por nombre o documento..." maxlength="50">
+                <!-- 2026-09-22, a pedido explícito: "segmentar" -- Sala de
+                     Partos (Nexus) y Triaje (local) ya NO comparten pantalla
+                     visualmente. Todo lo de Nexus (buscador, pestañas
+                     Todas/Sala de Partos/Ginecobstetricia, lista) vive en
+                     este contenedor, que se oculta POR COMPLETO en modo
+                     Triaje (ver seleccionarTabTriaje/ocultarListaTriaje) --
+                     ya no hay una pestaña "Triaje" mezclada en esta fila; el
+                     único punto de entrada a Triaje es el módulo del
+                     sidebar (?tab=triaje). -->
+                <div id="nexus-section">
+                    <p class="search-helper">Filtra por nombre o documento y selecciona un paciente para abrir de inmediato su tablero clínico unificado.</p>
+
+                    <div class="search-form">
+                        <div class="search-input-wrap">
+                            <i data-lucide="badge-check"></i>
+                            <input type="text" id="cedula-input" placeholder="Buscar por nombre o documento..." maxlength="50">
+                        </div>
+                    </div>
+
+                    <div class="area-tabs" id="area-tabs"></div>
+
+                    <div class="active-patients-list" id="active-patients-list">
+                        <div class="active-patients-loading" id="active-patients-loading">
+                            <div class="loader" style="display:inline-block;vertical-align:middle;margin-right:8px"></div>
+                            Consultando pacientes activos...
+                        </div>
                     </div>
                 </div>
 
-                <div class="area-tabs" id="area-tabs"></div>
-
-                <div class="active-patients-list" id="active-patients-list">
-                    <div class="active-patients-loading" id="active-patients-loading">
-                        <div class="loader" style="display:inline-block;vertical-align:middle;margin-right:8px"></div>
-                        Consultando pacientes activos...
+                <!-- Contenido de Triaje: independiente de nexus-section, no
+                     comparte datos ni pestañas con Sala de Partos. 2026-09-22,
+                     a pedido explícito: la búsqueda/inicio de un triaje ya NO
+                     es un modal detrás de un botón -- se muestra directo, sin
+                     pasos de más, apenas se entra al módulo "Triaje". -->
+                <div id="triaje-tab-actions" style="display:none;margin-bottom:16px;">
+                    <div class="triaje-modal" style="max-width:480px;">
+                        <div class="triaje-modal-header">
+                            <span>🩺 Iniciar Triaje</span>
+                        </div>
+                        <div class="triaje-modal-body">
+                            <p class="triaje-modal-intro">
+                                Registra los signos vitales de una paciente que todavía no tiene ingreso formal en el
+                                hospital. Si ya estuvo antes, sus datos se traen automáticamente; si es nueva, se crea
+                                un registro para ella.
+                            </p>
+                            <label class="triaje-modal-label" for="triaje-nuevo-doc">Número de documento</label>
+                            <input type="text" id="triaje-nuevo-doc" class="triaje-modal-input" placeholder="Ej. 1234567890" autocomplete="off" inputmode="numeric">
+                            <div id="triaje-nuevo-resultado" class="triaje-modal-resultado" style="display:none;"></div>
+                        </div>
+                        <div class="triaje-modal-footer">
+                            <button type="button" class="triaje-modal-btn triaje-modal-btn-primary" id="triaje-nuevo-continuar-btn" onclick="continuarNuevoTriaje()">Buscar y continuar</button>
+                        </div>
                     </div>
                 </div>
+                <div class="active-patients-list" id="triaje-patients-list" style="display:none;"></div>
             </div>
 
             <!-- 🏥 CARD CLÍNICA COMPACTA (Colorful & Organized) -->
@@ -1125,7 +1228,11 @@
                             <span class="card-clinico-eyebrow">Paciente en atención</span>
                             <h2 id="display-nombres">-</h2>
                             <div class="card-clinico-meta">
-                                <span class="card-clinico-meta-item"><i data-lucide="hash" size="12"></i> <span id="display-atencion">Atención: -</span></span>
+                                {# 2026-09-22: oculto a pedido -- es el id interno de AtencionParto (fila de la #}
+                                {# BD local), sin valor clínico para el personal; lo que importa es la cédula de #}
+                                {# abajo. Se mantiene en el DOM (solo oculto) porque el JS sigue actualizando su #}
+                                {# texto -- así no hace falta tocar esa lógica. #}
+                                <span class="card-clinico-meta-item" style="display:none"><i data-lucide="hash" size="12"></i> <span id="display-atencion">Atención: -</span></span>
                                 <span class="card-clinico-meta-item"><i data-lucide="fingerprint" size="12"></i> <span id="display-cedula">ID: -</span></span>
                             </div>
                         </div>
@@ -1289,6 +1396,11 @@
 
     <script>
         lucide.createIcons();
+
+        // Profesional con la sesión abierta ahora mismo (ver
+        // sistema_obstetrico/auth_utils.py:nombre_profesional_sesion) -- se usa
+        // para precargar "Responsable" en la card de datos del paciente.
+        const PROFESIONAL_SESION = "{{ profesional_nombre_sesion|default:''|escapejs }}";
 
         // Instancias de Chart.js: se guardan para poder destruirlas y volver a
         // armarlas cada vez que llega data nueva (búsqueda de paciente, refresh),
@@ -1711,7 +1823,13 @@
             document.getElementById('info-aseguradora').textContent = data.aseguradora || '-';
             document.getElementById('info-cama').textContent = data.cama || '-';
             document.getElementById('info-fecha-ingreso').textContent = data.fecha_ingreso || '-';
-            document.getElementById('info-responsable').textContent = data.responsable || '-';
+            // 2026-09-22: a pedido, "Responsable" en esta card de solo lectura
+            // ya no muestra el dato guardado (podía quedar vacío, o ser de
+            // quien lo diligenció en un turno anterior) -- se muestra siempre
+            // el profesional que tiene la sesión abierta ahora mismo, igual
+            // que ya hacen "signature-name" (frecuenciafetal) y el campo
+            // RESPONSABLE de MEOWS/Triaje.
+            document.getElementById('info-responsable').textContent = PROFESIONAL_SESION || data.responsable || '-';
             document.getElementById('info-acompanante').textContent = data.nombre_acompanante || '-';
             document.getElementById('info-edad-gestacional').textContent = (data.edad_gestacional !== null && data.edad_gestacional !== undefined) ? `${data.edad_gestacional} sem` : '-';
             document.getElementById('info-gestas').textContent = (data.gestas !== null && data.gestas !== undefined) ? data.gestas : '-';
@@ -1923,6 +2041,7 @@
             document.getElementById('cedula-input').value = '';
             document.getElementById('cedula-input').focus();
             cargarPacientesActivosSalaPartos();
+            cargarPacientesTriaje();
         }
 
         async function cargarPacienteDesdeURL() {
@@ -2044,10 +2163,159 @@
         }
 
         function seleccionarTabArea(clase) {
+            // Si se viene desde la pestaña de Triaje, volver a mostrar la lista
+            // de Nexus (ver seleccionarTabTriaje) -- no cambia nada de lo que
+            // sigue, que es exactamente el comportamiento de siempre.
+            ocultarListaTriaje();
             window._areaTabActiva = clase;
             const pacientes = window._pacientesActivosSalaPartos || [];
             renderAreaTabs(pacientes);
             renderListaPacientesActivos(pacientes);
+        }
+
+        // --- Triaje: pacientes con signos vitales registrados ANTES de tener
+        // ingreso formal (ver meows/views.py:api_pacientes_triaje). Lista y
+        // pestaña completamente independientes de las 3 de arriba -- no
+        // comparten datos ni funciones con la consulta a Nexus. ---
+        // Encabezado de la tarjeta: cambia de "look" según el modo, para que
+        // quede visualmente claro que son dos consultas segmentadas, no una
+        // sola pantalla con una pestaña de más.
+        function aplicarEncabezadoNexus() {
+            const icono = document.getElementById('search-header-icon');
+            const subtitulo = document.getElementById('search-header-subtitle');
+            const titulo = document.getElementById('search-header-title');
+            if (icono) { icono.innerHTML = '<i data-lucide="bed-double" size="24"></i>'; icono.style.background = ''; }
+            if (subtitulo) subtitulo.textContent = 'Consulta';
+            if (titulo) titulo.textContent = 'Pacientes activos en Sala de Partos';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+        function aplicarEncabezadoTriaje() {
+            const icono = document.getElementById('search-header-icon');
+            const subtitulo = document.getElementById('search-header-subtitle');
+            const titulo = document.getElementById('search-header-title');
+            if (icono) {
+                icono.innerHTML = '<i data-lucide="stethoscope" size="24"></i>';
+                icono.style.background = 'linear-gradient(135deg, #fde047, #f59e0b)';
+            }
+            if (subtitulo) subtitulo.textContent = 'Consulta';
+            if (titulo) titulo.textContent = 'Pacientes en Triaje (sin ingreso)';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function ocultarListaTriaje() {
+            const triajeList = document.getElementById('triaje-patients-list');
+            const triajeActions = document.getElementById('triaje-tab-actions');
+            const nexusSection = document.getElementById('nexus-section');
+            if (triajeList) triajeList.style.display = 'none';
+            if (triajeActions) triajeActions.style.display = 'none';
+            if (nexusSection) nexusSection.style.display = '';
+            aplicarEncabezadoNexus();
+        }
+
+        function seleccionarTabTriaje() {
+            const triajeList = document.getElementById('triaje-patients-list');
+            const triajeActions = document.getElementById('triaje-tab-actions');
+            const nexusSection = document.getElementById('nexus-section');
+            if (nexusSection) nexusSection.style.display = 'none';
+            if (triajeList) triajeList.style.display = '';
+            if (triajeActions) triajeActions.style.display = '';
+            aplicarEncabezadoTriaje();
+            // La card de "Iniciar Triaje" ya no es un modal aparte -- queda
+            // siempre visible junto con la lista, así que se resetea aquí
+            // cada vez que se entra a este módulo (antes lo hacía el botón
+            // "+ Nuevo Triaje" al abrir el modal).
+            const input = document.getElementById('triaje-nuevo-doc');
+            const resultado = document.getElementById('triaje-nuevo-resultado');
+            const btn = document.getElementById('triaje-nuevo-continuar-btn');
+            if (input) input.value = '';
+            if (resultado) { resultado.style.display = 'none'; resultado.innerHTML = ''; }
+            if (btn) { btn.textContent = 'Buscar y continuar'; btn.dataset.docBuscado = ''; }
+            cargarPacientesTriaje();
+        }
+
+        function renderListaPacientesTriaje(pacientes) {
+            const list = document.getElementById('triaje-patients-list');
+            if (!list) return;
+            if (!pacientes || pacientes.length === 0) {
+                list.innerHTML = '<div class="active-patients-empty">No hay pacientes con triaje abierto en este momento.</div>';
+                return;
+            }
+            list.innerHTML = pacientes.map((p) => {
+                const nombre = p.nombre_completo || 'Sin nombre registrado';
+                const doc = p.numero_documento || '';
+                const riesgo = p.ultimo_riesgo ? `<span class="active-patient-badge">Riesgo: ${escapeHtml(p.ultimo_riesgo)}</span>` : '';
+                return `
+                    <div class="active-patient-item active-patient-item-triaje" onclick="window.location.href='${p.url_continuar}'">
+                        <span class="active-patient-area" style="background:#0891b2;color:#fff;">🩺 Triaje</span>
+                        <div class="active-patient-name">${escapeHtml(nombre)}</div>
+                        <div class="active-patient-doc">Doc: ${escapeHtml(doc || '-')}</div>
+                        <div class="active-patient-meta">${riesgo}</div>
+                    </div>`;
+            }).join('');
+        }
+
+        // Búsqueda/inicio de un triaje: la card vive siempre visible en el
+        // módulo Triaje (ver seleccionarTabTriaje, que la resetea cada vez
+        // que se entra). Primer clic: busca (local + Nexus, sin exigir
+        // ingreso -- ver api_buscar_paciente_triaje) y muestra el resultado ahí mismo, sin
+        // navegar todavía. Segundo clic (mismo documento, ya buscado): recién
+        // ahí navega a abrir_triaje, que resuelve/crea el paciente local y
+        // entra a la captura de signos.
+        async function continuarNuevoTriaje() {
+            const input = document.getElementById('triaje-nuevo-doc');
+            const resultado = document.getElementById('triaje-nuevo-resultado');
+            const btn = document.getElementById('triaje-nuevo-continuar-btn');
+            const doc = (input?.value || '').trim();
+            if (!doc) {
+                if (input) input.focus();
+                return;
+            }
+
+            if (btn && btn.dataset.docBuscado === doc) {
+                window.location.href = `/meows/triaje/abrir/${encodeURIComponent(doc)}/`;
+                return;
+            }
+
+            if (btn) { btn.disabled = true; btn.textContent = 'Buscando...'; }
+            try {
+                const response = await fetchConSesion(`/meows/api/buscar-paciente-triaje/?documento=${encodeURIComponent(doc)}`, { credentials: 'same-origin' });
+                const data = await response.json();
+                if (resultado) resultado.style.display = 'block';
+                if (data.success && data.encontrado) {
+                    const nombre = `${data.paciente.nombres || ''} ${data.paciente.apellidos || ''}`.trim() || 'Sin nombre registrado';
+                    if (resultado) resultado.innerHTML = `<span class="triaje-modal-resultado-ok">✓ Ya está registrada: ${escapeHtml(nombre)}. Se usarán sus datos.</span>`;
+                } else if (resultado) {
+                    resultado.innerHTML = `<span class="triaje-modal-resultado-nuevo">No se encontró en el sistema: se creará un registro nuevo.</span>`;
+                }
+            } catch (error) {
+                console.error('Error al buscar paciente de triaje:', error);
+                if (resultado) {
+                    resultado.style.display = 'block';
+                    resultado.innerHTML = `<span class="triaje-modal-resultado-nuevo">No se pudo verificar en este momento -- puede continuar igual.</span>`;
+                }
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.dataset.docBuscado = doc;
+                    btn.textContent = 'Continuar';
+                }
+            }
+        }
+
+        async function cargarPacientesTriaje() {
+            const list = document.getElementById('triaje-patients-list');
+            try {
+                const response = await fetchConSesion('/meows/api/pacientes-triaje/', { credentials: 'same-origin' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const pacientes = (data && data.pacientes) || [];
+                if (list && list.style.display !== 'none') renderListaPacientesTriaje(pacientes);
+            } catch (error) {
+                console.error('Error al consultar pacientes de triaje:', error);
+                if (list && list.style.display !== 'none') {
+                    list.innerHTML = '<div class="active-patients-error">No se pudo consultar la lista de triaje.</div>';
+                }
+            }
         }
 
         async function cargarPacientesActivosSalaPartos(query) {
@@ -2164,6 +2432,15 @@
             }
         });
 
+        // Card "Iniciar Triaje": Enter en el campo de documento dispara la
+        // misma acción que el botón "Buscar y continuar".
+        document.getElementById('triaje-nuevo-doc').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                continuarNuevoTriaje();
+            }
+        });
+
         // Si llega con documento en la URL, abrir directamente la vista con datos del paciente;
         // si no está registrado localmente, cargar la lista de activos filtrada por ese documento.
         (async function inicializarSalaDePartos() {
@@ -2172,6 +2449,14 @@
                 const params = new URLSearchParams(window.location.search);
                 const cedula = (params.get('num_identificacion') || params.get('doc') || '').trim();
                 cargarPacientesActivosSalaPartos(cedula);
+                // Entrada desde el módulo "Triaje" del sidebar
+                // (/atencion/sala-de-partos/?tab=triaje) -- abre directo esa
+                // pestaña en vez de "Todas".
+                if (params.get('tab') === 'triaje') {
+                    seleccionarTabTriaje();
+                } else {
+                    cargarPacientesTriaje();
+                }
             }
         })();
     </script>

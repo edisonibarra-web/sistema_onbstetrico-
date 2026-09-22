@@ -15,7 +15,7 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
          (ver nombre_profesional_sesion en sistema_obstetrico/auth_utils.py) --
          nunca queda vacío para una sesión real. -->
     <div class="sidebar-user-card" title="Sesión iniciada como: {{ profesional_nombre_sesion|default:'—' }}">
-        <span class="sidebar-user-emoji" aria-hidden="true">👩‍⚕️</span>
+        <span class="sidebar-user-emoji" aria-hidden="true"><i data-lucide="id-card" size="17" style="display:block"></i></span>
         <div class="sidebar-user-info">
             <div class="sidebar-user-label">Sesión iniciada</div>
             <div class="sidebar-user-name">{{ profesional_nombre_sesion|default:"—" }}</div>
@@ -54,6 +54,20 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         <div class="meows-panel-orden-info">↑ Más reciente arriba&nbsp;&nbsp;·&nbsp;&nbsp;Más antigua abajo ↓</div>
         <div class="meows-panel-alertas-lista" id="meows-panel-alertas-lista">
             <p class="meows-panel-vacio">Sin alertas por ahora.</p>
+        </div>
+    </div>
+
+    <!-- Panel de la campana de TRIAJE -- copia independiente del panel de
+         arriba (ver iniciarSondeoAlertasTriaje), nunca mezcla sus alertas
+         con las de Dinámica. -->
+    <div id="meows-panel-alertas-triaje" class="meows-panel-alertas" hidden>
+        <div class="meows-panel-alertas-header">
+            <strong>Alertas de Triaje</strong>
+            <button type="button" class="meows-panel-cerrar" onclick="toggleMeowsPanelAlertasTriaje(false)" aria-label="Cerrar panel">✕</button>
+        </div>
+        <div class="meows-panel-orden-info">↑ Más reciente arriba&nbsp;&nbsp;·&nbsp;&nbsp;Más antigua abajo ↓</div>
+        <div class="meows-panel-alertas-lista" id="meows-panel-alertas-triaje-lista">
+            <p class="meows-panel-vacio">Sin alertas de triaje por ahora.</p>
         </div>
     </div>
 
@@ -120,6 +134,12 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         .meows-panel-alertas[hidden] {
             display: none;
         }
+        /* La campana de triaje vive a la izquierda de la de Dinámica en el
+           encabezado (ver header_formatos.html) -- se desplaza su panel para
+           que caiga debajo de SU botón, en vez de superponerse con el otro. */
+        #meows-panel-alertas-triaje {
+            right: 96px;
+        }
         .meows-panel-alertas-header {
             display: flex; align-items: center; justify-content: space-between;
             padding: 12px 14px; background: #1e293b; color: #fff;
@@ -174,6 +194,20 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         }
         .meows-panel-alerta-card.riesgo-blanco .meows-panel-alerta-meta,
         .meows-panel-alerta-card.riesgo-blanco .toast-ver-detalle { color: #6c757d; }
+
+        /* Ícono del módulo Triaje en amarillo -- a pedido explícito, distinto
+           del cian compartido por el resto de módulos del sidebar (Inicio,
+           Sala de Partos). Selector con dos clases para ganarle en
+           especificidad a ".sidebar-module-header .icon-container" sin
+           necesidad de !important. */
+        .sidebar-module-header .icon-container.icon-container-triaje {
+            background: linear-gradient(135deg, #fde047, #f59e0b);
+            box-shadow: 0 3px 10px rgba(245, 158, 11, 0.45);
+            color: #7c2d12;
+        }
+        .sidebar-module-header:hover .icon-container.icon-container-triaje {
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.6);
+        }
     </style>
 
     <!-- Navegación de Módulos -->
@@ -244,6 +278,27 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         {% endif %}
     </div>
 
+    <!-- Navegación de Triaje: 2026-09-22, a pedido explícito -- módulo
+         PROPIO e INDEPENDIENTE de los 3 formatos clínicos de arriba (MEOWS/
+         Control Posparto/Trabajo de Parto) y del contexto de atención
+         (no depende de atencion_id, siempre visible en cualquier pantalla).
+         Antes el único acceso era un botón "+ Nuevo Triaje" dentro de la
+         tarjeta de Sala de Partos -- se quitó de ahí (ver
+         sala_de_partos.html), este enlace es ahora el único punto de
+         entrada. Lleva directo a la pestaña Triaje de Sala de Partos (ver
+         ?tab=triaje, leído en sala_de_partos.html). -->
+    <div class="sidebar-module">
+        <a href="/atencion/sala-de-partos/?tab=triaje" class="sidebar-module-header" style="text-decoration: none; color: inherit;" title="Triaje">
+            <div class="icon-container icon-container-triaje">
+                <i data-lucide="stethoscope" class="nav-icon"></i>
+            </div>
+            <div class="sidebar-module-info">
+                <div class="sidebar-module-title">Módulo</div>
+                <div class="sidebar-module-name">Triaje</div>
+            </div>
+        </a>
+    </div>
+
     <div class="sidebar-watermark" aria-hidden="true">
         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -304,7 +359,15 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
      * "Salir de la Atención" (nuevaBusqueda()). Aquí simplemente no navegamos.
      */
     function mantenerContextoSalaPartos(event) {
-        if (window.location.pathname.replace(/\/$/, '') === '/atencion/sala-de-partos') {
+        const mismaRuta = window.location.pathname.replace(/\/$/, '') === '/atencion/sala-de-partos';
+        // 2026-09-22: si se está viendo el módulo Triaje (?tab=triaje, mismo
+        // pathname pero otro modo -- ver sala_de_partos.html), SÍ debe
+        // navegar de verdad para volver a Sala de Partos -- antes este guard
+        // comparaba solo el pathname y bloqueaba el clic con
+        // preventDefault(), dejando a quien estaba en Triaje sin forma de
+        // volver.
+        const enModoTriaje = new URLSearchParams(window.location.search).get('tab') === 'triaje';
+        if (mismaRuta && !enModoTriaje) {
             event.preventDefault();
             return false;
         }
@@ -752,6 +815,321 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
                             idsYaMostrados.delete(id);
                         });
                         guardarIdsYaMostrados();
+                    }
+                })
+                .catch(function () { /* red caída o sesión expirada: se reintenta en el próximo ciclo */ });
+        }
+
+        sondear();
+        setInterval(sondear, INTERVALO_MS);
+    })();
+
+    /**
+     * 2026-09-18: campana de alertas de TRIAJE -- copia independiente y
+     * autocontenida de iniciarSondeoAlertasMeows de arriba, para la campana
+     * nueva (mismo diseño visual, según lo pedido). Se duplica en vez de
+     * parametrizar una función compartida A PROPÓSITO: así la campana de
+     * Dinámica de arriba queda con CERO líneas tocadas -- ni un carácter
+     * cambia, ni un identificador se comparte -- solo cambian los ids del
+     * DOM (meows-campana-triaje-*) y el endpoint
+     * (/meows/api/alertas-pendientes-triaje/, que ya filtra
+     * origen='triaje' -- ver meows/views.py:api_alertas_pendientes_triaje).
+     * Ver también el segundo botón de campana en header_formatos.html.
+     */
+    (function iniciarSondeoAlertasTriaje() {
+        var INTERVALO_MS = 5000;
+
+        var CLAVE_IDS_MOSTRADOS = 'meows_triaje_ids_ya_mostrados';
+        function cargarIdsYaMostrados() {
+            try {
+                var guardado = sessionStorage.getItem(CLAVE_IDS_MOSTRADOS);
+                return guardado ? new Set(JSON.parse(guardado)) : new Set();
+            } catch (e) {
+                return new Set();
+            }
+        }
+        function guardarIdsYaMostrados() {
+            try {
+                sessionStorage.setItem(CLAVE_IDS_MOSTRADOS, JSON.stringify(Array.from(idsYaMostrados)));
+            } catch (e) { /* sessionStorage no disponible: se sigue funcionando solo en memoria */ }
+        }
+        var idsYaMostrados = cargarIdsYaMostrados();
+
+        var alertasPanel = [];
+        var MAX_ALERTAS_PANEL = 150;
+
+        function actualizarCampana() {
+            var btn = document.getElementById('meows-campana-triaje-btn');
+            var badge = document.getElementById('meows-campana-triaje-badge');
+            if (!btn || !badge) return;
+            var rojasPendientes = alertasPanel.filter(function (alerta) {
+                return String(alerta.riesgo || '').toUpperCase() === 'ROJO';
+            });
+            btn.classList.remove('tiene-rojo', 'tiene-amarillo');
+            if (rojasPendientes.length > 0) {
+                btn.classList.add('tiene-rojo');
+                badge.hidden = false;
+                badge.textContent = rojasPendientes.length > 99 ? '99+' : String(rojasPendientes.length);
+            } else if (alertasPanel.length > 0) {
+                btn.classList.add('tiene-amarillo');
+                badge.hidden = false;
+                badge.textContent = alertasPanel.length > 99 ? '99+' : String(alertasPanel.length);
+            } else {
+                badge.hidden = true;
+            }
+        }
+
+        function renderizarPanelAlertas() {
+            var lista = document.getElementById('meows-panel-alertas-triaje-lista');
+            if (!lista) return;
+            if (alertasPanel.length === 0) {
+                lista.innerHTML = '<p class="meows-panel-vacio">Sin alertas de triaje por ahora.</p>';
+                return;
+            }
+            lista.innerHTML = '';
+            alertasPanel.forEach(function (alerta) {
+                var a = document.createElement('a');
+                a.href = alerta.url || '#';
+                a.className = 'meows-panel-alerta-card riesgo-' + String(alerta.riesgo || '').toLowerCase();
+                a.innerHTML =
+                    '<strong>⚠ TRIAJE ' + (alerta.riesgo || '') + ' — ' + (alerta.paciente || alerta.numero_documento || '') + '</strong>' +
+                    '<span class="meows-panel-alerta-meta">Registrado en Triaje · ' + (alerta.fecha_hora || '') + '</span>' +
+                    '<span class="toast-ver-detalle">Ver detalle →</span>';
+                lista.appendChild(a);
+            });
+        }
+
+        window.toggleMeowsPanelAlertasTriaje = function (forzarAbierto) {
+            var panel = document.getElementById('meows-panel-alertas-triaje');
+            if (!panel) return;
+            var abrir = typeof forzarAbierto === 'boolean' ? forzarAbierto : panel.hidden;
+            panel.hidden = !abrir;
+            if (abrir) {
+                renderizarPanelAlertas();
+            }
+        };
+
+        document.addEventListener('click', function (ev) {
+            var panel = document.getElementById('meows-panel-alertas-triaje');
+            var boton = document.getElementById('meows-campana-triaje-btn');
+            if (!panel || panel.hidden) return;
+            if (panel.contains(ev.target) || (boton && boton.contains(ev.target))) return;
+            window.toggleMeowsPanelAlertasTriaje(false);
+        });
+
+        // Contexto de audio propio (independiente del de la campana de
+        // Dinámica de arriba) -- ver esa función para la nota original del
+        // bug que motivó reutilizar un solo contexto "despierto".
+        var _audioCtxCompartido = null;
+        function obtenerAudioCtxCompartido() {
+            if (!_audioCtxCompartido) {
+                try {
+                    _audioCtxCompartido = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    return null;
+                }
+            }
+            return _audioCtxCompartido;
+        }
+
+        function pitidoRespaldoUrgente() {
+            try {
+                var ctx = obtenerAudioCtxCompartido();
+                if (!ctx) return;
+                if (ctx.state === 'suspended') ctx.resume();
+                var duracionPulso = 0.5;
+                var pausa = 0.15;
+                var pulsos = 3;
+                for (var i = 0; i < pulsos; i++) {
+                    var inicio = ctx.currentTime + i * (duracionPulso + pausa);
+                    var osc = ctx.createOscillator();
+                    var gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = 880;
+                    gain.gain.setValueAtTime(0.5, inicio);
+                    gain.gain.exponentialRampToValueAtTime(0.001, inicio + duracionPulso);
+                    osc.start(inicio);
+                    osc.stop(inicio + duracionPulso);
+                }
+            } catch (e) { /* navegador sin Web Audio API: se omite el sonido */ }
+        }
+
+        function sonarAlertaMeows() {
+            var audio = document.getElementById('alertSoundRojo');
+            if (audio) {
+                audio.currentTime = 0;
+                var p = audio.play();
+                if (p && typeof p.catch === 'function') {
+                    p.catch(pitidoRespaldoUrgente);
+                }
+            } else {
+                pitidoRespaldoUrgente();
+            }
+        }
+
+        (function habilitarAudioAlPrimerGesto() {
+            var yaDesbloqueado = false;
+            function desbloquear() {
+                if (yaDesbloqueado) return;
+                yaDesbloqueado = true;
+                var ctx = obtenerAudioCtxCompartido();
+                if (ctx && ctx.state === 'suspended') ctx.resume();
+                document.removeEventListener('click', desbloquear);
+                document.removeEventListener('keydown', desbloquear);
+                document.removeEventListener('touchstart', desbloquear);
+            }
+            document.addEventListener('click', desbloquear);
+            document.addEventListener('keydown', desbloquear);
+            document.addEventListener('touchstart', desbloquear);
+        })();
+
+        function mostrarToast(alerta) {
+            var stack = document.getElementById('meows-alerta-toast-stack');
+            if (!stack) return;
+            var div = document.createElement('div');
+            div.className = 'meows-alerta-toast riesgo-' + String(alerta.riesgo || '').toLowerCase();
+
+            var cerrar = document.createElement('button');
+            cerrar.type = 'button';
+            cerrar.className = 'toast-cerrar';
+            cerrar.setAttribute('aria-label', 'Cerrar aviso');
+            cerrar.textContent = '✕';
+            cerrar.addEventListener('click', function (ev) {
+                ev.stopPropagation();
+                if (div.parentNode) div.parentNode.removeChild(div);
+            });
+
+            var contenido = document.createElement('div');
+            contenido.innerHTML =
+                '<strong>⚠ TRIAJE ' + (alerta.riesgo || '') + ' — ' + (alerta.paciente || alerta.numero_documento || '') + '</strong>' +
+                'Registrado en Triaje · ' + (alerta.fecha_hora || '') +
+                '<span class="toast-ver-detalle">Ver detalle →</span>';
+
+            div.appendChild(cerrar);
+            div.appendChild(contenido);
+            div.addEventListener('click', function () {
+                window.location.href = alerta.url;
+            });
+            stack.appendChild(div);
+            setTimeout(function () {
+                if (div.parentNode) div.parentNode.removeChild(div);
+            }, 15000);
+        }
+
+        function sondear() {
+            fetch('/meows/api/alertas-pendientes-triaje/', { credentials: 'same-origin' })
+                .then(function (r) {
+                    if (!r.ok || (r.redirected && r.url.indexOf('/login/') !== -1)) {
+                        return { alertas: [] };
+                    }
+                    return r.json();
+                })
+                .then(function (data) {
+                    var todas = data.alertas || [];
+                    alertasPanel = todas;
+                    alertasPanel.sort(function (a, b) {
+                        return new Date(b.fecha_hora_iso) - new Date(a.fecha_hora_iso);
+                    });
+                    if (alertasPanel.length > MAX_ALERTAS_PANEL) {
+                        alertasPanel.length = MAX_ALERTAS_PANEL;
+                    }
+                    var panelEl = document.getElementById('meows-panel-alertas-triaje');
+                    if (panelEl && !panelEl.hidden) renderizarPanelAlertas();
+                    actualizarCampana();
+
+                    var nuevas = todas.filter(function (alerta) {
+                        return !idsYaMostrados.has(alerta.medicion_id);
+                    });
+                    if (nuevas.length === 0) return;
+                    var RETRASO_ENTRE_SONIDOS_MS = 900;
+                    nuevas.forEach(function (alerta, indice) {
+                        idsYaMostrados.add(alerta.medicion_id);
+                        mostrarToast(alerta);
+                        setTimeout(sonarAlertaMeows, indice * RETRASO_ENTRE_SONIDOS_MS);
+                    });
+                    guardarIdsYaMostrados();
+                    if (window.MEOWS_AUTO_REFRESH_GRID && window.MEOWS_PACIENTE_DOC) {
+                        var esDeEstaPaciente = nuevas.some(function (alerta) {
+                            return alerta.numero_documento === window.MEOWS_PACIENTE_DOC;
+                        });
+                        if (esDeEstaPaciente) {
+                            setTimeout(function () { location.reload(); }, 2500);
+                        }
+                    }
+                    if (idsYaMostrados.size > 300) {
+                        Array.from(idsYaMostrados).slice(0, 150).forEach(function (id) {
+                            idsYaMostrados.delete(id);
+                        });
+                        guardarIdsYaMostrados();
+                    }
+                })
+                .catch(function () { /* red caída o sesión expirada: se reintenta en el próximo ciclo */ });
+        }
+
+        sondear();
+        setInterval(sondear, INTERVALO_MS);
+    })();
+
+    /**
+     * 2026-09-21: refresco SILENCIOSO de la Línea de Tiempo Clínica cuando
+     * se detecta una corrección de un valor ya sincronizado desde Dinámica
+     * (ver sincronizar_signos_vitales_dinamica.py, Medicion.ultima_correccion_en),
+     * sin importar el riesgo -- a diferencia de las dos campanas de arriba
+     * (que solo notifican Amarillo/Rojo, con sonido y toast), esto NO suena
+     * ni muestra nada: si la corrección es de la paciente que se está
+     * viendo AHORA en su Línea de Tiempo, la página se recarga sola para
+     * que se vea el dato corregido, sin que nadie tenga que acordarse de
+     * recargar a mano. Completamente aparte de iniciarSondeoAlertasMeows/
+     * iniciarSondeoAlertasTriaje -- no toca ni depende de esos dos.
+     */
+    (function iniciarSondeoCorreccionesDinamica() {
+        var INTERVALO_MS = 5000;
+        var CLAVE_IDS_VISTOS = 'meows_correcciones_ya_vistas';
+
+        function cargarIdsVistos() {
+            try {
+                var guardado = sessionStorage.getItem(CLAVE_IDS_VISTOS);
+                return guardado ? new Set(JSON.parse(guardado)) : new Set();
+            } catch (e) {
+                return new Set();
+            }
+        }
+        function guardarIdsVistos() {
+            try {
+                sessionStorage.setItem(CLAVE_IDS_VISTOS, JSON.stringify(Array.from(idsVistos)));
+            } catch (e) { /* sessionStorage no disponible: se sigue funcionando solo en memoria */ }
+        }
+        var idsVistos = cargarIdsVistos();
+
+        function sondear() {
+            // Solo tiene sentido sondear esto en una pantalla que declaró
+            // MEOWS_AUTO_REFRESH_GRID (hoy, historial.html) Y que sabe de
+            // qué documento es (si no hay paciente en pantalla, no hay nada
+            // que refrescar).
+            if (!window.MEOWS_AUTO_REFRESH_GRID || !window.MEOWS_PACIENTE_DOC) return;
+
+            fetch('/meows/api/correcciones-recientes/', { credentials: 'same-origin' })
+                .then(function (r) {
+                    if (!r.ok || (r.redirected && r.url.indexOf('/login/') !== -1)) {
+                        return { correcciones: [] };
+                    }
+                    return r.json();
+                })
+                .then(function (data) {
+                    var correcciones = data.correcciones || [];
+                    for (var i = 0; i < correcciones.length; i++) {
+                        var c = correcciones[i];
+                        if (c.numero_documento !== window.MEOWS_PACIENTE_DOC) continue;
+                        var clave = c.medicion_id + '-' + c.ultima_correccion_iso;
+                        if (idsVistos.has(clave)) continue;
+                        // Nueva corrección de ESTA paciente: se marca vista
+                        // (sobrevive a la recarga vía sessionStorage, igual
+                        // que idsYaMostrados de las alertas) y se recarga.
+                        idsVistos.add(clave);
+                        guardarIdsVistos();
+                        location.reload();
+                        return;
                     }
                 })
                 .catch(function () { /* red caída o sesión expirada: se reintenta en el próximo ciclo */ });

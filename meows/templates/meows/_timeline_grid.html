@@ -22,11 +22,15 @@ página, colapsable con el botón "Ocultar/Mostrar".
 <section class="section timeline-section{% if abrir_en_modal %} timeline-section--compact{% endif %}">
     <h3 class="section-title">
         <span class="section-icon-badge"><i data-lucide="line-chart"></i></span>
-        {% if mostrar_link_volver %}Línea de Tiempo Clínica{% else %}Control Posparto Inmediato{% endif %}
+        {% if mostrar_link_volver %}{% if todo_origen_triaje %}Línea de Tiempo Triaje{% else %}Línea de Tiempo Clínica (Dinámica){% endif %}{% else %}Control Posparto Inmediato{% endif %}
         {% if mostrar_link_volver %}
+        {% if not todo_origen_triaje %}
+        {# 2026-09-22: oculto en Triaje -- una paciente sin ingreso todavía no #}
+        {# tiene ninguna atención de Trabajo de Parto a la que volver. #}
         <a href="{% url 'parto_home' %}?atencion={{ atencion_id|default:'' }}&doc={{ documento|default:meows_paciente.numero_documento|urlencode }}" class="btn-volver-parto">
             <span>↩️</span> Regresar a Trabajo de Parto
         </a>
+        {% endif %}
         {% if not abrir_en_modal %}
         {# En modo inline la Guía Técnica va aquí, en el <h3>. En modo modal se #}
         {# mueve al encabezado del modal (ahí queda accesible mientras se lee #}
@@ -286,6 +290,8 @@ página, colapsable con el botón "Ocultar/Mostrar".
                         {# sesión abierta en esta app (pueden ser personas distintas). #}
                         <span class="col-responsable-dinamica" title="Diligenciado en Dinámica por {{ columna.responsable }}">👤 {{ columna.responsable }}</span>
                         {% endif %}
+                        {% elif columna.origen == 'triaje' %}
+                        <span class="col-origen-triaje" title="Registrado en Triaje, antes del ingreso formal">🩺 Triaje</span>
                         {% endif %}
                     </th>
                     {% endfor %}

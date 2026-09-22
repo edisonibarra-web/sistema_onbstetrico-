@@ -1306,14 +1306,31 @@
 .col-origen-dinamica {
     display: inline-block;
     margin-top: 2px;
-    font-size: 0.56rem;
+    font-size: 0.74rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     background: #ffffff;
     color: #343a40;
     border: 1px solid #dee2e6;
     border-radius: 999px;
-    padding: 1px 6px;
+    padding: 2px 8px;
+}
+
+/* 2026-09-18: columnas de triaje (signos tomados antes del ingreso, ver
+   Medicion.origen='triaje') -- mismo formato de píldora que Dinámica, pero
+   en el cian del banner de triaje, para que sea imposible confundirlas.
+   2026-09-22: letra más grande a pedido -- 0.56rem quedaba casi ilegible. */
+.col-origen-triaje {
+    display: inline-block;
+    margin-top: 2px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: #ecfeff;
+    color: #0e7490;
+    border: 1px solid #67e8f9;
+    border-radius: 999px;
+    padding: 2px 8px;
 }
 
 /* 2026-09-14: nombre de quien digitó ESTA toma en Dinámica (GENMEDICO),

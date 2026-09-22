@@ -201,9 +201,16 @@
 }
 
 .sidebar-user-emoji {
-    font-size: 1.5rem;
-    line-height: 1;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 45%, #94a3b8 100%);
+    box-shadow: 0 3px 10px rgba(71, 85, 105, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    color: #334155;
 }
 
 .sidebar-user-info {

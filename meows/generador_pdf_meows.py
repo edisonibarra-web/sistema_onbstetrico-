@@ -380,26 +380,38 @@ def generar_pdf_meows(paciente, mediciones, responsable=None):
     # Preparar datos con Paragraph para mejor control de texto largo
     nombre_completo = f"{paciente.nombres} {paciente.apellidos}".strip() or '-'
     edad_texto = f"{paciente.edad} años" if paciente.edad else '-'
-    aseguradora_texto = paciente.aseguradora or '-'
-    cama_texto = paciente.cama or '-'
     identificacion_texto = paciente.numero_documento
-    fecha_ingreso_texto = paciente.fecha_ingreso.strftime('%d/%m/%Y') if paciente.fecha_ingreso else '-'
-    
+
+    # 2026-09-22: CAMA, ASEGURADORA y FECHA DE INGRESO vienen de Dinámica --
+    # una paciente de Triaje (registrada ANTES de tener ingreso formal)
+    # todavía no los tiene, y mostrarlos con "-" en el PDF confundía (ver
+    # el mismo ajuste ya hecho en resultado.html). Si el dato no existe
+    # todavía, la etiqueta y el valor quedan en blanco -- el recuadro de la
+    # casilla se sigue imprimiendo (es parte del formato oficial FRSPA-026),
+    # pero sin el "-" ni la etiqueta de un dato que no aplica aún. Para
+    # pacientes con ingreso real (la mayoría) esto no cambia nada.
+    aseguradora_label = 'ASEGURADORA' if paciente.aseguradora else ''
+    aseguradora_texto = paciente.aseguradora or ''
+    cama_label = 'CAMA' if paciente.cama else ''
+    cama_texto = paciente.cama or ''
+    fecha_ingreso_label = 'FECHA DE<br/>INGRESO' if paciente.fecha_ingreso else ''
+    fecha_ingreso_texto = paciente.fecha_ingreso.strftime('%d/%m/%Y') if paciente.fecha_ingreso else ''
+
     datos_paciente = [
         [
             Paragraph('NOMBRE<br/>COMPLETO', estilo_label_datos),  # Dividido en 2 líneas
             Paragraph(nombre_completo, estilo_valor_datos),
             Paragraph('EDAD', estilo_label_datos),
             Paragraph(edad_texto, estilo_valor_datos),
-            Paragraph('ASEGURADORA', estilo_label_datos),
+            Paragraph(aseguradora_label, estilo_label_datos),
             Paragraph(aseguradora_texto, estilo_valor_datos)
         ],
         [
-            Paragraph('CAMA', estilo_label_datos),
+            Paragraph(cama_label, estilo_label_datos),
             Paragraph(cama_texto, estilo_valor_datos),
             Paragraph('IDENTIF.<br/>CACIÓN', estilo_label_datos),  # Dividido en 2 líneas
             Paragraph(identificacion_texto, estilo_valor_datos),
-            Paragraph('FECHA DE<br/>INGRESO', estilo_label_datos),  # Dividido en 2 líneas
+            Paragraph(fecha_ingreso_label, estilo_label_datos),
             Paragraph(fecha_ingreso_texto, estilo_valor_datos)
         ],
     ]
@@ -804,10 +816,34 @@ def generar_pdf_meows(paciente, mediciones, responsable=None):
         f'<b>Hora:</b> {hora_actual}'
     )
 
+    # 2026-09-22: el texto de origen no puede afirmar siempre "se importan
+    # automáticamente desde Dinámica Gerencial" -- eso es falso para un
+    # reporte de Triaje (registro manual, previo a que exista ingreso en
+    # Dinámica). Se arma según el origen real de las mediciones que trae
+    # este PDF (puede haber una sola paciente con mediciones de ambos
+    # orígenes si ya tuvo Triaje y luego ingreso, ver
+    # meows/services/grid.py:_filtrar_ingreso_mas_reciente).
+    origenes_mediciones = {m.origen for m in mediciones}
+    if origenes_mediciones == {'dinamica'}:
+        texto_origen = (
+            "Las mediciones se importan automáticamente desde Dinámica Gerencial. "
+            "Este reporte fue generado y consultado por el profesional en sesión:"
+        )
+    elif 'dinamica' not in origenes_mediciones:
+        texto_origen = (
+            "Registro realizado en Triaje (antes del ingreso formal en Dinámica). "
+            "Este reporte fue generado y consultado por el profesional en sesión:"
+        )
+    else:
+        texto_origen = (
+            "Este reporte combina mediciones registradas en Triaje con mediciones "
+            "importadas automáticamente desde Dinámica Gerencial. Fue generado y "
+            "consultado por el profesional en sesión:"
+        )
+
     contenido_firma = [Paragraph(
         f"<b>VALIDACIÓN DEL REPORTE MEOWS</b><br/>"
-        f"<font size=7>Las mediciones se importan automáticamente desde Dinámica Gerencial. "
-        f"Este reporte fue generado y consultado por el profesional en sesión:</font><br/>"
+        f"<font size=7>{texto_origen}</font><br/>"
         f"{firma_texto}",
         estilo_firma,
     )]

@@ -1334,6 +1334,60 @@
       padding-top: 1.5rem;
     }
 
+    .autosave-status-row {
+      position: sticky;
+      top: 10px;
+      z-index: 60;
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 16px;
+      pointer-events: none;
+    }
+
+    .autosave-status {
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--text-secondary);
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-lg);
+      transition: color 0.3s, background 0.3s, border-color 0.3s;
+    }
+
+    .autosave-status:empty { display: none; }
+
+    .autosave-status.autosave-guardando {
+      color: #1d4ed8;
+      border-color: rgba(37, 99, 235, 0.35);
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    }
+
+    .autosave-status.autosave-ok {
+      color: #065f46;
+      border-color: rgba(16, 185, 129, 0.4);
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      animation: autosavePulse 0.5s ease;
+    }
+
+    .autosave-status.autosave-error {
+      color: #991b1b;
+      border-color: rgba(239, 68, 68, 0.4);
+      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    }
+
+    @keyframes autosavePulse {
+      0% { transform: scale(0.92); }
+      55% { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+
     .spinner {
       display: inline-block;
       width: 16px;
@@ -2709,6 +2763,10 @@
 
         <main class="main-content">
 
+          <div class="autosave-status-row">
+            <span id="autosave-status" class="autosave-status" aria-live="polite"></span>
+          </div>
+
           <div class="documento-clinico doc-preview" id="panel-paciente">
 
             <div class="pcard-section">
@@ -3033,6 +3091,48 @@
                 }
                 .buttons-container { padding: 14px; display: flex; flex-direction: column; gap: 4px; }
                 .buttons-container.centered { align-items: center; }
+                /* 2026-09-22: antes era un .btn-secondary.btn-sm (borde fino,
+                   fondo casi blanco) -- a pedido, se rediseñó porque se
+                   confundía con texto plano dentro de la card en vez de leerse
+                   como un botón clickeable. Ahora: relleno sólido, ancho
+                   completo y contador en una insignia aparte, mismo lenguaje
+                   visual que .sangrado-tab-badge (arriba en este archivo). */
+                .btn-historial-control {
+                    margin-top: 10px;
+                    width: 100%;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    padding: 10px 14px;
+                    border: none;
+                    border-radius: 10px;
+                    background: linear-gradient(135deg, #475569 0%, #1e293b 100%);
+                    color: #fff;
+                    font-size: 0.86rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    box-shadow: 0 3px 10px rgba(30, 41, 59, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+                    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+                }
+                .btn-historial-control:hover {
+                    transform: translateY(-2px);
+                    background: linear-gradient(135deg, #334155 0%, #0f172a 100%);
+                    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.35);
+                }
+                .btn-historial-control:active { transform: translateY(0); }
+                .btn-historial-count {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 20px;
+                    height: 20px;
+                    padding: 0 6px;
+                    border-radius: 999px;
+                    background: rgba(255, 255, 255, 0.22);
+                    font-size: 0.76rem;
+                    font-weight: 800;
+                }
                 .semaforo-select {
                     width: 100%;
                     font-weight: 700;
@@ -3205,16 +3305,17 @@
                         <span class="status-dot" aria-hidden="true"></span>
                     </h3>
                     <div class="buttons-container">
+                        <button type="button" class="btn-historial-control" onclick="abrirModalSemaforo('globo')">
+                            <i data-lucide="history" style="width:15px;height:15px;display:block"></i>
+                            <span>Historial / Agregar control</span>
+                            <span class="btn-historial-count" id="globo-registros-count">0</span>
+                        </button>
                         <select id="globo_seguridad" class="doc-input semaforo-select" data-val="" disabled title="Se sincroniza automáticamente con el último control del historial -- use 'Historial / Agregar control' para registrar uno nuevo.">
                             <option value="">— Seleccionar —</option>
                             <option value="NORMAL">Normal: útero firme y contraído</option>
                             <option value="ALERTA">Alerta: útero blando, relajado, atonía</option>
                         </select>
                         <p id="globo-hint" class="semaforo-hint"></p>
-                        <button type="button" class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="abrirModalSemaforo('globo')">
-                            <i data-lucide="history" style="width:14px;height:14px;vertical-align:-2px"></i> Historial / Agregar control
-                            (<span id="globo-registros-count">0</span>)
-                        </button>
                     </div>
                 </div>
 
@@ -3245,6 +3346,11 @@
                         <span class="status-dot" aria-hidden="true"></span>
                     </h3>
                     <div class="buttons-container">
+                        <button type="button" class="btn-historial-control" onclick="abrirModalSemaforo('sutura')">
+                            <i data-lucide="history" style="width:15px;height:15px;display:block"></i>
+                            <span>Historial / Agregar control</span>
+                            <span class="btn-historial-count" id="sutura-registros-count">0</span>
+                        </button>
                         <select id="sutura_heridas" class="doc-input semaforo-select" data-val="" disabled title="Se sincroniza automáticamente con el último control del historial -- use 'Historial / Agregar control' para registrar uno nuevo.">
                             <option value="">— Seleccionar —</option>
                             <option value="NORMAL">Normal: bordes afrontados, dolor tolerable, sin cambios de coloración</option>
@@ -3252,10 +3358,6 @@
                             <option value="INFECCION">Alerta: (eritema, calor local, edema, secreción purulenta)</option>
                         </select>
                         <p id="sutura-hint" class="semaforo-hint"></p>
-                        <button type="button" class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="abrirModalSemaforo('sutura')">
-                            <i data-lucide="history" style="width:14px;height:14px;vertical-align:-2px"></i> Historial / Agregar control
-                            (<span id="sutura-registros-count">0</span>)
-                        </button>
                     </div>
                 </div>
 
@@ -3420,10 +3522,6 @@
           </div>
 
           <div class="submit-bar submit-bar-final">
-            <button type="button" class="btn btn-success btn-large" id="submit-btn-temporal"
-              title="Guarda el avance registrado hasta ahora (p.ej. el control del rango de minutos actual) sin cerrar el monitoreo. Puede seguir registrando los siguientes controles después.">
-              💾 Guardado Temporal
-            </button>
             <button type="button" class="btn btn-primary btn-large" id="submit-btn">Guardar
               Registro Completo</button>
             <button type="button" class="btn btn-secondary btn-large" onclick="descargarPDF()" id="btn-pdf">
@@ -5008,18 +5106,20 @@
             };
           }
 
-          function validate(payload) {
-            if (!payload.nombre_paciente) { marcarCampoError('nombre_paciente'); return 'El nombre de la paciente es requerido.'; }
-            if (!payload.identificacion) { marcarCampoError('identificacion'); return 'La identificación es requerida.'; }
-            if (!payload.edad_gestacional) { marcarCampoError('edad_gestacional'); return 'La edad gestacional es requerida.'; }
-            if (!payload.nombre_acompanante) { marcarCampoError('nombre_acompanante'); return 'El nombre del acompañante en el parto es requerido.'; }
+          function validate(payload, silencioso = false) {
+            if (!payload.nombre_paciente) { if (!silencioso) marcarCampoError('nombre_paciente'); return 'El nombre de la paciente es requerido.'; }
+            if (!payload.identificacion) { if (!silencioso) marcarCampoError('identificacion'); return 'La identificación es requerida.'; }
+            if (!payload.edad_gestacional) { if (!silencioso) marcarCampoError('edad_gestacional'); return 'La edad gestacional es requerida.'; }
+            if (!payload.nombre_acompanante) { if (!silencioso) marcarCampoError('nombre_acompanante'); return 'El nombre del acompañante en el parto es requerido.'; }
             for (let i = 0; i < (payload.controles_postparto || []).length; i++) {
               const cp = payload.controles_postparto[i];
               if (!cp.fecha || !cp.hora) {
-                const col = getPostpartoColIncluido(i);
-                if (col !== null) {
-                  const el = document.querySelector(`.pp-input[data-param="${cp.fecha ? 'hora' : 'fecha'}"][data-col="${col}"]`);
-                  if (el) { el.classList.add('campo-con-error'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                if (!silencioso) {
+                  const col = getPostpartoColIncluido(i);
+                  if (col !== null) {
+                    const el = document.querySelector(`.pp-input[data-param="${cp.fecha ? 'hora' : 'fecha'}"][data-col="${col}"]`);
+                    if (el) { el.classList.add('campo-con-error'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                  }
                 }
                 return `Complete fecha y hora del control postparto (minuto ${cp.minuto_control}), o deje ambas vacías.`;
               }
@@ -5093,20 +5193,24 @@
             }
           });
 
-          window.submitForm = async function(btnId = 'submit-btn', temporal = false) {
-            limpiarErroresCampos();
+          window.submitForm = async function(btnId = 'submit-btn', temporal = false, silencioso = false) {
+            if (!silencioso) limpiarErroresCampos();
             const payload = buildPayload();
 
-            const error = validate(payload);
+            const error = validate(payload, silencioso);
             if (error) {
-              showToast(error, 'error');
-              return;
+              if (!silencioso) showToast(error, 'error');
+              return false;
             }
 
             const btn = document.getElementById(btnId);
-            const labelOriginal = btn.innerHTML;
-            btn.innerHTML = '<span class="spinner"></span> Guardando...';
-            btn.disabled = true;
+            const labelOriginal = btn ? btn.innerHTML : null;
+            if (!silencioso && btn) {
+              btn.innerHTML = '<span class="spinner"></span> Guardando...';
+              btn.disabled = true;
+            } else if (silencioso) {
+              actualizarEstadoAutoguardado('guardando');
+            }
 
             try {
               const isUpdate = !!savedRegistroId;
@@ -5247,21 +5351,25 @@
                 marcarControlesGuardados(data);
               }
 
-              showToast(temporal
-                ? '✅ Progreso guardado. Puede continuar registrando los siguientes controles.'
-                : '✅ Registro guardado correctamente (ID: ' + savedRegistroId.substring(0, 8) + '...)', 'success');
-              btn.innerHTML = '✅ Guardado';
-              btn.style.color = 'var(--success-color)';
-              // El registro admite más controles a medida que avanza el
-              // monitoreo (siguientes rangos de minutos), así que el botón
-              // se reactiva tras un momento en vez de quedar deshabilitado
-              // para siempre -- de lo contrario no se podría volver a
-              // guardar sin recargar la página.
-              setTimeout(() => {
-                btn.innerHTML = labelOriginal;
-                btn.style.color = '';
-                btn.disabled = false;
-              }, 1500);
+              if (silencioso) {
+                actualizarEstadoAutoguardado('ok');
+              } else {
+                showToast(temporal
+                  ? '✅ Progreso guardado. Puede continuar registrando los siguientes controles.'
+                  : '✅ Registro guardado correctamente (ID: ' + savedRegistroId.substring(0, 8) + '...)', 'success');
+                btn.innerHTML = '✅ Guardado';
+                btn.style.color = 'var(--success-color)';
+                // El registro admite más controles a medida que avanza el
+                // monitoreo (siguientes rangos de minutos), así que el botón
+                // se reactiva tras un momento en vez de quedar deshabilitado
+                // para siempre -- de lo contrario no se podría volver a
+                // guardar sin recargar la página.
+                setTimeout(() => {
+                  btn.innerHTML = labelOriginal;
+                  btn.style.color = '';
+                  btn.disabled = false;
+                }, 1500);
+              }
 
               return true;
             } catch (err) {
@@ -5271,10 +5379,71 @@
                 if (m && m !== '{}' && m !== '[object Object]') msg = m;
               }
               console.error('submitForm error:', err);
-              showToast('❌ ' + msg, 'error');
-              btn.innerHTML = labelOriginal;
-              btn.disabled = false;
+              if (silencioso) {
+                actualizarEstadoAutoguardado('error');
+              } else {
+                showToast('❌ ' + msg, 'error');
+                if (btn) { btn.innerHTML = labelOriginal; btn.disabled = false; }
+              }
+              return false;
             }
+          }
+
+          // --- Autoguardado silencioso (2026-09-22) -----------------------
+          // A pedido: ya no debe depender de que la enfermera se acuerde de
+          // darle clic al botón "Guardado Temporal" cada rato -- ese botón
+          // se eliminó (2026-09-22) porque quedó innecesario, el formulario
+          // se autoguarda solo en segundo plano:
+          // - Al dejar de escribir/interactuar un momento (debounce).
+          // - Cada AUTOSAVE_INTERVALO_MS como respaldo, por si algún cambio
+          //   no disparó un evento 'input'/'change' capturado arriba (p.ej.
+          //   filas agregadas por botones de sangrado/globo/sutura).
+          // Usa el mismo submitForm() de siempre (silencioso=true): sin
+          // toast, sin marcar campos en rojo ni hacer scroll si aún faltan
+          // campos obligatorios -- en ese caso simplemente no autoguarda
+          // todavía y lo vuelve a intentar en el siguiente ciclo, sin
+          // molestar a quien sigue diligenciando el formulario.
+          const AUTOSAVE_DEBOUNCE_MS = 4000;
+          const AUTOSAVE_INTERVALO_MS = 60000;
+          let autosaveTimer = null;
+          let autoguardadoEnCurso = false;
+
+          function actualizarEstadoAutoguardado(estado) {
+            const el = document.getElementById('autosave-status');
+            if (!el) return;
+            el.classList.remove('autosave-ok', 'autosave-error', 'autosave-guardando');
+            const hora = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            // El tamaño se fija con el atributo "size" directamente sobre el
+            // <i data-lucide>, no con una clase CSS -- las clases propias no
+            // sobreviven de forma confiable a lucide.createIcons() (reemplaza
+            // el <i> por un <svg> nuevo), mismo criterio ya usado en el resto
+            // del sistema (ver sala_de_partos.html, icono del módulo Triaje).
+            if (estado === 'guardando') {
+              el.classList.add('autosave-guardando');
+              el.innerHTML = '<i data-lucide="loader-circle" size="15" style="display:block;animation:spin 0.9s linear infinite"></i> Guardando automáticamente...';
+            } else if (estado === 'ok') {
+              el.classList.add('autosave-ok');
+              el.innerHTML = `<i data-lucide="badge-check" size="15" style="display:block"></i> Guardado automático · ${hora}`;
+            } else if (estado === 'error') {
+              el.classList.add('autosave-error');
+              el.innerHTML = '<i data-lucide="alert-triangle" size="15" style="display:block"></i> No se pudo autoguardar (revise la conexión); se reintentará solo.';
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          }
+
+          async function autoguardarSilencioso() {
+            if (autoguardadoEnCurso) return;
+            autoguardadoEnCurso = true;
+            try {
+              await submitForm('autoguardado', true, true);
+            } finally {
+              autoguardadoEnCurso = false;
+            }
+          }
+
+          function programarAutoguardado() {
+            if (autosaveTimer) clearTimeout(autosaveTimer);
+            autosaveTimer = setTimeout(autoguardarSilencioso, AUTOSAVE_DEBOUNCE_MS);
           }
 
           let previewRegistroId = null;
@@ -5514,16 +5683,23 @@
               });
             }
 
-            // Conexión del botón de guardado temporal (progreso a mitad de
-            // monitoreo -- misma lógica de guardado, solo cambia el rótulo).
-            const btnTemporal = document.getElementById("submit-btn-temporal");
-            if (btnTemporal) {
-              btnTemporal.addEventListener("click", function() {
-                if (typeof submitForm === 'function') {
-                  submitForm('submit-btn-temporal', true);
-                }
+            // Autoguardado silencioso: cualquier edición dentro del
+            // formulario (escribir, marcar un radio, agregar una fila de
+            // sangrado/globo/sutura, etc.) reprograma el guardado en
+            // segundo plano; se dispara solo tras una pausa breve
+            // (AUTOSAVE_DEBOUNCE_MS) para no golpear el servidor con cada
+            // tecla. 'click' también cuenta porque varias filas (pesajes de
+            // pañal, controles de globo/sutura) se agregan con botones, no
+            // con inputs de texto.
+            const contenedorFormulario = document.querySelector('main.main-content');
+            if (contenedorFormulario) {
+              ['input', 'change', 'click'].forEach(evento => {
+                contenedorFormulario.addEventListener(evento, programarAutoguardado);
               });
             }
+            // Respaldo: si por lo que sea no llegó ningún evento capturado
+            // arriba, igual se reintenta cada AUTOSAVE_INTERVALO_MS.
+            setInterval(autoguardarSilencioso, AUTOSAVE_INTERVALO_MS);
 
             // Seguridad: Forzar recarga si se accede por el historial (Atrás/Adelante)
             window.addEventListener('pageshow', function (event) {

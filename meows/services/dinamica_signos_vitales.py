@@ -180,15 +180,24 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
             "ta_sys": 120, "ta_dia": 80, "fc": 88, "fr": 18,
             "temp": 36.8, "glasgow": None, "fcf": 140,
             "o2_req": None,
+            "_oids": {"temp": 4821, "ta_sys": 4822, "ta_dia": 4822, "fc": 4823, ...},
         }
-    (con None en los campos que esa toma no traiga diligenciados).
+    (con None en los campos que esa toma no traiga diligenciados; sin
+    entrada en "_oids" para los campos en None).
 
     "responsable" es quien digitó ESTA toma en Dinámica (GENMEDICO de
     HCNSIGVIT, resuelto contra GENMEDICO.GMENOMCOM) -- no confundir con quien
-    tenga la sesión abierta en esta app: pueden ser personas distintas. El
-    llamador (sincronizar_signos_vitales_dinamica.py) debe sacarlo del dict
-    ANTES de tratar el resto de claves como parámetros MEOWS a calcular,
-    igual que ya hace con "fecha_hora".
+    tenga la sesión abierta en esta app: pueden ser personas distintas.
+
+    "_oids" es el OID de HCNSIGVIT del que vino cada campo -- una misma fila
+    puede alimentar dos campos (ej. TENSION -> ta_sys y ta_dia comparten
+    OID, al partirse de un solo "120/80"). Se usa para detectar si alguien
+    EDITÓ en Dinámica el valor de una toma ya sincronizada (ver
+    sincronizar_signos_vitales_dinamica.py) -- sin esto no hay forma
+    confiable de re-identificar la misma fila entre corridas.
+
+    El llamador debe sacar "fecha_hora", "responsable" y "_oids" del dict
+    ANTES de tratar el resto de claves como parámetros MEOWS a calcular.
     """
     with connections['readonly'].cursor() as cur:
         cur.execute("SELECT ADNINGRESO FROM HCNFOLIO WHERE OID = %s", [folio])
@@ -199,7 +208,7 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
 
         placeholders = ", ".join(["%s"] * len(_OIDS_USADOS))
         sql = f"""
-            SELECT sv.HCRHORREG, sv.HCNTIPSVIT, sv.HCSVALOR, m.GMENOMCOM
+            SELECT sv.OID, sv.HCRHORREG, sv.HCNTIPSVIT, sv.HCSVALOR, m.GMENOMCOM
             FROM HCNSIGVIT sv
             JOIN HCNREGENF re ON re.OID = sv.HCNREGENF
             LEFT JOIN GENMEDICO m ON m.OID = sv.GENMEDICO
@@ -217,8 +226,9 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
 
     lecturas_por_hora = {}
     pulso_por_hora = {}
+    pulso_oid_por_hora = {}
 
-    for hora, tipo_oid, valor, nombre_medico in filas:
+    for fila_oid, hora, tipo_oid, valor, nombre_medico in filas:
         if timezone.is_naive(hora):
             hora = timezone.make_aware(hora, timezone.get_current_timezone())
 
@@ -228,6 +238,7 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
             "ta_sys": None, "ta_dia": None, "fc": None, "fr": None,
             "temp": None, "glasgow": None, "fcf": None,
             "o2_req": None,
+            "_oids": {},
         })
         # Responsable real (quien digitó en Dinámica, GENMEDICO de esta
         # fila puntual) -- se toma el primer nombre no vacío que aparezca
@@ -237,36 +248,47 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
             lectura["responsable"] = _limpiar_nombre(nombre_medico)
         if tipo_oid == _OID_TEMPERATURA:
             lectura["temp"] = _a_numero(valor)
+            lectura["_oids"]["temp"] = fila_oid
         elif tipo_oid == _OID_TENSION:
             lectura["ta_sys"], lectura["ta_dia"] = _partir_tension(valor)
+            lectura["_oids"]["ta_sys"] = fila_oid
+            lectura["_oids"]["ta_dia"] = fila_oid
         elif tipo_oid == _OID_FRECUENCIA_CARDIACA:
             lectura["fc"] = _a_numero(valor)
+            lectura["_oids"]["fc"] = fila_oid
         elif tipo_oid == _OID_PULSO:
             # Solo se aplica al final, como respaldo, si esa toma no trajo
             # FRECUENCIA CARDIACA (ver docstring: el personal usa ambos).
             pulso_por_hora[hora] = _a_numero(valor)
+            pulso_oid_por_hora[hora] = fila_oid
         elif tipo_oid == _OID_RESPIRACION:
             lectura["fr"] = _a_numero(valor)
+            lectura["_oids"]["fr"] = fila_oid
         elif tipo_oid == _OID_FETOCARDIO:
             lectura["fcf"] = _a_numero(valor)
+            lectura["_oids"]["fcf"] = fila_oid
         elif tipo_oid in (_OID_O2_AIRE_AMBIENTE, _OID_O2_24_39, _OID_O2_MAYOR_40):
             # Uno solo de los 3 trae dato por toma (ver docstring) — el que
             # sea, su número real es el % de O2 requerido.
             lectura["o2_req"] = _a_numero(valor)
+            lectura["_oids"]["o2_req"] = fila_oid
         elif tipo_oid == _OID_GLASGOW_ALERTA:
             # No se usa el número que traiga (no es un Glasgow real, ver
             # docstring) — que este OID exista para la toma YA significa
             # "Alerta", se fuerza a 15 (única franja de RangoParametro que
             # da puntaje 0).
             lectura["glasgow"] = 15
+            lectura["_oids"]["glasgow"] = fila_oid
         elif tipo_oid == _OID_GLASGOW_NO_ALERTA:
             # Mismo criterio: "No Alerta" se fuerza a un valor dentro de la
             # franja 0-14 (puntaje 3), sin importar qué número traiga.
             lectura["glasgow"] = 0
+            lectura["_oids"]["glasgow"] = fila_oid
 
     for hora, valor_pulso in pulso_por_hora.items():
         lectura = lecturas_por_hora.get(hora)
         if lectura is not None and lectura["fc"] is None:
             lectura["fc"] = valor_pulso
+            lectura["_oids"]["fc"] = pulso_oid_por_hora.get(hora)
 
     return sorted(lecturas_por_hora.values(), key=lambda l: l["fecha_hora"])

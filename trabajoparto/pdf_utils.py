@@ -240,7 +240,29 @@ def datos_paciente(c, formulario, x, y):
     
     styles = getSampleStyleSheet()
     p = formulario.paciente
-    
+
+    # 2026-09-22: estos 5 campos (edad, aseguradora, grupo sanguíneo, edad
+    # gestacional, controles prenatales) se guardan como "snapshot" propio
+    # de CADA formulario/paciente de trabajoparto, pero en la práctica varios
+    # formularios se crean sin completarlos -- mientras tanto "Datos
+    # generales" en pantalla los sigue mostrando porque los trae en vivo
+    # desde meows.Paciente (sincronizado desde Dinámica). El PDF quedaba en
+    # blanco ("—") para esos mismos datos que sí se ven en pantalla. Se cae
+    # a meows.Paciente solo cuando el propio snapshot está vacío -- si el
+    # formulario ya tiene su dato, ese es el que manda (import diferido para
+    # evitar una dependencia circular entre apps).
+    meows_p = None
+    if not all([formulario.edad_snapshot, formulario.aseguradora_id, p.tipo_sangre,
+                formulario.edad_gestion, formulario.n_controles_prenatales]):
+        from meows.models import Paciente as MeowsPaciente
+        meows_p = MeowsPaciente.objects.filter(numero_documento=p.num_identificacion).first()
+
+    edad_valor = formulario.edad_snapshot or (meows_p.edad if meows_p else None)
+    aseguradora_valor = formulario.aseguradora.nombre if formulario.aseguradora else (meows_p.aseguradora if meows_p else None)
+    tipo_sangre_valor = p.tipo_sangre or (meows_p.tipo_sangre if meows_p else None)
+    edad_gestacional_valor = formulario.edad_gestion or (meows_p.edad_gestacional if meows_p else None)
+    n_controles_valor = formulario.n_controles_prenatales or (meows_p.n_controles_prenatales if meows_p else None)
+
     estilo_label = ParagraphStyle(
         'LabelPaciente',
         parent=styles['Normal'],
@@ -260,13 +282,13 @@ def datos_paciente(c, formulario, x, y):
     data = [
         [Paragraph("<b>PACIENTE:</b>", estilo_label), Paragraph(p.nombres or "—", estilo_valor), 
          Paragraph("<b>IDENTIFICACIÓN:</b>", estilo_label), Paragraph(p.num_identificacion or "—", estilo_valor)],
-        [Paragraph("<b>H. CLÍNICA:</b>", estilo_label), Paragraph(p.num_historia_clinica or "—", estilo_valor), 
-         Paragraph("<b>EDAD:</b>", estilo_label), Paragraph(f"{formulario.edad_snapshot or '—'} AÑOS", estilo_valor)],
-        [Paragraph("<b>ASEGURADORA:</b>", estilo_label), Paragraph(formulario.aseguradora.nombre if formulario.aseguradora else "—", estilo_valor), 
-         Paragraph("<b>GRUPO SANGUÍNEO:</b>", estilo_label), Paragraph(p.tipo_sangre or "—", estilo_valor)],
-        [Paragraph("<b>EDAD GESTACIONAL:</b>", estilo_label), Paragraph(f"{formulario.edad_gestion or '—'} SEMANAS", estilo_valor), 
+        [Paragraph("<b>H. CLÍNICA:</b>", estilo_label), Paragraph(p.num_historia_clinica or "—", estilo_valor),
+         Paragraph("<b>EDAD:</b>", estilo_label), Paragraph(f"{edad_valor or '—'} AÑOS", estilo_valor)],
+        [Paragraph("<b>ASEGURADORA:</b>", estilo_label), Paragraph(aseguradora_valor or "—", estilo_valor),
+         Paragraph("<b>GRUPO SANGUÍNEO:</b>", estilo_label), Paragraph(tipo_sangre_valor or "—", estilo_valor)],
+        [Paragraph("<b>EDAD GESTACIONAL:</b>", estilo_label), Paragraph(f"{edad_gestacional_valor or '—'} SEMANAS", estilo_valor),
          Paragraph("<b>G_P_C_A_V_M:</b>", estilo_label), Paragraph(formulario.get_estado_display() if formulario.estado else "—", estilo_valor)],
-        [Paragraph("<b>N° CONTROLES P.:</b>", estilo_label), Paragraph(str(formulario.n_controles_prenatales or "—"), estilo_valor), 
+        [Paragraph("<b>N° CONTROLES P.:</b>", estilo_label), Paragraph(str(n_controles_valor or "—"), estilo_valor),
          Paragraph("<b>FECHA NACIMIENTO:</b>", estilo_label), Paragraph(p.fecha_nacimiento.strftime('%d/%m/%Y') if p.fecha_nacimiento else "—", estilo_valor)],
         [Paragraph("<b>DIAGNÓSTICO:</b>", estilo_label), Paragraph(formulario.diagnostico or "—", estilo_valor), "", ""]
     ]

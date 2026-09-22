@@ -1,0 +1,265 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario Triaje MEOWS - Sistema de Alerta Temprana Obstétrico</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260904d">
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
+    <style>
+        /* Mismo shell que meows/formulario.html -- ver ese archivo para la nota
+           original de por qué se anula el padding por defecto del body. */
+        body { margin: 0 !important; padding: 0 !important; }
+        .sidebar-main-content { margin-top: 28px !important; }
+        /* Cinta que distingue esta pantalla de la de Dinámica -- el registro
+           de triaje es un flujo separado (ver meows/views.py:crear_medicion_triaje). */
+        .triaje-banner {
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+            color: #fff; font-weight: 700; padding: 10px 16px; border-radius: 10px;
+            margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+        }
+    </style>
+</head>
+
+<body>
+{% include 'obstetricia/header_formatos.html' with current_module='meows' documento=documento|default:paciente.numero_documento|default:'' modulo_titulo='Sistema de Alerta Temprana Obstétrico' modulo_subtitulo='Triaje (sin ingreso)' %}
+<div class="app-layout-sidebar">
+    {% include 'obstetricia/sidebar.html' with is_panel=False documento=documento|default:paciente.numero_documento|default:'' current_module='meows' %}
+    <div class="sidebar-main-content">
+    <div class="container">
+        {% if messages %}
+        <section class="section" style="padding: 12px 16px;">
+            {% for message in messages %}
+            <div style="margin-bottom: 8px; border-radius: 8px; padding: 10px 12px; font-weight: 600; {% if message.tags == 'success' %}background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;{% elif message.tags == 'error' %}background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;{% else %}background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <div class="triaje-banner">
+            <span style="font-size:1.2em;">🩺</span>
+            Registro de TRIAJE — esta paciente todavía no tiene ingreso formal. Estos datos quedan marcados como
+            "Triaje" en su línea de tiempo, separados de lo que llegue después desde Dinámica.
+        </div>
+
+        <!-- SECCIÓN: PARÁMETROS VITALES -->
+        <section class="section parameters-section">
+            <h3 class="section-title">
+                <span class="section-icon-badge"><i data-lucide="activity"></i></span>
+                {% if medicion %}Editar Medición de Triaje{% else %}Parámetros Vitales — Triaje{% endif %}
+            </h3>
+            {% if medicion %}
+            <p class="section-description" style="color:#b45309;font-weight:600;">
+                ✏️ Estás corrigiendo el registro de triaje del {{ medicion.fecha_hora|date:"d/m/Y h:i A" }}. Al guardar
+                se actualizará este mismo registro (no se creará uno nuevo).
+            </p>
+            {% endif %}
+
+            <form method="post" id="meows-form" class="meows-form">
+                {% csrf_token %}
+                <input type="hidden" name="medicion_id" value="{{ medicion.id|default:'' }}">
+
+                <!-- SECCIÓN: INFORMACIÓN DEL PACIENTE -- a diferencia del
+                     formulario de Dinámica (donde estos campos van FUERA del
+                     <form>, de solo lectura, y se copian a inputs ocultos
+                     mediante sincronizarCamposPaciente() en meows-form.js),
+                     aquí van editables y DENTRO del form, para que el
+                     navegador los envíe directamente por su name= -- si
+                     quedan fuera del form, por más que se vean llenos en
+                     pantalla, el POST nunca los incluye. -->
+                <div class="section patient-section patient-section-redesigned">
+                    <div class="info-section">
+                        <h3 class="info-section-title">
+                            <span class="info-section-title-icon"><i data-lucide="user"></i></span>
+                            Información del Paciente
+                        </h3>
+                        <div class="info-section-row">
+                            <div class="info-field size-lg">
+                                <label class="info-field-label" for="nombre_completo"><span class="info-field-label-icon"><i data-lucide="user"></i></span>Nombre Completo *</label>
+                                <input type="text" id="nombre_completo" name="nombre_completo" class="patient-input"
+                                    placeholder="Ingrese nombre y apellidos" value="{% if paciente %}{{ paciente.nombres }} {{ paciente.apellidos }}{% endif %}" required>
+                            </div>
+                            <div class="info-field size-sm">
+                                <label class="info-field-label" for="numero_documento"><span class="info-field-label-icon"><i data-lucide="file-text"></i></span>Número Documento *</label>
+                                <input type="text" id="numero_documento" name="numero_documento" class="patient-input"
+                                    placeholder="Ingrese número de documento" value="{{ paciente.numero_documento|default:'' }}" required>
+                            </div>
+                            <div class="info-field size-sm">
+                                <label class="info-field-label" for="fecha_nacimiento"><span class="info-field-label-icon"><i data-lucide="calendar"></i></span>Fecha Nacimiento</label>
+                                <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" class="patient-input"
+                                    value="{% if paciente.fecha_nacimiento %}{{ paciente.fecha_nacimiento|date:'Y-m-d' }}{% endif %}">
+                            </div>
+                            <div class="info-field size-xs">
+                                <label class="info-field-label" for="edad"><span class="info-field-label-icon"><i data-lucide="user"></i></span>Edad</label>
+                                <input type="number" id="edad" name="edad" class="patient-input"
+                                    value="{{ paciente.edad|default:'' }}" min="0" max="150" placeholder="Años" readonly tabindex="-1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="footer-actions-card">
+                <div class="footer-actions">
+                    <div class="footer-datetime-group">
+                        <div class="footer-datetime-item">
+                            <label class="info-label" for="fecha_monitoreo">Fecha del Monitoreo *</label>
+                            <input type="date" id="fecha_monitoreo" name="fecha_monitoreo" class="patient-input"
+                                value="{% if medicion %}{{ medicion.fecha_hora|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}" required>
+                        </div>
+                        <div class="footer-datetime-item">
+                            <label class="info-label" for="hora_monitoreo_horas">Hora del Monitoreo *</label>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <select id="hora_monitoreo_horas" class="patient-input patient-input-compact" style="width:66px;" aria-label="Hora"></select>
+                                <span style="font-weight:700; color:#6c757d;">:</span>
+                                <select id="hora_monitoreo_minutos" class="patient-input patient-input-compact" style="width:66px;" aria-label="Minutos"></select>
+                                <select id="hora_monitoreo_periodo" class="patient-input patient-input-compact" style="width:78px;" aria-label="AM o PM">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="hora_monitoreo" name="hora_monitoreo" required>
+                        </div>
+                    </div>
+                    {% if paciente.id %}
+                    <a href="{% url 'historial_meows' paciente_id=paciente.id %}{% if documento %}?doc={{ documento|urlencode }}{% endif %}" class="btn btn-info" id="btn-ver-historial">
+                        <span class="btn-icon">📊</span>
+                        Ver Historial Clínico
+                    </a>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary" id="btn-guardar">
+                        <span class="btn-icon">💾</span>
+                        {% if medicion %}Guardar Corrección{% else %}Guardar Registro de Triaje{% endif %}
+                    </button>
+                </div>
+                </div>
+
+                <div class="parametros-resumen-layout">
+                <div class="parameters-grid">
+                    {% for parametro in parametros %}
+                    <div class="parameter-card" data-param="{{ parametro.codigo }}">
+                        <div class="parameter-header">
+                            <label class="parameter-label" for="{{ parametro.codigo }}">
+                                {{ parametro.nombre }}
+                                <span class="parameter-unit">({{ parametro.unidad }})</span>
+                            </label>
+                        </div>
+
+                        <div class="input-wrapper">
+                            {% if parametro.codigo == 'glasgow' %}
+                            <select id="{{ parametro.codigo }}" name="{{ parametro.codigo }}"
+                                class="parameter-input parameter-select" data-param="{{ parametro.codigo }}"
+                                data-unidad="{{ parametro.unidad }}">
+                                <option value="">seleccione</option>
+                                <option value="15" {% if parametro.valor_actual == '15' %}selected{% endif %}>ALERTA (Glasgow = 15)</option>
+                                <option value="14" {% if parametro.valor_actual == '14' %}selected{% endif %}>NO ALERTA (Glasgow &lt; 15)</option>
+                            </select>
+                            <span class="input-unit">{{ parametro.unidad }}</span>
+                            {% else %}
+                            <input type="number" id="{{ parametro.codigo }}" name="{{ parametro.codigo }}"
+                                class="parameter-input"
+                                step="{% if parametro.codigo == 'temp' %}0.1{% else %}1{% endif %}"
+                                placeholder="Ingrese valor" data-param="{{ parametro.codigo }}"
+                                data-unidad="{{ parametro.unidad }}" value="{{ parametro.valor_actual|default:'' }}">
+                            <span class="input-unit">{{ parametro.unidad }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="score-feedback" id="feedback-{{ parametro.codigo }}">
+                            <div class="score-indicator">
+                                <span class="score-label">Puntaje:</span>
+                                <span class="score-value" id="score-{{ parametro.codigo }}">-</span>
+                            </div>
+                            <div class="score-bar">
+                                <div class="score-fill" id="fill-{{ parametro.codigo }}"></div>
+                            </div>
+                        </div>
+
+                        <div class="validation-message" id="message-{{ parametro.codigo }}"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <section class="section summary-section summary-section-lateral">
+                    <h3 class="section-title">
+                        <span class="icon">📋</span>
+                        Resumen
+                    </h3>
+                    <div class="summary-card">
+                        <div class="summary-item">
+                            <label class="summary-label">Puntaje Total MEOWS</label>
+                            <div class="summary-value" id="total-score">0</div>
+                        </div>
+                        <div class="summary-item">
+                            <label class="summary-label">Nivel de Riesgo</label>
+                            <div class="summary-risk" id="risk-level">
+                                <span class="risk-badge risk-verde">VERDE</span>
+                            </div>
+                        </div>
+                        <div class="summary-item">
+                            <label class="summary-label">GRADO DE RESPUESTA</label>
+                            <div class="summary-conducta" id="conducta-text">
+                                Esperando valores...
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                </div>
+
+                <div class="form-actions">
+                    <div class="responsable-firma-card">
+                        <div class="responsable-firma-header">
+                            <span class="responsable-firma-header-icon">👤</span>
+                            <div>
+                                <h4>Responsable del Registro</h4>
+                                <p class="responsable-firma-subtitle">Identificación del profesional a cargo de este triaje</p>
+                            </div>
+                        </div>
+
+                        <div class="responsable-field responsable-field-inline">
+                            <label for="responsable" class="responsable-label">
+                                <span class="icon">👤</span> Responsable del Registro
+                            </label>
+                            <input type="text" id="responsable" name="responsable" class="responsable-input"
+                                placeholder="Nombre del profesional responsable" autocomplete="off"
+                                value="{{ paciente.responsable|default:profesional_nombre_sesion|default:'' }}">
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <script>
+        // A diferencia de meows/formulario.html, aquí nunca hay valores
+        // importados de Dinámica que proteger -- todos los campos numéricos
+        // quedan libres. Ver MEOWS_ORIGEN_DINAMICA en meows-form.js.
+        window.MEOWS_ORIGEN_DINAMICA = false;
+        window.MEOWS_URLS = {
+            apiRangos: "{% url 'api_rangos_meows' %}",
+            apiCalcularScore: "{% url 'api_calcular_score' %}",
+            apiBuscarPaciente: "{% url 'api_buscar_paciente_triaje' %}",
+            pdfTemplate: "{% url 'generar_pdf_meows' paciente_id=0 %}",
+            historialTemplate: "{% url 'historial_meows' paciente_id=0 %}",
+            nuevoTemplate: "{% url 'crear_triaje' paciente_id=0 %}",
+            resultadoTemplate: "{% url 'ver_meows' medicion_id=0 %}"
+        };
+        {% if medicion %}
+        window.MEOWS_HORA_INICIAL = "{{ medicion.fecha_hora|time:'H:i' }}";
+        {% endif %}
+    </script>
+    <script src="{% static 'js/meows-form.js' %}?v=20260910"></script>
+    <script>
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
+    </div>
+</div>
+</body>
+
+</html>

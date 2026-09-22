@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from django.db.models import Q
 from django.contrib import messages
 from django.conf import settings
-from meows.models import Paciente, Formulario, Parametro, Medicion, MedicionValor, RangoParametro, Hpnestanc
+from meows.models import Paciente, Formulario, Parametro, Medicion, MedicionValor, RangoParametro, Hpnestanc, Genpacien
 from obstetriciaunificador.models import AtencionParto
 from meows.services.meows import calcular_score_desde_bd
 from meows.services.grid import construir_grid_meows
@@ -400,6 +400,383 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
     })
 
 
+# ============================================================================
+# TRIAJE: registro manual de signos vitales ANTES del ingreso en Dinámica
+# ============================================================================
+# 2026-09-18: en triaje se toman signos vitales de gestantes que todavía NO
+# tienen ingreso formal (sin Adningreso no existe Hcnfolio, así que Dinámica
+# no tiene nada que sincronizar). Este flujo es DELIBERADAMENTE independiente
+# de PERMITIR_CREACION_MANUAL_MEOWS / crear_medicion_meows -- ese flag sigue
+# protegiendo el registro de Dinámica exactamente como hoy, sin cambios. Las
+# mediciones de triaje se guardan con origen='triaje' (nunca 'manual' ni
+# 'dinamica') y solo se ofrecen mientras la paciente no tenga estancia activa
+# en Nexus -- en cuanto Dinámica la recibe, este flujo deja de aplicarle (ver
+# _obtener_estancia_activa_gineco más abajo, reutilizada sin cambios).
+
+def _buscar_prefill_triaje(numero_documento):
+    """
+    Busca datos de una paciente para prellenar un registro de triaje, SIN
+    exigir ingreso/estancia activa (a diferencia de api_buscar_paciente, que
+    está pensado para pacientes ya admitidas). Prioridad:
+      1) meows.Paciente local -- ya la vimos antes, en cualquier contexto.
+      2) Genpacien (Nexus) por documento -- registrada en el hospital aunque
+         nunca haya tenido una atención clínica formal (ej. segundo embarazo,
+         ya existe desde una atención anterior).
+    Devuelve un dict con lo encontrado, o None si no hay nada en ningún lado
+    (paciente nueva de verdad: todo se digita a mano).
+    """
+    numero_documento = (numero_documento or '').strip()
+    if not numero_documento:
+        return None
+
+    paciente_local = Paciente.objects.filter(numero_documento=numero_documento).first()
+    if paciente_local:
+        return {
+            'origen': 'local',
+            'paciente_id': paciente_local.id,
+            'nombres': paciente_local.nombres,
+            'apellidos': paciente_local.apellidos,
+            'sexo': paciente_local.sexo,
+            'fecha_nacimiento': paciente_local.fecha_nacimiento,
+        }
+
+    if not getattr(settings, 'HABILITAR_BD_EXTERNA', True):
+        return None
+
+    try:
+        ext = Genpacien.objects.using('readonly').filter(PACNUMDOC=numero_documento).first()
+    except Exception:
+        ext = None
+
+    if not ext:
+        return None
+
+    seg_nom = f" {ext.PACSEGNOM}" if ext.PACSEGNOM else ""
+    seg_ape = f" {ext.PACSEGAPE}" if ext.PACSEGAPE else ""
+    return {
+        'origen': 'nexus',
+        'paciente_id': None,
+        'nombres': f"{ext.PACPRINOM}{seg_nom}".strip(),
+        'apellidos': f"{ext.PACPRIAPE}{seg_ape}".strip(),
+        'sexo': 'M' if ext.GPASEXPAC == 1 else ('F' if ext.GPASEXPAC == 2 else ''),
+        'fecha_nacimiento': ext.GPAFECNAC.date() if ext.GPAFECNAC else None,
+    }
+
+
+@login_required_if_enabled
+@require_http_methods(["GET"])
+def api_buscar_paciente_triaje(request):
+    """
+    Búsqueda de paciente para iniciar un registro de TRIAJE: a diferencia de
+    api_buscar_paciente (que exige ingreso/estancia activa), esta es
+    justamente para la paciente que todavía no lo tiene. Revisa local
+    (meows.Paciente) y luego Nexus (Genpacien) directo por documento, sin
+    pasar por _obtener_estancia_activa_gineco.
+    """
+    numero_documento = request.GET.get('documento', '').strip()
+    if not numero_documento:
+        return JsonResponse({'success': False, 'error': 'Número de documento requerido'}, status=400)
+
+    datos = _buscar_prefill_triaje(numero_documento)
+    if not datos:
+        return JsonResponse({'success': True, 'encontrado': False})
+
+    return JsonResponse({
+        'success': True,
+        'encontrado': True,
+        'origen': datos['origen'],
+        'paciente': {
+            'id': datos['paciente_id'],
+            'nombres': datos['nombres'],
+            'apellidos': datos['apellidos'],
+            'sexo': datos['sexo'],
+            'fecha_nacimiento': datos['fecha_nacimiento'].strftime('%Y-%m-%d') if datos['fecha_nacimiento'] else '',
+        },
+    }, json_dumps_params={'ensure_ascii': False})
+
+
+@login_required_if_enabled
+def abrir_triaje(request, doc=None):
+    """
+    Punto de entrada para iniciar (o continuar) un registro de triaje: dado
+    un documento, resuelve o crea el Paciente local (prellenado desde Nexus
+    si existe) y redirige al formulario de captura de triaje. Espejo de
+    abrir_meows_desde_atencion, pero sin depender de que exista ingreso.
+    """
+    documento = (doc or request.GET.get("doc") or "").strip()
+    if not documento:
+        return redirect("/")
+
+    if _obtener_estancia_activa_gineco(documento):
+        # Ya tiene ingreso activo: Dinámica la cubre, no se abre triaje para
+        # no competir con esa fuente.
+        messages.info(request, "Esta paciente ya tiene ingreso activo: sus mediciones se registran desde Dinámica.")
+        return redirect(f"/meows/crear/{documento}/")
+
+    paciente = Paciente.objects.filter(numero_documento=documento).first()
+    if not paciente:
+        datos = _buscar_prefill_triaje(documento)
+        if datos and datos['origen'] == 'nexus':
+            paciente = Paciente.objects.create(
+                numero_documento=documento,
+                nombres=datos['nombres'] or 'N/A',
+                apellidos=datos['apellidos'] or 'N/A',
+                sexo=datos['sexo'] or 'F',
+                fecha_nacimiento=datos['fecha_nacimiento'],
+            )
+        else:
+            paciente = Paciente.objects.create(
+                numero_documento=documento,
+                nombres="N/A",
+                apellidos="N/A",
+                sexo="F",
+            )
+
+    return redirect(f"/meows/triaje/nuevo/{paciente.id}/")
+
+
+@never_cache
+@login_required_if_enabled
+def crear_medicion_triaje(request, paciente_id=None, medicion_id=None):
+    """
+    Captura de signos vitales de TRIAJE (antes del ingreso). Misma lógica de
+    captura y cálculo de score que crear_medicion_meows (reutiliza
+    calcular_meows tal cual, mismo Formulario "MEOWS"), pero guarda siempre
+    con origen='triaje' y NUNCA depende de PERMITIR_CREACION_MANUAL_MEOWS --
+    ese flag sigue protegiendo exclusivamente el flujo de Dinámica.
+    """
+    medicion_editar = None
+    if medicion_id:
+        medicion_editar = get_object_or_404(Medicion, id=medicion_id, origen='triaje')
+        paciente = medicion_editar.paciente
+    else:
+        paciente = get_object_or_404(Paciente, id=paciente_id)
+
+    if _obtener_estancia_activa_gineco(paciente.numero_documento):
+        messages.info(request, "Esta paciente ya tiene ingreso activo: sus mediciones se registran desde Dinámica.")
+        return redirect(f"/meows/historial/{paciente.id}/")
+
+    formulario, _ = Formulario.objects.get_or_create(
+        codigo="MEOWS",
+        defaults={
+            'nombre': 'Sistema de Alerta Temprana Obstétrico',
+            'version': '1.0',
+            'activo': True,
+        }
+    )
+    parametros = Parametro.objects.filter(activo=True).order_by("orden")
+
+    if medicion_editar:
+        valores_existentes = {v.parametro_id: v.valor for v in medicion_editar.valores.all()}
+        for p in parametros:
+            p.valor_actual = valores_existentes.get(p.id, '')
+    else:
+        for p in parametros:
+            p.valor_actual = ''
+
+    if request.method == "POST":
+        nuevo_numero_doc = request.POST.get('numero_documento', '').strip()
+        if not nuevo_numero_doc:
+            messages.error(request, 'El número de documento es requerido.')
+            return render(request, "meows/formulario_triaje.html", {
+                "paciente": paciente, "parametros": parametros, "medicion": medicion_editar,
+            })
+
+        fecha_monitoreo_str = request.POST.get('fecha_monitoreo', '').strip()
+        hora_monitoreo_str = request.POST.get('hora_monitoreo', '').strip()
+        if not fecha_monitoreo_str or not hora_monitoreo_str:
+            messages.error(request, 'La fecha y hora del monitoreo son requeridas.')
+            return render(request, "meows/formulario_triaje.html", {
+                "paciente": paciente, "parametros": parametros, "medicion": medicion_editar,
+            })
+        try:
+            fecha_hora_monitoreo_naive = datetime.strptime(
+                f"{fecha_monitoreo_str} {hora_monitoreo_str}", "%Y-%m-%d %H:%M"
+            )
+        except ValueError:
+            messages.error(request, 'La fecha u hora del monitoreo no tienen un formato válido.')
+            return render(request, "meows/formulario_triaje.html", {
+                "paciente": paciente, "parametros": parametros, "medicion": medicion_editar,
+            })
+        fecha_hora_monitoreo = timezone.make_aware(fecha_hora_monitoreo_naive, timezone.get_current_timezone())
+
+        nombre_completo = request.POST.get('nombre_completo', '').strip()
+        if nombre_completo:
+            partes = nombre_completo.split(maxsplit=1)
+            nombres_nuevo = partes[0] if len(partes) >= 1 else ''
+            apellidos_nuevo = partes[1] if len(partes) >= 2 else ''
+        else:
+            nombres_nuevo = request.POST.get('nombres', '')
+            apellidos_nuevo = request.POST.get('apellidos', '')
+
+        paciente_existente = Paciente.objects.filter(numero_documento=nuevo_numero_doc).first()
+        if paciente_existente:
+            paciente = paciente_existente
+            if nombre_completo:
+                paciente.nombres = nombres_nuevo
+                paciente.apellidos = apellidos_nuevo
+        else:
+            paciente = Paciente.objects.create(
+                numero_documento=nuevo_numero_doc,
+                nombres=nombres_nuevo or 'N/A',
+                apellidos=apellidos_nuevo or 'N/A',
+                sexo='F',
+            )
+
+        fecha_nacimiento = request.POST.get('fecha_nacimiento')
+        if fecha_nacimiento:
+            paciente.fecha_nacimiento = fecha_nacimiento
+        if request.POST.get('responsable'):
+            paciente.responsable = request.POST.get('responsable')
+        try:
+            paciente.save()
+        except IntegrityError:
+            messages.error(request, 'Error al guardar los datos del paciente. El número de documento ya existe.')
+            return render(request, "meows/formulario_triaje.html", {
+                "paciente": paciente, "parametros": parametros, "medicion": medicion_editar,
+            })
+
+        from meows.services.meows import calcular_meows
+        valores_dict = {}
+        for parametro in parametros:
+            valor = request.POST.get(parametro.codigo)
+            if valor:
+                valores_dict[parametro.codigo] = valor
+        resultados_meows = calcular_meows(valores_dict)
+        puntajes_por_codigo = resultados_meows["puntajes"]
+
+        if medicion_editar:
+            medicion = medicion_editar
+            medicion.paciente = paciente
+            medicion.fecha_hora = fecha_hora_monitoreo
+            medicion.save()
+            codigos_enviados = []
+            for parametro in parametros:
+                valor = valores_dict.get(parametro.codigo)
+                if valor:
+                    MedicionValor.objects.update_or_create(
+                        medicion=medicion, parametro=parametro,
+                        defaults={"valor": valor, "puntaje": puntajes_por_codigo.get(parametro.codigo)},
+                    )
+                    codigos_enviados.append(parametro.id)
+            medicion.valores.exclude(parametro_id__in=codigos_enviados).delete()
+        else:
+            medicion = Medicion.objects.create(
+                paciente=paciente, formulario=formulario, atencion=None,
+                fecha_hora=fecha_hora_monitoreo, origen='triaje',
+            )
+            for parametro in parametros:
+                valor = valores_dict.get(parametro.codigo)
+                if valor:
+                    MedicionValor.objects.create(
+                        medicion=medicion, parametro=parametro, valor=valor,
+                        puntaje=puntajes_por_codigo.get(parametro.codigo),
+                    )
+
+        medicion.meows_total = resultados_meows["meows_total"]
+        medicion.meows_riesgo = resultados_meows["meows_riesgo"]
+        medicion.meows_mensaje = resultados_meows["meows_mensaje"]
+        campos_a_guardar = ["meows_total", "meows_riesgo", "meows_mensaje"]
+        if resultados_meows["meows_riesgo"] in ("AMARILLO", "ROJO"):
+            medicion.alerta_pendiente = True
+            medicion.alerta_generada_en = timezone.now()
+            campos_a_guardar += ["alerta_pendiente", "alerta_generada_en"]
+        medicion.save(update_fields=campos_a_guardar)
+
+        if medicion_editar:
+            messages.success(request, 'Registro de triaje actualizado exitosamente.')
+            return redirect("ver_meows", medicion_id=medicion.id)
+
+        messages.success(request, 'Registro de triaje guardado exitosamente.')
+        return redirect(f"/meows/triaje/nuevo/{paciente.id}/")
+
+    return render(request, "meows/formulario_triaje.html", {
+        "paciente": paciente,
+        "parametros": parametros,
+        "medicion": medicion_editar,
+        "documento": paciente.numero_documento,
+        "profesional_nombre_sesion": nombre_profesional_sesion(request),
+    })
+
+
+@login_required_if_enabled
+@require_http_methods(["GET"])
+def api_pacientes_triaje(request):
+    """
+    Lista pacientes con un registro de TRIAJE abierto: tienen al menos una
+    Medicion(origen='triaje') y AHORA MISMO no tienen estancia activa en
+    Nexus. En cuanto Dinámica las recibe (ingreso real), dejan de aparecer
+    aquí solas -- no hace falta "cerrar" el triaje a mano; su historial de
+    triaje queda de todos modos en su línea de tiempo MEOWS.
+    """
+    pacientes_ids = (
+        Medicion.objects.filter(origen='triaje')
+        .values_list('paciente_id', flat=True)
+        .distinct()
+    )
+    pacientes = Paciente.objects.filter(id__in=pacientes_ids)
+
+    resultado = []
+    for p in pacientes:
+        if _obtener_estancia_activa_gineco(p.numero_documento):
+            continue
+        ultima = (
+            Medicion.objects.filter(paciente=p, origen='triaje')
+            .order_by('-fecha_hora')
+            .first()
+        )
+        resultado.append({
+            'paciente_id': p.id,
+            'numero_documento': p.numero_documento,
+            'nombre_completo': f"{p.nombres} {p.apellidos}".strip(),
+            'ultima_medicion': ultima.fecha_hora.isoformat() if ultima else None,
+            'ultimo_riesgo': ultima.meows_riesgo if ultima else None,
+            'url_continuar': f"/meows/triaje/nuevo/{p.id}/",
+            'url_historial': f"/meows/historial/{p.id}/",
+        })
+
+    resultado.sort(key=lambda r: r['ultima_medicion'] or '', reverse=True)
+    return JsonResponse(
+        {'success': True, 'count': len(resultado), 'pacientes': resultado},
+        json_dumps_params={'ensure_ascii': False},
+    )
+
+
+@login_required_if_enabled
+@require_http_methods(["GET"])
+def api_alertas_pendientes_triaje(request):
+    """
+    Espejo de api_alertas_pendientes, pero SOLO para mediciones de triaje
+    (origen='triaje') -- campana separada, nunca se mezcla con la de
+    Dinámica. Ver iniciarSondeoAlertasMeows en sidebar.html (se invoca dos
+    veces, una por cada campana, mismo mecanismo, distinto endpoint).
+    """
+    ventana_desde = timezone.now() - timedelta(minutes=VENTANA_ALERTA_MINUTOS)
+    pendientes = list(
+        Medicion.objects.filter(
+            origen='triaje',
+            alerta_pendiente=True,
+            alerta_generada_en__gte=ventana_desde,
+        )
+        .select_related('paciente')
+        .order_by('-fecha_hora')[:20]
+    )
+    alertas = [
+        {
+            'medicion_id': m.id,
+            'paciente': f"{m.paciente.nombres} {m.paciente.apellidos}".strip(),
+            'numero_documento': m.paciente.numero_documento,
+            'riesgo': m.meows_riesgo,
+            'mensaje': m.meows_mensaje,
+            'fecha_hora': timezone.localtime(m.fecha_hora).strftime('%d/%m/%Y %I:%M %p'),
+            'fecha_hora_iso': m.fecha_hora.isoformat(),
+            'url': f"/meows/resultado/{m.id}/",
+        }
+        for m in pendientes
+    ]
+    return JsonResponse({'alertas': alertas}, json_dumps_params={'ensure_ascii': False})
+
+
 @never_cache
 @login_required_if_enabled
 def ver_meows(request, medicion_id):
@@ -742,6 +1119,12 @@ def api_alertas_pendientes(request):
     ventana_desde = timezone.now() - timedelta(minutes=VENTANA_ALERTA_MINUTOS)
     pendientes = list(
         Medicion.objects.filter(
+            # 2026-09-18: filtro explícito agregado al crear el origen
+            # 'triaje' -- antes esto era un no-op (nada más que 'dinamica'
+            # podía generar estas alertas). Sin este filtro, las alertas de
+            # triaje se mezclarían aquí; tienen su propia campana separada,
+            # ver api_alertas_pendientes_triaje.
+            origen='dinamica',
             alerta_pendiente=True,
             alerta_generada_en__gte=ventana_desde,
         )
@@ -767,6 +1150,48 @@ def api_alertas_pendientes(request):
         for m in pendientes
     ]
     return JsonResponse({'alertas': alertas}, json_dumps_params={'ensure_ascii': False})
+
+
+# Ventana de "corrección reciente" -- deliberadamente más corta que
+# VENTANA_ALERTA_MINUTOS (24h): esto es solo para refrescar sola una
+# pantalla que alguien tenga abierta AHORA MISMO, no un histórico a
+# consultar después -- no tiene sentido recargar una pantalla por una
+# corrección de hace varias horas.
+VENTANA_CORRECCION_MINUTOS = 30
+
+
+@login_required_if_enabled
+@require_http_methods(["GET"])
+def api_correcciones_recientes(request):
+    """
+    Señal SEPARADA de api_alertas_pendientes: mientras esa solo avisa de
+    riesgo Amarillo/Rojo (para sonar la campana), esta avisa de CUALQUIER
+    corrección de un valor ya sincronizado desde Dinámica (ver
+    sincronizar_signos_vitales_dinamica.py, Medicion.ultima_correccion_en),
+    sin importar el riesgo -- para que la Línea de Tiempo Clínica de esa
+    paciente, si alguien la tiene abierta, se refresque sola y muestre el
+    dato corregido. Sondeada desde obstetricia/sidebar.html, sin sonido ni
+    aviso emergente (a diferencia de las alertas) -- es un refresco
+    silencioso, no una notificación.
+    """
+    ventana_desde = timezone.now() - timedelta(minutes=VENTANA_CORRECCION_MINUTOS)
+    corregidas = list(
+        Medicion.objects.filter(
+            origen='dinamica',
+            ultima_correccion_en__gte=ventana_desde,
+        )
+        .select_related('paciente')
+        .order_by('-ultima_correccion_en')[:20]
+    )
+    correcciones = [
+        {
+            'medicion_id': m.id,
+            'numero_documento': m.paciente.numero_documento,
+            'ultima_correccion_iso': m.ultima_correccion_en.isoformat(),
+        }
+        for m in corregidas
+    ]
+    return JsonResponse({'correcciones': correcciones}, json_dumps_params={'ensure_ascii': False})
 
 
 @login_required_if_enabled
@@ -846,6 +1271,20 @@ def responsable_meows_mas_reciente(paciente):
     return medicion.responsable_dinamica if medicion else ''
 
 
+def responsable_meows_default(request, paciente):
+    """
+    Como responsable_meows_mas_reciente() de arriba, pero con respaldo para
+    pacientes que todavía no tienen ningún registro de Dinámica -- el caso
+    de Triaje (2026-09-22, a pedido explícito): antes de que exista ingreso
+    no hay ningún GENMEDICO que traer de Dinámica, así que el campo
+    quedaba vacío en la Línea de Tiempo Clínica aunque hubiera una sesión
+    abierta. En ese caso puntual sí tiene sentido usar
+    nombre_profesional_sesion() (quien tiene la pantalla abierta), porque es
+    justamente quien registró el triaje a mano.
+    """
+    return responsable_meows_mas_reciente(paciente) or nombre_profesional_sesion(request)
+
+
 @login_required_if_enabled
 def historial_meows_paciente(request, paciente_id):
     """
@@ -859,6 +1298,13 @@ def historial_meows_paciente(request, paciente_id):
     paciente = get_object_or_404(Paciente, id=paciente_id)
 
     grid_parametros, columnas = construir_grid_meows(paciente)
+
+    # 2026-09-22: a pedido, para diferenciar de un vistazo si esta paciente
+    # todavía está en Triaje (sin ningún registro de Dinámica todavía) --
+    # el título de la sección cambia a "Línea de Tiempo Triaje" en ese caso
+    # (ver meows/_timeline_grid.html). En cuanto aparece una sola medición
+    # de Dinámica (ya tuvo ingreso), vuelve a "Línea de Tiempo Clínica".
+    todo_origen_triaje = bool(columnas) and all(c['origen'] != 'dinamica' for c in columnas)
 
     documento = request.GET.get("doc") or paciente.numero_documento
     atencion_id = request.GET.get("atencion")
@@ -875,11 +1321,15 @@ def historial_meows_paciente(request, paciente_id):
         "columnas": columnas,
         "atencion_id": atencion_id,
         "documento": documento,
+        "todo_origen_triaje": todo_origen_triaje,
         # 2026-09-14: el campo "RESPONSABLE DEL REPORTE" ya NO se precarga con
         # el profesional en sesión de esta app -- MEOWS se diligencia solo
         # desde Dinámica, así que se usa a quien realmente digitó la última
-        # medición allá (ver responsable_meows_mas_reciente arriba).
-        "responsable_meows_default": responsable_meows_mas_reciente(paciente),
+        # medición allá (ver responsable_meows_mas_reciente arriba). 2026-09-22:
+        # salvo para Triaje, que sí se diligencia a mano y no tiene todavía
+        # ningún registro de Dinámica del que tomar el nombre -- en ese caso
+        # se usa el profesional en sesión (ver responsable_meows_default).
+        "responsable_meows_default": responsable_meows_default(request, paciente),
     })
 
 
@@ -909,10 +1359,11 @@ def generar_pdf_meows_paciente(request, paciente_id):
     mediciones = list(mediciones_qs)
 
     # Responsable = lo que quedó en el campo "Responsable" de la pantalla (se
-    # precarga con quien digitó en Dinámica la medición más reciente, ver
-    # responsable_meows_mas_reciente, y es editable); si llega vacío, se usa
-    # el mismo criterio de resguardo.
-    responsable = (request.GET.get('responsable') or '').strip() or responsable_meows_mas_reciente(paciente)
+    # precarga con quien digitó en Dinámica la medición más reciente, o con
+    # el profesional en sesión si es un paciente de Triaje sin registros de
+    # Dinámica aún -- ver responsable_meows_default, y es editable); si llega
+    # vacío, se usa el mismo criterio de resguardo.
+    responsable = (request.GET.get('responsable') or '').strip() or responsable_meows_default(request, paciente)
     return generar_pdf_meows(paciente, mediciones, responsable=responsable)
 
 

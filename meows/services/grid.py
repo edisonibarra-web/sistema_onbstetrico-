@@ -204,17 +204,64 @@ def _etiqueta_rango_meows(codigo, valor_min, valor_max):
     return f"{fmt(valor_min)}-{fmt(valor_max)}"
 
 
+def _filtrar_ingreso_mas_reciente(mediciones):
+    """
+    Si la paciente tuvo más de un ingreso en Dinámica (egreso y reingreso
+    posterior), cada ingreso trae su propio folio (Medicion.dinamica_folio =
+    HCNFOLIO.OID de Dinámica, ver dinamica_signos_vitales.py). Sin este
+    filtro, la Línea de Tiempo Clínica mezclaría en una sola cuadrícula las
+    tomas de TODOS los ingresos que haya tenido la paciente alguna vez,
+    incluidos los ya egresados -- confuso y clínicamente incorrecto (a
+    pedido explícito, 2026-09-21: solo debe verse el ingreso más reciente).
+
+    "Más reciente" se determina por la fecha_hora de la toma, no por el
+    valor numérico del folio, para no depender de que los OID de Dinámica
+    sean siempre crecientes. Las tomas de Triaje/manuales (sin folio,
+    porque se registran ANTES de que exista ingreso) se conservan si son
+    posteriores al cierre del ingreso anterior -- son parte de la
+    preparación del ingreso actual, no de uno anterior.
+
+    Si alguna toma de Dinámica no tiene folio guardado (dato importado
+    antes de que existiera este campo), no hay forma confiable de separar
+    ingresos -- se prefiere no filtrar (mostrar todo, comportamiento
+    actual) antes que arriesgarse a ocultar información real por error.
+    """
+    de_dinamica = [m for m in mediciones if m.origen == 'dinamica']
+    if not de_dinamica:
+        return mediciones
+    if any(m.dinamica_folio is None for m in de_dinamica):
+        return mediciones
+
+    folios_distintos = {m.dinamica_folio for m in de_dinamica}
+    if len(folios_distintos) <= 1:
+        return mediciones
+
+    folio_mas_reciente = max(de_dinamica, key=lambda m: m.fecha_hora).dinamica_folio
+    corte = max(
+        (m.fecha_hora for m in de_dinamica if m.dinamica_folio != folio_mas_reciente),
+        default=None,
+    )
+
+    return [
+        m for m in mediciones
+        if (m.origen == 'dinamica' and m.dinamica_folio == folio_mas_reciente)
+        or (m.origen != 'dinamica' and (corte is None or m.fecha_hora > corte))
+    ]
+
+
 def construir_grid_meows(paciente):
     """
     Dado un meows.Paciente, arma (grid_parametros, columnas) tal como los espera
     el partial meows/_timeline_grid.html. Devuelve columnas=[] si el paciente no
-    tiene mediciones registradas.
+    tiene mediciones registradas. Solo incluye el ingreso más reciente si la
+    paciente tuvo más de uno (ver _filtrar_ingreso_mas_reciente).
     """
     mediciones = Medicion.objects.filter(
         paciente=paciente
     ).select_related('formulario').prefetch_related(
         'valores__parametro'
     ).order_by("fecha_hora")
+    mediciones = _filtrar_ingreso_mas_reciente(list(mediciones))
 
     columnas = []
     for medicion in mediciones:

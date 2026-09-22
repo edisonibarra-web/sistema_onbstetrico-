@@ -144,6 +144,19 @@
     transition: transform 0.15s ease, box-shadow 0.2s ease;
 }
 .meows-campana-btn svg { width: 28px; height: 28px; }
+/* Campana de Triaje: morada en reposo para distinguirla de un vistazo de la
+   de Dinámica (azul) -- usa :not() para no ganarle en especificidad a
+   .tiene-rojo/.tiene-amarillo de abajo (un id siempre le gana a esas dos
+   clases juntas), así que cuando SÍ hay alerta pendiente, esta regla deja de
+   aplicar sola y el rojo/amarillo de siempre toma el control, igual que en
+   la campana de Dinámica. */
+#meows-campana-triaje-btn:not(.tiene-rojo):not(.tiene-amarillo) {
+    background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+    box-shadow: 0 4px 14px rgba(126, 34, 206, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+#meows-campana-triaje-btn:not(.tiene-rojo):not(.tiene-amarillo):hover {
+    box-shadow: 0 6px 20px rgba(126, 34, 206, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
 .meows-campana-btn:hover {
     transform: translateY(-2px) scale(1.05);
     box-shadow: 0 6px 20px rgba(14, 165, 233, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3);
@@ -163,6 +176,10 @@
     position: relative;
     display: flex; align-items: center; justify-content: center;
     width: 58px; height: 58px; flex-shrink: 0;
+    /* Separación extra de las campanas (que ahora van en pareja, con su
+       etiqueta debajo) -- el gap normal de la fila se sentía muy apretado
+       entre el grupo de campanas y este botón. */
+    margin-left: 22px;
     padding: 0; font: inherit;
     border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.35);
     cursor: pointer;
@@ -224,6 +241,19 @@
     font-size: 0.78rem; font-weight: 800; line-height: 18px; text-align: center;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
+/* Etiqueta de texto bajo cada campana ("Triaje"/"Dinámica") -- a pedido
+   explícito, para distinguirlas sin depender solo del color. El header no
+   tiene alto fijo (grid + padding), así que agregar esta fila extra
+   simplemente lo hace un poco más alto, sin que overflow:hidden recorte nada. */
+.meows-campana-grupo {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.meows-campana-etiqueta {
+    font-size: 0.78rem; font-weight: 800; letter-spacing: 0.03em;
+    text-transform: uppercase; white-space: nowrap;
+}
+.meows-campana-etiqueta-triaje { color: #d8b4fe; }
+.meows-campana-etiqueta-dinamica { color: #7dd3fc; }
 </style>
 {% comment %}Encabezado institucional unificado para formatos{% endcomment %}
 <header class="header-formatos-institucionales">
@@ -250,10 +280,26 @@
              2026-09-09). Clic abre el panel con la lista completa — ver el JS en
              obstetricia/sidebar.html (toggleMeowsPanelAlertas), incluido
              siempre junto a este encabezado en todas las pantallas. -->
-        <button type="button" class="meows-campana-btn" id="meows-campana-btn" title="Alertas MEOWS" onclick="toggleMeowsPanelAlertas()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
-            <span class="meows-campana-badge" id="meows-campana-badge" hidden>0</span>
-        </button>
+        <!-- Campana de alertas de TRIAJE: mismo diseño exacto que la de
+             Dinámica de al lado (reutiliza las mismas clases CSS), pero
+             independiente -- ids propios, endpoint propio
+             (/meows/api/alertas-pendientes-triaje/), JS propio
+             (toggleMeowsPanelAlertasTriaje en sidebar.html). Nunca mezcla
+             sus alertas con las de Dinámica. -->
+        <div class="meows-campana-grupo">
+            <button type="button" class="meows-campana-btn" id="meows-campana-triaje-btn" title="Alertas de Triaje" onclick="toggleMeowsPanelAlertasTriaje()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
+                <span class="meows-campana-badge" id="meows-campana-triaje-badge" hidden>0</span>
+            </button>
+            <span class="meows-campana-etiqueta meows-campana-etiqueta-triaje">Triaje</span>
+        </div>
+        <div class="meows-campana-grupo">
+            <button type="button" class="meows-campana-btn" id="meows-campana-btn" title="Alertas MEOWS" onclick="toggleMeowsPanelAlertas()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
+                <span class="meows-campana-badge" id="meows-campana-badge" hidden>0</span>
+            </button>
+            <span class="meows-campana-etiqueta meows-campana-etiqueta-dinamica">Dinámica</span>
+        </div>
         <form method="post" action="/logout/" class="header-logout-form" onsubmit="return confirm('¿Seguro que desea cerrar la sesión?');">
             {% csrf_token %}
             <button type="submit" class="header-logout-btn" title="Cerrar Sesión">

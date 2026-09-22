@@ -245,8 +245,14 @@ class Medicion(models.Model):
         choices=[
             ("manual", "Manual"),
             ("dinamica", "Dinámica"),
+            # 2026-09-18: triaje -- signos vitales tomados ANTES de que la
+            # paciente tenga ingreso formal en Dinámica (sin Adningreso no
+            # hay Hcnfolio, así que Dinámica no tiene nada que sincronizar
+            # todavía). Flujo separado, nunca se mezcla con 'dinamica' -- ver
+            # crear_medicion_triaje / api_alertas_pendientes_triaje.
+            ("triaje", "Triaje"),
         ],
-        help_text="Si la medición se digitó a mano o se importó automáticamente desde Dinámica.",
+        help_text="Si la medición se digitó a mano, se tomó en triaje (sin ingreso aún) o se importó automáticamente desde Dinámica.",
     )
     dinamica_folio = models.IntegerField(
         null=True, blank=True,
@@ -305,6 +311,14 @@ class Medicion(models.Model):
     )
     meows_mensaje = models.TextField(null=True, blank=True)
 
+    # 2026-09-21: momento de la última corrección detectada de un valor ya
+    # sincronizado (ver sincronizar_signos_vitales_dinamica.py) -- señal
+    # SEPARADA de alerta_generada_en (esa solo se llena en riesgo
+    # Amarillo/Rojo). Se usa para que la Línea de Tiempo Clínica abierta de
+    # esa paciente se refresque sola aunque la corrección no dispare
+    # alerta -- ver api_correcciones_recientes en views.py.
+    ultima_correccion_en = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         verbose_name = "Medición"
         verbose_name_plural = "Mediciones"
@@ -329,6 +343,13 @@ class MedicionValor(models.Model):
     )
     valor = models.CharField(max_length=20)
     puntaje = models.PositiveSmallIntegerField(null=True, blank=True)
+    # 2026-09-21: OID de HCNSIGVIT (Dinámica) del que vino este valor -- solo
+    # se llena para origen='dinamica' (ver Medicion.origen). Permite detectar
+    # cuando alguien EDITA el valor de una toma ya sincronizada en Dinámica
+    # (antes era invisible: el sync solo miraba HCRHORREG > última importada,
+    # nunca volvía a mirar una fila ya traída) -- ver
+    # meows/management/commands/sincronizar_signos_vitales_dinamica.py.
+    dinamica_oid = models.IntegerField(null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = "Valor de Medición"

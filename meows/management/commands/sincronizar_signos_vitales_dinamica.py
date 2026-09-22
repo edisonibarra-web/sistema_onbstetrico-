@@ -9,6 +9,16 @@ beat — lo que ya tengan disponible), NO bajo demanda de un usuario. Es la
 pieza que falta para que la alerta salga sin que nadie tenga que abrir la
 pantalla de esa paciente.
 
+2026-09-21: además de traer tomas genuinamente nuevas, también RE-CHEQUEA una
+ventana reciente (VENTANA_RECHEQUEO_HORAS) de tomas ya importadas, por si
+alguien editó su valor en Dinámica después de sincronizada -- antes eso
+quedaba invisible para siempre (el filtro "HCRHORREG > última importada" solo
+mira hacia adelante, y HCRHORREG no cambia al editar solo el valor). Se
+identifica la misma fila de Dinámica entre corridas por su OID
+(MedicionValor.dinamica_oid) — ver meows/services/dinamica_signos_vitales.py.
+Si una edición cambia el riesgo a AMARILLO/ROJO, se dispara alerta igual que
+con una toma nueva.
+
 Ejecutar manualmente para probar:
     python manage.py sincronizar_signos_vitales_dinamica
     python manage.py sincronizar_signos_vitales_dinamica --verbosity 2
@@ -17,6 +27,8 @@ Requiere que meows/services/dinamica_signos_vitales.py ya tenga configurado
 el mapeo de columnas (ver ese archivo) — mientras no lo esté, el comando
 avisa claramente y no hace nada.
 """
+from datetime import timedelta
+
 from django.core.management.base import BaseCommand
 from django.db.models import Max
 from django.utils import timezone
@@ -26,8 +38,15 @@ from meows.models import Formulario, Medicion, MedicionValor, Parametro, Pacient
 from meows.services.dinamica_signos_vitales import (
     MapeoNoConfigurado,
     obtener_signos_vitales_nuevos,
+    _a_numero,
 )
 from meows.services.meows import calcular_meows
+
+# Cuántas horas hacia atrás se re-chequean en cada ciclo por si alguien
+# corrigió en Dinámica el valor de una toma ya sincronizada (ver docstring
+# del módulo). Acotado a propósito: el job corre ~cada 1s, así que esta
+# ventana no debe crecer con la duración de la hospitalización.
+VENTANA_RECHEQUEO_HORAS = 6
 
 
 def disparar_alerta(medicion, resultado):
@@ -81,6 +100,7 @@ class Command(BaseCommand):
 
         total_nuevas = 0
         total_alertas = 0
+        total_editadas = 0
 
         for p in pacientes:
             folio = p.get('folio')
@@ -122,8 +142,23 @@ class Command(BaseCommand):
                 # patrón de comparación de horas).
                 ultima_fecha = timezone.localtime(ultima_fecha).replace(tzinfo=None)
 
+                # Además de lo genuinamente nuevo, se re-consulta una ventana
+                # reciente de lo YA importado, por si alguien lo editó en
+                # Dinámica después de sincronizado (ver docstring del módulo).
+                # Acotada a VENTANA_RECHEQUEO_HORAS para que el costo no
+                # crezca con la duración de la hospitalización.
+                ventana_rechequeo = (
+                    timezone.localtime(timezone.now()).replace(tzinfo=None)
+                    - timedelta(hours=VENTANA_RECHEQUEO_HORAS)
+                )
+                desde_consulta = min(ultima_fecha, ventana_rechequeo)
+            else:
+                # Primera sincronización de esta paciente: trae todo su
+                # historial sin recorte, igual que siempre.
+                desde_consulta = None
+
             try:
-                lecturas = obtener_signos_vitales_nuevos(folio, desde=ultima_fecha)
+                lecturas = obtener_signos_vitales_nuevos(folio, desde=desde_consulta)
             except MapeoNoConfigurado as e:
                 self.stderr.write(self.style.ERROR(str(e)))
                 return  # no tiene sentido seguir iterando pacientes, el mapeo falta para todas
@@ -133,6 +168,8 @@ class Command(BaseCommand):
                 ))
                 continue
 
+            mediciones_a_recalcular = set()
+
             for lectura in lecturas:
                 fecha_hora = lectura.pop('fecha_hora')
                 # Quien digitó ESTA toma en Dinámica (ver docstring de
@@ -140,17 +177,66 @@ class Command(BaseCommand):
                 # armar valores_dict, igual que fecha_hora, para que no se
                 # trate como si fuera un parámetro MEOWS más.
                 responsable_dinamica = lectura.pop('responsable', None)
-
-                # Salvaguarda extra ante lecturas repetidas por reintentos del job.
-                if Medicion.objects.filter(
-                    paciente=paciente, origen='dinamica', fecha_hora=fecha_hora
-                ).exists():
-                    continue
+                oids_por_campo = lectura.pop('_oids', {}) or {}
 
                 valores_dict = {k: v for k, v in lectura.items() if v is not None}
                 if not valores_dict:
                     continue
 
+                medicion_existente = Medicion.objects.filter(
+                    paciente=paciente, origen='dinamica', fecha_hora=fecha_hora
+                ).first()
+
+                if medicion_existente is not None:
+                    # Ya está importada -- revisar campo por campo si el
+                    # valor cambió en Dinámica desde que se trajo (ver
+                    # docstring del módulo). Se identifica la misma fila de
+                    # Dinámica por su OID, no por el valor -- así se detecta
+                    # la edición aunque el nuevo valor coincida por
+                    # casualidad con el de otro campo.
+                    hubo_cambio = False
+                    for codigo, valor_nuevo in valores_dict.items():
+                        parametro = parametros_por_codigo.get(codigo)
+                        if parametro is None:
+                            continue
+                        oid_campo = oids_por_campo.get(codigo)
+                        valor_texto_nuevo = str(valor_nuevo)
+                        mv = MedicionValor.objects.filter(
+                            medicion=medicion_existente, parametro=parametro
+                        ).first()
+                        if mv is None:
+                            # Parámetro que esta toma no traía antes y ahora sí
+                            # (ej. se completó en Dinámica después de la
+                            # primera sincronización) -- se agrega.
+                            MedicionValor.objects.create(
+                                medicion=medicion_existente, parametro=parametro,
+                                valor=valor_texto_nuevo, dinamica_oid=oid_campo,
+                            )
+                            hubo_cambio = True
+                        elif mv.valor != valor_texto_nuevo:
+                            if verbosity >= 2:
+                                self.stdout.write(
+                                    f'  ~ Corrección detectada: {documento} {codigo} '
+                                    f'{mv.valor} -> {valor_texto_nuevo} (medición #{medicion_existente.id})'
+                                )
+                            mv.valor = valor_texto_nuevo
+                            if oid_campo is not None:
+                                mv.dinamica_oid = oid_campo
+                            mv.save(update_fields=['valor', 'dinamica_oid'])
+                            hubo_cambio = True
+                        elif oid_campo is not None and mv.dinamica_oid != oid_campo:
+                            # Mismo valor, pero todavía no teníamos guardado
+                            # el OID de origen (dato importado antes de que
+                            # existiera este campo) -- se completa sin
+                            # contar como una corrección real.
+                            mv.dinamica_oid = oid_campo
+                            mv.save(update_fields=['dinamica_oid'])
+                    if hubo_cambio:
+                        mediciones_a_recalcular.add(medicion_existente.id)
+                    continue
+
+                # Toma genuinamente nueva -- mismo comportamiento de siempre,
+                # ahora guardando también el OID de origen de cada valor.
                 # Calcular ANTES de crear los MedicionValor, para poder guardar
                 # el puntaje individual de cada uno junto con su valor (si no,
                 # queda NULL y la vista de resultado no puede mostrar el
@@ -173,6 +259,7 @@ class Command(BaseCommand):
                     MedicionValor.objects.create(
                         medicion=medicion, parametro=parametro, valor=str(valor),
                         puntaje=puntajes_por_codigo.get(codigo),
+                        dinamica_oid=oids_por_campo.get(codigo),
                     )
 
                 medicion.meows_total = resultado["meows_total"]
@@ -194,9 +281,55 @@ class Command(BaseCommand):
                     disparar_alerta(medicion, resultado)
                     total_alertas += 1
 
+            # Recalcular puntaje/riesgo total de cada medición que tuvo al
+            # menos un valor corregido en Dinámica, y re-alertar si el nuevo
+            # riesgo lo amerita (confirmado explícitamente: una corrección
+            # que revela un riesgo real no debe quedar en silencio).
+            for medicion_id in mediciones_a_recalcular:
+                medicion = Medicion.objects.get(id=medicion_id)
+                valores_medicion = list(medicion.valores.select_related('parametro'))
+                valores_dict = {
+                    mv.parametro.codigo: _a_numero(mv.valor)
+                    for mv in valores_medicion
+                }
+                valores_dict = {k: v for k, v in valores_dict.items() if v is not None}
+                if not valores_dict:
+                    continue
+
+                resultado = calcular_meows(valores_dict)
+                puntajes_por_codigo = resultado["puntajes"]
+                for mv in valores_medicion:
+                    nuevo_puntaje = puntajes_por_codigo.get(mv.parametro.codigo)
+                    if mv.puntaje != nuevo_puntaje:
+                        mv.puntaje = nuevo_puntaje
+                        mv.save(update_fields=['puntaje'])
+
+                medicion.meows_total = resultado["meows_total"]
+                medicion.meows_riesgo = resultado["meows_riesgo"]
+                medicion.meows_mensaje = resultado["meows_mensaje"]
+                # Señal separada de alerta_generada_en (esa solo se llena en
+                # Amarillo/Rojo) -- permite refrescar sola la pantalla de
+                # esa paciente aunque la corrección no dispare alerta. Ver
+                # api_correcciones_recientes (views.py) y el sondeo nuevo en
+                # sidebar.html.
+                medicion.ultima_correccion_en = timezone.now()
+                medicion.save(update_fields=[
+                    "meows_total", "meows_riesgo", "meows_mensaje", "ultima_correccion_en",
+                ])
+
+                total_editadas += 1
+                if verbosity >= 2:
+                    self.stdout.write(
+                        f'  ~ Medición #{medicion.id} recalculada tras corrección '
+                        f'(riesgo: {resultado["meows_riesgo"]})'
+                    )
+                if resultado["meows_riesgo"] in ("AMARILLO", "ROJO"):
+                    disparar_alerta(medicion, resultado)
+                    total_alertas += 1
+
         self.stdout.write(self.style.SUCCESS(
-            f'[OK] {total_nuevas} medición(es) nueva(s) importada(s) desde Dinámica '
-            f'({total_alertas} con alerta).'
+            f'[OK] {total_nuevas} medición(es) nueva(s), {total_editadas} corregida(s) '
+            f'importada(s) desde Dinámica ({total_alertas} con alerta).'
         ))
 
     @staticmethod

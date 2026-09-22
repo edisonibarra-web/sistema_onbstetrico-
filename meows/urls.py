@@ -19,5 +19,16 @@ urlpatterns = [
     path("api/buscar-paciente/", views.api_buscar_paciente, name="api_buscar_paciente"),
     path("api/pacientes-activos/", views.api_pacientes_activos, name="api_pacientes_activos"),
     path("api/alertas-pendientes/", views.api_alertas_pendientes, name="api_alertas_pendientes"),
+    path("api/correcciones-recientes/", views.api_correcciones_recientes, name="api_correcciones_recientes"),
+
+    # --- Triaje: registro manual ANTES del ingreso en Dinámica (flujo nuevo
+    # y separado, ver meows/views.py -- no toca ninguna ruta de arriba). ---
+    path("triaje/abrir/", views.abrir_triaje, name="abrir_triaje"),
+    path("triaje/abrir/<str:doc>/", views.abrir_triaje, name="abrir_triaje_doc"),
+    path("triaje/nuevo/<int:paciente_id>/", views.crear_medicion_triaje, name="crear_triaje"),
+    path("triaje/editar/<int:medicion_id>/", views.crear_medicion_triaje, name="editar_triaje"),
+    path("api/buscar-paciente-triaje/", views.api_buscar_paciente_triaje, name="api_buscar_paciente_triaje"),
+    path("api/pacientes-triaje/", views.api_pacientes_triaje, name="api_pacientes_triaje"),
+    path("api/alertas-pendientes-triaje/", views.api_alertas_pendientes_triaje, name="api_alertas_pendientes_triaje"),
 ]
 

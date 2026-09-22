@@ -44,10 +44,12 @@
                     <label class="info-label">Documento</label>
                     <div class="info-value">{{ medicion.paciente.numero_documento }}</div>
                 </div>
+                {% if medicion.paciente.fecha_ingreso %}
                 <div class="info-item">
                     <label class="info-label">Fecha de Ingreso</label>
-                    <div class="info-value">{% if medicion.paciente.fecha_ingreso %}{{ medicion.paciente.fecha_ingreso|date:"d/m/Y" }}{% else %}-{% endif %}</div>
+                    <div class="info-value">{{ medicion.paciente.fecha_ingreso|date:"d/m/Y" }}</div>
                 </div>
+                {% endif %}
             </div>
         </section>
 
@@ -68,6 +70,10 @@
                         {% if medicion.origen == 'dinamica' %}
                         <div class="resultado-badge" style="background:#ffffff;color:#343a40;border:1px solid #dee2e6;" title="Esta medición se importó automáticamente desde Dinámica (folio {{ medicion.dinamica_folio }})">
                             <span class="badge-text">🔗 IMPORTADO DE DINÁMICA</span>
+                        </div>
+                        {% elif medicion.origen == 'triaje' %}
+                        <div class="resultado-badge" style="background:#ecfeff;color:#0e7490;border:1px solid #67e8f9;" title="Esta medición se registró en Triaje, antes del ingreso formal de la paciente">
+                            <span class="badge-text">🩺 REGISTRO TRIAJE</span>
                         </div>
                         {% endif %}
                     </div>
