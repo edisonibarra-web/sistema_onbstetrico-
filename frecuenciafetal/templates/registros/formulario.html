@@ -5226,6 +5226,14 @@
                 method,
                 headers: getHeaders(),
                 body: JSON.stringify(payload),
+                // 2026-09-22: en modo silencioso (autoguardado) esta petición
+                // puede quedar en vuelo justo cuando la persona ya hizo clic
+                // para irse a otro módulo -- sin "keepalive" el navegador
+                // puede cancelarla a mitad de camino al descargar la página,
+                // perdiendo la última corrección aunque se haya tecleado
+                // bien (ver beforeunload más abajo, que fuerza este guardado
+                // justo antes de salir).
+                keepalive: silencioso,
               });
 
               if (!res.ok) {
@@ -5432,7 +5440,17 @@
           }
 
           async function autoguardarSilencioso() {
-            if (autoguardadoEnCurso) return;
+            if (autoguardadoEnCurso) {
+              // 2026-09-22: ya hay un guardado en curso (ej. terminando de
+              // sincronizar controles de postparto/fetocardia anidados, que
+              // puede tardar varios segundos). Antes este ciclo simplemente
+              // se descartaba sin reintentar -- si justo en esa ventana la
+              // persona corregía un dato y se iba de la página antes del
+              // siguiente respaldo de 60s, esa corrección nunca llegaba a
+              // guardarse. Ahora se reprograma en vez de perderse.
+              programarAutoguardado();
+              return;
+            }
             autoguardadoEnCurso = true;
             try {
               await submitForm('autoguardado', true, true);
@@ -5700,6 +5718,24 @@
             // Respaldo: si por lo que sea no llegó ningún evento capturado
             // arriba, igual se reintenta cada AUTOSAVE_INTERVALO_MS.
             setInterval(autoguardarSilencioso, AUTOSAVE_INTERVALO_MS);
+
+            // 2026-09-22: si la persona corrige un dato (ej. un typo en
+            // "Nombre del acompañante") y hace clic para irse a otro módulo
+            // ANTES de que pasen los AUTOSAVE_DEBOUNCE_MS, el guardado
+            // programado nunca alcanzaba a dispararse -- la corrección se
+            // veía bien en pantalla pero jamás llegaba al servidor, y
+            // reaparecía el dato viejo al volver a abrir el registro. Al
+            // salir de la página, si hay un guardado pendiente, se cancela
+            // el temporizador y se dispara de inmediato (junto con
+            // keepalive:true en el fetch, para que el navegador no lo
+            // cancele a mitad de la navegación).
+            window.addEventListener('beforeunload', function () {
+              if (autosaveTimer) {
+                clearTimeout(autosaveTimer);
+                autosaveTimer = null;
+                autoguardarSilencioso();
+              }
+            });
 
             // Seguridad: Forzar recarga si se accede por el historial (Atrás/Adelante)
             window.addEventListener('pageshow', function (event) {
