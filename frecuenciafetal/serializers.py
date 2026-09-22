@@ -4,6 +4,34 @@ from .models import (
     GlucometriaRecienNacido, ControlPostpartoInmediato, ControlSangrado,
     ControlGlobo, ControlSutura, recalcular_estados_sangrado,
 )
+from obstetriciaunificador.models import AtencionParto
+
+
+class AtencionToleranteField(serializers.PrimaryKeyRelatedField):
+    """
+    2026-09-22: 'atencion' es un vínculo interno de enrutamiento (fila de
+    AtencionParto, sin valor clínico por sí misma -- ver el mismo criterio
+    ya aplicado al ocultar "ID de Atención" en la card de Sala de Partos),
+    no un dato clínico. El autoguardado silencioso de Control Posparto
+    Inmediato lo manda tal cual venga en la URL (?atencion=<id>); si ese id
+    ya no existe (enlace viejo, entorno con datos distintos, etc.), antes se
+    rechazaba TODO el guardado del registro -- perdiendo datos clínicos
+    reales (fetocardia, sangrado, etc.) por culpa de un id de enrutamiento
+    inválido. Ahora, si el id no existe, se guarda como si no hubiera
+    llegado ninguno (atencion=None) en vez de fallar el registro completo.
+
+    Solo se perdona el código "does_not_exist" -- un id bien formado que no
+    existe. Cualquier otro error (ej. un valor mal formado, que no es ni
+    siquiera un id válido) se sigue rechazando: eso sí es un dato corrupto,
+    no una referencia obsoleta, y no debe ocultarse.
+    """
+    def to_internal_value(self, data):
+        try:
+            return super().to_internal_value(data)
+        except serializers.ValidationError as exc:
+            if exc.detail and exc.detail[0].code == "does_not_exist":
+                return None
+            raise
 
 
 class ControlFetocardiaSerializer(serializers.ModelSerializer):
@@ -78,6 +106,9 @@ class ControlSuturaSerializer(serializers.ModelSerializer):
 
 
 class RegistroPartoSerializer(serializers.ModelSerializer):
+    atencion = AtencionToleranteField(
+        queryset=AtencionParto.objects.all(), required=False, allow_null=True
+    )
     controles_fetocardia = ControlFetocardiaSerializer(many=True, required=False)
     control_recien_nacido = ControlRecienNacidoSerializer(required=False)
     controles_postparto = ControlPostpartoSerializer(many=True, required=False)
