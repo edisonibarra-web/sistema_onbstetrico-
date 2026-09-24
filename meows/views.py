@@ -628,6 +628,16 @@ def crear_medicion_triaje(request, paciente_id=None, medicion_id=None):
             paciente.fecha_nacimiento = fecha_nacimiento
         if request.POST.get('responsable'):
             paciente.responsable = request.POST.get('responsable')
+        # 2026-09-23: la tarjeta de Triaje ahora también pide aseguradora y
+        # fecha de ingreso (llegada de la paciente).
+        if 'aseguradora' in request.POST:
+            paciente.aseguradora = (request.POST.get('aseguradora') or '').strip()[:200]
+        fecha_ingreso = (request.POST.get('fecha_ingreso') or '').strip()
+        if fecha_ingreso:
+            try:
+                paciente.fecha_ingreso = datetime.strptime(fecha_ingreso, "%Y-%m-%d").date()
+            except ValueError:
+                pass
         try:
             paciente.save()
         except IntegrityError:
@@ -664,6 +674,7 @@ def crear_medicion_triaje(request, paciente_id=None, medicion_id=None):
             medicion = Medicion.objects.create(
                 paciente=paciente, formulario=formulario, atencion=None,
                 fecha_hora=fecha_hora_monitoreo, origen='triaje',
+                registrado_por=(nombre_profesional_sesion(request) or '')[:255] or None,
             )
             for parametro in parametros:
                 valor = valores_dict.get(parametro.codigo)
@@ -690,12 +701,22 @@ def crear_medicion_triaje(request, paciente_id=None, medicion_id=None):
         messages.success(request, 'Registro de triaje guardado exitosamente.')
         return redirect(f"/meows/triaje/nuevo/{paciente.id}/")
 
+    # 2026-09-23: si la paciente no tiene aseguradora registrada aquí pero ya
+    # estuvo antes en el hospital, se sugiere la de su último ingreso en
+    # Dinámica (se guarda al registrar el triaje). Si no hay registros, el
+    # campo queda vacío para digitarlo a mano.
+    aseguradora_dinamica = None
+    if not (paciente.aseguradora or '').strip() and getattr(settings, 'HABILITAR_BD_EXTERNA', True):
+        from frecuenciafetal.sala_partos_db import consultar_aseguradora_paciente
+        aseguradora_dinamica = consultar_aseguradora_paciente(paciente.numero_documento)
+
     return render(request, "meows/formulario_triaje.html", {
         "paciente": paciente,
         "parametros": parametros,
         "medicion": medicion_editar,
         "documento": paciente.numero_documento,
         "profesional_nombre_sesion": nombre_profesional_sesion(request),
+        "aseguradora_dinamica": aseguradora_dinamica,
     })
 
 
@@ -815,11 +836,26 @@ def ver_meows(request, medicion_id):
         for parametro in Parametro.objects.filter(activo=True).order_by("orden")
     ]
 
+    # 2026-09-23: número de ingreso para la tarjeta "Información del Paciente"
+    # (el de la atención de la medición, o el ingreso actual en Dinámica).
+    numero_ingreso = ''
+    if medicion.atencion_id and medicion.atencion.numero_ingreso:
+        numero_ingreso = medicion.atencion.numero_ingreso
+    else:
+        try:
+            from obstetriciaunificador.repositorio import resolver_atencion_ingreso
+            atencion_ingreso, _ = resolver_atencion_ingreso(medicion.paciente.numero_documento, crear=False)
+            if atencion_ingreso is not None:
+                numero_ingreso = atencion_ingreso.numero_ingreso
+        except Exception:
+            pass  # Dinámica no disponible: la tarjeta muestra "—"
+
     return render(request, "meows/resultado.html", {
         "medicion": medicion,
         "valores": valores,
         "atencion_id": medicion.atencion_id,
         "documento": medicion.paciente.numero_documento,
+        "numero_ingreso": numero_ingreso,
     })
 
 
@@ -1261,14 +1297,18 @@ def responsable_meows_mas_reciente(paciente):
     meows/services/dinamica_signos_vitales.py) de la medición más reciente
     de este paciente, no nombre_profesional_sesion().
     """
+    # 2026-09-23: también cuenta quien registró una toma de Triaje en la app
+    # (Medicion.registrado_por), ver Medicion.responsable_toma.
     medicion = (
         Medicion.objects.filter(paciente=paciente)
-        .exclude(responsable_dinamica__isnull=True)
-        .exclude(responsable_dinamica='')
+        .filter(
+            (Q(responsable_dinamica__isnull=False) & ~Q(responsable_dinamica=''))
+            | (Q(registrado_por__isnull=False) & ~Q(registrado_por=''))
+        )
         .order_by('-fecha_hora')
         .first()
     )
-    return medicion.responsable_dinamica if medicion else ''
+    return medicion.responsable_toma if medicion else ''
 
 
 def responsable_meows_default(request, paciente):
@@ -1315,11 +1355,32 @@ def historial_meows_paciente(request, paciente_id):
         if atencion:
             atencion_id = atencion.id
 
+    # 2026-09-23: número de ingreso de Dinámica (ADNINGRESO.AINCONSEC) para la
+    # tarjeta "Información del Paciente" -- el de la atención si ya lo tiene,
+    # o el ingreso actual de la paciente. Sin ingreso (Triaje) queda vacío.
+    numero_ingreso = ''
+    atencion_actual = (
+        AtencionParto.objects.filter(id=atencion_id).first()
+        if str(atencion_id or '').isdigit() else None
+    )
+    if atencion_actual is not None and atencion_actual.numero_ingreso:
+        numero_ingreso = atencion_actual.numero_ingreso
+    elif documento:
+        try:
+            from obstetriciaunificador.repositorio import resolver_atencion_ingreso
+            atencion_ingreso, _ = resolver_atencion_ingreso(documento, crear=False)
+            if atencion_ingreso is not None:
+                numero_ingreso = atencion_ingreso.numero_ingreso
+                atencion_id = atencion_id or atencion_ingreso.id
+        except Exception:
+            pass  # Dinámica no disponible: la tarjeta muestra "-"
+
     return render(request, "meows/historial.html", {
         "paciente": paciente,
         "grid_parametros": grid_parametros,
         "columnas": columnas,
         "atencion_id": atencion_id,
+        "numero_ingreso": numero_ingreso,
         "documento": documento,
         "todo_origen_triaje": todo_origen_triaje,
         # 2026-09-14: el campo "RESPONSABLE DEL REPORTE" ya NO se precarga con

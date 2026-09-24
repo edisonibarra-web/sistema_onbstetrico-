@@ -473,7 +473,8 @@ def generar_pdf_meows(paciente, mediciones, responsable=None):
             # / meows/services/dinamica_signos_vitales.py), no necesariamente
             # el profesional en sesión que generó el PDF. Null en mediciones
             # sincronizadas antes de que existiera este campo.
-            'responsable': medicion.responsable_dinamica or '',
+            # 2026-09-23: o, en tomas de Triaje, quien la registró en la app.
+            'responsable': medicion.responsable_toma,
             'medicion': medicion,
             'valores': valores_dict
         })

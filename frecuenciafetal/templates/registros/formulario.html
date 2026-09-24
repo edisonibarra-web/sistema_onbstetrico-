@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="{% static 'css/vendor/cropper.min.css' %}" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
-  <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260910g">
+  <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260923a">
   <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
   <script src="{% static 'js/vendor/cropper.min.js' %}"></script>
   <style>
@@ -3531,10 +3531,19 @@
 
           <div class="submit-bar submit-bar-final">
             <button type="button" class="btn btn-primary btn-large" id="submit-btn" disabled
-              title="Disponible cuando se cumplan las 6 horas de vigilancia posparto desde que se creó el registro.">Guardar
+              title="Se habilita cuando se guarde el último control posparto (6 horas después del parto, minuto 360).">Guardar
               Registro Completo</button>
             <button type="button" class="btn btn-secondary btn-large" onclick="descargarPDF()" id="btn-pdf">
               <i data-lucide="file-down" style="width:18px;height:18px;vertical-align:middle"></i> Descargar PDF
+            </button>
+            <!-- 2026-09-23: solo con el registro cerrado. El formato final ya
+                 se envió solo al cerrar; esto sirve para reintentar si ese
+                 envío falló, o para dejar en el repositorio la versión con las
+                 correcciones hechas desde "Vista previa" (queda como archivo
+                 nuevo, _2, _3...; nunca reemplaza el anterior). -->
+            <button type="button" class="btn btn-secondary btn-large" onclick="reenviarRepositorio()" id="btn-reenviar-repositorio" style="display:none"
+              title="Vuelve a generar el PDF final y lo guarda en el repositorio clínico como un archivo nuevo">
+              <i data-lucide="hard-drive-upload" style="width:18px;height:18px;vertical-align:middle"></i> Reenviar a repositorio
             </button>
           </div>
 
@@ -5322,6 +5331,8 @@
                     });
                   } else showToast('Algunos controles postparto nuevos no se pudieron guardar.', 'error');
                 }
+                // El control del minuto 360 pudo quedar guardado recién ahora.
+                actualizarDisponibilidadCierre(data);
 
                 // Controles postparto ya guardados que el usuario corrigió.
                 const editsPp = buildPostpartoEdits();
@@ -5412,6 +5423,13 @@
               // advertencia_cierre) -- el registro sigue abierto.
               if (data.completado_en) {
                 bloquearFormularioCerrado(data);
+                // 2026-09-23: al cerrarse, el formato final (PDF FRSPA-007)
+                // se envía al repositorio clínico (NAS / carpeta local de
+                // pruebas). Si falla, el cierre igual queda hecho.
+                if (data.repositorio) {
+                  showToast((data.repositorio.ok ? '📤 ' : '⚠️ ') + data.repositorio.mensaje,
+                            data.repositorio.ok ? 'success' : 'error');
+                }
               } else {
                 if (data.advertencia_cierre) showToast('⏳ ' + data.advertencia_cierre, 'error');
                 // Actualiza el botón/aviso de "disponible desde" con el
@@ -5526,10 +5544,13 @@
               'main.main-content input, main.main-content select, main.main-content textarea, main.main-content button'
             ).forEach(el => {
               if (el.id === 'btn-pdf') return; // Descargar PDF sigue disponible
+              if (el.id === 'btn-reenviar-repositorio') return;
               el.disabled = true;
             });
             const btnCompletar = document.getElementById('submit-btn');
             if (btnCompletar) btnCompletar.style.display = 'none';
+            const btnReenviar = document.getElementById('btn-reenviar-repositorio');
+            if (btnReenviar) btnReenviar.style.display = '';
 
             const el = document.getElementById('autosave-status');
             if (el) {
@@ -5544,52 +5565,49 @@
             }
           }
 
-          // 2026-09-22: mismo número de horas que HORAS_MINIMAS_PARA_COMPLETAR
-          // en views.py -- "Guardar Registro Completo" no debe cerrar el
-          // ciclo antes de que se cumpla la vigilancia posparto (15/30/60
-          // min hasta completar 6h), para mitigar que un área lo cierre por
-          // error antes de que la otra haya terminado. A pedido, el botón
-          // queda VISIBLE pero bloqueado (con una notificación encima) en
-          // vez de ocultarse -- así el personal siempre ve que existe y
-          // sabe desde cuándo se habilita. Esto es solo la parte visual; lo
-          // que de verdad lo impide es la misma validación en el backend
-          // (_intentar_cerrar_registro) -- nunca hay que confiar solo en
-          // que el botón esté deshabilitado acá.
-          const HORAS_MINIMAS_PARA_COMPLETAR = 6;
+          // "Guardar Registro Completo" se habilita cuando ya está GUARDADO el
+          // último control posparto: el de las 6 horas después del parto
+          // (minuto 360 del cronograma PP_MINUTOS). 2026-09-23: antes se
+          // habilitaba por reloj (6 horas desde que se creó el registro -- ej.
+          // creado a las 6 a. m. se habilitaba a las 12 m. aunque faltaran
+          // controles). El botón queda VISIBLE pero bloqueado, con el motivo.
+          // Esto es solo la parte visual; la misma regla la valida el backend
+          // (_intentar_cerrar_registro en views.py).
+          const MINUTO_ULTIMO_CONTROL_POSPARTO = 360;
           const LABEL_SUBMIT_BTN_ORIGINAL = 'Guardar<br>Registro Completo';
-          let avisoCierreTimer = null;
+
+          function ultimoControlPospartoGuardado(data) {
+            let ultimo = null;
+            PP_MINUTOS.forEach((minuto, col) => {
+              if (document.querySelector(`.pp-input[data-col="${col}"][data-pp-saved="1"]`)) ultimo = minuto;
+            });
+            if (data && Array.isArray(data.controles_postparto)) {
+              data.controles_postparto.forEach((cp) => {
+                const m = Number(cp.minuto_control);
+                if (!isNaN(m) && (ultimo === null || m > ultimo)) ultimo = m;
+              });
+            }
+            return ultimo;
+          }
 
           function actualizarDisponibilidadCierre(data) {
             const btn = document.getElementById('submit-btn');
             if (!btn || registroCerrado) return; // ya bloqueado por otro motivo (cerrado)
-            if (!data || !data.created_at) {
-              btn.disabled = true;
-              btn.title = 'Guarde el registro primero -- ahí empiezan a contar las 6 horas de vigilancia posparto.';
-              return;
-            }
-            const disponibleDesde = new Date(new Date(data.created_at).getTime() + HORAS_MINIMAS_PARA_COMPLETAR * 3600000);
-            const faltanteMs = disponibleDesde - new Date();
+            const hayRegistro = savedRegistroId || (data && data.id);
+            const ultimo = hayRegistro ? ultimoControlPospartoGuardado(data) : null;
 
-            if (faltanteMs <= 0) {
+            if (ultimo !== null && ultimo >= MINUTO_ULTIMO_CONTROL_POSPARTO) {
               btn.disabled = false;
               btn.title = '';
               btn.innerHTML = LABEL_SUBMIT_BTN_ORIGINAL;
-              if (avisoCierreTimer) { clearInterval(avisoCierreTimer); avisoCierreTimer = null; }
               return;
             }
 
-            const horaTexto = disponibleDesde.toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
             btn.disabled = true;
-            btn.title = `Se habilita a partir de las ${horaTexto} (se cumplen las ${HORAS_MINIMAS_PARA_COMPLETAR}h de vigilancia posparto desde que se creó el registro).`;
-            btn.innerHTML = `<i data-lucide="lock" size="16" style="display:inline-block;vertical-align:-3px;margin-right:4px"></i> Se habilita a las ${horaTexto}`;
+            btn.title = 'Se habilita cuando se guarde el último control posparto (6 horas después del parto, minuto 360). ' +
+              (ultimo !== null ? `Último control guardado: minuto ${ultimo}.` : 'Aún no hay controles posparto guardados.');
+            btn.innerHTML = '<i data-lucide="lock" size="16" style="display:inline-block;vertical-align:-3px;margin-right:4px"></i> Se habilita con el control de las 6 h';
             if (typeof lucide !== 'undefined') lucide.createIcons();
-
-            // Reintenta cada minuto por si la pestaña sigue abierta hasta que
-            // se cumplan las horas -- así el botón se habilita solo, sin que
-            // haga falta recargar la página.
-            if (!avisoCierreTimer) {
-              avisoCierreTimer = setInterval(() => actualizarDisponibilidadCierre(data), 60000);
-            }
           }
 
           let previewRegistroId = null;
@@ -5758,6 +5776,30 @@
             } catch (err) {
               if (!silencioso) showToast('Error al cargar: ' + err.message, 'error');
               else console.error('Auto-carga de registro por atención falló:', err);
+            }
+          }
+
+          // 2026-09-23: reenvío manual del formato final (FRSPA-007) al
+          // repositorio clínico -- ver el botón btn-reenviar-repositorio.
+          async function reenviarRepositorio() {
+            if (!savedRegistroId) return;
+            if (!confirm('¿Enviar de nuevo el formato FRSPA-007 al repositorio clínico? Se guardará como un archivo nuevo; el anterior no se reemplaza.')) return;
+            const btn = document.getElementById('btn-reenviar-repositorio');
+            const textoOriginal = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+            try {
+              const resp = await fetch('/atencion/api/repositorio/enviar/', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ formato: 'control_posparto', registro_id: savedRegistroId }),
+              });
+              const data = await resp.json().catch(() => ({ ok: false, mensaje: 'HTTP ' + resp.status }));
+              showToast((data.ok ? '📤 ' : '⚠️ ') + (data.mensaje || 'Error desconocido'), data.ok ? 'success' : 'error');
+            } catch (err) {
+              showToast('⚠️ No se pudo contactar el servidor para enviar al repositorio.', 'error');
+            } finally {
+              if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
             }
           }
 

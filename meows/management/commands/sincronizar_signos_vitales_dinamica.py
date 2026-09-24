@@ -424,6 +424,18 @@ class Command(BaseCommand):
             f'({total_alertas} con alerta).'
         ))
 
+        # 2026-09-23: triajes de pacientes que ya recibieron ingreso -> su
+        # formato va al repositorio clínico (NAS), carpeta de ese ingreso.
+        # Recorre las pacientes con triaje, no solo las activas de arriba: la
+        # paciente pudo quedar ingresada en un área que no es gineco.
+        from obstetriciaunificador.repositorio import enviar_triajes_pendientes
+        for documento, envio in enviar_triajes_pendientes():
+            estilo = self.style.SUCCESS if envio.estado == envio.ESTADO_ENVIADO else self.style.ERROR
+            self.stdout.write(estilo(
+                f'[TRIAJE] {documento}/{envio.numero_ingreso}: {envio.estado} '
+                f'{envio.nombre_archivo or envio.detalle_error}'
+            ))
+
     @staticmethod
     def _datos_basicos_paciente(p):
         nombre = (p.get('nombre_paciente') or '').strip()

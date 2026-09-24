@@ -343,6 +343,14 @@ class FormularioCreateSerializer(serializers.ModelSerializer):
             'edad_gestion',
             'estado',
             'n_controles_prenatales',
+            # 2026-09-23: G/P/C/A faltaban aquí -- este serializer es el que usan
+            # create/update (FormularioViewSet.get_serializer_class), así que lo
+            # que se digitaba en esos campos se descartaba en silencio y nunca
+            # quedaba guardado.
+            'gestas',
+            'partos',
+            'cesareas',
+            'abortos',
             'responsable',
         ]
         read_only_fields = ['id']

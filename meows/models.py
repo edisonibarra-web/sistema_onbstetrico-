@@ -294,6 +294,21 @@ class Medicion(models.Model):
         help_text="Nombre de quien digitó esta toma en Dinámica (GENMEDICO.GMENOMCOM). "
                    "Solo aplica a mediciones origen='dinamica'.",
     )
+    # 2026-09-23: quien registró la toma EN ESTA APP (profesional en sesión,
+    # nombre_profesional_sesion) -- hoy solo lo llena Triaje, que se digita
+    # aquí antes de que exista ingreso en Dinámica. Se fija al crear la toma
+    # y no cambia si otra persona la corrige después. Null en tomas de
+    # triaje registradas antes de existir este campo.
+    registrado_por = models.CharField(
+        max_length=255, null=True, blank=True,
+        help_text="Profesional en sesión que registró esta toma en la app (Triaje).",
+    )
+
+    @property
+    def responsable_toma(self):
+        """Quién hizo la toma: quien la digitó en Dinámica o, si se registró
+        en esta app (Triaje), quien la registró aquí."""
+        return self.responsable_dinamica or self.registrado_por or ''
     alerta_pendiente = models.BooleanField(
         default=False,
         help_text="True si esta medición generó una alerta MEOWS (riesgo alto/medio).",

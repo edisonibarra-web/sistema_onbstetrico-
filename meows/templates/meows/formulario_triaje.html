@@ -31,15 +31,7 @@
     {% include 'obstetricia/sidebar.html' with is_panel=False documento=documento|default:paciente.numero_documento|default:'' current_module='meows' %}
     <div class="sidebar-main-content">
     <div class="container">
-        {% if messages %}
-        <section class="section" style="padding: 12px 16px;">
-            {% for message in messages %}
-            <div style="margin-bottom: 8px; border-radius: 8px; padding: 10px 12px; font-weight: 600; {% if message.tags == 'success' %}background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;{% elif message.tags == 'error' %}background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;{% else %}background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;{% endif %}">
-                {{ message }}
-            </div>
-            {% endfor %}
-        </section>
-        {% endif %}
+        {% include 'meows/_mensajes.html' %}
 
         <div class="triaje-banner">
             <span style="font-size:1.2em;">🩺</span>
@@ -89,10 +81,23 @@
                                 <input type="text" id="numero_documento" name="numero_documento" class="patient-input"
                                     placeholder="Ingrese número de documento" value="{{ paciente.numero_documento|default:'' }}" required>
                             </div>
+                            {# 2026-09-23: la fecha de nacimiento ya no se muestra, pero se conserva #}
+                            {# oculta: se guarda con la paciente y de ella sale la Edad. #}
+                            <input type="hidden" id="fecha_nacimiento" name="fecha_nacimiento"
+                                value="{% if paciente.fecha_nacimiento %}{{ paciente.fecha_nacimiento|date:'Y-m-d' }}{% endif %}">
+                            <div class="info-field size-lg">
+                                <label class="info-field-label" for="aseguradora"><span class="info-field-label-icon"><i data-lucide="shield-check"></i></span>Aseguradora</label>
+                                <input type="text" id="aseguradora" name="aseguradora" class="patient-input" maxlength="200"
+                                    placeholder="Digite la EPS / aseguradora"
+                                    value="{% if paciente.aseguradora %}{{ paciente.aseguradora }}{% elif aseguradora_dinamica %}{{ aseguradora_dinamica }}{% endif %}">
+                                {% if aseguradora_dinamica and not paciente.aseguradora %}
+                                <small style="display:block;margin-top:4px;font-size:0.72rem;font-weight:600;color:#6d28d9;">🔗 Tomada del último ingreso en Dinámica (puede corregirla)</small>
+                                {% endif %}
+                            </div>
                             <div class="info-field size-sm">
-                                <label class="info-field-label" for="fecha_nacimiento"><span class="info-field-label-icon"><i data-lucide="calendar"></i></span>Fecha Nacimiento</label>
-                                <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" class="patient-input"
-                                    value="{% if paciente.fecha_nacimiento %}{{ paciente.fecha_nacimiento|date:'Y-m-d' }}{% endif %}">
+                                <label class="info-field-label" for="fecha_ingreso"><span class="info-field-label-icon"><i data-lucide="calendar"></i></span>Fecha de Ingreso</label>
+                                <input type="date" id="fecha_ingreso" name="fecha_ingreso" class="patient-input"
+                                    value="{% if paciente.fecha_ingreso %}{{ paciente.fecha_ingreso|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}">
                             </div>
                             <div class="info-field size-xs">
                                 <label class="info-field-label" for="edad"><span class="info-field-label-icon"><i data-lucide="user"></i></span>Edad</label>

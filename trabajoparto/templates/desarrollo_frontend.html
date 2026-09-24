@@ -191,8 +191,10 @@
             overflow: hidden;
         }
         .preview-card-header {
-            background: linear-gradient(120deg, #7cb342 0%, #9ccc65 100%);
-            color: #ffffff;
+            /* 2026-09-23: plateado (antes verde), igual que el encabezado de la
+               tabla (.preview-grid-th-hora). Letra oscura para que se lea. */
+            background: linear-gradient(120deg, #9ca3af 0%, #d1d5db 45%, #e5e7eb 55%, #a8b0bc 100%);
+            color: #1f2937;
             padding: 12px 16px;
             display: flex;
             align-items: center;
@@ -207,8 +209,9 @@
         .preview-total-badge {
             font-size: 0.8rem;
             font-weight: 700;
-            background: rgba(255, 255, 255, 0.18);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(31, 41, 55, 0.18);
+            color: #1f2937;
             border-radius: 999px;
             padding: 4px 10px;
         }
@@ -242,9 +245,15 @@
         .preview-grid-table {
             border-collapse: separate;
             border-spacing: 0;
-            width: 100%;
-            min-width: 560px;
-            table-layout: fixed;
+            /* 2026-09-23: antes width:100% + table-layout:fixed -- con muchos
+               controles la tabla se forzaba a caber en el ancho de la tarjeta y
+               apretaba las columnas de hora hasta encimar el texto, en vez de
+               usar el scroll horizontal. Ahora cada columna conserva su ancho
+               (ver .preview-grid-th-hora) y la tabla crece hacia la derecha
+               dentro de .preview-mediciones-scroll. */
+            width: max-content;
+            min-width: 100%;
+            table-layout: auto;
             font-size: 0.94rem;
         }
         .preview-grid-table th,
@@ -296,8 +305,10 @@
         .preview-grid-th-item,
         .preview-grid-th-param,
         .preview-grid-th-hora {
-            background: linear-gradient(120deg, #7cb342 0%, #9ccc65 100%);
-            color: #ffffff;
+            /* 2026-09-23: plateado (antes verde #7cb342 -> #9ccc65). Letra
+               oscura: el blanco no se lee sobre el plateado. */
+            background: linear-gradient(120deg, #9ca3af 0%, #d1d5db 45%, #e5e7eb 55%, #a8b0bc 100%);
+            color: #1f2937;
             font-weight: 800;
             z-index: 4;
         }
@@ -310,6 +321,7 @@
                de la tabla, y de nuevo para dejarle sitio al nombre del
                responsable de esa columna (ver preview-grid-col-responsable). */
             min-width: 132px;
+            width: 132px;
         }
         .preview-grid-col-fecha,
         .preview-grid-col-hora,
@@ -333,15 +345,19 @@
         .preview-grid-col-responsable {
             margin-top: 3px;
             padding-top: 3px;
-            border-top: 1px solid rgba(255, 255, 255, 0.4);
+            border-top: 1px solid rgba(31, 41, 55, 0.25);
             font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0.01em;
-            color: rgba(255, 255, 255, 0.95);
+            color: #334155;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 100%;
+            /* Tope fijo: con la tabla en ancho automático, un nombre largo
+               ensanchaba toda su columna. Nombre completo en el title. */
+            max-width: 112px;
+            margin-left: auto;
+            margin-right: auto;
         }
         .preview-grid-td-valor {
             min-width: 92px;
@@ -427,6 +443,27 @@
             background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
             box-shadow: 0 6px 24px rgba(220, 38, 38, 0.45);
         }
+
+        /* 2026-09-23: indicador del autoguardado (ver autoguardarTrabajoParto en main.js) */
+        #autosave-parto-status {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            margin-left: 12px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 0.85em;
+            font-weight: 700;
+            vertical-align: middle;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+        #autosave-parto-status[data-estado="ok"] { background: #dcfce7; color: #166534; border-color: #86efac; }
+        #autosave-parto-status[data-estado="guardando"],
+        #autosave-parto-status[data-estado="pendiente"] { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+        #autosave-parto-status[data-estado="espera"] { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+        #autosave-parto-status[data-estado="error"] { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
     </style>
 </head>
 <body>
@@ -622,13 +659,27 @@
                     </div>
 
                     <div style="flex: 0 0 auto;">
-                        <label for="hora_registro_actual" style="display: block; font-weight: 700; font-size: 0.82em; letter-spacing: 0.02em; text-transform: uppercase; color: #334155; margin-bottom: 4px;">Hora del control actual</label>
+                        <label for="hora-control-fecha" style="display: block; font-weight: 700; font-size: 0.82em; letter-spacing: 0.02em; text-transform: uppercase; color: #334155; margin-bottom: 4px;">Hora del control actual</label>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="datetime-local" id="hora_registro_actual" class="form-input" style="width: 220px; font-size: 1em; font-weight: 600; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #fff; color: #334155;">
-                            <button type="button" id="btn-hora-ahora" class="btn btn-primary" onclick="establecerHoraActual()" title="Fijar la hora actual del sistema" style="height: 40px; padding: 0 16px; font-size: 0.82em; font-weight: 600; margin: 0; white-space: nowrap;">
-                                ⟳ Ahora
+                            <!-- 2026-09-23: fecha + hora en 12 h con AM/PM (el datetime-local nativo
+                                 mostraba 24 h sin AM/PM según el sistema operativo). El valor real
+                                 sigue en #hora_registro_actual, oculto (ver vincularHoraControl12h). -->
+                            <input type="hidden" id="hora_registro_actual">
+                            <input type="date" id="hora-control-fecha" class="form-input" aria-label="Fecha del control" style="width: 150px; font-size: 1em; font-weight: 600; padding: 9px 8px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #fff; color: #334155;">
+                            <select id="hora-control-horas" class="form-input" aria-label="Hora" style="width: 64px; font-size: 1em; font-weight: 600; padding: 9px 8px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #fff; color: #334155;"></select>
+                            <span style="font-weight: 800; color: #334155;">:</span>
+                            <select id="hora-control-minutos" class="form-input" aria-label="Minutos" style="width: 64px; font-size: 1em; font-weight: 600; padding: 9px 8px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #fff; color: #334155;"></select>
+                            <select id="hora-control-periodo" class="form-input" aria-label="AM o PM" style="width: 72px; font-size: 1em; font-weight: 600; padding: 9px 8px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #fff; color: #334155;">
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                            <button type="button" id="btn-hora-ahora" class="btn btn-primary" onclick="establecerHoraActual()" title="Empezar un control nuevo con la hora actual" style="height: 40px; padding: 0 16px; font-size: 0.82em; font-weight: 600; margin: 0; white-space: nowrap;">
+                                ＋ Nuevo control
                             </button>
                         </div>
+                        <!-- 2026-09-23: visible cuando se trabaja sobre un control ya
+                             guardado (ver marcarControlEnEdicion en main.js). -->
+                        <div id="aviso-control-anterior" role="status" style="display: none; margin-top: 8px; max-width: 520px; padding: 8px 12px; border-radius: 10px; background: #fffbeb; border: 1.5px solid #f59e0b; color: #92400e; font-size: 0.82em; line-height: 1.4;"></div>
                     </div>
 
                     <span id="hora-seleccionada-feedback" style="display: none; color: #059669; font-weight: 700; font-size: 0.78em; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 999px; padding: 4px 10px;">✓ Hora fijada</span>
@@ -698,12 +749,21 @@
                              columna que la enfermera tenga abierta). Ver management command
                              trabajoparto/management/commands/sincronizar_frecuencia_fetal_dinamica.py.
                              disabled + sin onclick para que quede claro que no se puede tocar aquí. -->
+                        {% if fcf_automatica %}
                         <button type="button" class="btn-parametro param-dinamica" id="btn-parametro-8" data-parametro-id="8" data-parametro-nombre="FRECUENCIA CARDIACA FETAL" disabled title="Se sincroniza automáticamente desde Dinámica, no se edita aquí" style="border-radius: 8px; padding: 10px; cursor: not-allowed; transition: all 0.2s; font-weight: 600; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; height: 46px; width: 100%;">
                             <span class="btn-parametro-top"><span class="status-indicator" id="indicator-8" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
                             ❤️ FRECUENCIA CARDIACA FETAL <span title="Dato automático de Dinámica">🔗</span></span>
                             <span class="btn-parametro-value" id="val-preview-8">-</span>
                             <span class="dinamica-caption">🔗 Dato extraído desde Dinámica</span>
                         </button>
+                        {% else %}
+                        {# 2026-09-23: FCF MANUAL (FCF_DINAMICA_AUTOMATICA=False), igual que los demás parámetros. #}
+                        <button type="button" class="btn-parametro" id="btn-parametro-8" data-parametro-id="8" data-parametro-nombre="FRECUENCIA CARDIACA FETAL" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
+                            <span class="btn-parametro-top"><span class="status-indicator" id="indicator-8" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
+                            ❤️ FRECUENCIA CARDIACA FETAL</span>
+                            <span class="btn-parametro-value" id="val-preview-8">-</span>
+                        </button>
+                        {% endif %}
                         <button type="button" class="btn-parametro" id="btn-parametro-9" data-parametro-id="9" data-parametro-nombre="MOVIMIENTOS FETALES" onclick="abrirModalParametro(this)" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.2s; font-weight: 600; color: #334155; font-size: 0.78em; display: flex; align-items: center; justify-content: flex-start; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 46px; width: 100%;">
                             <span class="btn-parametro-top"><span class="status-indicator" id="indicator-9" style="width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; flex-shrink: 0;"></span>
                             🦶 MOV. FETAL</span>
@@ -1170,9 +1230,12 @@
                            value="{{ profesional_nombre_sesion|default:'' }}">
                 </div>
                 <div class="form-actions">
-                    <button type="submit" id="btn-guardar" class="btn btn-primary">Guardar Formulario</button>
+                    <!-- 2026-09-23: sin botón de guardar -- el formulario se guarda
+                         solo (ver autoguardarTrabajoParto en main.js). -->
+                    <span id="autosave-parto-status" aria-live="polite" style="margin-left:0"></span>
                     <br>
                     <button type="button" id="btn-descargar-pdf" class="btn btn-pdf" onclick="descargarPDF()" style="display: none; background: #dc2626; color: #ffffff; padding: 12px 24px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">📄 Descargar PDF Reporte</button>
+                    <button type="button" id="btn-finalizar-repositorio" class="btn" onclick="finalizarEnRepositorio()" title="Genera el PDF final de este formulario y lo guarda en el repositorio clínico (carpeta cédula / ingreso activo)" style="display: none; background: #0f766e; color: #ffffff; padding: 12px 24px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; margin-top: 10px; margin-left: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">📤 Finalizar y enviar a repositorio</button>
                 </div>
             </div>
         </form>
@@ -1196,7 +1259,8 @@
         <script>window.API_BASE_URL = 'http://TU_HOST:8000/api';</script>
         Si no defines nada, config.js la infiere automáticamente con window.location.hostname.
     -->
-    <script src="{% static 'js/main.js' %}?v=20260914a"></script>
+    <script>window.FCF_DINAMICA_AUTOMATICA = {{ fcf_automatica|yesno:'true,false' }};</script>
+    <script src="{% static 'js/main.js' %}?v=20260923i"></script>
     <script>
     (function() {
       const docFromCard = "{{ documento|default:''|escapejs }}".trim();
@@ -1217,9 +1281,13 @@
         // intenta crearlo de nuevo (error "num identificacion already exists").
         (async function () {
           try {
-            const data = await buscarPacienteCompleto(docFromCard);
+            // false = siempre del servidor (la caché del navegador podía mostrar
+            // datos de antes del último autoguardado).
+            const data = await buscarPacienteCompleto(docFromCard, false);
             if (!data || !data.encontrado) return;
             await llenarFormularioDesdePaciente(data);
+            // Retoma el control en curso y recupera lo no guardado (autoguardado).
+            await prepararControlAlCargar(data);
 
             // Sugerencia de G/P/C/A/V/M según palabras clave del diagnóstico, solo cuando
             // aún no existe un formulario guardado con un estado ya confirmado por el personal.

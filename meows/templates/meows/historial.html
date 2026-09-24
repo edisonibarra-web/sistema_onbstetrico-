@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial MEOWS - {{ paciente.nombres }} {{ paciente.apellidos }}</title>
     <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260814d">
-    <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260910g">
+    <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260923a">
     <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
     <style>
@@ -105,6 +105,10 @@
                         <label class="info-label">Documento</label>
                         <div class="info-value">{{ paciente.numero_documento }}</div>
                     </div>
+                    <div class="info-item">
+                        <label class="info-label">Ingreso</label>
+                        <div class="info-value" title="Número de ingreso en Dinámica (carpeta del repositorio clínico)">{% if numero_ingreso %}{{ numero_ingreso }}{% elif todo_origen_triaje %}Sin ingreso (triaje){% else %}-{% endif %}</div>
+                    </div>
                     {% if paciente.edad %}
                     <div class="info-item">
                         <label class="info-label">Edad</label>
@@ -174,6 +178,36 @@
             linkPdf.setAttribute('href', val ? baseHref + '?responsable=' + encodeURIComponent(val) : baseHref);
         });
     })();
+
+    // "Finalizar y enviar a repositorio": genera el PDF MEOWS de las tomas
+    // del ingreso activo y lo guarda en el repositorio clínico (NAS, o la
+    // carpeta local de pruebas según REPOSITORIO_MODO). Cada envío queda con
+    // un consecutivo nuevo, nunca sobrescribe uno anterior.
+    function finalizarMeowsRepositorio(btn) {
+        if (!confirm('¿Finalizar el formato MEOWS de este ingreso y enviarlo al repositorio clínico?')) return;
+        var campo = document.getElementById('meows-responsable');
+        var cookie = document.cookie.split('; ').find(function (c) { return c.indexOf('csrftoken=') === 0; });
+        var textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span> Enviando...';
+        fetch('/atencion/api/repositorio/enviar/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': cookie ? decodeURIComponent(cookie.split('=')[1]) : '',
+            },
+            body: JSON.stringify({
+                formato: 'meows',
+                documento: btn.dataset.documento,
+                responsable: campo ? (campo.value || '').trim() : '',
+            }),
+        })
+            .then(function (r) { return r.json().catch(function () { return { ok: false, mensaje: 'HTTP ' + r.status }; }); })
+            .then(function (data) { alert((data.ok ? '✅ ' : '❌ ') + (data.mensaje || 'Error desconocido')); })
+            .catch(function (err) { alert('❌ No se pudo contactar el servidor: ' + err); })
+            .finally(function () { btn.disabled = false; btn.innerHTML = textoOriginal; });
+    }
 </script>
 </body>
 </html>

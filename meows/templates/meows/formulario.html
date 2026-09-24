@@ -29,15 +29,7 @@
     {% include 'obstetricia/sidebar.html' with is_panel=False atencion_id=atencion_id documento=documento|default:paciente.numero_documento|default:'' current_module='meows' %}
     <div class="sidebar-main-content">
     <div class="container">
-        {% if messages %}
-        <section class="section" style="padding: 12px 16px;">
-            {% for message in messages %}
-            <div style="margin-bottom: 8px; border-radius: 8px; padding: 10px 12px; font-weight: 600; {% if message.tags == 'success' %}background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;{% elif message.tags == 'error' %}background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;{% else %}background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;{% endif %}">
-                {{ message }}
-            </div>
-            {% endfor %}
-        </section>
-        {% endif %}
+        {% include 'meows/_mensajes.html' %}
 
         <!-- SECCIÓN: INFORMACIÓN DEL PACIENTE -->
         <section class="section patient-section patient-section-redesigned">

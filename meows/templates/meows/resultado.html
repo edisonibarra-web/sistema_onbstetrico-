@@ -35,21 +35,65 @@
                 <span class="icon">👤</span>
                 Información del Paciente
             </h3>
-            <div class="patient-info-grid">
-                <div class="info-item">
-                    <label class="info-label">Nombre Completo</label>
-                    <div class="info-value">{{ medicion.paciente.nombres }} {{ medicion.paciente.apellidos }}</div>
+            {# 2026-09-23: ficha compacta: nombre, documento, fecha de nacimiento y edad. #}
+            <style>
+                .ficha-campos {
+                    display: grid;
+                    /* auto-fit (no auto-fill): las columnas sobrantes se colapsan y
+                       los campos se estiran hasta ocupar todo el ancho, sin dejar
+                       un espacio vacío a la derecha. */
+                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                    gap: 6px;
+                }
+                .ficha-campo {
+                    min-width: 0;
+                    padding: 6px 10px;
+                    background: #ffffff;
+                    border: 1px solid #e2e8f0;
+                    border-left: 3px solid #cbd5e1;
+                    border-radius: 8px;
+                }
+                .ficha-campo.ancho { grid-column: span 2; }
+                .ficha-campo.destacado { border-left-color: #6366f1; }
+                .ficha-etiqueta {
+                    display: block;
+                    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em;
+                    text-transform: uppercase; color: #64748b;
+                    margin-bottom: 1px;
+                }
+                .ficha-valor {
+                    display: block;
+                    font-size: 0.86rem; font-weight: 700; color: #0f172a; line-height: 1.3;
+                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                }
+                .ficha-valor.vacio { color: #94a3b8; font-weight: 600; }
+                @media (max-width: 560px) { .ficha-campo.ancho { grid-column: span 1; } }
+            </style>
+            <div class="ficha-campos">
+                <div class="ficha-campo ancho destacado">
+                    <span class="ficha-etiqueta">Nombre completo</span>
+                    <span class="ficha-valor" title="{{ medicion.paciente.nombres }} {{ medicion.paciente.apellidos }}">{{ medicion.paciente.nombres }} {{ medicion.paciente.apellidos }}</span>
                 </div>
-                <div class="info-item">
-                    <label class="info-label">Documento</label>
-                    <div class="info-value">{{ medicion.paciente.numero_documento }}</div>
+                <div class="ficha-campo destacado">
+                    <span class="ficha-etiqueta">Documento</span>
+                    <span class="ficha-valor">{{ medicion.paciente.numero_documento }}</span>
                 </div>
-                {% if medicion.paciente.fecha_ingreso %}
-                <div class="info-item">
-                    <label class="info-label">Fecha de Ingreso</label>
-                    <div class="info-value">{{ medicion.paciente.fecha_ingreso|date:"d/m/Y" }}</div>
+                <div class="ficha-campo">
+                    <span class="ficha-etiqueta">Fecha de nacimiento</span>
+                    <span class="ficha-valor{% if not medicion.paciente.fecha_nacimiento %} vacio{% endif %}">{{ medicion.paciente.fecha_nacimiento|date:"d/m/Y"|default:"—" }}</span>
                 </div>
-                {% endif %}
+                <div class="ficha-campo">
+                    <span class="ficha-etiqueta">Edad</span>
+                    <span class="ficha-valor{% if medicion.paciente.edad is None %} vacio{% endif %}">{% if medicion.paciente.edad is not None %}{{ medicion.paciente.edad }} años{% else %}—{% endif %}</span>
+                </div>
+                <div class="ficha-campo">
+                    <span class="ficha-etiqueta">Cama</span>
+                    <span class="ficha-valor{% if not medicion.paciente.cama %} vacio{% endif %}">{{ medicion.paciente.cama|default:"—" }}</span>
+                </div>
+                <div class="ficha-campo">
+                    <span class="ficha-etiqueta">Ingreso</span>
+                    <span class="ficha-valor{% if not numero_ingreso %} vacio{% endif %}" title="Número de ingreso en Dinámica">{% if numero_ingreso %}{{ numero_ingreso }}{% elif medicion.origen == 'triaje' %}Sin ingreso (triaje){% else %}—{% endif %}</span>
+                </div>
             </div>
         </section>
 

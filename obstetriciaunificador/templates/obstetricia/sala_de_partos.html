@@ -247,57 +247,255 @@
         .active-patient-area-intermedio { background: #ccfbf1; color: #0f766e; }
         .active-patient-area-otra { background: #fef3c7; color: #92400e; }
 
-        /* Pestañas para segmentar la lista de activos por área */
-        .area-tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+        /* ------------------------------------------------------------------
+           Filtros de la lista de pacientes activas (Área / Tipo).
+           2026-09-23: rediseño -- un solo panel con dos filas etiquetadas;
+           cada fila es un control segmentado: fondo neutro, la opción activa
+           en blanco con sombra suave, un punto con el color de la categoría
+           y el contador en una pastilla que toma ese color al activarse.
+           Cada opción define su color en --acento.
+           ------------------------------------------------------------------ */
+        .filtros-panel {
+            display: grid;
+            gap: 12px;
             margin-top: 18px;
-            align-items: center;
+            padding: 16px 18px;
+            /* 2026-09-23: plateado metálico (igual que la Vista Previa de
+               Trabajo de Parto) */
+            background: linear-gradient(120deg, #aeb5bf 0%, #d9dde3 42%, #eef0f3 55%, #b9c0ca 100%);
+            border: 1px solid #9ca3af;
+            border-radius: 16px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 6px 16px rgba(15, 23, 42, 0.10);
         }
-        .area-tab {
+        .filtro-fila {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .filtro-etiqueta {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 150px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #1f2937;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+        .filtro-etiqueta svg { width: 15px; height: 15px; color: #374151; }
+
+        .area-tabs,
+        .tipo-tabs {
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        .area-tab,
+        .tipo-tab {
+            --acento: #475569;
+            position: relative;
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 11px 18px;
-            border-radius: 12px;
-            border: 1.5px solid #e2e8f0;
-            background: #f8fafc;
-            color: #475569;
-            font-size: 0.92rem;
-            font-weight: 700;
+            padding: 8px 14px;
+            border: 1.5px solid color-mix(in srgb, var(--acento) 30%, #ffffff);
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--acento) 9%, #ffffff);
+            color: color-mix(in srgb, var(--acento) 75%, #0f172a);
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 600;
             line-height: 1.2;
             cursor: pointer;
-            transition: all 0.16s ease;
+            transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
         }
-        .area-tab:hover { filter: brightness(0.97); transform: translateY(-1px); }
-        .area-tab-count {
-            font-size: 0.8rem;
+        .area-tab:hover,
+        .tipo-tab:hover {
+            border-color: var(--acento);
+            background: color-mix(in srgb, var(--acento) 16%, #ffffff);
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+            transform: translateY(-1px);
+        }
+        .area-tab:focus-visible,
+        .tipo-tab:focus-visible {
+            outline: 2px solid var(--acento);
+            outline-offset: 2px;
+        }
+        /* Opción SELECCIONADA: rellena con su color, letra blanca y check --
+           imposible de confundir con las demás. */
+        .area-tab-activa,
+        .tipo-tab-activa,
+        .area-tab.area-tab-activa,
+        .tipo-tab.tipo-tab-activa {
+            background: linear-gradient(135deg, color-mix(in srgb, var(--acento) 80%, #ffffff) 0%, var(--acento) 55%, color-mix(in srgb, var(--acento) 85%, #000000) 100%);
+            border-color: color-mix(in srgb, var(--acento) 85%, #000000);
+            color: #ffffff;
+            font-weight: 700;
+            box-shadow: 0 3px 10px color-mix(in srgb, var(--acento) 40%, transparent);
+        }
+        .filtro-check {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.25);
+            font-size: 0.7rem;
             font-weight: 800;
+        }
+        .filtro-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--acento);
+            flex-shrink: 0;
+            opacity: 0.85;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+        .area-tab-activa .filtro-dot,
+        .tipo-tab-activa .filtro-dot { opacity: 1; transform: scale(1.15); }
+        .area-tab-count {
+            min-width: 24px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--acento) 16%, #ffffff);
+            color: color-mix(in srgb, var(--acento) 80%, #0f172a);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .area-tab-activa .area-tab-count,
+        .tipo-tab-activa .area-tab-count {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        /* 2026-09-23: una sola fila de opciones que NO se cruzan -- cada
+           servicio es un grupo y adentro van sus tipos de paciente. Cada
+           paciente cae en una sola opción, así los números suman el total. */
+        .vista-grupos {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch;
+            gap: 10px;
+        }
+        .vista-todas {
+            align-self: center;
+        }
+        .vista-grupo {
+            --area: #475569;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 8px 12px 10px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            border-left: 5px solid var(--area);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.10);
+        }
+        .vista-grupo-titulo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--area);
+        }
+        .vista-grupo-total {
+            color: #64748b;
+            font-weight: 700;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+        .vista-grupo-opciones {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .vista-grupo-partos     { --area: #7c3aed; }
+        .vista-grupo-gineco     { --area: #2563eb; }
+        .vista-grupo-intermedio { --area: #0d9488; }
+        .vista-grupo-otra       { --area: #d97706; }
+
+        /* Resumen de lo que se está mostrando */
+        .filtros-resumen {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(100, 116, 139, 0.35);
+            font-size: 0.86rem;
+            color: #1f2937;
+        }
+        .filtros-resumen b { color: #0f172a; }
+        .filtros-resumen-chip {
+            padding: 2px 10px;
+            border-radius: 999px;
+            background: #ffffff;
+            border: 1px solid rgba(100, 116, 139, 0.35);
+            color: #1f2937;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+        .filtros-quitar {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border: 1.5px solid #fecaca;
+            border-radius: 999px;
+            background: #ffffff;
+            color: #b91c1c;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.10);
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .filtros-quitar:hover { background: #fee2e2; }
+
+        /* Color de cada categoría */
+        .area-tab-todas         { --acento: #1e3a5f; }
+        .area-tab-partos        { --acento: #7c3aed; }
+        .area-tab-gineco        { --acento: #2563eb; }
+        .area-tab-intermedio    { --acento: #0d9488; }
+        .area-tab-otra          { --acento: #d97706; }
+        .area-tab-triaje        { --acento: #0891b2; }
+        .tipo-tab-todos         { --acento: #475569; }
+        .tipo-tab-obstetrica    { --acento: #db2777; }
+        .tipo-tab-ginecologica  { --acento: #4f46e5; }
+        .tipo-tab-sin_clasificar{ --acento: #64748b; }
+
+        @media (max-width: 640px) {
+            .filtro-fila { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .area-tabs, .tipo-tabs { width: 100%; }
+        }
+
+        .active-patient-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .active-patient-tipo {
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
             padding: 2px 9px;
             border-radius: 999px;
-            background: rgba(100, 116, 139, 0.14);
-            color: inherit;
         }
-        .area-tab-activa { color: #ffffff; border-color: transparent; }
-        .area-tab-activa .area-tab-count { background: rgba(255, 255, 255, 0.28); }
-
-        /* Cada pestaña con su propio color de identidad SIEMPRE visible (no
-           solo cuando está seleccionada) -- tinte suave en reposo, relleno
-           sólido cuando está activa. A pedido: "alinéalos, hazlos más
-           grandes, píntalos de color". */
-        .area-tab-todas { background: #e2e8f5; color: var(--primary-blue); border-color: #c7d2e8; }
-        .area-tab-todas.area-tab-activa { background: var(--primary-blue); }
-        .area-tab-partos { background: #ede9fe; color: #6d28d9; border-color: #ddd6fe; }
-        .area-tab-partos.area-tab-activa { background: #6d28d9; }
-        .area-tab-gineco { background: #dbeafe; color: #2563eb; border-color: #bfdbfe; }
-        .area-tab-gineco.area-tab-activa { background: #2563eb; }
-        .area-tab-intermedio { background: #ccfbf1; color: #0d9488; border-color: #99f6e4; }
-        .area-tab-intermedio.area-tab-activa { background: #0d9488; }
-        .area-tab-otra { background: #fef3c7; color: #d97706; border-color: #fde68a; }
-        .area-tab-otra.area-tab-activa { background: #d97706; }
-        .area-tab-triaje { background: #cffafe; color: #0891b2; border-color: #a5f3fc; }
-        .area-tab-triaje.area-tab-activa { background: #0891b2; }
+        .active-patient-tipo-obstetrica { background: #fce7f3; color: #9d174d; }
+        .active-patient-tipo-ginecologica { background: #e0e7ff; color: #3730a3; }
+        .active-patient-tipo-sin_clasificar { background: #f1f5f9; color: #475569; }
         /* El emoji 🩺 rendeaba distinto según fuente/SO (más grande y
            desplazado hacia abajo, desalineado del texto) -- se reemplazó por
            un ícono SVG (lucide, igual que el resto de íconos de esta
@@ -1179,7 +1377,14 @@
                         </div>
                     </div>
 
-                    <div class="area-tabs" id="area-tabs"></div>
+                    <div class="filtros-panel" role="group" aria-label="Filtros de pacientes">
+                        <div class="filtro-fila">
+                            <span class="filtro-etiqueta"><i data-lucide="filter"></i> Ver pacientes</span>
+                            <!-- Grupos por servicio con sus tipos de paciente (ver renderAreaTabs). -->
+                            <div class="vista-grupos" id="area-tabs" role="tablist" aria-label="Filtrar pacientes por servicio y tipo"></div>
+                        </div>
+                        <div class="filtros-resumen" id="filtros-resumen" aria-live="polite"></div>
+                    </div>
 
                     <div class="active-patients-list" id="active-patients-list">
                         <div class="active-patients-loading" id="active-patients-loading">
@@ -1320,6 +1525,10 @@
                     <div class="patient-info-item">
                         <div class="patient-info-label">Fecha de ingreso</div>
                         <div class="patient-info-value" id="info-fecha-ingreso">-</div>
+                    </div>
+                    <div class="patient-info-item">
+                        <div class="patient-info-label">Ingreso</div>
+                        <div class="patient-info-value" id="info-numero-ingreso" title="Número de ingreso activo en Dinámica (carpeta del repositorio clínico)">-</div>
                     </div>
                     <div class="patient-info-item">
                         <div class="patient-info-label">Responsable</div>
@@ -1823,6 +2032,7 @@
             document.getElementById('info-aseguradora').textContent = data.aseguradora || '-';
             document.getElementById('info-cama').textContent = data.cama || '-';
             document.getElementById('info-fecha-ingreso').textContent = data.fecha_ingreso || '-';
+            document.getElementById('info-numero-ingreso').textContent = data.numero_ingreso || '-';
             // 2026-09-22: a pedido, "Responsable" en esta card de solo lectura
             // ya no muestra el dato guardado (podía quedar vacío, o ser de
             // quien lo diligenció en un turno anterior) -- se muestra siempre
@@ -2095,7 +2305,7 @@
         // Orden fijo de pestañas de área (las áreas gineco-obstétricas primero, "otra" al final).
         const ORDEN_TABS = ['todas', 'partos', 'gineco', 'intermedio', 'otra'];
         const TITULOS_TABS = {
-            todas: 'Todas',
+            todas: 'Todas las ubicaciones',
             partos: 'Sala de Partos',
             gineco: 'Ginecobstetricia',
             intermedio: 'Cuidado Intermedio Gineco',
@@ -2103,43 +2313,171 @@
         };
         window._areaTabActiva = window._areaTabActiva || 'todas';
 
+        // Tipo de paciente (obstétrica / ginecológica), calculado en el backend
+        // a partir de los checks ANT. OBSTETRICOS / ANT. GINECOLOGICOS de la HC
+        // de ingreso en Dinámica (ver sala_partos_db._clasificar_tipo_paciente).
+        // Se combina con el filtro de área: cada fila de pestañas cuenta sobre
+        // lo que deja pasar la otra.
+        const ORDEN_TIPOS = ['todos', 'obstetrica', 'ginecologica', 'sin_clasificar'];
+        const TITULOS_TIPOS = {
+            todos: 'Todos los tipos',
+            obstetrica: 'Obstétricas',
+            ginecologica: 'Ginecológicas',
+            sin_clasificar: 'Sin clasificar',
+        };
+        const ETIQUETA_TIPO = {
+            obstetrica: 'Obstétrica',
+            ginecologica: 'Ginecológica',
+            sin_clasificar: 'Sin clasificar',
+        };
+        window._tipoTabActivo = window._tipoTabActivo || 'todos';
+
+        function tipoDe(p) {
+            return p.tipo_paciente || 'sin_clasificar';
+        }
+        function filtrarPorArea(pacientes) {
+            return window._areaTabActiva === 'todas'
+                ? pacientes
+                : pacientes.filter((p) => areaInfo(p.area).clase === window._areaTabActiva);
+        }
+        function filtrarPorTipo(pacientes) {
+            return window._tipoTabActivo === 'todos'
+                ? pacientes
+                : pacientes.filter((p) => tipoDe(p) === window._tipoTabActivo);
+        }
+
+        function renderTipoTabs(pacientes) {
+            const tabsEl = document.getElementById('tipo-tabs');
+            if (!tabsEl) return;
+
+            const base = filtrarPorArea(pacientes);
+            const conteos = { todos: base.length };
+            base.forEach((p) => {
+                const tipo = tipoDe(p);
+                conteos[tipo] = (conteos[tipo] || 0) + 1;
+            });
+
+            tabsEl.innerHTML = ORDEN_TIPOS
+                .filter((tipo) => tipo !== 'sin_clasificar' || conteos[tipo] > 0)
+                .map((tipo) => {
+                    const activa = tipo === window._tipoTabActivo ? ' tipo-tab-activa' : '';
+                    return `
+                        <button type="button" role="tab" aria-selected="${tipo === window._tipoTabActivo}" class="tipo-tab tipo-tab-${tipo}${activa}" onclick="seleccionarTabTipo('${tipo}')">
+                            ${activa ? '<span class="filtro-check">✓</span>' : '<span class="filtro-dot"></span>'}${escapeHtml(TITULOS_TIPOS[tipo])}
+                            <span class="area-tab-count">${conteos[tipo] || 0}</span>
+                        </button>`;
+                }).join('');
+        }
+
+        function seleccionarTabTipo(tipo) {
+            window._tipoTabActivo = tipo;
+            const pacientes = window._pacientesActivosSalaPartos || [];
+            renderAreaTabs(pacientes);
+            renderListaPacientesActivos(pacientes);
+        }
+
+        // 2026-09-23: filtro en UNA sola fila, sin opciones que se crucen:
+        // "Todas" + un grupo por servicio (Sala de Partos, Ginecobstetricia...)
+        // con sus tipos de paciente adentro. Cada paciente cae en una sola
+        // opción, así los números suman el total y se leen directo
+        // ("Ginecobstetricia -> Obstétricas 22"). Por dentro sigue usando
+        // _areaTabActiva + _tipoTabActivo (filtrarPorArea / filtrarPorTipo).
+        function seleccionarVista(area, tipo) {
+            ocultarListaTriaje();
+            window._areaTabActiva = area;
+            window._tipoTabActivo = tipo;
+            const pacientes = window._pacientesActivosSalaPartos || [];
+            renderAreaTabs(pacientes);
+            renderListaPacientesActivos(pacientes);
+        }
+
         function renderAreaTabs(pacientes) {
             const tabsEl = document.getElementById('area-tabs');
             if (!tabsEl) return;
 
-            const conteos = { todas: pacientes.length };
+            // conteo[area][tipo]
+            const conteo = {};
             pacientes.forEach((p) => {
-                const clase = areaInfo(p.area).clase;
-                conteos[clase] = (conteos[clase] || 0) + 1;
+                const area = areaInfo(p.area).clase;
+                const tipo = tipoDe(p);
+                conteo[area] = conteo[area] || {};
+                conteo[area][tipo] = (conteo[area][tipo] || 0) + 1;
             });
 
-            // Si la pestaña activa ya no tiene pacientes (ej. tras un nuevo filtro de búsqueda), volver a "Todas".
-            if (window._areaTabActiva !== 'todas' && !conteos[window._areaTabActiva]) {
+            // Si la opción elegida ya no tiene pacientes (ej. tras una búsqueda), volver a "Todas".
+            const a = window._areaTabActiva, t = window._tipoTabActivo;
+            const sigueExistiendo = (a === 'todas' && t === 'todos')
+                || (conteo[a] && (t === 'todos' || conteo[a][t]));
+            if (!sigueExistiendo) {
                 window._areaTabActiva = 'todas';
+                window._tipoTabActivo = 'todos';
             }
 
-            tabsEl.innerHTML = ORDEN_TABS
-                .filter((clase) => clase === 'todas' || conteos[clase] > 0)
-                .map((clase) => {
-                    const activa = clase === window._areaTabActiva ? ' area-tab-activa' : '';
+            const marca = (activa) => activa ? '<span class="filtro-check">✓</span>' : '<span class="filtro-dot"></span>';
+            const todasActiva = window._areaTabActiva === 'todas' && window._tipoTabActivo === 'todos';
+            let html = `
+                <button type="button" role="tab" aria-selected="${todasActiva}" class="area-tab area-tab-todas vista-todas${todasActiva ? ' area-tab-activa' : ''}" onclick="seleccionarVista('todas', 'todos')">
+                    ${marca(todasActiva)}Todas las pacientes
+                    <span class="area-tab-count">${pacientes.length}</span>
+                </button>`;
+
+            ORDEN_TABS.filter((area) => area !== 'todas' && conteo[area]).forEach((area) => {
+                const totalArea = Object.values(conteo[area]).reduce((x, y) => x + y, 0);
+                const opciones = ORDEN_TIPOS.filter((tipo) => tipo !== 'todos' && conteo[area][tipo]).map((tipo) => {
+                    const activa = window._areaTabActiva === area && window._tipoTabActivo === tipo;
                     return `
-                        <button type="button" class="area-tab area-tab-${clase}${activa}" onclick="seleccionarTabArea('${clase}')">
-                            ${escapeHtml(TITULOS_TABS[clase])}
-                            <span class="area-tab-count">${conteos[clase] || 0}</span>
+                        <button type="button" role="tab" aria-selected="${activa}" class="tipo-tab tipo-tab-${tipo}${activa ? ' tipo-tab-activa' : ''}" onclick="seleccionarVista('${area}', '${tipo}')"
+                                title="${escapeHtml(TITULOS_TABS[area])}: ${escapeHtml(TITULOS_TIPOS[tipo])}">
+                            ${marca(activa)}${escapeHtml(TITULOS_TIPOS[tipo])}
+                            <span class="area-tab-count">${conteo[area][tipo]}</span>
                         </button>`;
                 }).join('');
+                html += `
+                    <div class="vista-grupo vista-grupo-${area}" role="group" aria-label="${escapeHtml(TITULOS_TABS[area])}">
+                        <div class="vista-grupo-titulo">${escapeHtml(TITULOS_TABS[area])}<span class="vista-grupo-total">${totalArea} en total</span></div>
+                        <div class="vista-grupo-opciones">${opciones}</div>
+                    </div>`;
+            });
+            tabsEl.innerHTML = html;
+        }
+
+        // 2026-09-23: resumen en palabras de lo que se está mostrando, para no
+        // tener que interpretar los botones ("Mostrando 4 de 35 pacientes").
+        function renderResumenFiltros(total, mostrados) {
+            const el = document.getElementById('filtros-resumen');
+            if (!el) return;
+            const hayArea = window._areaTabActiva !== 'todas';
+            const hayTipo = window._tipoTabActivo !== 'todos';
+            const chips = [];
+            if (hayArea) chips.push(`<span class="filtros-resumen-chip">${escapeHtml(TITULOS_TABS[window._areaTabActiva])}</span>`);
+            if (hayTipo) chips.push(`<span class="filtros-resumen-chip">${escapeHtml(TITULOS_TIPOS[window._tipoTabActivo])}</span>`);
+            const texto = (hayArea || hayTipo)
+                ? `Mostrando <b>${mostrados}</b> de ${total} pacientes: ${chips.join(' › ')}`
+                : `Mostrando <b>todas</b> las pacientes activas (<b>${total}</b>)`;
+            const quitar = (hayArea || hayTipo)
+                ? '<button type="button" class="filtros-quitar" onclick="quitarFiltrosPacientes()">✕ Quitar filtros</button>'
+                : '';
+            el.innerHTML = `<span>${texto}</span>${quitar}`;
+        }
+
+        function quitarFiltrosPacientes() {
+            window._areaTabActiva = 'todas';
+            window._tipoTabActivo = 'todos';
+            const pacientes = window._pacientesActivosSalaPartos || [];
+            renderAreaTabs(pacientes);
+            renderListaPacientesActivos(pacientes);
         }
 
         function renderListaPacientesActivos(pacientes) {
             const list = document.getElementById('active-patients-list');
             if (!list) return;
 
-            const filtrados = window._areaTabActiva === 'todas'
-                ? pacientes
-                : pacientes.filter((p) => areaInfo(p.area).clase === window._areaTabActiva);
+            const filtrados = filtrarPorTipo(filtrarPorArea(pacientes));
+            renderResumenFiltros(pacientes.length, filtrados.length);
 
             if (filtrados.length === 0) {
-                list.innerHTML = `<div class="active-patients-empty">Ningún paciente activo en "${escapeHtml(TITULOS_TABS[window._areaTabActiva])}".</div>`;
+                const tipoTxt = window._tipoTabActivo === 'todos' ? '' : ` / ${TITULOS_TIPOS[window._tipoTabActivo]}`;
+                list.innerHTML = `<div class="active-patients-empty">Ningún paciente activo en "${escapeHtml(TITULOS_TABS[window._areaTabActiva] + tipoTxt)}".</div>`;
                 return;
             }
 
@@ -2147,14 +2485,19 @@
                 const nombre = p.nombre_paciente || 'Sin nombre registrado';
                 const doc = p.identificacion || '';
                 const cama = p.numero_cama ? `Cama ${p.numero_cama}` : null;
-                const eg = (p.edad_gestacional !== null && p.edad_gestacional !== undefined) ? `${p.edad_gestacional} sem` : null;
+                const eg = p.edad_gestacional_texto
+                    || ((p.edad_gestacional !== null && p.edad_gestacional !== undefined) ? `${p.edad_gestacional} sem` : null);
                 const gestas = p.gestas ? `G${p.gestas}` : null;
                 const badges = [cama, eg, gestas].filter(Boolean)
                     .map(b => `<span class="active-patient-badge">${escapeHtml(b)}</span>`).join('');
                 const area = areaInfo(p.area);
+                const tipo = tipoDe(p);
                 return `
                     <div class="active-patient-item active-patient-item-${area.clase}" data-doc="${escapeHtml(doc)}" onclick="seleccionarPacienteActivo(this)">
-                        <span class="active-patient-area active-patient-area-${area.clase}">${escapeHtml(area.etiqueta)}</span>
+                        <div class="active-patient-tags">
+                            <span class="active-patient-area active-patient-area-${area.clase}">${escapeHtml(area.etiqueta)}</span>
+                            <span class="active-patient-tipo active-patient-tipo-${tipo}">${escapeHtml(ETIQUETA_TIPO[tipo] || tipo)}</span>
+                        </div>
                         <div class="active-patient-name">${escapeHtml(nombre)}</div>
                         <div class="active-patient-doc">Doc: ${escapeHtml(doc || '-')}</div>
                         <div class="active-patient-meta">${badges}</div>

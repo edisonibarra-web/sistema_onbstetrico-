@@ -5,6 +5,13 @@ from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
 from .models import AtencionParto
+from .repositorio import (
+    RepositorioError, enviar_control_posparto, enviar_meows, enviar_trabajo_parto,
+    enviar_triaje_si_corresponde, resolver_atencion_ingreso, resumen_envio,
+)
+import logging
+
+logger = logging.getLogger(__name__)
 
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
@@ -461,6 +468,22 @@ def atencion_detalle(request, id):
     })
 
 
+def _atencion_ingreso_actual(doc):
+    """(id, número de ingreso) de la atención del ingreso actual en Dinámica
+    -- una atención por ingreso, ver repositorio.resolver_atencion_ingreso."""
+    atencion, _ = resolver_atencion_ingreso(doc)
+    if atencion is None:
+        return None, ""
+    # Si la paciente venía de Triaje y ya tiene ingreso, su formato de triaje
+    # se envía al repositorio ahora (una sola vez por ingreso) -- no depende
+    # de que esté corriendo la sincronización periódica.
+    try:
+        enviar_triaje_si_corresponde(doc)
+    except Exception:
+        logger.exception("No se pudo revisar el triaje pendiente de la paciente")
+    return atencion.id, atencion.numero_ingreso
+
+
 @require_http_methods(["GET"])
 @login_required_if_enabled
 def api_datos_paciente_unificado(request):
@@ -478,6 +501,7 @@ def api_datos_paciente_unificado(request):
     # 1. Buscar en meows.Paciente
     meows_p = MeowsPaciente.objects.filter(numero_documento=doc).first()
     if meows_p:
+        atencion_id, numero_ingreso = _atencion_ingreso_actual(doc)
         edad = None
         if meows_p.fecha_nacimiento:
             today = date.today()
@@ -506,7 +530,8 @@ def api_datos_paciente_unificado(request):
             "gestas": meows_p.gestas,
             "diagnostico": meows_p.diagnostico or "",
             "n_controles_prenatales": meows_p.n_controles_prenatales,
-            "atencion_id": AtencionParto.objects.filter(paciente=doc).order_by("-fecha_inicio").values_list("id", flat=True).first(),
+            "atencion_id": atencion_id,
+            "numero_ingreso": numero_ingreso,
             "mediciones_count": Medicion.objects.filter(paciente__numero_documento=doc).count(),
             "fetal_count": RegistroParto.objects.filter(identificacion=doc).count(),
             "parto_count": Formulario.objects.filter(paciente__num_identificacion=doc).count(),
@@ -524,6 +549,7 @@ def api_datos_paciente_unificado(request):
     # 2. Fallback: trabajoparto.Paciente
     tp_p = TrabajoPartoPaciente.objects.filter(num_identificacion=doc).first()
     if tp_p:
+        atencion_id, numero_ingreso = _atencion_ingreso_actual(doc)
         edad = None
         if tp_p.fecha_nacimiento:
             today = date.today()
@@ -552,7 +578,8 @@ def api_datos_paciente_unificado(request):
             "gestas": None,
             "diagnostico": "",
             "n_controles_prenatales": None,
-            "atencion_id": AtencionParto.objects.filter(paciente=doc).order_by("-fecha_inicio").values_list("id", flat=True).first(),
+            "atencion_id": atencion_id,
+            "numero_ingreso": numero_ingreso,
             "mediciones_count": Medicion.objects.filter(paciente__numero_documento=doc).count(),
             "fetal_count": RegistroParto.objects.filter(identificacion=doc).count(),
             "parto_count": Formulario.objects.filter(paciente__num_identificacion=doc).count(),
@@ -786,11 +813,62 @@ def registrar_atencion_desde_sala_partos(request):
     except IntegrityError:
         pass
 
-    atencion = AtencionParto.objects.filter(paciente=doc).order_by("-fecha_inicio").first()
-    if not atencion:
-        atencion = AtencionParto.objects.create(paciente=doc)
+    atencion, _ = resolver_atencion_ingreso(doc)
 
-    return JsonResponse({"ok": True, "atencion_id": atencion.id, "documento": doc})
+    return JsonResponse({
+        "ok": True,
+        "atencion_id": atencion.id,
+        "numero_ingreso": atencion.numero_ingreso,
+        "documento": doc,
+    })
+
+
+@require_http_methods(["POST"])
+@login_required_if_enabled
+def api_enviar_repositorio(request):
+    """
+    Botón "Finalizar y enviar a repositorio" de cada módulo: genera el formato
+    final (PDF) y lo guarda en el repositorio clínico -- NAS o carpeta local de
+    pruebas según REPOSITORIO_MODO (ver obstetriciaunificador/repositorio.py).
+
+    POST /atencion/api/repositorio/enviar/  body JSON:
+      {"formato": "meows", "documento": "...", "responsable": "..."}
+      {"formato": "trabajo_parto", "formulario_id": 12}
+      {"formato": "control_posparto", "registro_id": "<uuid>"}   (reintento;
+          normalmente se envía solo al "Guardar Registro Completo")
+    """
+    import json
+    from sistema_obstetrico.auth_utils import nombre_profesional_sesion
+
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "mensaje": "JSON inválido"}, status=400)
+
+    formato = (data.get("formato") or "").strip()
+    usuario = nombre_profesional_sesion(request)
+    try:
+        if formato == "meows":
+            documento = enviar_meows(
+                data.get("documento"), usuario=usuario,
+                responsable=(data.get("responsable") or "").strip() or None, request=request,
+            )
+        elif formato == "trabajo_parto":
+            formulario = get_object_or_404(
+                Formulario.objects.select_related("paciente", "aseguradora", "atencion"),
+                id=data.get("formulario_id"),
+            )
+            documento = enviar_trabajo_parto(formulario, usuario=usuario)
+        elif formato == "control_posparto":
+            registro = get_object_or_404(RegistroParto, pk=data.get("registro_id"))
+            documento = enviar_control_posparto(registro, usuario=usuario)
+        else:
+            return JsonResponse({"ok": False, "mensaje": f"Formato no válido: {formato!r}"}, status=400)
+    except RepositorioError as exc:
+        return JsonResponse({"ok": False, "mensaje": str(exc)}, status=400)
+
+    resumen = resumen_envio(documento)
+    return JsonResponse(resumen, status=200 if resumen["ok"] else 502)
 
 
 @login_required_if_enabled

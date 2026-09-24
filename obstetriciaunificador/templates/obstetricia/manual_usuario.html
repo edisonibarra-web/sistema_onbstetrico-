@@ -197,6 +197,67 @@
         .callout.warn { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
         .callout.danger { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
 
+        /* Etiqueta "Nuevo" junto a los títulos de lo agregado en la versión 1.2 */
+        .badge-nuevo {
+            display: inline-block; vertical-align: middle;
+            margin-left: 8px; padding: 2px 9px; border-radius: 999px;
+            background: #dcfce7; color: #15803d; border: 1px solid #86efac;
+            font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+        }
+        .section-card.c-triaje .section-icon { background: linear-gradient(135deg,#fde047,#f59e0b); }
+        .section-card.c-repo .section-icon   { background: linear-gradient(135deg,#5eead4,#0f766e); }
+        .c-triaje ol.steps > li::before { background:#fef3c7; color:#b45309; }
+        .c-repo ol.steps > li::before   { background:#ccfbf1; color:#0f766e; }
+
+        /* Párrafo normal dentro de una sección */
+        p.txt { font-size: 14.5px; color: #334155; line-height: 1.65; margin: 0 0 10px; max-width: 900px; }
+
+        /* Tabla informativa */
+        table.info-table {
+            width: 100%; max-width: 1040px; border-collapse: separate; border-spacing: 0;
+            margin: 14px 0 18px; font-size: 13.5px; color: #334155;
+            border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden;
+        }
+        table.info-table th {
+            background: #0f172a; color: #f8fafc; text-align: left;
+            padding: 10px 14px; font-size: 12.5px; letter-spacing: .03em; text-transform: uppercase;
+        }
+        table.info-table td { padding: 10px 14px; border-top: 1px solid #e2e8f0; vertical-align: top; line-height: 1.5; }
+        table.info-table tr:nth-child(even) td { background: #f8fafc; }
+        table.info-table code { background: #f1f5f9; padding: 1px 6px; border-radius: 5px; font-size: 12.5px; word-break: break-all; }
+
+        /* Diagrama de carpetas del repositorio clínico (NAS) */
+        .repo-tree {
+            max-width: 1040px; margin: 16px 0 20px;
+            background: #0f172a; color: #e2e8f0;
+            border-radius: 16px; padding: 22px 26px;
+            font-family: 'Cascadia Code', Consolas, 'Courier New', monospace; font-size: 13.5px; line-height: 1.9;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+            overflow-x: auto;
+        }
+        .repo-tree .lvl1 { padding-left: 26px; }
+        .repo-tree .lvl2 { padding-left: 52px; }
+        .repo-tree .lvl3 { padding-left: 78px; }
+        .repo-tree .dir  { color: #fde68a; font-weight: 700; }
+        .repo-tree .file { color: #5eead4; }
+        .repo-tree .otro { color: #94a3b8; }
+        .repo-tree .nota { color: #94a3b8; font-family: 'Inter', system-ui, sans-serif; font-size: 12.5px; margin-left: 10px; }
+
+        /* Flujo en pasos (tarjetas horizontales) */
+        .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; max-width: 1040px; margin: 14px 0 20px; }
+        .flow-step {
+            position: relative; border-radius: 14px; padding: 14px 16px;
+            background: #f8fafc; border: 1px solid #e2e8f0;
+            font-size: 13px; line-height: 1.5; color: #334155;
+        }
+        .flow-step b { display: block; color: #0f172a; font-size: 13.5px; margin-bottom: 4px; }
+        .flow-step .flow-num {
+            display: inline-flex; width: 24px; height: 24px; border-radius: 50%;
+            align-items: center; justify-content: center; margin-bottom: 8px;
+            background: #ccfbf1; color: #0f766e; font-weight: 800; font-size: 12px;
+        }
+        @media (max-width: 900px) { .flow { grid-template-columns: 1fr 1fr; } }
+
         /* Semáforo MEOWS */
         .risk-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin: 14px 0 6px; max-width: 900px; }
         .risk-chip {
@@ -427,23 +488,30 @@
                     <h1>Manual de Usuario del Sistema Obstétrico Unificado</h1>
                     <div class="manual-meta">
                         <span><i data-lucide="hospital" size="13"></i> Hospital Universitario Departamental de Nariño</span>
-                        <span><i data-lucide="tag" size="13"></i> Versión del manual 1.1</span>
-                        <span><i data-lucide="calendar" size="13"></i> Actualizado el 9 de septiembre de 2026</span>
+                        <span><i data-lucide="tag" size="13"></i> Versión del manual 1.2</span>
+                        <span><i data-lucide="calendar" size="13"></i> Actualizado el 23 de septiembre de 2026</span>
                     </div>
                     <p>
                         Esta guía explica, paso a paso y sin tecnicismos, cómo usar cada pantalla del sistema:
-                        desde iniciar sesión, hasta encontrar a la paciente, registrar los signos vitales (MEOWS),
-                        el control posparto inmediato y el trabajo de parto, y descargar los formatos en
-                        PDF. Está dirigida al personal asistencial (enfermería, medicina, personal de sala de
-                        partos) del hospital que atiende pacientes obstétricas. Úsela como referencia rápida cada
-                        vez que tenga una duda sobre qué botón presionar — no necesita leerla de corrido.
+                        desde iniciar sesión, hasta encontrar a la paciente, registrar el triaje, consultar los
+                        signos vitales (MEOWS), el control posparto inmediato y el trabajo de parto, y dejar los
+                        formatos finales guardados en el repositorio clínico del hospital. Está dirigida al
+                        personal asistencial (enfermería, medicina, personal de sala de partos) del hospital que
+                        atiende pacientes obstétricas y ginecológicas. Úsela como referencia rápida cada vez que
+                        tenga una duda sobre qué botón presionar — no necesita leerla de corrido.
                     </p>
                     <div class="callout tip" style="max-width:900px;">
                         <i data-lucide="sparkles" size="18"></i>
-                        <span><b>Novedad:</b> los signos vitales que la enfermería ya registra en Dinámica
-                        Gerencial ahora se importan solos a MEOWS — no hay que volver a digitarlos. El sistema
-                        también le avisa con una campana en el encabezado cuando llega una alerta nueva. Vea el
-                        detalle en la sección 3.</span>
+                        <span><b>Novedades de la versión 1.2 (23 de septiembre de 2026):</b>
+                        <br>• <b>Filtro Obstétricas / Ginecológicas</b> en Sala de Partos, tomado de lo que marca
+                        enfermería en Dinámica (sección 2).
+                        <br>• Nuevo campo <b>Ingreso</b> en los datos de la paciente, y <b>edad gestacional y
+                        G/P/C/A corregidos</b> (sección 2).
+                        <br>• Módulo <b>Triaje</b> documentado, con el nombre de quien toma cada signo vital (sección 3).
+                        <br>• <b>Repositorio clínico (NAS):</b> los formatos finales de MEOWS, Control Posparto,
+                        Trabajo de Parto y Triaje se guardan en la carpeta de la paciente y de su ingreso
+                        (secciones 4 a 6 y sección 8).
+                        <br>Lo nuevo está marcado a lo largo del manual con la etiqueta <span class="badge-nuevo" style="margin-left:2px;">Nuevo</span>.</span>
                     </div>
 
                     <div class="manual-search-wrap">
@@ -458,12 +526,14 @@
                     <div class="toc">
                         <a href="#sec-inicio"><span class="dot" style="background:var(--c-manual)"></span>1. Primeros pasos e inicio de sesión</a>
                         <a href="#sec-sala"><span class="dot" style="background:var(--c-sala)"></span>2. Sala de Partos</a>
-                        <a href="#sec-meows"><span class="dot" style="background:var(--c-meows)"></span>3. Módulo MEOWS</a>
-                        <a href="#sec-fetal"><span class="dot" style="background:var(--c-fetal)"></span>4. Control Posparto Inmediato</a>
-                        <a href="#sec-parto"><span class="dot" style="background:var(--c-parto)"></span>5. Trabajo de Parto</a>
-                        <a href="#sec-pdf"><span class="dot" style="background:var(--c-sala)"></span>6. PDF unificado</a>
-                        <a href="#sec-faq"><span class="dot" style="background:var(--c-manual)"></span>7. Preguntas frecuentes</a>
-                        <a href="#sec-seguridad"><span class="dot" style="background:#0f172a"></span>8. Seguridad, permisos y roles</a>
+                        <a href="#sec-triaje"><span class="dot" style="background:#f59e0b"></span>3. Triaje</a>
+                        <a href="#sec-meows"><span class="dot" style="background:var(--c-meows)"></span>4. Módulo MEOWS</a>
+                        <a href="#sec-fetal"><span class="dot" style="background:var(--c-fetal)"></span>5. Control Posparto Inmediato</a>
+                        <a href="#sec-parto"><span class="dot" style="background:var(--c-parto)"></span>6. Trabajo de Parto</a>
+                        <a href="#sec-pdf"><span class="dot" style="background:var(--c-sala)"></span>7. PDF unificado</a>
+                        <a href="#sec-repositorio"><span class="dot" style="background:#0f766e"></span>8. Repositorio clínico (NAS)</a>
+                        <a href="#sec-faq"><span class="dot" style="background:var(--c-manual)"></span>9. Preguntas frecuentes</a>
+                        <a href="#sec-seguridad"><span class="dot" style="background:#0f172a"></span>10. Seguridad, permisos y roles</a>
                     </div>
                 </div>
 
@@ -488,13 +558,13 @@
                             acceso a Dinámica (ver más abajo).</li>
                         <li><b>Sonido de alertas:</b> la primera vez que use el sistema en un computador, autorice el
                             sonido del sitio en el navegador para que las alertas críticas de MEOWS suenen sin
-                            necesidad de hacer clic primero (detalle en la sección 3).</li>
+                            necesidad de hacer clic primero (detalle en la sección 4).</li>
                     </ul>
                     <div class="callout warn">
                         <i data-lucide="shield-alert" size="18"></i>
                         <span>Este sistema maneja información clínica de pacientes. No comparta su usuario ni su
                         contraseña con nadie, ni siquiera con otro compañero de turno — cada quien debe ingresar con
-                        su propia cuenta. Vea más recomendaciones en la sección 8 (Seguridad).</span>
+                        su propia cuenta. Vea más recomendaciones en la sección 10 (Seguridad).</span>
                     </div>
 
                     <h3 class="step-title">Iniciar sesión</h3>
@@ -591,15 +661,24 @@
                         <li><b>Manual de Usuario</b>: esta guía, disponible desde cualquier pantalla del sistema.</li>
                         <li><b>Sala de Partos</b>: al hacer clic aquí, si ya tiene una paciente abierta, se despliegan
                             los accesos directos a <b>MEOWS</b>, <b>Control Posparto Inmediato</b> y <b>Trabajo de Parto</b> de esa paciente.</li>
+                        <li><b>Triaje</b> (ícono amarillo) <span class="badge-nuevo">Nuevo</span>: registro de signos
+                            vitales de pacientes que <b>todavía no tienen ingreso</b> en el hospital (ver sección 3).</li>
+                        <li>Arriba del menú aparece <b>"Sesión iniciada"</b> con su nombre: es el nombre que el sistema
+                            usará como responsable de lo que usted registre.</li>
                         <li>El botón con la flecha (arriba del todo) colapsa el menú a solo íconos, útil en pantallas pequeñas.</li>
                     </ul>
 
-                    <h3 class="step-title">La campana de alertas y el botón de salir (siempre visibles, arriba a la derecha)</h3>
+                    <h3 class="step-title">Las campanas de alertas y el botón de salir (siempre visibles, arriba a la derecha)</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 8px;">
-                        En la esquina superior derecha, junto al logo del hospital, hay una campana 🔔 que le avisa
-                        de alertas MEOWS de <b>cualquier</b> paciente, sin importar en qué pantalla esté trabajando.
-                        Vea cómo funciona en detalle en la sección 3 (Módulo MEOWS).
+                        En la esquina superior derecha hay <b>dos campanas</b> 🔔, cada una con su rótulo:
                     </p>
+                    <ul class="plain">
+                        <li><b>DINÁMICA</b> (azul): alertas MEOWS de <b>cualquier</b> paciente con ingreso, calculadas
+                            con los signos vitales que llegan de Dinámica Gerencial. Vea cómo funciona en la sección 4.</li>
+                        <li><b>TRIAJE</b> (morada) <span class="badge-nuevo">Nuevo</span>: alertas de los signos vitales
+                            tomados en <b>Triaje</b>, antes de que la paciente tenga ingreso. Funciona igual que la de
+                            Dinámica, pero por separado, para que nunca se mezclen (ver sección 3).</li>
+                    </ul>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
                         Justo al lado de la campana está el botón rojo circular de <b>Cerrar Sesión</b> (ícono de
                         salida). Le pide confirmación antes de cerrar la sesión, para evitar que la cierre por
@@ -619,11 +698,11 @@
                     </p>
 
                     <div class="screenshot-frame">
-                        <img src="{% static 'manual/sala_de_partos.png' %}?v=1" alt="Pantalla de Sala de Partos con una paciente en atención">
+                        <img src="{% static 'manual/sala_de_partos.png' %}?v=2" alt="Pantalla de Sala de Partos con una paciente en atención">
                     </div>
                     <div class="screenshot-caption">
                         <i data-lucide="camera" size="14"></i>
-                        <span>Vista real con una paciente ya en atención: la tarjeta de identificación con su estado, las tres cards de módulos (cada una con su propio ícono) y la sección "Datos registrados del paciente" debajo.</span>
+                        <span>Vista real con una paciente ya en atención (datos ficticios): arriba a la derecha las campanas de TRIAJE y DINÁMICA; la tarjeta de identificación con su estado, las tres cards de módulos y la sección "Datos registrados del paciente" debajo.</span>
                         <span class="zoom-hint">🔍 Clic para ampliar</span>
                     </div>
 
@@ -633,18 +712,81 @@
                             "Pacientes activos en Sala de Partos" (las que están actualmente hospitalizadas en las
                             áreas obstétricas del hospital).</li>
                         <li>Use las <b>pestañas de área</b> (Todas / Sala de Partos / Ginecobstetricia / Cuidado
-                            Intermedio Gineco / Otra área) para filtrar rápidamente por ubicación.</li>
+                            Intermedio Gineco / Otra área) para filtrar rápidamente por ubicación. Solo aparecen
+                            las pestañas de las áreas que tienen pacientes en ese momento.</li>
+                        <li>Use la fila <b>Tipo</b> (Todas / Obstétricas / Ginecológicas) para separar a las
+                            pacientes obstétricas de las ginecológicas — vea el detalle justo abajo.</li>
                         <li>O escriba el <b>nombre o número de documento</b> de la paciente en el buscador; la
                             lista se filtra automáticamente mientras escribe.</li>
                         <li>Si necesita refrescar la lista (por ejemplo, si acaba de ingresar una paciente nueva
                             al hospital), presione <code class="btnname">Actualizar</code>.</li>
                     </ol>
 
+                    <h3 class="step-title">Separar pacientes obstétricas y ginecológicas <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt">
+                        En el área de <b>Ginecobstetricia</b> se hospitalizan tanto pacientes obstétricas (embarazo,
+                        parto, puerperio) como ginecológicas (por ejemplo, tumores, sangrado uterino anormal o
+                        posoperatorios ginecológicos). Para no tenerlas revueltas, cada tarjeta muestra ahora una
+                        etiqueta con el <b>tipo de paciente</b>, y debajo de las pestañas de área hay una fila
+                        <b>TIPO</b> para filtrarlas.
+                    </p>
+                    <div class="screenshot-frame hotspot-frame">
+                        <img src="{% static 'manual/sala_filtro_tipo.png' %}?v=1" alt="Lista de pacientes activas con la fila de filtro por tipo y la etiqueta Obstétrica en cada tarjeta">
+                        <button type="button" class="hotspot" data-num="1" style="left:48.6%;top:28.4%" title="Pestañas de área">1</button>
+                        <button type="button" class="hotspot" data-num="2" style="left:46.3%;top:34.3%" title="Filtro por tipo">2</button>
+                        <button type="button" class="hotspot" data-num="3" style="left:19.8%;top:39.2%" title="Etiqueta de área">3</button>
+                        <button type="button" class="hotspot" data-num="4" style="left:26.6%;top:39.2%" title="Etiqueta de tipo">4</button>
+                        <button type="button" class="hotspot" data-num="5" style="left:26%;top:51.6%" title="Edad gestacional y gestas">5</button>
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Lista real de pacientes activas (nombres y documentos reemplazados por datos ficticios). Cada tarjeta lleva dos etiquetas: el área y el tipo de paciente.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <div class="hotspot-hint"><i data-lucide="mouse-pointer-click" size="14"></i> Haga clic en cada número de la captura para ver su explicación:</div>
+                    <div class="hotspot-panel">
+                        <div class="hotspot-panel-item" data-num="1"><b class="num">1</b><span><b>Pestañas de área:</b> filtran por el sitio físico donde está hospitalizada la paciente. El número es la cantidad de pacientes.</span></div>
+                        <div class="hotspot-panel-item" data-num="2"><b class="num">2</b><span><b>Fila TIPO:</b> <b>Todas</b>, <b>Obstétricas</b> o <b>Ginecológicas</b>. Se combina con la pestaña de área elegida arriba (por ejemplo, Ginecobstetricia + Ginecológicas).</span></div>
+                        <div class="hotspot-panel-item" data-num="3"><b class="num">3</b><span><b>Etiqueta de área</b> de la paciente (Sala de Partos, Ginecobstetricia, Cuidado Intermedio…).</span></div>
+                        <div class="hotspot-panel-item" data-num="4"><b class="num">4</b><span><b>Etiqueta de tipo:</b> <b style="color:#be185d">OBSTÉTRICA</b> (rosada) o <b style="color:#4338ca">GINECOLÓGICA</b> (morada).</span></div>
+                        <div class="hotspot-panel-item" data-num="5"><b class="num">5</b><span><b>Cama, edad gestacional y gestas.</b> La edad gestacional se muestra en semanas y días (por ejemplo, <b>38 sem 4 d</b>) — vea más abajo de dónde sale.</span></div>
+                    </div>
+                    <div class="screenshot-frame" style="max-width:820px;">
+                        <img src="{% static 'manual/sala_filtro_ginecologicas.png' %}?v=1" alt="Lista filtrada solo con pacientes ginecológicas">
+                    </div>
+                    <div class="screenshot-caption" style="max-width:820px;">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>El mismo listado con el filtro <b>Ginecológicas</b> activo: solo quedan las 4 pacientes ginecológicas, y las pestañas de área se recalculan para ese tipo.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <p class="txt" style="font-weight:800;margin-top:14px;">¿Cómo sabe el sistema si una paciente es obstétrica o ginecológica?</p>
+                    <ol class="steps">
+                        <li>Lo toma de la <b>Historia Clínica de Ingreso Ginecoobstetricia</b> de Dinámica, donde enfermería
+                            marca una de dos casillas: <b>"ANT. OBSTETRICOS: ACTIVAR SI LO DESEA DILIGENCIAR"</b> o
+                            <b>"ANT. GINECOLOGICOS: ACTIVAR SI LO DESEA DILIGENCIAR"</b>. La que esté marcada define el tipo.</li>
+                        <li>Si están marcadas <b>las dos</b>, o <b>ninguna</b> (por ejemplo, porque todavía no se ha
+                            diligenciado esa historia), decide el <b>diagnóstico</b>: si la paciente tiene en ese ingreso
+                            algún diagnóstico de embarazo, parto o puerperio (códigos CIE-10 que empiezan por <b>O</b>, o
+                            <b>Z32 a Z39</b>), o su ingreso está marcado como <b>gestante</b>, se considera obstétrica.</li>
+                        <li>Si con nada de lo anterior se puede decidir, la tarjeta dice <b>SIN CLASIFICAR</b> y aparece
+                            una pestaña <b>Sin clasificar</b> (solo cuando hay pacientes en ese caso).</li>
+                    </ol>
+                    <div class="callout tip">
+                        <i data-lucide="info" size="18"></i>
+                        <span>Si una paciente aparece con el tipo equivocado, la corrección se hace <b>en Dinámica</b>,
+                        marcando la casilla correcta (antecedentes obstétricos o ginecológicos) en su historia clínica
+                        de ingreso. Al presionar <code class="btnname">Actualizar</code> la lista toma el cambio.
+                        Recuerde que un <b>embarazo molar</b> o un <b>embarazo ectópico</b> son obstétricos (CIE-10 capítulo O).</span>
+                    </div>
+
                     <h3 class="step-title">Abrir la atención de la paciente</h3>
                     <ol class="steps">
                         <li>Haga clic sobre la tarjeta de la paciente que necesita atender.</li>
                         <li>El sistema abre automáticamente su ficha clínica unificada (no necesita llenar ningún
-                            formulario para esto: si es la primera vez que se usa el sistema con ella, se crea sola).</li>
+                            formulario para esto: si es la primera vez que se usa el sistema con ella, se crea sola).
+                            La ficha corresponde al <b>ingreso actual</b> de la paciente en Dinámica: si reingresa en
+                            otra ocasión, el sistema abre una atención nueva para ese ingreso, sin mezclar sus
+                            formatos con los del ingreso anterior.</li>
                         <li>Aparece una tarjeta con su nombre, número de identificación y un indicador de estado:
                             <b>ESTABLE</b>, <b>ALERTA</b> o <b>CRÍTICO</b> (calculado automáticamente según sus
                             registros de MEOWS más recientes).</li>
@@ -660,12 +802,44 @@
                             mediciones y la gráfica pequeña queda muy apretada para leerla bien.</li>
                     </ol>
 
+                    <h3 class="step-title">Datos registrados de la paciente: Ingreso, edad gestacional y G/P/C/A <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt">
+                        Al abrir la atención, la sección <b>"Datos registrados del paciente"</b> muestra la
+                        información que viene de Dinámica. Hay un campo nuevo y dos datos que ahora se toman
+                        de un lugar más confiable:
+                    </p>
+                    <div class="screenshot-frame hotspot-frame">
+                        <img src="{% static 'manual/tablero_datos_ingreso.png' %}?v=1" alt="Datos registrados del paciente con el nuevo campo Ingreso">
+                        <button type="button" class="hotspot" data-num="6" style="left:57.4%;top:44.6%" title="Ingreso">6</button>
+                        <button type="button" class="hotspot" data-num="7" style="left:57.4%;top:52.8%" title="Edad gestacional">7</button>
+                        <button type="button" class="hotspot" data-num="8" style="left:84.6%;top:52.8%" title="Gestas">8</button>
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Datos registrados de una paciente (identificación y número de ingreso ficticios). El campo <b>Ingreso</b> es nuevo.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <div class="hotspot-panel" style="grid-template-columns:1fr;">
+                        <div class="hotspot-panel-item" data-num="6"><b class="num">6</b><span><b>Ingreso:</b> el número de ingreso <b>activo</b> de la paciente en Dinámica. Es el mismo número con el que se nombra la carpeta de ese ingreso en el repositorio clínico (sección 8). Si la paciente todavía no tiene ingreso (por ejemplo, está en Triaje), aparece "-".</span></div>
+                        <div class="hotspot-panel-item" data-num="7"><b class="num">7</b><span><b>Edad gestacional:</b> se toma de lo que el médico escribe en el <b>análisis</b> de la historia clínica de ingreso ("1. Embarazo de 38.4 semanas…"). En la notación del hospital, <b>38.4 significa 38 semanas y 4 días</b>, por eso se muestra como <b>38 sem 4 d</b>. Si el análisis no la trae, se calcula con la <b>FUM</b>, siempre que dé un valor posible (entre 4 y 41 semanas). Si no hay un dato confiable, se deja vacía en vez de mostrar un número falso — es lo normal en pacientes ginecológicas o en puerperio.</span></div>
+                        <div class="hotspot-panel-item" data-num="8"><b class="num">8</b><span><b>Gestas (y en los formatos, Partos, Cesáreas y Abortos):</b> se toman de la sección <b>ANT. OBSTETRICOS</b> de la historia clínica de ingreso; si esa sección está vacía, de <b>ANT. GINECOLOGICOS</b>. En la sección obstétrica, enfermería suele registrar solo los embarazos <b>anteriores</b>, así que una primigestante puede aparecer con G0.</span></div>
+                    </div>
+                    <div class="callout warn">
+                        <i data-lucide="alert-triangle" size="18"></i>
+                        <span><b>Antes de esta versión la edad gestacional salía mal:</b> se leía un campo de
+                        Dinámica que en realidad es la <b>"semana de inicio" de los controles prenatales</b> (por eso
+                        aparecían valores como "6.2 sem" en pacientes de 36 semanas). Ya está corregido en la lista de
+                        pacientes, en Trabajo de Parto y en la sincronización con Dinámica. Los datos que ya estaban
+                        guardados en el sistema se actualizan la próxima vez que corra la sincronización con Dinámica;
+                        mientras tanto, verifique siempre la edad gestacional contra la historia clínica.</span>
+                    </div>
+
                     <h3 class="step-title">Terminar o cambiar de paciente</h3>
                     <ul class="plain">
                         <li>Para dejar de trabajar con la paciente actual y volver al buscador, use el botón
                             <code class="btnname">Salir de la Atención</code>.</li>
                         <li>Para imprimir o guardar en PDF todo lo registrado de esta paciente en los tres
-                            módulos, use el botón <code class="btnname">PDF Unificado</code> (ver sección 6).
+                            módulos, use el botón <code class="btnname">PDF Unificado</code> (ver sección 7).
                             Este botón solo aparece activo si ya hay al menos un registro guardado.</li>
                     </ul>
 
@@ -677,11 +851,151 @@
                     </div>
                 </section>
 
-                <!-- 3. MEOWS -->
+                <!-- 3. TRIAJE -->
+                <section class="section-card c-triaje" id="sec-triaje">
+                    <div class="section-head">
+                        <div class="section-icon"><i data-lucide="stethoscope"></i></div>
+                        <h2>3. Triaje — Signos vitales antes del ingreso <span class="badge-nuevo">Nuevo</span></h2>
+                    </div>
+                    <p class="section-sub">
+                        Para la paciente que llega y todavía <b>no tiene ingreso formal</b> en el hospital (aún no
+                        aparece en Dinámica). Aquí se registran sus signos vitales, el sistema calcula el puntaje
+                        MEOWS y avisa si hay riesgo. Cuando la paciente recibe su ingreso, el formato de triaje se
+                        guarda solo en su carpeta del repositorio clínico.
+                    </p>
+
+                    <h3 class="step-title">Entrar a Triaje y buscar a la paciente</h3>
+                    <div class="screenshot-frame hotspot-frame">
+                        <img src="{% static 'manual/triaje_lista.png' %}?v=2" alt="Pantalla de Triaje con el recuadro Iniciar Triaje y la lista de pacientes en triaje">
+                        <button type="button" class="hotspot" data-num="1" style="left:11.8%;top:62.9%" title="Módulo Triaje">1</button>
+                        <button type="button" class="hotspot" data-num="2" style="left:47.2%;top:56.3%" title="Número de documento">2</button>
+                        <button type="button" class="hotspot" data-num="3" style="left:46.8%;top:63.8%" title="Buscar y continuar">3</button>
+                        <button type="button" class="hotspot" data-num="4" style="left:37.4%;top:74.5%" title="Paciente en triaje">4</button>
+                        <button type="button" class="hotspot" data-num="5" style="left:81.9%;top:5.4%" title="Campana de Triaje">5</button>
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Pantalla de Triaje (datos de la paciente reemplazados por datos ficticios). Es independiente de la lista de Sala de Partos: tiene su propio encabezado amarillo.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <div class="hotspot-hint"><i data-lucide="mouse-pointer-click" size="14"></i> Haga clic en cada número de la captura para ver su explicación:</div>
+                    <div class="hotspot-panel">
+                        <div class="hotspot-panel-item" data-num="1"><b class="num">1</b><span><b>Módulo Triaje</b> en el menú lateral (ícono amarillo). Es el único punto de entrada a Triaje.</span></div>
+                        <div class="hotspot-panel-item" data-num="2"><b class="num">2</b><span><b>Número de documento</b> de la paciente que va a valorar.</span></div>
+                        <div class="hotspot-panel-item" data-num="3"><b class="num">3</b><span><b>Buscar y continuar:</b> si la paciente ya estuvo antes en el hospital, sus datos se traen solos; si es nueva, se crea su registro.</span></div>
+                        <div class="hotspot-panel-item" data-num="4"><b class="num">4</b><span><b>Pacientes en triaje:</b> las que tienen al menos un registro de triaje y <b>todavía no tienen ingreso</b>, con su último nivel de riesgo. Haga clic para continuar su triaje. En cuanto Dinámica les registra el ingreso, desaparecen solas de esta lista.</span></div>
+                        <div class="hotspot-panel-item" data-num="5"><b class="num">5</b><span><b>Campana de TRIAJE:</b> avisa de las tomas de triaje con riesgo <b>AMARILLO</b> o <b>ROJO</b>, por separado de la campana de Dinámica.</span></div>
+                    </div>
+                    <ol class="steps">
+                        <li>En el menú lateral haga clic en <b>Triaje</b>.</li>
+                        <li>En <b>"Iniciar Triaje"</b> escriba el <b>número de documento</b> de la paciente y presione
+                            <code class="btnname">Buscar y continuar</code>.</li>
+                        <li>Si la paciente <b>ya tiene ingreso activo</b> en Dinámica, el sistema no deja registrar triaje:
+                            muestra el aviso <i>"Esta paciente ya tiene ingreso activo: sus mediciones se registran desde
+                            Dinámica"</i> y la lleva a su módulo MEOWS.</li>
+                        <li>Para continuar el triaje de una paciente que ya está en la lista, haga clic sobre su tarjeta.</li>
+                    </ol>
+
+                    <h3 class="step-title">Registrar los signos vitales de triaje</h3>
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/triaje_formulario.png' %}?v=2" alt="Formulario de registro de triaje">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Formulario de triaje. La franja azul de arriba recuerda que la paciente aún no tiene ingreso formal.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <ol class="steps">
+                        <li>Revise la <b>información de la paciente</b> (nombre, documento, fecha de nacimiento). La edad se calcula sola.</li>
+                        <li>Indique la <b>fecha y hora</b> reales en que tomó los signos vitales (por defecto trae la hora actual).</li>
+                        <li>Seleccione el valor de cada <b>parámetro vital</b> (temperatura, presión arterial, frecuencia
+                            cardíaca, frecuencia respiratoria, saturación, nivel de conciencia, etc.). Al lado de cada uno
+                            se ve el puntaje, y a la derecha el <b>Resumen</b> con el puntaje total y el nivel de riesgo.</li>
+                        <li>Presione <code class="btnname">Guardar Registro de Triaje</code>. Si el riesgo es
+                            <b>AMARILLO</b> o <b>ROJO</b>, se dispara la alerta en la campana de <b>TRIAJE</b>.</li>
+                        <li>Con <code class="btnname">Ver Historial Clínico</code> abre la <b>Línea de Tiempo Triaje</b>
+                            de la paciente con todas sus tomas.</li>
+                    </ol>
+                    <div class="callout tip">
+                        <i data-lucide="user-check" size="18"></i>
+                        <span><b>Queda registrado quién tomó cada signo vital</b> <span class="badge-nuevo">Nuevo</span>:
+                        al guardar, el sistema anota el nombre de la persona con la sesión iniciada. Ese nombre aparece
+                        debajo de cada toma en la Línea de Tiempo Triaje (👤) y en el PDF. Si otra persona corrige
+                        la toma después, sigue figurando quien la tomó. Por eso es importante que <b>cada quien use su
+                        propia cuenta</b>. Las tomas registradas antes de esta versión no tienen nombre.</span>
+                    </div>
+
+                    <h3 class="step-title">Línea de Tiempo Triaje</h3>
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/triaje_linea_tiempo.png' %}?v=2" alt="Línea de Tiempo Triaje con tres tomas">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Línea de Tiempo Triaje (datos ficticios): el campo Ingreso dice "Sin ingreso (triaje)" y cada columna lleva el distintivo "Triaje" y el enlace "✏️ Corregir".</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <p class="txt">
+                        Se lee igual que la Línea de Tiempo Clínica de MEOWS (sección 4): una columna por toma, el punto
+                        (●) marca el valor registrado y los colores indican el puntaje. Las tomas de triaje nunca se
+                        mezclan con las que llegan después desde Dinámica: llevan su propio distintivo <b>"Triaje"</b>.
+                        En la tarjeta <b>Información del Paciente</b>, el campo <b>Ingreso</b> dice
+                        <b>"Sin ingreso (triaje)"</b> mientras la paciente no tenga ingreso.
+                    </p>
+                    <p class="txt">Debajo del distintivo "Triaje" de cada columna puede aparecer <span class="badge-nuevo">Nuevo</span>:</p>
+                    <ul class="plain">
+                        <li><b>👤 Nombre</b> de la persona que registró esa toma (tomas nuevas; las anteriores a esta versión no lo tienen).</li>
+                        <li><b>✏️ Corregir</b>: abre esa toma para corregirla (ver abajo).</li>
+                    </ul>
+
+                    <h3 class="step-title">Corregir una toma de triaje <span class="badge-nuevo">Nuevo</span></h3>
+                    <ol class="steps">
+                        <li>En la <b>Línea de Tiempo Triaje</b>, haga clic en <code class="btnname">✏️ Corregir</code> debajo de
+                            la fecha y hora de la toma que quiere corregir.</li>
+                        <li>Se abre la pantalla <b>"Editar Medición de Triaje"</b>, con un aviso de la toma que está corrigiendo
+                            y los valores que tenía. Cambie lo que necesite (también la fecha y hora, si fue un error).</li>
+                        <li>Presione <code class="btnname">💾 Guardar Corrección</code>. El puntaje y el nivel de riesgo se
+                            recalculan, y si queda en <b>AMARILLO</b> o <b>ROJO</b> se genera la alerta.</li>
+                        <li>La toma sigue a nombre de <b>quien la tomó originalmente</b>, aunque la corrija otra persona.</li>
+                    </ol>
+                    <div class="callout warn">
+                        <i data-lucide="lock" size="18"></i>
+                        <span>La corrección solo está disponible <b>mientras la paciente no tenga ingreso</b>. Cuando se le
+                        registra el ingreso, el enlace desaparece y el sistema ya no permite editar las tomas de triaje,
+                        porque el formato de triaje se envía al repositorio con esos datos.</span>
+                    </div>
+
+                    <h3 class="step-title">Qué pasa cuando la paciente recibe su ingreso</h3>
+                    <div class="flow">
+                        <div class="flow-step"><span class="flow-num">1</span><b>Triaje</b>Se registran los signos vitales en esta pantalla, sin ingreso.</div>
+                        <div class="flow-step"><span class="flow-num">2</span><b>Ingreso en Dinámica</b>Admisiones le crea el ingreso. La paciente sale sola de la lista de Triaje.</div>
+                        <div class="flow-step"><span class="flow-num">3</span><b>Envío automático</b>El sistema genera el PDF del triaje y lo guarda en la carpeta de ese ingreso, sin que nadie haga nada.</div>
+                        <div class="flow-step"><span class="flow-num">4</span><b>MEOWS</b>A partir de ahí, sus signos vitales llegan desde Dinámica a MEOWS (sección 4).</div>
+                    </div>
+                    <ul class="plain">
+                        <li>El archivo queda como <b>otros_triaje_obstetrico_&lt;documento&gt;_1.pdf</b> en la carpeta
+                            <b>&lt;documento&gt; / &lt;número de ingreso&gt;</b> del repositorio clínico (vea la sección 8).</li>
+                        <li>El sistema lo revisa en cada sincronización con Dinámica y cada vez que alguien abre la
+                            paciente en Sala de Partos, así que llega en pocos minutos. Se envía <b>una sola vez</b> por ingreso.</li>
+                        <li>Solo se incluyen las tomas de triaje hechas entre <b>24 horas antes y 6 horas después</b> de la
+                            hora del ingreso. Así, el triaje de hoy nunca termina en la carpeta de un ingreso de hace meses.</li>
+                        <li>En el PDF, como <b>responsable del reporte</b> aparecen las personas que tomaron los signos
+                            vitales. Si las tomas son anteriores a esta versión, dice
+                            <i>"Envío automático al registrarse el ingreso (triaje)"</i>.</li>
+                        <li>Esas mismas tomas de triaje también aparecen en el PDF de MEOWS del ingreso (sección 4).</li>
+                    </ul>
+                    <div class="callout warn">
+                        <i data-lucide="alert-triangle" size="18"></i>
+                        <span>En Triaje <b>no hay botón</b> "Finalizar y enviar a repositorio": mientras la paciente no
+                        tenga ingreso no existe la carpeta del ingreso donde guardar el formato. Si la paciente se va
+                        sin que le hagan ingreso, su triaje queda guardado en el sistema, pero no se envía al repositorio.</span>
+                    </div>
+                </section>
+
+                <!-- 4. MEOWS -->
                 <section class="section-card c-meows" id="sec-meows">
                     <div class="section-head">
                         <div class="section-icon"><i data-lucide="activity"></i></div>
-                        <h2>3. Módulo MEOWS — Alerta Temprana Obstétrica</h2>
+                        <h2>4. Módulo MEOWS — Alerta Temprana Obstétrica</h2>
                     </div>
                     <p class="section-sub">
                         Aquí se consultan los signos vitales de la paciente. El sistema los trae automáticamente
@@ -728,8 +1042,9 @@
                     <h3 class="step-title">Alertas automáticas: la campana del encabezado (novedad)</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 6px;">
                         Cada vez que Dinámica registra un signo vital nuevo y el sistema calcula riesgo
-                        <b>AMARILLO</b> o <b>ROJO</b>, la campana 🔔 de la parte superior derecha (visible en todas
-                        las pantallas del sistema) le avisa.
+                        <b>AMARILLO</b> o <b>ROJO</b>, la campana 🔔 <b>DINÁMICA</b> de la parte superior derecha
+                        (visible en todas las pantallas del sistema) le avisa. Las alertas de las tomas de Triaje van
+                        en su propia campana, <b>TRIAJE</b> (sección 3), con el mismo funcionamiento.
                     </p>
                     <div class="callout tip">
                         <i data-lucide="info" size="18"></i>
@@ -789,7 +1104,55 @@
                             todas las mediciones de la paciente (línea de tiempo).</li>
                         <li><code class="btnname">📄 Generar PDF</code>: descarga el formato oficial MEOWS con todas
                             las mediciones de la paciente (si tiene muchas, se reparten en varias páginas para que
-                            ninguna quede afuera).</li>
+                            ninguna quede afuera). Solo lo descarga a su computador; <b>no</b> lo guarda en el repositorio.</li>
+                        <li><code class="btnname">📤 Finalizar y enviar a repositorio</code> <span class="badge-nuevo">Nuevo</span>:
+                            genera el formato final MEOWS del ingreso actual y lo guarda en el repositorio clínico. Vea
+                            el detalle justo abajo.</li>
+                    </ul>
+
+                    <h3 class="step-title">Finalizar el formato MEOWS y enviarlo al repositorio clínico <span class="badge-nuevo">Nuevo</span></h3>
+                    <div class="screenshot-frame hotspot-frame">
+                        <img src="{% static 'manual/meows_finalizar_repositorio.png' %}?v=2" alt="Línea de Tiempo Clínica MEOWS con el botón Finalizar y enviar a repositorio">
+                        <button type="button" class="hotspot" data-num="1" style="left:66.2%;top:58%" title="Generar PDF">1</button>
+                        <button type="button" class="hotspot" data-num="2" style="left:87.6%;top:56.5%" title="Finalizar y enviar a repositorio">2</button>
+                        <button type="button" class="hotspot" data-num="3" style="left:30.5%;top:42.9%" title="Responsable del reporte">3</button>
+                        <button type="button" class="hotspot" data-num="4" style="left:33.5%;top:83.3%" title="Responsable de cada toma">4</button>
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Historial Clínico MEOWS de una paciente (datos ficticios): la tarjeta muestra el nuevo campo Ingreso, y el botón nuevo está entre "Generar PDF" y "Ocultar".</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <div class="hotspot-hint"><i data-lucide="mouse-pointer-click" size="14"></i> Haga clic en cada número de la captura para ver su explicación:</div>
+                    <div class="hotspot-panel">
+                        <div class="hotspot-panel-item" data-num="1"><b class="num">1</b><span><b>Generar PDF:</b> descarga el PDF para verlo o imprimirlo. No lo guarda en el repositorio.</span></div>
+                        <div class="hotspot-panel-item" data-num="2"><b class="num">2</b><span><b>Finalizar y enviar a repositorio:</b> genera el PDF final y lo guarda en la carpeta de la paciente y de su ingreso.</span></div>
+                        <div class="hotspot-panel-item" data-num="3"><b class="num">3</b><span><b>Responsable del reporte:</b> el nombre que queda impreso en el PDF. Viene precargado con quien digitó la toma más reciente; puede cambiarlo antes de finalizar.</span></div>
+                        <div class="hotspot-panel-item" data-num="4"><b class="num">4</b><span><b>Responsable de cada toma:</b> debajo del distintivo "Dinámica" aparece quien digitó esa toma en Dinámica (o, en tomas de Triaje, quien la registró en este sistema).</span></div>
+                    </div>
+                    <ol class="steps">
+                        <li>Abra el <b>Historial Clínico MEOWS</b> de la paciente (desde la tarjeta <b>MODULO MEOWS</b> en Sala de Partos).</li>
+                        <li>En la tarjeta <b>Información del Paciente</b>, revise el campo <b>Ingreso</b> <span class="badge-nuevo">Nuevo</span>:
+                            es el número de ingreso en cuya carpeta se guardará el formato.</li>
+                        <li>Verifique el nombre en <b>RESPONSABLE DEL REPORTE</b>.</li>
+                        <li>Presione <code class="btnname">📤 Finalizar y enviar a repositorio</code> y confirme el
+                            mensaje <i>"¿Finalizar el formato MEOWS de este ingreso y enviarlo al repositorio clínico?"</i>.</li>
+                        <li>Espere unos segundos: el botón cambia a <b>"⏳ Enviando..."</b> y luego aparece un mensaje:
+                            <ul class="plain" style="margin-top:6px;">
+                                <li><b>✅ "Formato guardado en la NAS: &lt;documento&gt;/&lt;ingreso&gt;/otros_escala_meows_&lt;documento&gt;_&lt;n&gt;.pdf"</b>: quedó guardado.</li>
+                                <li><b>❌ "No se pudo guardar el formato…"</b> con la causa: vea qué hacer en la sección 8.</li>
+                            </ul>
+                        </li>
+                    </ol>
+                    <ul class="plain">
+                        <li>El PDF incluye las tomas <b>del ingreso actual</b> (desde la fecha del ingreso), más las
+                            tomas de <b>triaje</b> de hasta 24 horas antes del ingreso. No mezcla tomas de ingresos anteriores.</li>
+                        <li>Puede finalizar más de una vez (por ejemplo, al terminar cada turno o al dar de alta). Cada
+                            envío se guarda como un archivo nuevo con el siguiente número (<b>_1</b>, <b>_2</b>, <b>_3</b>…);
+                            <b>nunca se reemplaza</b> un archivo anterior.</li>
+                        <li>Si la paciente no tiene mediciones en este ingreso, el sistema avisa
+                            <i>"La paciente no tiene mediciones MEOWS en este ingreso"</i> y no envía nada.</li>
+                        <li>En la <b>Línea de Tiempo Triaje</b> este botón no aparece (vea la sección 3).</li>
                     </ul>
 
                     <h3 class="step-title">Al abrir el detalle de una medición</h3>
@@ -834,7 +1197,7 @@
                 <section class="section-card c-fetal" id="sec-fetal">
                     <div class="section-head">
                         <div class="section-icon"><i data-lucide="heart-pulse"></i></div>
-                        <h2>4. Módulo Control Posparto Inmediato</h2>
+                        <h2>5. Módulo Control Posparto Inmediato</h2>
                     </div>
                     <p class="section-sub">
                         Formato de Control de Fetocardia y Postparto (FRSPA-007): datos de la paciente, control
@@ -899,22 +1262,83 @@
                         de hemorragia obstétrica del hospital.</span>
                     </div>
 
-                    <h3 class="step-title">Guardar</h3>
+                    <h3 class="step-title">Guardar durante la vigilancia</h3>
                     <ol class="steps">
+                        <li>Mientras diligencia el formato, el sistema <b>guarda automáticamente</b> lo que va
+                            registrando: no pierde datos si cambia de pantalla.</li>
                         <li>En <b>"Responsable del Registro"</b>, escriba el nombre completo del responsable (ya
                             viene sugerido con su nombre de sesión). Este nombre queda impreso en el PDF.</li>
-                        <li>Presione <code class="btnname">Guardar Registro Completo</code>. El sistema exige como
-                            mínimo el nombre de la paciente, su identificación y la edad gestacional.</li>
+                        <li>El sistema exige como mínimo el nombre de la paciente, su identificación y la edad gestacional.</li>
                         <li>Puede descargar el PDF cuando quiera con el botón
-                            <code class="btnname">Descargar PDF</code>.</li>
+                            <code class="btnname">Descargar PDF</code> (solo lo descarga a su computador).</li>
                     </ol>
+
+                    <h3 class="step-title">Cerrar el registro con "Guardar Registro Completo" y envío automático al repositorio <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt">
+                        El botón <code class="btnname">Guardar Registro Completo</code> <b>cierra</b> el ciclo de
+                        vigilancia posparto. Se usa una sola vez, al terminar:
+                    </p>
+                    <ol class="steps">
+                        <li>El botón se habilita cuando está guardado el <b>último control posparto</b>: el de las
+                            <b>6 horas después del parto</b> (última columna del cronograma, minuto 360). No depende de la
+                            hora del reloj ni de cuándo se creó el registro. Mientras falte ese control, el botón se ve
+                            bloqueado con el texto <i>"Se habilita con el control de las 6 h"</i>, y al pasar el mouse indica
+                            cuál fue el último control guardado.</li>
+                        <li>Al cerrarse, arriba aparece la franja <b>"Registro cerrado el &lt;fecha&gt; por
+                            &lt;nombre&gt; — para corregir, use 'Vista previa'"</b> y el formulario queda de <b>solo lectura</b>.</li>
+                        <li>En ese mismo momento, el sistema genera el <b>PDF final (FRSPA-007)</b> y lo guarda
+                            <b>automáticamente</b> en el repositorio clínico, en la carpeta de la paciente y de su
+                            ingreso. No tiene que presionar nada más.</li>
+                        <li>Un aviso en la esquina inferior derecha le confirma el resultado:
+                            <b>📤 "Formato guardado en la NAS: …/otros_control_posparto_inmediato_…_1.pdf"</b>, o
+                            <b>⚠️ "No se pudo guardar el formato…"</b> si hubo un problema. Aunque el envío falle,
+                            <b>el registro queda cerrado igual</b>, y puede intentarlo de nuevo con el botón
+                            <code class="btnname">Reenviar a repositorio</code> (vea abajo).</li>
+                    </ol>
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_envio_repositorio.png' %}?v=1" alt="Registro de Control Posparto cerrado con el aviso de formato guardado en la NAS">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Registro cerrado (franja de arriba) y aviso de envío al repositorio (abajo a la derecha). Datos de la paciente ficticios; el aviso se muestra como ejemplo. Al final del formulario quedan activos "Descargar PDF" y "Reenviar a repositorio".</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <div class="callout tip">
+                        <i data-lucide="pencil" size="18"></i>
+                        <span><b>¿Hay que corregir algo después del cierre?</b> Use el botón
+                        <code class="btnname">Vista previa</code>: desde ahí se pueden corregir las características del
+                        parto (tipo de parto, episiotomía, alumbramiento, hora del parto) y la vigilancia posparto
+                        (globo de seguridad, sutura y heridas, sangrado cuantificado). El PDF que ya está en el
+                        repositorio <b>no se reemplaza</b> con esas correcciones: para que la versión corregida quede
+                        también en el repositorio, use el botón <code class="btnname">Reenviar a repositorio</code>
+                        (vea abajo).</span>
+                    </div>
+
+                    <h3 class="step-title">Reenviar el formato al repositorio <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt">
+                        Con el registro ya cerrado, al final del formulario, junto a <code class="btnname">Descargar PDF</code>,
+                        aparece el botón <code class="btnname">Reenviar a repositorio</code>. Úselo en dos casos:
+                    </p>
+                    <ul class="plain">
+                        <li><b>El envío automático falló</b> al cerrar (apareció el aviso ⚠️ "No se pudo guardar el formato…").</li>
+                        <li><b>Corrigió datos desde "Vista previa"</b> y la versión corregida debe quedar en el repositorio.</li>
+                    </ul>
+                    <ol class="steps">
+                        <li>Presione <code class="btnname">Reenviar a repositorio</code> y confirme el mensaje
+                            <i>"¿Enviar de nuevo el formato FRSPA-007 al repositorio clínico? Se guardará como un archivo
+                            nuevo; el anterior no se reemplaza."</i></li>
+                        <li>El botón muestra <b>"Enviando..."</b> y luego aparece el aviso con el resultado. El archivo nuevo
+                            queda con el siguiente número (por ejemplo, <b>otros_control_posparto_inmediato_…_2.pdf</b>) y el
+                            anterior se conserva. El más reciente es el de número mayor.</li>
+                    </ol>
+                    <p class="txt">Mientras el registro no esté cerrado, el botón no aparece: al repositorio solo van formatos finales.</p>
                 </section>
 
                 <!-- 5. TRABAJO DE PARTO -->
                 <section class="section-card c-parto" id="sec-parto">
                     <div class="section-head">
                         <div class="section-icon"><i data-lucide="clipboard-list"></i></div>
-                        <h2>5. Módulo Trabajo de Parto (Partograma)</h2>
+                        <h2>6. Módulo Trabajo de Parto (Partograma)</h2>
                     </div>
                     <p class="section-sub">
                         Formato de Control de Trabajo de Parto (FRSPA-022): datos generales, antecedentes
@@ -938,6 +1362,10 @@
                             <b>"CC. Identificación"</b> y presione <b>Enter</b> para buscarla manualmente.</li>
                         <li>El sistema completa automáticamente nombre, historia clínica, edad, aseguradora, grupo
                             sanguíneo y diagnóstico. Estos campos quedan bloqueados para evitar modificarlos por error.</li>
+                        <li>También sugiere la <b>edad gestacional</b> y los antecedentes <b>G/P/C/A</b> tomados de la
+                            historia clínica de ingreso de Dinámica, con la misma regla explicada en la sección 2
+                            (edad gestacional del análisis del médico; G/P/C/A de la sección de antecedentes
+                            obstétricos). Revíselos siempre antes de guardar.</li>
                         <li>Complete el número de <b>controles prenatales</b> y verifique el estado
                             <b>G_P_C_A_V_M</b> (Gestante, Puerperal, Cesárea, Aborto, Parto Vaginal o Muerte
                             materna) — el sistema le sugiere uno según el diagnóstico, pero siempre revíselo.</li>
@@ -947,7 +1375,7 @@
                     <h3 class="step-title">Registrar los parámetros por hora</h3>
                     <ol class="steps">
                         <li>Antes de registrar un valor, fije la hora del control con el botón
-                            <code class="btnname">⟳ Ahora</code> (toma la hora actual del computador).</li>
+                            <code class="btnname">＋ Nuevo control</code> (toma la hora actual del computador; cada control es una columna del partograma).</li>
                         <li>Haga clic en el botón del parámetro que va a registrar. Están agrupados por categoría:
                             <b>Actividad Uterina</b> (Frecuencia, Duración, Intensidad), <b>Fetal</b> (Frecuencia
                             Cardíaca Fetal, Movimiento Fetal, Presentación), <b>Tacto</b> (Membranas, Líquido
@@ -963,15 +1391,92 @@
                             el historial de signos vitales de la misma paciente sin perder lo que está diligenciando aquí.</li>
                     </ol>
 
-                    <h3 class="step-title">Guardar el formulario</h3>
+                    <h3 class="step-title">Guardado automático <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt">
+                        Igual que Control Posparto, <b>Trabajo de Parto se guarda solo</b>: ya no hay que presionar
+                        "Guardar Formulario" para no perder lo registrado.
+                    </p>
                     <ol class="steps">
-                        <li>Escriba su nombre en el campo <b>RESPONSABLE</b> (ya viene sugerido con su nombre de sesión).</li>
-                        <li>Presione <code class="btnname">Guardar Formulario</code>. El sistema le pedirá completar
-                            "Estado" y "Responsable" si faltan.</li>
-                        <li>Si el formulario ya existía y lo está corrigiendo, el sistema le preguntará
-                            "¿En verdad desea modificar la información?" antes de sobrescribir los datos.</li>
-                        <li>Una vez guardado, aparece el botón <code class="btnname">📄 Descargar PDF Reporte</code>
-                            para obtener el formato de trabajo de parto en PDF.</li>
+                        <li>Cada vez que confirma un dato en la ventana de un parámetro (el mensaje dice <i>"Dato registrado.
+                            Se guarda automáticamente."</i>), o cambia el <b>Estado</b>, el <b>Responsable</b>, los antecedentes
+                            <b>G/P/C/A</b>, los controles prenatales o la edad gestacional, el sistema lo guarda unos segundos después.
+                            Si registra varios datos seguidos, se guardan juntos en un solo envío.</li>
+                        <li>Junto al botón verá el estado del guardado:
+                            <ul class="plain" style="margin-top:6px;">
+                                <li><b>"Cambios sin guardar…"</b> / <b>"Guardando…"</b>: está en proceso.</li>
+                                <li><b style="color:#166534">"✓ Guardado automáticamente · hh:mm"</b>: todo quedó guardado.</li>
+                                <li><b style="color:#9a3412">"Autoguardado en espera: complete …"</b>: falta un dato obligatorio
+                                    (Estado o Responsable, o los datos de identificación de la paciente). Complételo y se guarda solo.</li>
+                                <li><b style="color:#991b1b">"No se pudo guardar: se reintentará en unos segundos"</b>: hubo un problema
+                                    de conexión; el sistema vuelve a intentarlo solo.</li>
+                            </ul>
+                        </li>
+                        <li><b>Ya no hay botón de guardar</b>: el antiguo "Guardar Formulario" se retiró. Todo se guarda solo y la
+                            pantalla no se borra después de guardar: la paciente y lo registrado siguen a la vista.</li>
+                        <li><b>Si recarga la página, cambia de pestaña o la cierra, lo registrado se conserva:</b>
+                            <ul class="plain" style="margin-top:6px;">
+                                <li>Cada dato se copia al instante en el navegador antes de enviarse. Si la página se recarga o se
+                                    cierra justo antes de que salga el guardado, al volver a abrirla el sistema lo recupera
+                                    (aviso <i>"Se recuperaron datos que no alcanzaron a guardarse"</i>) y lo guarda.</li>
+                                <li>Al volver a abrir el formulario, si el último control registrado es de la última hora, el
+                                    sistema lo <b>retoma</b>: pone esa hora en "Hora del control actual" y los botones muestran los
+                                    valores ya guardados, y aparece el aviso amarillo <i>"✏️ Estás editando el control de las hh:mm (ya guardado)"</i>.
+                                    Para empezar un control nuevo, presione <code class="btnname">＋ Nuevo control</code>.</li>
+                                <li>Al cambiar de pestaña o minimizar, lo pendiente se guarda de inmediato; si intenta cerrar con
+                                    cambios aún sin enviar, el navegador le pregunta si de verdad quiere salir.</li>
+                            </ul>
+                        </li>
+                        <li>Apenas queda guardado por primera vez, aparecen <code class="btnname">📄 Descargar PDF Reporte</code>
+                            (solo lo descarga a su computador) y <code class="btnname">📤 Finalizar y enviar a repositorio</code>.</li>
+                    </ol>
+                    <div class="callout tip">
+                        <i data-lucide="info" size="18"></i>
+                        <span><b>Gestas, Partos, Cesáreas y Abortos ahora sí quedan guardados.</b> Antes de esta versión, esos
+                        cuatro campos se escribían en pantalla pero el sistema no los guardaba (se perdían al volver a abrir el
+                        formulario). Si una paciente los tenía diligenciados antes, verifíquelos.</span>
+                    </div>
+
+                    <h3 class="step-title">Corregir datos ya registrados</h3>
+                    <ul class="plain">
+                        <li><b>Estado, Responsable, G/P/C/A, controles prenatales y edad gestacional:</b> se pueden cambiar en
+                            cualquier momento; el cambio se guarda solo.</li>
+                        <li><b>Un parámetro de la hora del control actual:</b> vuelva a abrir el botón del parámetro (muestra el
+                            valor guardado), cambie el valor y confírmelo. Se guarda encima del anterior; no se duplica.</li>
+                        <li><b>Un control de una hora anterior:</b> en <b>"Hora del control actual"</b> elija la fecha, la hora, los minutos y <b>AM/PM</b>
+                            exactos de ese control (puede verlas en la <b>Vista Previa</b>). Los botones cargan los valores que
+                            tiene guardados y aparece el aviso <i>"Estás editando el control de las…"</i>; corrija el que necesite y se guarda
+                            solo, encima del anterior. Luego presione <code class="btnname">＋ Nuevo control</code> para volver a la hora actual.</li>
+                        <li><b>Eliminar</b> un valor registrado por error todavía no se puede desde la pantalla; informe a Sistemas.</li>
+                    </ul>
+
+                    <h3 class="step-title">Finalizar el formulario y enviarlo al repositorio clínico <span class="badge-nuevo">Nuevo</span></h3>
+                    <div class="screenshot-frame hotspot-frame">
+                        <img src="{% static 'manual/parto_finalizar_repositorio.png' %}?v=3" alt="Parte inferior del formulario de Trabajo de Parto con el botón Finalizar y enviar a repositorio">
+                        <button type="button" class="hotspot" data-num="1" style="left:27.6%;top:84.4%" title="Estado del guardado automático">1</button>
+                        <button type="button" class="hotspot" data-num="2" style="left:49.5%;top:86.7%" title="Descargar PDF Reporte">2</button>
+                        <button type="button" class="hotspot" data-num="3" style="left:75.6%;top:86.7%" title="Finalizar y enviar a repositorio">3</button>
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Final del formulario de Trabajo de Parto (datos ficticios): ya no hay botón de guardar; en su lugar se ve el estado del guardado automático, junto a "Descargar PDF Reporte" y "Finalizar y enviar a repositorio".</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <div class="hotspot-hint"><i data-lucide="mouse-pointer-click" size="14"></i> Haga clic en cada número de la captura para ver su explicación:</div>
+                    <div class="hotspot-panel">
+                        <div class="hotspot-panel-item" data-num="1"><b class="num">1</b><span><b>Estado del guardado automático</b> (reemplaza al antiguo botón "Guardar Formulario"): "✓ Datos guardados", "Guardando…", "Autoguardado en espera…" o "No se pudo guardar…".</span></div>
+                        <div class="hotspot-panel-item" data-num="2"><b class="num">2</b><span><b>Descargar PDF Reporte:</b> abre el PDF en una pestaña nueva. No lo guarda en el repositorio.</span></div>
+                        <div class="hotspot-panel-item" data-num="3"><b class="num">3</b><span><b>Finalizar y enviar a repositorio:</b> genera el PDF final de este formulario y lo guarda en la carpeta de la paciente y de su ingreso.</span></div>
+                    </div>
+                    <ol class="steps">
+                        <li>Presione <code class="btnname">📤 Finalizar y enviar a repositorio</code> y confirme el mensaje
+                            <i>"¿Finalizar este formulario de Trabajo de Parto y enviarlo al repositorio clínico?"</i>. Antes de
+                            enviar, el sistema guarda automáticamente lo que esté pendiente; si falta Estado o Responsable, se lo
+                            indica y no envía.</li>
+                        <li>El botón muestra <b>"⏳ Enviando..."</b> y luego aparece el mensaje con el resultado: la
+                            ubicación del archivo (<b>otros_trabajo_de_parto_&lt;documento&gt;_&lt;n&gt;.pdf</b>) si todo
+                            salió bien, o la causa si falló (vea la sección 8).</li>
+                        <li>Si más adelante registra más controles y vuelve a finalizar, se guarda un archivo nuevo con
+                            el siguiente número; el anterior no se borra.</li>
                     </ol>
                     <div class="callout tip">
                         <i data-lucide="repeat" size="18"></i>
@@ -985,7 +1490,7 @@
                 <section class="section-card c-sala" id="sec-pdf">
                     <div class="section-head">
                         <div class="section-icon"><i data-lucide="file-down"></i></div>
-                        <h2>6. Generar el PDF unificado de la atención</h2>
+                        <h2>7. Generar el PDF unificado de la atención</h2>
                     </div>
                     <p class="section-sub">
                         Un solo archivo con los tres formatos completos de la paciente (MEOWS + Control Posparto
@@ -1002,20 +1507,172 @@
                         <span>El botón aparece deshabilitado si la paciente todavía no tiene ningún registro
                         guardado en ninguno de los tres módulos. Registre al menos una medición y vuelva a intentarlo.</span>
                     </div>
+                    <div class="callout tip">
+                        <i data-lucide="info" size="18"></i>
+                        <span>El PDF unificado es para <b>consultar o imprimir</b>: <b>no</b> se guarda en el
+                        repositorio clínico. Al repositorio van los formatos finales de cada módulo por separado
+                        (sección 8).</span>
+                    </div>
                 </section>
 
-                <!-- 7. FAQ -->
+                <!-- 8. REPOSITORIO CLÍNICO (NAS) -->
+                <section class="section-card c-repo" id="sec-repositorio">
+                    <div class="section-head">
+                        <div class="section-icon"><i data-lucide="hard-drive-upload"></i></div>
+                        <h2>8. Repositorio clínico (NAS) — dónde quedan los formatos finales <span class="badge-nuevo">Nuevo</span></h2>
+                    </div>
+                    <p class="section-sub">
+                        Los formatos finales que se generan en este sistema se guardan en el <b>repositorio clínico
+                        del hospital</b> (la NAS), en la misma carpeta de la paciente donde los demás aplicativos del
+                        hospital dejan sus documentos (escalas, consentimientos, listas de chequeo, paquete completo…).
+                    </p>
+
+                    <h3 class="step-title">Cómo se organizan las carpetas</h3>
+                    <p class="txt">
+                        Cada paciente tiene una carpeta con su <b>número de documento</b>; dentro, una carpeta por cada
+                        <b>número de ingreso</b> (el mismo que se ve en el campo <b>Ingreso</b> de la sección 2); y dentro,
+                        los archivos de ese ingreso:
+                    </p>
+                    <div class="repo-tree">
+                        <div><span class="dir">📁 repositorio_clinico</span></div>
+                        <div class="lvl1"><span class="dir">📁 1234567890</span><span class="nota">← documento de la paciente</span></div>
+                        <div class="lvl2"><span class="dir">📁 1812342</span><span class="nota">← número de ingreso en Dinámica</span></div>
+                        <div class="lvl3"><span class="file">📄 otros_triaje_obstetrico_1234567890_1.pdf</span><span class="nota">← automático al registrarse el ingreso</span></div>
+                        <div class="lvl3"><span class="file">📄 otros_escala_meows_1234567890_1.pdf</span><span class="nota">← botón "Finalizar" en MEOWS</span></div>
+                        <div class="lvl3"><span class="file">📄 otros_escala_meows_1234567890_2.pdf</span><span class="nota">← MEOWS finalizado otra vez (no reemplaza al _1)</span></div>
+                        <div class="lvl3"><span class="file">📄 otros_trabajo_de_parto_1234567890_1.pdf</span><span class="nota">← botón "Finalizar" en Trabajo de Parto</span></div>
+                        <div class="lvl3"><span class="file">📄 otros_control_posparto_inmediato_1234567890_1.pdf</span><span class="nota">← automático con "Guardar Registro Completo"</span></div>
+                        <div class="lvl3"><span class="otro">📄 otros_escala_downton_1234567890_2753.pdf</span><span class="nota">← documentos de otros aplicativos, no se tocan</span></div>
+                        <div class="lvl2"><span class="dir">📁 1774662</span><span class="nota">← un ingreso anterior de la misma paciente</span></div>
+                    </div>
+                    <p class="txt">
+                        Todos los nombres siguen la convención que ya usan los demás aplicativos del hospital:
+                        <b>otros_&lt;formato&gt;_&lt;documento&gt;_&lt;número&gt;.pdf</b>.
+                    </p>
+
+                    <h3 class="step-title">Qué se envía, cuándo y con qué nombre</h3>
+                    <table class="info-table">
+                        <thead>
+                            <tr><th>Formato</th><th>Cuándo se envía</th><th>Quién lo envía</th><th>Nombre del archivo</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><b>Triaje</b></td>
+                                <td>Cuando la paciente recibe su ingreso en Dinámica (en minutos). Una sola vez por ingreso.</td>
+                                <td>Automático</td>
+                                <td><code>otros_triaje_obstetrico_&lt;doc&gt;_&lt;n&gt;.pdf</code></td>
+                            </tr>
+                            <tr>
+                                <td><b>MEOWS</b></td>
+                                <td>Al presionar <b>Finalizar y enviar a repositorio</b> en el Historial Clínico MEOWS.</td>
+                                <td>El profesional</td>
+                                <td><code>otros_escala_meows_&lt;doc&gt;_&lt;n&gt;.pdf</code></td>
+                            </tr>
+                            <tr>
+                                <td><b>Trabajo de Parto</b></td>
+                                <td>Al presionar <b>Finalizar y enviar a repositorio</b> después de guardar el formulario.</td>
+                                <td>El profesional</td>
+                                <td><code>otros_trabajo_de_parto_&lt;doc&gt;_&lt;n&gt;.pdf</code></td>
+                            </tr>
+                            <tr>
+                                <td><b>Control Posparto Inmediato</b> (FRSPA-007)</td>
+                                <td>Al cerrar el registro con <b>Guardar Registro Completo</b> (cuando está guardado el control de las 6 horas después del parto). Después, si hace falta, con <b>Reenviar a repositorio</b>.</td>
+                                <td>Automático al cerrar</td>
+                                <td><code>otros_control_posparto_inmediato_&lt;doc&gt;_&lt;n&gt;.pdf</code></td>
+                            </tr>
+                            <tr>
+                                <td><b>PDF unificado</b></td>
+                                <td>No se envía: es solo para consultar o imprimir.</td>
+                                <td>—</td>
+                                <td>—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 class="step-title">Reglas que aplica el sistema</h3>
+                    <ul class="plain">
+                        <li><b>Busca antes de crear:</b> antes de crear la carpeta de la paciente o del ingreso, el sistema
+                            busca si ya existe una (aunque tenga espacios, puntos o guiones de más) y usa esa. Así los
+                            formatos quedan junto a los de los demás aplicativos, sin carpetas duplicadas.</li>
+                        <li><b>Nunca sobrescribe:</b> si un formato se envía varias veces en el mismo ingreso, cada envío
+                            queda como un archivo nuevo con el número siguiente (_1, _2, _3…). Los anteriores no se tocan.</li>
+                        <li><b>Solo formatos finales:</b> el Control Posparto solo se envía cerrado; MEOWS y Trabajo de
+                            Parto, cuando usted presiona "Finalizar".</li>
+                        <li><b>Siempre en el ingreso correcto:</b> se usa el ingreso activo de la paciente; si ya fue dada
+                            de alta, el más reciente. Si la paciente no tiene ningún ingreso en Dinámica, no se envía nada y
+                            el sistema lo avisa.</li>
+                        <li><b>Mismo PDF que se descarga:</b> el archivo del repositorio es exactamente el mismo formato que
+                            se obtiene con los botones de descarga de cada módulo.</li>
+                    </ul>
+
+                    <h3 class="step-title">Si el envío falla</h3>
+                    <p class="txt">
+                        Lo que haya registrado <b>no se pierde</b>: la información sigue guardada en el sistema; lo único
+                        que no quedó fue el archivo en el repositorio. Según el mensaje:
+                    </p>
+                    <table class="info-table">
+                        <thead><tr><th>Mensaje</th><th>Qué significa / qué hacer</th></tr></thead>
+                        <tbody>
+                            <tr><td><i>"La paciente no tiene un número de ingreso en Dinámica…"</i></td>
+                                <td>No hay ingreso donde guardar el formato (por ejemplo, está solo en Triaje). Espere a que admisiones registre el ingreso y vuelva a finalizar.</td></tr>
+                            <tr><td><i>"La paciente no tiene mediciones MEOWS en este ingreso."</i></td>
+                                <td>No hay tomas de este ingreso que enviar. Verifique en Dinámica que se hayan registrado signos vitales.</td></tr>
+                            <tr><td><i>"El registro aún no está cerrado ('Guardar Registro Completo')…"</i></td>
+                                <td>Solo se envían formatos de Control Posparto cerrados. Registre el control de las 6 horas después del parto y cierre el registro.</td></tr>
+                            <tr><td><i>"No se pudo guardar el formato en la NAS: …"</i> (problema de conexión, tiempo de espera, permisos)</td>
+                                <td>La NAS no respondió en ese momento. Intente de nuevo en unos minutos: en MEOWS y Trabajo de Parto con el botón "Finalizar y enviar a repositorio"; en Control Posparto con "Reenviar a repositorio". Si el error continúa, avise a <b>Sistemas</b> con el nombre y documento de la paciente: el intento queda registrado en la bitácora.</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3 class="step-title">Para el área de Sistemas: bitácora, modo de pruebas y prueba de conexión</h3>
+                    <p class="txt">
+                        Cada envío, exitoso o fallido, queda registrado en el panel de administración
+                        (<code class="btnname">/admin/</code> → <b>Obstetricia</b> → <b>Documentos enviados al repositorio</b>),
+                        con fecha, documento, número de ingreso, formato, estado, modo, nombre del archivo, quién lo envió y,
+                        si falló, el detalle del error. Se puede filtrar por estado, modo y formato. En
+                        <b>Atencion partos</b> se ve el número de ingreso asociado a cada atención.
+                    </p>
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/admin_bitacora_repositorio.png' %}?v=1" alt="Bitácora de documentos enviados al repositorio en el panel de administración">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Bitácora "Documentos enviados al repositorio" en el panel de administración (documentos e ingresos ficticios; envíos hechos en modo de pruebas "local").</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <ul class="plain">
+                        <li><b>Modo de pruebas / producción</b> (archivo <code class="btnname">.env</code> del servidor):
+                            <code class="btnname">REPOSITORIO_MODO=local</code> guarda los PDF con la misma estructura de
+                            carpetas en una carpeta del propio servidor (<code class="btnname">REPOSITORIO_LOCAL_DIR</code>;
+                            por defecto <code class="btnname">media/repositorio_nas_pruebas</code>), sin tocar la NAS. En ese
+                            modo los mensajes dicen "carpeta local de pruebas" en vez de "NAS".
+                            <code class="btnname">REPOSITORIO_MODO=nas</code> los sube a la NAS por FTP con las credenciales
+                            <code class="btnname">REPO_FTP_*</code>. Tras cambiarlo hay que reiniciar el servidor.</li>
+                        <li><b>Prueba de conexión con la NAS:</b> <code class="btnname">python manage.py probar_repositorio</code>
+                            (conexión, usuario y lectura) o con <code class="btnname">--escritura</code> (además crea, sube y
+                            borra un archivo en una carpeta de prueba aparte, sin tocar carpetas de pacientes).</li>
+                        <li><b>Triajes pendientes:</b> <code class="btnname">python manage.py enviar_triajes_pendientes</code>
+                            revisa y envía a mano los triajes de pacientes que ya tienen ingreso (normalmente no hace falta:
+                            lo hace la sincronización con Dinámica).</li>
+                        <li>Se recomienda <code class="btnname">REPO_FTP_TLS=True</code> (FTP cifrado; la NAS lo soporta) para que
+                            las credenciales y los documentos no viajen sin cifrar por la red.</li>
+                    </ul>
+                </section>
+
+                <!-- 9. FAQ -->
                 <section class="section-card c-manual" id="sec-faq">
                     <div class="section-head">
                         <div class="section-icon"><i data-lucide="help-circle"></i></div>
-                        <h2>7. Preguntas frecuentes</h2>
+                        <h2>9. Preguntas frecuentes</h2>
                     </div>
 
                     <h3 class="step-title">No encuentro a mi paciente en Sala de Partos, ¿qué hago?</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
                         Verifique que su documento esté bien escrito y presione <code class="btnname">Actualizar</code>
                         para refrescar la lista contra el sistema del hospital. Si aun así no aparece, puede que la
-                        paciente todavía no esté registrada como hospitalizada en un área obstétrica.
+                        paciente todavía no esté registrada como hospitalizada en un área obstétrica. Si la paciente
+                        acaba de llegar y aún no tiene ingreso, regístrela en <b>Triaje</b> (sección 3). Revise también
+                        que no tenga activo un filtro de área o de <b>Tipo</b> (Obstétricas / Ginecológicas).
                     </p>
 
                     <h3 class="step-title">Guardé un dato equivocado, ¿puedo corregirlo?</h3>
@@ -1055,13 +1712,75 @@
                         (por ejemplo, un corte breve del sistema), la alerta sigue disponible durante ese día en vez
                         de perderse.
                     </p>
+
+                    <h3 class="step-title">Una paciente aparece como Obstétrica y es Ginecológica (o al revés), ¿qué hago? <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt" style="margin:0;">
+                        El tipo sale de la casilla que enfermería marca en la historia clínica de ingreso de Dinámica
+                        (<b>ANT. OBSTETRICOS</b> o <b>ANT. GINECOLOGICOS</b>). Corrija la casilla en Dinámica y presione
+                        <code class="btnname">Actualizar</code> en Sala de Partos. Recuerde que un embarazo molar, un
+                        ectópico o un aborto se consideran obstétricos (sección 2).
+                    </p>
+
+                    <h3 class="step-title">La edad gestacional aparece vacía o distinta a la de la historia clínica <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt" style="margin:0;">
+                        El sistema la toma del análisis del médico ("Embarazo de X semanas…") o, si no está, de la FUM.
+                        Aparece vacía cuando ninguno de los dos da un dato confiable (pacientes ginecológicas, puerperio,
+                        FUM mal digitada). Si la paciente ya estaba registrada antes de esta versión, el dato guardado
+                        se actualiza con la próxima sincronización con Dinámica. En todos los casos, la historia
+                        clínica manda: verifíquela antes de diligenciar un formato.
+                    </p>
+
+                    <h3 class="step-title">Finalicé un formato dos veces, ¿se reemplazó el primero? <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt" style="margin:0;">
+                        No. Cada envío queda como un archivo nuevo con el siguiente número (…_1.pdf, …_2.pdf). El
+                        repositorio nunca borra ni reemplaza un archivo. El más reciente es el de número mayor.
+                    </p>
+
+                    <h3 class="step-title">¿Dónde veo los archivos que envié? <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt" style="margin:0;">
+                        El mensaje de confirmación le muestra la ubicación exacta
+                        (<b>documento / ingreso / nombre del archivo</b>). Los archivos quedan en el repositorio clínico
+                        del hospital, en la misma carpeta de la paciente que consultan los demás aplicativos; el acceso
+                        directo a la NAS lo administra Sistemas. Sistemas también puede consultar la bitácora de envíos
+                        (sección 8).
+                    </p>
+
+                    <h3 class="step-title">¿Por qué no veo el botón "Finalizar y enviar a repositorio"? <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt" style="margin:0;">
+                        En <b>Trabajo de Parto</b> aparece solo después de guardar el formulario por primera vez. En
+                        <b>MEOWS</b> no aparece en la Línea de Tiempo Triaje (el triaje se envía solo). <b>Control
+                        Posparto</b> no tiene ese botón: se envía automáticamente al usar "Guardar Registro Completo", y
+                        después del cierre aparece <b>"Reenviar a repositorio"</b> para reintentar o enviar una versión corregida.
+                    </p>
+
+                    <h3 class="step-title">Registré mal un signo vital en Triaje, ¿cómo lo corrijo? <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt" style="margin:0;">
+                        En la Línea de Tiempo Triaje, use <b>✏️ Corregir</b> debajo de esa toma, cambie el valor y presione
+                        <b>Guardar Corrección</b> (sección 3). Solo se puede mientras la paciente no tenga ingreso; después,
+                        la toma queda como se envió al repositorio.
+                    </p>
+
+                    <h3 class="step-title">La paciente reingresó, ¿se mezclan los formatos de sus dos ingresos? <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt" style="margin:0;">
+                        No. El sistema maneja una atención por cada ingreso de Dinámica: en el tablero verá el número del
+                        ingreso actual, y los formatos se guardan en la carpeta de ese ingreso. Los del ingreso anterior
+                        quedan en su propia carpeta.
+                    </p>
+
+                    <h3 class="step-title">Registré un triaje, ¿cuándo aparece en el repositorio? <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt" style="margin:0;">
+                        Cuando admisiones le registra el ingreso a la paciente en Dinámica: el sistema lo detecta en su
+                        siguiente revisión (minutos) o apenas alguien abre a la paciente en Sala de Partos, y guarda el
+                        PDF del triaje en la carpeta de ese ingreso. Si la paciente se va sin ingreso, el triaje queda
+                        guardado en el sistema pero no se envía al repositorio.
+                    </p>
                 </section>
 
-                <!-- 8. SEGURIDAD, PERMISOS Y ROLES -->
+                <!-- 10. SEGURIDAD, PERMISOS Y ROLES -->
                 <section class="section-card c-manual" id="sec-seguridad" style="--section-accent:#0f172a;">
                     <div class="section-head">
                         <div class="section-icon" style="background:linear-gradient(135deg,#475569,#0f172a);"><i data-lucide="shield-check"></i></div>
-                        <h2>8. Seguridad, permisos y roles</h2>
+                        <h2>10. Seguridad, permisos y roles</h2>
                     </div>
                     <p class="section-sub">
                         Qué puede hacer cada tipo de cuenta dentro del sistema, y buenas prácticas para el manejo de
@@ -1112,6 +1831,12 @@
                             módulo.</li>
                         <li>Si sospecha que alguien más pudo haber usado su cuenta, cambie su contraseña de
                             Dinámica (o repórtelo a Sistemas si es una cuenta local) de inmediato.</li>
+                        <li><b>Su nombre queda en lo que registra</b> <span class="badge-nuevo">Nuevo</span>: las tomas de
+                            Triaje, los cierres de Control Posparto y los envíos al repositorio quedan a nombre de quien
+                            tiene la sesión iniciada. Otra razón para no usar la cuenta de un compañero.</li>
+                        <li><b>Repositorio clínico</b> <span class="badge-nuevo">Nuevo</span>: los PDF que se guardan en la
+                            NAS son parte de la historia clínica. No los copie a memorias USB, correos personales ni
+                            equipos fuera del hospital; el acceso directo a la NAS es exclusivo de Sistemas.</li>
                     </ul>
                 </section>
 
@@ -1158,7 +1883,13 @@
         // "abrirImagenGrande" del listener de arriba (el target del evento es
         // el botón, no la imagen).
         document.querySelectorAll('.hotspot-frame').forEach(function (frame) {
-            const panel = frame.parentElement.querySelector('.hotspot-panel');
+            // El panel de explicaciones es el primero que viene DESPUÉS de esta
+            // captura (una sección puede tener varias capturas con números).
+            let panel = frame.nextElementSibling;
+            while (panel && !panel.classList.contains('hotspot-panel')) {
+                if (panel.classList.contains('hotspot-frame')) { panel = null; break; }
+                panel = panel.nextElementSibling;
+            }
             if (!panel) return;
             const botones = frame.querySelectorAll('.hotspot');
             const items = panel.querySelectorAll('.hotspot-panel-item');

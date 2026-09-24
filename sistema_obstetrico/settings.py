@@ -348,6 +348,39 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# ---------------------------------------------------------------------------
+# Repositorio clínico (NAS) -- destino de los formatos finales (PDF) de cada
+# módulo. Ver obstetriciaunificador/repositorio.py.
+#
+# Estructura (la misma que usan los demás aplicativos del hospital):
+#   <base>/<cédula>/<número de ingreso (ADNINGRESO.AINCONSEC)>/
+#       otros_<formato>_<cédula>_<consecutivo>.pdf
+#
+# REPOSITORIO_MODO:
+#   "local" (por defecto) -- pruebas en el equipo local: los PDF se guardan
+#            con esa misma estructura en REPOSITORIO_LOCAL_DIR, sin tocar la NAS.
+#   "nas"   -- producción: se suben por FTP a la NAS (REPO_FTP_*).
+REPOSITORIO_MODO = (os.environ.get('REPOSITORIO_MODO') or 'local').strip().lower()
+REPOSITORIO_LOCAL_DIR = Path(
+    os.environ.get('REPOSITORIO_LOCAL_DIR') or (MEDIA_ROOT / 'repositorio_nas_pruebas')
+)
+REPO_FTP_HOST = os.environ.get('REPO_FTP_HOST', '')
+REPO_FTP_PORT = int(os.environ.get('REPO_FTP_PORT') or 21)
+REPO_FTP_USER = os.environ.get('REPO_FTP_USER', '')
+REPO_FTP_PASSWORD = os.environ.get('REPO_FTP_PASSWORD', '')
+REPO_FTP_BASE_PATH = os.environ.get('REPO_FTP_BASE_PATH') or 'repositorio_clinico'
+REPO_FTP_TLS = os.environ.get('REPO_FTP_TLS', 'False') == 'True'
+REPO_FTP_TIMEOUT = int(os.environ.get('REPO_FTP_TIMEOUT') or 30)
+
+# ---------------------------------------------------------------------------
+# Frecuencia Cardiaca Fetal (Trabajo de Parto, parámetro 8).
+# 2026-09-23: MANUAL por defecto (se diligencia como cualquier otro
+# parámetro). "True" reactiva la sincronización automática desde Dinámica
+# (FETOCARDIO): botón bloqueado, comando sincronizar_frecuencia_fetal_dinamica
+# activo y valor "heredado" en Vista Previa / PDF. Un solo interruptor para
+# todo -- ver trabajoparto (views.parto_home, pdf_utils, static/js/main.js).
+FCF_DINAMICA_AUTOMATICA = os.environ.get('FCF_DINAMICA_AUTOMATICA', 'False') == 'True'
+
 LOGIN_URL = '/login/'
 
 # Si REQUIRE_LOGIN es False (ver arriba), la API se comporta igual que hoy (sin login) —
@@ -397,6 +430,12 @@ LOGGING = {
     'loggers': {
         # Loggers propios de la app (autenticación / integración con Dinámica).
         'frecuenciafetal': {
+            'handlers': ['console'],
+            'level': _LOG_LEVEL,
+            'propagate': False,
+        },
+        # Envío de formatos al repositorio clínico (NAS).
+        'obstetriciaunificador': {
             'handlers': ['console'],
             'level': _LOG_LEVEL,
             'propagate': False,

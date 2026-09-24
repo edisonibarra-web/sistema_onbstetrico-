@@ -104,7 +104,10 @@ function mostrarAutoGuardado() {
         return;
     }
     window._ultimoAutoGuardadoTs = ahora;
-    mostrarMensaje('Dato guardado automáticamente', 'success');
+    // 2026-09-23: antes decía "Dato guardado automáticamente" aunque el dato
+    // solo quedaba en memoria. El estado real del guardado se ve en el
+    // indicador junto a los botones del final (autosave-parto-status).
+    mostrarMensaje('Dato registrado. Se guarda automáticamente.', 'success');
 }
 
 function cerrarModalDesdeElemento(el, delayMs = 150) {
@@ -355,9 +358,10 @@ async function buscarPaciente() {
     }
     
     try {
-        const data = await buscarPacienteCompleto(numIdentificacion);
+        const data = await buscarPacienteCompleto(numIdentificacion, false);
         if (data && data.encontrado) {
             await llenarFormularioDesdePaciente(data);
+            await prepararControlAlCargar(data);
             mostrarMensaje('Paciente encontrado', 'success');
         } else {
             mostrarMensaje(data.mensaje || 'Paciente no encontrado', 'info');
@@ -579,201 +583,449 @@ async function guardarPaciente() {
     }
 }
 
-// Guardar formulario
-async function guardarFormulario() {
-    console.log('Iniciando guardarFormulario...');
-    
-    // Verificar si es una actualización y mostrar confirmación
-    const btnGuardar = document.getElementById('btn-guardar');
-    const esActualizacion = btnGuardar && btnGuardar.getAttribute('data-es-actualizacion') === 'true';
+// ============================================================================
+// Guardado del formulario -- 2026-09-23: AUTOGUARDADO (igual que Control
+// Posparto Inmediato). Cada dato que se confirma en un modal de parámetro, y
+// cada cambio en Estado / Responsable / antecedentes, programa un guardado
+// automático unos segundos después (se agrupan los cambios seguidos en un solo
+// envío). Ya no hace falta presionar "Guardar Formulario": el botón queda como
+// "Guardar ahora" (fuerza el guardado inmediato) y ya NO limpia la pantalla ni
+// pide confirmación -- antes, cada guardado vaciaba todo el formulario, lo que
+// con autoguardado haría perder a la paciente de la pantalla a cada rato.
+//
+// Es seguro guardar muchas veces: el backend actualiza en vez de duplicar
+// (PUT del formulario; mediciones por formulario + parámetro + hora con
+// get_or_create/update_or_create en MedicionCreateSerializer).
+// ============================================================================
+const AUTOGUARDADO_PARTO_ESPERA_MS = 1500;
+const AUTOGUARDADO_PARTO_REINTENTO_MS = 15000;
+let _autoguardadoPartoTimer = null;
+let _autoguardadoPartoEnCurso = null;
+let _autoguardadoPartoPendiente = false;
+let _autoguardadoPartoHayCambios = false;
+
+/** Arma el cuerpo del formulario (encabezado) con lo que hay en pantalla. */
+function construirDatosFormulario(pacienteId) {
+    const enteroONull = (id) => {
+        const val = document.getElementById(id)?.value?.trim();
+        return (val !== '' && val !== undefined && val !== null) ? parseInt(val) : null;
+    };
+    return {
+        // CÓDIGO es visual/estático en el encabezado: FRSPA-022 por defecto.
+        codigo: obtenerValorInput('codigo') || 'FRSPA-022',
+        // "version" puede no existir en la UI: se envía "1" por compatibilidad.
+        version: obtenerValorInput('version') || '1',
+        fecha_elabora: obtenerValorInput('fecha_elabora') || obtenerFechaLocalColombia(),
+        num_hoja: parseInt(obtenerValorInput('num_hoja') || '1'),
+        paciente: pacienteId,
+        aseguradora_nombre: (obtenerValorInput('aseguradora_nombre') || '').trim(),
+        diagnostico: obtenerValorInput('diagnostico') || null,
+        edad_snapshot: enteroONull('edad_snapshot'),
+        edad_gestion: enteroONull('edad_gestion'),
+        estado: obtenerValorInput('estado'),
+        n_controles_prenatales: enteroONull('n_controles_prenatales'),
+        gestas: enteroONull('gestas'),
+        partos: enteroONull('partos'),
+        cesareas: enteroONull('cesareas'),
+        abortos: enteroONull('abortos'),
+        responsable: obtenerValorInput('responsable'),
+    };
+}
+
+/** Crea o actualiza el encabezado del formulario y devuelve el formulario guardado. */
+async function guardarEncabezadoFormulario(pacienteId) {
+    const formularioData = construirDatosFormulario(pacienteId);
     const formularioId = obtenerValorInput('formulario_id');
-    
-    if (esActualizacion || formularioId) {
-        const confirmar = confirm('¿En verdad desea modificar la información?');
-        if (!confirmar) {
-            console.log('Actualización cancelada por el usuario');
-            return;
-        }
-    }
-    
-    try {
-        console.log('Guardando paciente...');
-        // Primero guardar/actualizar paciente
-        await guardarPaciente();
-        
-        const pacienteId = obtenerValorInput('paciente_id');
-        console.log('Paciente ID después de guardar:', pacienteId);
-        if (!pacienteId) {
-            console.error('No se pudo obtener el ID del paciente');
-            mostrarMensaje('Complete los campos del paciente', 'error');
-            return;
-        }
-        
-        console.log('Preparando datos del formulario...');
-        
-        // Preparar datos del formulario
-        console.log('Obteniendo valores de los campos...');
-
-        // Campo CÓDIGO ahora es visual/estático en el encabezado.
-        // Si no hay input o viene vacío, usamos el código fijo del formato: FRSPA-022
-        const codigo = obtenerValorInput('codigo') || 'FRSPA-022';
-        // "version" puede no existir en UI (campo ocultado/retirado).
-        // Mantener compatibilidad enviando una versión por defecto.
-        const version = obtenerValorInput('version') || '1';
-        const estado = obtenerValorInput('estado');
-        const responsable = obtenerValorInput('responsable');
-        
-        // Validar campos requeridos
-        // Nota: CÓDIGO ya se fuerza a un valor por defecto (FRSPA-022), por eso
-        // solo validamos estado y responsable; versión usa fallback "1".
-        if (!estado || !responsable) {
-            const camposFaltantes = [];
-            const idsFaltantes = [];
-            if (!estado) { camposFaltantes.push('Estado'); idsFaltantes.push('estado'); }
-            if (!responsable) { camposFaltantes.push('Responsable'); idsFaltantes.push('responsable'); }
-
-            const errorMessage = `Campos requeridos faltantes: ${camposFaltantes.join(', ')}`;
-            mostrarMensaje(`Complete el/los campo(s) requerido(s): ${camposFaltantes.join(', ')}`, 'error');
-            resaltarCamposFaltantes(idsFaltantes);
-            throw new Error(errorMessage);
-        }
-        
-        // Obtener edad_snapshot - verificar si tiene valor (incluyendo 0)
-        const edadSnapshotInput = document.getElementById('edad_snapshot');
-        const edadSnapshotValue = edadSnapshotInput?.value?.trim();
-        const edadSnapshot = (edadSnapshotValue !== '' && edadSnapshotValue !== undefined && edadSnapshotValue !== null) ? 
-                            parseInt(edadSnapshotValue) : null;
-        console.log('🔍 edad_snapshot - Input value:', edadSnapshotValue, 'Parsed:', edadSnapshot);
-        
-        // Obtener edad_gestion - verificar si tiene valor (incluyendo 0)
-        const edadGestionInput = document.getElementById('edad_gestion');
-        const edadGestionValue = edadGestionInput?.value?.trim();
-        const edadGestion = (edadGestionValue !== '' && edadGestionValue !== undefined && edadGestionValue !== null) ? 
-                           parseInt(edadGestionValue) : null;
-        
-        // Obtener n_controles_prenatales - verificar si tiene valor (incluyendo 0)
-        const nControlesInput = document.getElementById('n_controles_prenatales');
-        const nControlesValue = nControlesInput?.value?.trim();
-        const nControles = (nControlesValue !== '' && nControlesValue !== undefined && nControlesValue !== null) ?
-                          parseInt(nControlesValue) : null;
-
-        // Antecedentes obstétricos G/P/C/A - verificar valor (incluyendo 0)
-        const parseIntOrNull = (id) => {
-            const val = document.getElementById(id)?.value?.trim();
-            return (val !== '' && val !== undefined && val !== null) ? parseInt(val) : null;
-        };
-        const gestas = parseIntOrNull('gestas');
-        const partos = parseIntOrNull('partos');
-        const cesareas = parseIntOrNull('cesareas');
-        const abortos = parseIntOrNull('abortos');
-
-        const formularioData = {
-            codigo: codigo,
-            version: version,
-            fecha_elabora: obtenerValorInput('fecha_elabora') || obtenerFechaLocalColombia(),
-            num_hoja: parseInt(obtenerValorInput('num_hoja') || '1'),
-            paciente: pacienteId,
-            aseguradora_nombre: (obtenerValorInput('aseguradora_nombre') || '').trim(),
-            diagnostico: obtenerValorInput('diagnostico') || null,
-            edad_snapshot: edadSnapshot,
-            edad_gestion: edadGestion,
-            estado: estado,
-            n_controles_prenatales: nControles,
-            gestas: gestas,
-            partos: partos,
-            cesareas: cesareas,
-            abortos: abortos,
-            responsable: responsable,
-        };
-        
-        console.log('Datos del formulario preparados:', formularioData);
-        
-        let formulario;
-        
-        if (formularioId) {
-            console.log('Actualizando formulario existente con ID:', formularioId);
-            try {
-                // Actualizar formulario existente. suprimirMensajeError: si
-                // da 404 se recupera solo abajo, no hace falta alarmar antes.
-                formulario = await apiRequest(`/formularios/${formularioId}/`, 'PUT', formularioData, { suprimirMensajeError: true });
-            } catch (errorPut) {
-                // 2026-09-09: si formulario_id quedó "viejo" (el registro ya no
-                // existe en el backend -- borrado, u obtenido de una caché
-                // desactualizada del navegador), antes esto hacía fallar todo
-                // el guardado sin remedio. Ahora, específicamente ante un 404
-                // ("No Formulario matches the given query"), se reintenta como
-                // creación en vez de perder lo que la enfermera diligenció.
-                if (errorPut && errorPut.status === 404) {
-                    console.warn('El formulario_id guardado ya no existe (404) — se crea uno nuevo en su lugar.');
-                    setValorInput('formulario_id', '');
-                    formulario = await apiRequest('/formularios/', 'POST', formularioData);
-                    if (formulario && formulario.id) {
-                        setValorInput('formulario_id', formulario.id);
-                    }
-                } else {
-                    // No era el caso recuperable -- se suprimió el mensaje al
-                    // pedir el PUT, así que se muestra aquí antes de propagar
-                    // el error, para no dejar al usuario sin ninguna pista.
-                    mostrarMensaje(errorPut.message || 'Error al actualizar el formulario', 'error');
-                    throw errorPut;
-                }
-            }
-        } else {
-            console.log('Creando nuevo formulario...');
-            // Crear nuevo formulario
-            formulario = await apiRequest('/formularios/', 'POST', formularioData);
-            console.log('Formulario creado:', formulario);
-            if (formulario && formulario.id) {
-                setValorInput('formulario_id', formulario.id);
-            }
-        }
-        if (!formulario || !formulario.id) {
-            console.error('Formulario no creado correctamente:', formulario);
-            throw new Error('Formulario no creado correctamente');
-        }
-        
-        console.log('Guardando mediciones para formulario ID:', formulario.id);
-        // Guardar mediciones
-        await guardarMediciones(formulario.id);
-        console.log('Mediciones guardadas exitosamente');
-
-        // Actualizar el ID del formulario en el campo oculto
-        setValorInput('formulario_id', formulario.id);
-        
-        // Actualizar el formulario informativo con los datos guardados
-        // Esto asegura que el acordeón muestre los datos más recientes
+    let formulario;
+    if (formularioId) {
         try {
-            await actualizarFormularioInformativo(formulario.id);
-            console.log('Formulario informativo actualizado correctamente');
-        } catch (error) {
-            console.error('Error al actualizar formulario informativo:', error);
-            // No fallar el guardado si hay error en la actualización del informativo
+            // suprimirMensajeError: si da 404 se recupera solo abajo.
+            formulario = await apiRequest(`/formularios/${formularioId}/`, 'PUT', formularioData, { suprimirMensajeError: true });
+        } catch (errorPut) {
+            // 2026-09-09: si formulario_id quedó "viejo" (el registro ya no
+            // existe en el backend -- borrado, u obtenido de una caché
+            // desactualizada del navegador), ante un 404 se reintenta como
+            // creación en vez de perder lo que la enfermera diligenció.
+            if (errorPut && errorPut.status === 404) {
+                console.warn('El formulario_id guardado ya no existe (404) — se crea uno nuevo en su lugar.');
+                setValorInput('formulario_id', '');
+                formulario = await apiRequest('/formularios/', 'POST', formularioData);
+            } else {
+                mostrarMensaje(errorPut.message || 'Error al actualizar el formulario', 'error');
+                throw errorPut;
+            }
         }
-        
-        const mensaje = esActualizacion ? 'Datos actualizados correctamente' : 'Datos guardados correctamente';
-        mostrarMensaje(mensaje, 'success');
-        
-        // Limpiar el formulario después de un breve delay para que vean el mensaje
-        // Nota: El formulario informativo (acordeón) NO se limpia, solo el formulario principal
-        setTimeout(() => {
-            limpiarFormulario();
-            console.log('Formulario reseteado tras guardado exitoso.');
-        }, 1500);
-        
-    } catch (error) {
-        console.error('Error al guardar formulario:', error);
+    } else {
+        formulario = await apiRequest('/formularios/', 'POST', formularioData);
+    }
+    if (!formulario || !formulario.id) {
+        throw new Error('Formulario no creado correctamente');
+    }
+    setValorInput('formulario_id', formulario.id);
+    return formulario;
+}
 
-        // Los casos de "campos faltantes" (paciente, o Estado/Responsable más arriba)
-        // ya muestran su propio mensaje con el nombre del campo y lo resaltan en
-        // pantalla; aquí solo cubrimos errores inesperados para no pisar ese mensaje
-        // con uno genérico que no dice qué falta diligenciar.
-        const esCampoFaltante = error.message.includes('Campos requeridos faltantes') ||
-            error.message.includes('Campos de paciente requeridos faltantes');
-        if (!esCampoFaltante) {
-            mostrarMensaje('Error al guardar formulario', 'error');
+/** Campos sin los cuales no se puede guardar: [{id, etiqueta}]. */
+function camposFaltantesParaGuardar() {
+    const requeridos = [
+        ['num_historia_clinica', 'N° historia clínica'],
+        ['num_identificacion', 'Identificación'],
+        ['nombres', 'Nombre'],
+        ['estado', 'Estado'],
+        ['responsable', 'Responsable'],
+    ];
+    return requeridos
+        .filter(([id]) => !obtenerValorInput(id))
+        .map(([id, etiqueta]) => ({ id, etiqueta }));
+}
+
+/** Indicador de estado junto al botón (mismo estilo que Control Posparto). */
+function mostrarEstadoAutoguardadoParto(tipo, texto) {
+    const el = document.getElementById('autosave-parto-status');
+    if (!el) return;
+    el.dataset.estado = tipo;
+    el.textContent = texto;
+    el.style.display = texto ? 'inline-flex' : 'none';
+}
+
+/** Muestra los botones que requieren un formulario ya guardado. */
+function mostrarBotonesFormularioGuardado() {
+    ['btn-descargar-pdf', 'btn-finalizar-repositorio'].forEach((id) => {
+        const btn = document.getElementById(id);
+        if (btn) btn.style.display = 'inline-block';
+    });
+}
+
+/**
+ * Programa un guardado automático (agrupa los cambios seguidos en uno solo).
+ * Se llama desde guardarTemporalParametro y desde los campos del encabezado.
+ */
+function programarAutoguardadoParto(esperaMs = AUTOGUARDADO_PARTO_ESPERA_MS) {
+    _autoguardadoPartoHayCambios = true;
+    // Copia inmediata en el navegador: si se recarga antes de que salga el
+    // guardado, se recupera al volver a abrir (restaurarBorradorLocalParto).
+    guardarBorradorLocalParto();
+    if (_autoguardadoPartoTimer) clearTimeout(_autoguardadoPartoTimer);
+    mostrarEstadoAutoguardadoParto('pendiente', 'Cambios sin guardar…');
+    _autoguardadoPartoTimer = setTimeout(() => {
+        _autoguardadoPartoTimer = null;
+        autoguardarTrabajoParto();
+    }, esperaMs);
+}
+
+/**
+ * Guarda paciente + encabezado + mediciones pendientes, sin confirmar ni
+ * limpiar la pantalla. manual=true (botón "Guardar ahora" / antes de
+ * finalizar): muestra y resalta los campos faltantes y propaga los errores.
+ * Devuelve true si quedó todo guardado.
+ */
+async function autoguardarTrabajoParto({ manual = false } = {}) {
+    if (_autoguardadoPartoTimer) {
+        clearTimeout(_autoguardadoPartoTimer);
+        _autoguardadoPartoTimer = null;
+    }
+    // Si ya hay un guardado en curso, se encadena uno más al terminar (así no
+    // se pierde lo que se registró mientras tanto).
+    if (_autoguardadoPartoEnCurso) {
+        _autoguardadoPartoPendiente = true;
+        const resultado = await _autoguardadoPartoEnCurso;
+        if (!manual) return resultado;
+    }
+
+    const faltantes = camposFaltantesParaGuardar();
+    if (faltantes.length) {
+        const nombres = faltantes.map(f => f.etiqueta).join(', ');
+        mostrarEstadoAutoguardadoParto('espera', `Autoguardado en espera: complete ${nombres}`);
+        if (manual) {
+            mostrarMensaje(`Complete el/los campo(s) requerido(s): ${nombres}`, 'error');
+            resaltarCamposFaltantes(faltantes.map(f => f.id));
+        }
+        return false;
+    }
+
+    _autoguardadoPartoHayCambios = false;
+    mostrarEstadoAutoguardadoParto('guardando', 'Guardando…');
+    _autoguardadoPartoEnCurso = (async () => {
+        await guardarPaciente();
+        const pacienteId = obtenerValorInput('paciente_id');
+        if (!pacienteId) throw new Error('No se pudo obtener el ID del paciente');
+        const formulario = await guardarEncabezadoFormulario(pacienteId);
+        await guardarMediciones(formulario.id);
+        // Refleja lo guardado en los botones de parámetro de la hora actual
+        // (así se pueden reabrir y corregir).
+        await sincronizarMedicionesGuardadas(formulario.id, obtenerValorInput('hora_registro_actual'));
+        document.querySelectorAll('.btn-parametro').forEach(btn => {
+            const id = btn.getAttribute('data-parametro-id');
+            if (id) actualizarBotonUI(id);
+        });
+        mostrarBotonesFormularioGuardado();
+        return true;
+    })();
+
+    try {
+        await _autoguardadoPartoEnCurso;
+        const hora = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        mostrarEstadoAutoguardadoParto('ok', `✓ Guardado automáticamente · ${hora}`);
+        // La caché local del paciente (buscarPacienteCompleto) quedó vieja: sin
+        // esto, al recargar se mostraban los datos de ANTES del guardado.
+        try { localStorage.removeItem('paciente_completo_data_cache'); } catch (e) { /* sin localStorage */ }
+        if (!_autoguardadoPartoHayCambios && !_autoguardadoPartoPendiente) borrarBorradorLocalParto();
+        return true;
+    } catch (error) {
+        console.error('Error en el autoguardado de Trabajo de Parto:', error);
+        _autoguardadoPartoHayCambios = true;
+        mostrarEstadoAutoguardadoParto('error', 'No se pudo guardar: se reintentará en unos segundos');
+        if (manual) throw error;
+        programarAutoguardadoParto(AUTOGUARDADO_PARTO_REINTENTO_MS);
+        return false;
+    } finally {
+        _autoguardadoPartoEnCurso = null;
+        if (_autoguardadoPartoPendiente) {
+            _autoguardadoPartoPendiente = false;
+            programarAutoguardadoParto(300);
         }
     }
 }
+
+// Guardar formulario (botón "Guardar ahora"): mismo guardado, inmediato.
+async function guardarFormulario() {
+    const ok = await autoguardarTrabajoParto({ manual: true });
+    if (ok) mostrarMensaje('Datos guardados correctamente', 'success');
+    return ok;
+}
+
+// Antes de salir de la página con cambios sin guardar: se intenta guardar y
+// el navegador pregunta si de verdad quiere salir.
+window.addEventListener('beforeunload', function (e) {
+    if (_autoguardadoPartoHayCambios) guardarBorradorLocalParto();
+    if (_autoguardadoPartoHayCambios || _autoguardadoPartoEnCurso) {
+        if (_autoguardadoPartoHayCambios && !_autoguardadoPartoEnCurso) autoguardarTrabajoParto();
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+// Al cambiar de pestaña o minimizar, se guarda de una vez lo pendiente.
+document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden' && _autoguardadoPartoHayCambios) {
+        autoguardarTrabajoParto();
+    }
+});
+// Cambios en el encabezado (estado, responsable, antecedentes, controles...).
+document.addEventListener('change', function (e) {
+    const id = e.target && e.target.id;
+    if (['estado', 'responsable', 'gestas', 'partos', 'cesareas', 'abortos',
+         'n_controles_prenatales', 'edad_gestion'].includes(id)) {
+        if (obtenerValorInput('num_identificacion')) programarAutoguardadoParto();
+    }
+});
+
+// ----------------------------------------------------------------------------
+// 2026-09-23: que lo registrado SIEMPRE prevalezca al recargar o cambiar de
+// pestaña.
+//
+// 1) Respaldo local (borrador): cada cambio se copia de inmediato en el
+//    navegador (localStorage) ANTES de enviarse. Si la página se recarga o se
+//    cierra en esos segundos, al volver a abrirla se recupera y se guarda.
+// 2) Al abrir la página se retoma el último control registrado (si es
+//    reciente): sus valores guardados vuelven a verse en los botones.
+// 3) Al cambiar la "Hora del control actual" a una hora ya registrada, se
+//    cargan sus valores guardados (para verlos y corregirlos).
+// ----------------------------------------------------------------------------
+const CAMPOS_ENCABEZADO_AUTOGUARDADO = [
+    'estado', 'gestas', 'partos', 'cesareas', 'abortos', 'n_controles_prenatales', 'edad_gestion',
+];
+// Un control registrado hace menos de esto se considera "en curso" al abrir la página.
+const MINUTOS_RETOMAR_CONTROL = 60;
+// Un borrador más viejo que esto no se recupera.
+const HORAS_VIGENCIA_BORRADOR = 12;
+// Parámetros que NO se diligencian a mano (Frecuencia Cardiaca Fetal llega de Dinámica).
+// 2026-09-23: la FCF (8) volvió a ser MANUAL. Solo es automática (desde
+// Dinámica) si el .env tiene FCF_DINAMICA_AUTOMATICA=True (ver parto_home).
+const PARAMETROS_AUTOMATICOS = window.FCF_DINAMICA_AUTOMATICA ? ['8'] : [];
+
+function claveBorradorParto() {
+    const doc = (obtenerValorInput('num_identificacion') || '').trim();
+    return doc ? `trabajoparto_borrador_${doc}` : null;
+}
+
+function guardarBorradorLocalParto() {
+    const clave = claveBorradorParto();
+    if (!clave) return;
+    try {
+        const encabezado = {};
+        CAMPOS_ENCABEZADO_AUTOGUARDADO.forEach(id => { encabezado[id] = obtenerValorInput(id) || ''; });
+        localStorage.setItem(clave, JSON.stringify({
+            ts: Date.now(),
+            formulario_id: obtenerValorInput('formulario_id') || '',
+            hora: obtenerValorInput('hora_registro_actual') || '',
+            pendientes: window.medicionesPendientes || [],
+            encabezado,
+        }));
+    } catch (e) {
+        console.warn('No se pudo guardar el respaldo local de Trabajo de Parto:', e);
+    }
+}
+
+function borrarBorradorLocalParto() {
+    const clave = claveBorradorParto();
+    if (clave) {
+        try { localStorage.removeItem(clave); } catch (e) { /* sin acceso a localStorage */ }
+    }
+}
+
+/** Recupera lo que no alcanzó a guardarse (recarga/cierre en medio). Devuelve true si recuperó algo. */
+function restaurarBorradorLocalParto() {
+    const clave = claveBorradorParto();
+    if (!clave) return false;
+    let borrador;
+    try { borrador = JSON.parse(localStorage.getItem(clave) || 'null'); } catch (e) { borrador = null; }
+    if (!borrador) return false;
+    const vencido = !borrador.ts || (Date.now() - borrador.ts) > HORAS_VIGENCIA_BORRADOR * 3600 * 1000;
+    const formularioActual = obtenerValorInput('formulario_id') || '';
+    const esDeOtroFormulario = borrador.formulario_id && formularioActual && String(borrador.formulario_id) !== String(formularioActual);
+    if (vencido || esDeOtroFormulario) {
+        borrarBorradorLocalParto();
+        return false;
+    }
+    Object.entries(borrador.encabezado || {}).forEach(([id, valor]) => {
+        const el = document.getElementById(id);
+        if (el && valor !== '' && valor !== null && valor !== undefined) el.value = valor;
+    });
+    (borrador.pendientes || []).forEach(med => {
+        const i = window.medicionesPendientes.findIndex(m =>
+            m.parametro_id == med.parametro_id && m.campo_id == med.campo_id && m.hora == med.hora);
+        if (i >= 0) window.medicionesPendientes[i] = med; else window.medicionesPendientes.push(med);
+    });
+    if (borrador.hora) setValorInput('hora_registro_actual', borrador.hora);
+    document.querySelectorAll('.btn-parametro').forEach(btn => {
+        const id = btn.getAttribute('data-parametro-id');
+        if (id) actualizarBotonUI(id);
+    });
+    return true;
+}
+
+function formatearComoInputHora(fecha) {
+    const d = new Date(fecha);
+    const dos = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}T${dos(d.getHours())}:${dos(d.getMinutes())}`;
+}
+
+/**
+ * Al abrir la página (o buscar a la paciente): retoma el último control si es
+ * reciente y recupera lo que no alcanzó a guardarse. Se llama después de
+ * llenarFormularioDesdePaciente.
+ */
+async function prepararControlAlCargar(data) {
+    const formularioId = obtenerValorInput('formulario_id');
+    const mediciones = (data && Array.isArray(data.mediciones)) ? data.mediciones : [];
+
+    // 1) Último control registrado a mano (sin la FCF que llega de Dinámica).
+    let ultima = null;
+    mediciones.forEach(m => {
+        const pid = String(m.parametro && m.parametro.id !== undefined ? m.parametro.id : m.parametro);
+        if (PARAMETROS_AUTOMATICOS.includes(pid) || !m.tomada_en) return;
+        if (!ultima || new Date(m.tomada_en) > new Date(ultima)) ultima = m.tomada_en;
+    });
+    if (formularioId && ultima && (Date.now() - new Date(ultima).getTime()) <= MINUTOS_RETOMAR_CONTROL * 60 * 1000) {
+        const hora = formatearComoInputHora(ultima);
+        setValorInput('hora_registro_actual', hora);
+        await sincronizarMedicionesGuardadas(formularioId, hora);
+        const horaTexto = new Date(ultima).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        mostrarEstadoAutoguardadoParto('ok', `✓ Datos guardados · control de las ${horaTexto}`);
+        marcarControlEnEdicion(hora);
+    } else if (formularioId) {
+        mostrarEstadoAutoguardadoParto('ok', '✓ Datos guardados');
+    }
+
+    // 2) Lo que no alcanzó a enviarse antes de recargar/cerrar.
+    if (restaurarBorradorLocalParto()) {
+        mostrarMensaje('Se recuperaron datos que no alcanzaron a guardarse. Guardando…', 'warning');
+        programarAutoguardadoParto(300);
+    }
+}
+
+// Cambiar la "Hora del control actual" a una hora ya registrada carga sus
+// valores guardados en los botones (así se pueden ver y corregir).
+document.addEventListener('change', async function (e) {
+    if (!e.target || e.target.id !== 'hora_registro_actual') return;
+    const formularioId = obtenerValorInput('formulario_id');
+    if (formularioId && e.target.value) {
+        const encontrados = await sincronizarMedicionesGuardadas(formularioId, e.target.value);
+        marcarControlEnEdicion(encontrados > 0 ? e.target.value : null);
+    } else {
+        marcarControlEnEdicion(null);
+    }
+});
+
+// ----------------------------------------------------------------------------
+// 2026-09-23: "Hora del control actual" en formato 12 h con AM/PM.
+// El <input type="datetime-local"> nativo muestra el formato del sistema
+// operativo (en muchos equipos 24 h, sin AM/PM) y no se puede forzar. Se deja
+// #hora_registro_actual OCULTO (todo el código sigue leyendo/escribiendo su
+// valor "YYYY-MM-DDTHH:MM" igual que antes) y se muestran encima: fecha +
+// hora (01-12) + minutos + AM/PM -- mismas utilidades que "Hora de la ruptura".
+// Cualquier escritura por código en el campo oculto (Nuevo control, retomar
+// un control, recuperar un borrador, limpiar) repinta la parte visible.
+// ----------------------------------------------------------------------------
+function pintarHoraControlVisible() {
+    const oculto = document.getElementById('hora_registro_actual');
+    const fecha = document.getElementById('hora-control-fecha');
+    const horas = document.getElementById('hora-control-horas');
+    const minutos = document.getElementById('hora-control-minutos');
+    const periodo = document.getElementById('hora-control-periodo');
+    if (!oculto || !fecha || !horas || !minutos || !periodo) return;
+    poblarSelectHoras12(horas);
+    poblarSelectMinutos60(minutos);
+    const valor = oculto.value || '';
+    const partes = valor.split('T');
+    if (partes.length !== 2) {
+        fecha.value = ''; horas.value = ''; minutos.value = ''; periodo.value = 'AM';
+        return;
+    }
+    const [hh, mm] = partes[1].split(':');
+    const h24 = parseInt(hh, 10);
+    let h12 = h24 % 12;
+    if (h12 === 0) h12 = 12;
+    fecha.value = partes[0];
+    horas.value = String(h12).padStart(2, '0');
+    minutos.value = (mm || '00').slice(0, 2);
+    periodo.value = h24 >= 12 ? 'PM' : 'AM';
+}
+
+(function vincularHoraControl12h() {
+    const oculto = document.getElementById('hora_registro_actual');
+    if (!oculto || oculto.dataset.hora12Vinculada) return;
+    oculto.dataset.hora12Vinculada = '1';
+
+    // Repintar la parte visible en cada escritura por código del valor.
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    Object.defineProperty(oculto, 'value', {
+        configurable: true,
+        get() { return descriptor.get.call(this); },
+        set(v) { descriptor.set.call(this, v); pintarHoraControlVisible(); },
+    });
+
+    // Cambio hecho por la enfermera en la parte visible -> campo oculto, y se
+    // avisa con 'change' (carga los valores de ese control, aviso de edición...).
+    const alCambiarVisible = () => {
+        const fecha = document.getElementById('hora-control-fecha')?.value;
+        const h12 = parseInt(document.getElementById('hora-control-horas')?.value, 10);
+        const mm = document.getElementById('hora-control-minutos')?.value;
+        const periodo = document.getElementById('hora-control-periodo')?.value;
+        if (!fecha || isNaN(h12) || !mm || !periodo) return;
+        let h24 = h12 % 12;
+        if (periodo === 'PM') h24 += 12;
+        const nuevo = `${fecha}T${String(h24).padStart(2, '0')}:${mm}`;
+        if (nuevo === descriptor.get.call(oculto)) return;
+        descriptor.set.call(oculto, nuevo);
+        oculto.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    ['hora-control-fecha', 'hora-control-horas', 'hora-control-minutos', 'hora-control-periodo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', alCambiarVisible);
+    });
+    pintarHoraControlVisible();
+})();
 
 /**
  * Crea una card de medición para mostrar en la vista previa horizontal.
@@ -829,7 +1081,8 @@ function calcularHorasColumnaVistaPrevia(mediciones) {
     const horasConDatoManual = new Set();
     mediciones.forEach(m => {
         const pid = parseInt(m.parametro_id || (m.parametro && m.parametro.id) || m.parametro);
-        if (pid !== _FCF_PARAM_ID) horasConDatoManual.add(m.tomada_en);
+        // Con la FCF manual, su hora es una columna como cualquier otra.
+        if (pid !== _FCF_PARAM_ID || !window.FCF_DINAMICA_AUTOMATICA) horasConDatoManual.add(m.tomada_en);
     });
     // Caso borde: si TODAS las mediciones que hay son de FCF (formulario recién
     // creado, solo llegó el dato de Dinámica y la enfermera aún no ha guardado
@@ -956,7 +1209,7 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas, responsableFormular
                 let valor = valoresPorParamHora[`${param.id}|${hora}`];
                 let heredado = false;
                 let horaCarryTxt = '';
-                if (!valor && param.id === _FCF_PARAM_ID) {
+                if (!valor && param.id === _FCF_PARAM_ID && window.FCF_DINAMICA_AUTOMATICA) {
                     const carry = valorFCFHeredado(hora);
                     if (carry) {
                         valor = carry.valor;
@@ -991,6 +1244,10 @@ function limpiarFormularioInformativo() {
     const btnPdf = document.getElementById('btn-descargar-pdf');
     if (btnPdf) {
         btnPdf.style.display = 'none';
+    }
+    const btnRepositorio = document.getElementById('btn-finalizar-repositorio');
+    if (btnRepositorio) {
+        btnRepositorio.style.display = 'none';
     }
     const medicionesScroll = document.getElementById('preview-mediciones-scroll');
     if (medicionesScroll) {
@@ -1043,6 +1300,10 @@ async function actualizarFormularioInformativo(formularioId, datosCompletos = nu
         const btnPdf = document.getElementById('btn-descargar-pdf');
         if (btnPdf && formularioId) {
             btnPdf.style.display = 'inline-block';
+        }
+        const btnRepositorio = document.getElementById('btn-finalizar-repositorio');
+        if (btnRepositorio && formularioId) {
+            btnRepositorio.style.display = 'inline-block';
         }
 
         // 1. Actualizar Datos Personales
@@ -1378,6 +1639,8 @@ async function guardarTodoElControl() {
  * ÚLTIMO valor conocido junto con SU PROPIA hora real de Dinámica.
  */
 function actualizarPreviewFrecuenciaCardiacaFetal(mediciones) {
+    // Con la FCF manual, su botón se pinta como el de cualquier otro parámetro.
+    if (!window.FCF_DINAMICA_AUTOMATICA) return;
     if (!Array.isArray(mediciones)) return;
     const valPreview = document.getElementById('val-preview-8');
     if (!valPreview) return;
@@ -1440,6 +1703,10 @@ async function sincronizarMedicionesGuardadas(formularioId, horaRegistro) {
             if (formatearComoInputHora(medicion.tomada_en) !== horaRegistro) return;
             const parametroId = medicion.parametro ? medicion.parametro.id : medicion.parametro;
             if (!parametroId) return;
+            // La FCF de Dinámica no se carga como dato "pendiente": si no, el
+            // autoguardado la reenviaría a nombre de la enfermera (y con la hora
+            // sin segundos, como una medición duplicada).
+            if (PARAMETROS_AUTOMATICOS.includes(String(parametroId))) return;
 
             (medicion.valores || []).forEach(v => {
                 const campoId = v.campo ? v.campo.id : v.campo;
@@ -1453,7 +1720,22 @@ async function sincronizarMedicionesGuardadas(formularioId, horaRegistro) {
                 } else if (v.valor_text !== null && v.valor_text !== undefined) {
                     valor = v.valor_text;
                 } else if (v.valor_number !== null && v.valor_number !== undefined) {
-                    valor = v.valor_number.toString();
+                    // Decimal de la BD ("0.000000") -> "0", igual que el PDF.
+                    valor = formatearValorNumero(v.valor_number);
+                }
+
+                // 2026-09-23 (autoguardado): el tipo y el texto legible salen del
+                // campo del modal (ej. "0 Sin dinámica" en vez de solo "0"), para
+                // que el botón muestre lo mismo que antes de guardar y un nuevo
+                // guardado reenvíe el valor con su tipo correcto.
+                const inputModal = document.querySelector(
+                    `#modal-parametro-${parametroId} .data-input-modal[data-campo-id="${campoId}"]`
+                );
+                if (!tipoValor && inputModal) tipoValor = inputModal.getAttribute('data-tipo-valor') || undefined;
+                let valorTexto = valor;
+                if (inputModal && inputModal.tagName === 'SELECT') {
+                    const opcion = Array.from(inputModal.options).find(o => o.value === String(valor));
+                    if (opcion) valorTexto = opcion.text;
                 }
 
                 const nuevaMedicion = {
@@ -1461,7 +1743,7 @@ async function sincronizarMedicionesGuardadas(formularioId, horaRegistro) {
                     campo_id: campoId,
                     tipo_valor: tipoValor,
                     valor: valor,
-                    valor_texto: valor,
+                    valor_texto: valorTexto,
                     hora: horaRegistro
                 };
                 const indiceExistente = window.medicionesPendientes.findIndex(m =>
@@ -1477,6 +1759,7 @@ async function sincronizarMedicionesGuardadas(formularioId, horaRegistro) {
         });
 
         parametrosActualizados.forEach(id => actualizarBotonUI(id));
+        return parametrosActualizados.size;
     } catch (e) {
         console.warn('No se pudo sincronizar mediciones guardadas para permitir su edición:', e);
     }
@@ -1579,10 +1862,36 @@ function inicializarHoraRegistroAutomatica() {
 }
 
 
+/**
+ * 2026-09-23: aviso visible cuando se trabaja sobre un control ya guardado
+ * (retomado al abrir la página o elegido a mano en "Hora del control
+ * actual"). hora = valor "YYYY-MM-DDTHH:MM" o null para ocultarlo.
+ */
+function marcarControlEnEdicion(hora) {
+    const aviso = document.getElementById('aviso-control-anterior');
+    if (!aviso) return;
+    if (!hora) {
+        aviso.style.display = 'none';
+        return;
+    }
+    const d = new Date(hora);
+    const horaTexto = d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    const hoy = new Date();
+    const mismoDia = d.toDateString() === hoy.toDateString();
+    const fechaTexto = mismoDia ? '' : ` del ${d.toLocaleDateString('es-CO')}`;
+    aviso.innerHTML = `✏️ <b>Estás editando el control de las ${horaTexto}${fechaTexto}</b> (ya guardado). ` +
+        'Lo que registres se guarda en ese control. Para registrar uno nuevo presiona <b>Nuevo control</b>.';
+    aviso.style.display = 'block';
+}
+
+/** Botón "Nuevo control": empieza un control con la hora actual. */
 function establecerHoraActual() {
     const timeInput = getLiveElementById('hora_registro_actual');
     if (!timeInput) return;
     timeInput.value = obtenerFechaHoraLocalInput();
+    marcarControlEnEdicion(null);
+    const horaNueva = new Date(timeInput.value).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    if (obtenerValorInput('formulario_id')) mostrarEstadoAutoguardadoParto('ok', `Nuevo control · ${horaNueva}`);
     const feedback = document.getElementById('hora-seleccionada-feedback');
     if (feedback) {
         feedback.style.display = 'inline';
@@ -1720,6 +2029,11 @@ function formatearHora12(valorHHMM) {
  * Actualiza la información visual en el botón del parámetro para mostrar el valor ingresado.
  */
 function actualizarBotonUI(parametroId) {
+    // 2026-09-23: la FCF (parámetro 8) llega sola de Dinámica y su botón lo
+    // pinta actualizarPreviewFrecuenciaCardiacaFetal (último valor + su hora
+    // real). Sin esto, refrescar los botones (autoguardado, "Nuevo control")
+    // lo dejaba en "-" aunque el dato siguiera guardado.
+    if (PARAMETROS_AUTOMATICOS.includes(String(parametroId))) return;
     const btn = document.getElementById(`btn-parametro-${parametroId}`);
     if (!btn) return;
 
@@ -1979,6 +2293,9 @@ function cerrarModalParametro(parametroId) {
         modal.querySelectorAll('.data-input-modal').forEach(input => registrarCambioDatoModal(input));
         actualizarBotonUI(parametroId);
         modal.style.display = 'none';
+        // 2026-09-23: al cerrar un modal (×, clic afuera, cierre automático)
+        // se guarda lo registrado en él.
+        programarAutoguardadoParto();
     }
     if (String(parametroId) === '17' && window._autoHoraModal17Interval) {
         clearInterval(window._autoHoraModal17Interval);
@@ -2036,7 +2353,9 @@ function guardarTemporalParametro(parametroId) {
         if (btn) btn.classList.add('tiene-datos');
         actualizarBotonUI(parametroId);
         cerrarModalParametro(parametroId);
-        mostrarMensaje('Dato guardado temporalmente. Pulse "Guardar Formulario" al final.', 'success');
+        // 2026-09-23: ya no hace falta "Guardar Formulario" -- se guarda solo.
+        mostrarMensaje('Dato registrado. Se guarda automáticamente.', 'success');
+        programarAutoguardadoParto();
     } else {
         mostrarMensaje('No se ingresaron valores', 'warning');
     }
@@ -2051,6 +2370,12 @@ async function guardarMediciones(formularioId) {
     // largo del trabajo de parto. Se toma el valor del input #responsable
     // en el momento de este guardado.
     const responsableActual = (document.getElementById('responsable')?.value || '').trim() || null;
+    // 2026-09-23 (autoguardado): solo se quitan de pendientes las mediciones
+    // que se enviaron en ESTE guardado -- si la enfermera registra otra
+    // mientras el envío está en curso, esa queda para el siguiente.
+    const pendientesEnviadas = (window.medicionesPendientes || []).slice();
+    // Nunca se envía desde aquí un parámetro automático (FCF de Dinámica).
+    const pendientesAEnviar = pendientesEnviadas.filter(m => !PARAMETROS_AUTOMATICOS.includes(String(m.parametro_id)));
 
     // 1. Extraer horas válidas definidas en el encabezado de la cuadrícula
     const timeInputs = document.querySelectorAll('.time-input');
@@ -2118,8 +2443,8 @@ async function guardarMediciones(formularioId) {
     });
 
     // 3. Incluir las mediciones que vengan del modal (por si se sigue usando)
-    if (window.medicionesPendientes && window.medicionesPendientes.length > 0) {
-        window.medicionesPendientes.forEach(med => {
+    if (pendientesAEnviar.length > 0) {
+        pendientesAEnviar.forEach(med => {
             const horaIso = new Date(med.hora).toISOString();
             const key = `${med.parametro_id}-${horaIso}`;
             
@@ -2176,8 +2501,8 @@ async function guardarMediciones(formularioId) {
         throw error;
     }
     
-    // Limpieza post-guardado
-    window.medicionesPendientes = [];
+    // Limpieza post-guardado (solo lo que se envió en este guardado)
+    window.medicionesPendientes = (window.medicionesPendientes || []).filter(m => !pendientesEnviadas.includes(m));
     document.querySelectorAll('.btn-parametro.tiene-datos').forEach(btn => btn.classList.remove('tiene-datos'));
 }
 
@@ -2214,10 +2539,10 @@ function actualizarTextoBoton(esActualizacion) {
     const btnGuardar = document.getElementById('btn-guardar');
     if (btnGuardar) {
         if (esActualizacion) {
-            btnGuardar.textContent = 'Actualizar Formulario';
+            btnGuardar.textContent = 'Guardar ahora';
             btnGuardar.setAttribute('data-es-actualizacion', 'true');
         } else {
-            btnGuardar.textContent = 'Guardar Formulario';
+            btnGuardar.textContent = 'Guardar ahora';
             btnGuardar.removeAttribute('data-es-actualizacion');
         }
     }
@@ -2230,7 +2555,7 @@ async function buscarPacienteCompleto(cedula, usarCache = true) {
         console.log(`Buscando paciente completo para identificación: ${cedula}`);
         
         const cacheKey = 'paciente_completo_data_cache';
-        const CACHE_VERSION = 6; // Incrementar si cambia estructura (ej. diagnostico, aseguradora, edad_gestacional, n_controles, estado)
+        const CACHE_VERSION = 7; // 7: EG corregida (ya no HCCM00N256). Incrementar si cambia estructura (ej. diagnostico, aseguradora, edad_gestacional, n_controles, estado)
         // 2026-09-11: esta caché no vencía nunca por tiempo -- solo se
         // invalidaba al cambiar de paciente o subir CACHE_VERSION. Eso
         // dejaba la pantalla mostrando para siempre la Frecuencia Cardiaca
@@ -2871,6 +3196,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('input', function(e) {
         if (e.target.classList.contains('data-input-modal')) {
             registrarCambioDatoModal(e.target);
+            // 2026-09-23: cada dato digitado programa el autoguardado (se
+            // agrupan las teclas seguidas en un solo envío).
+            programarAutoguardadoParto();
         }
     });
 
@@ -2878,6 +3206,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('change', function(e) {
         if (e.target.classList.contains('data-input-modal') && e.target.tagName === 'SELECT') {
             registrarCambioDatoModal(e.target);
+            programarAutoguardadoParto();
             mostrarAutoGuardado();
             // Excepción: el select de MEMBRANAS en "Rotas" deja el modal abierto
             // para que se alcance a diligenciar la hora de la ruptura debajo.
@@ -2904,6 +3233,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.tagName === 'SELECT') return;
 
         registrarCambioDatoModal(target);
+        programarAutoguardadoParto();
         const valor = (target.value || '').trim();
         if (valor) {
             mostrarAutoGuardado();
@@ -2947,9 +3277,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     btnGuardar.disabled = false;
                     const formularioId = obtenerValorInput('formulario_id');
                     if (formularioId) {
-                        btnGuardar.textContent = 'Actualizar Formulario';
+                        btnGuardar.textContent = 'Guardar ahora';
                     } else {
-                        btnGuardar.textContent = 'Guardar Formulario';
+                        btnGuardar.textContent = 'Guardar ahora';
                     }
                 }
             }
@@ -3997,8 +4327,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // 2026-09-23: "Finalizar y enviar a repositorio" -- genera el PDF final
+    // del formulario guardado y lo deja en el repositorio clínico (NAS, o la
+    // carpeta local de pruebas según REPOSITORIO_MODO), en la carpeta
+    // <cédula>/<ingreso activo>. Cada envío queda con un consecutivo nuevo.
+    async function finalizarEnRepositorio() {
+        const el = document.getElementById('formulario_id');
+        const formularioId = el ? el.value : null;
+        if (!formularioId) {
+            mostrarMensaje('Debe guardar el formulario antes de enviarlo al repositorio', 'warning');
+            return;
+        }
+        if (!confirm('¿Finalizar este formulario de Trabajo de Parto y enviarlo al repositorio clínico?')) return;
+        // Guarda primero lo que esté pendiente del autoguardado.
+        try {
+            if (!(await autoguardarTrabajoParto({ manual: true }))) return;
+        } catch (e) {
+            mostrarMensaje('No se pudieron guardar los últimos cambios; no se envió al repositorio.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('btn-finalizar-repositorio');
+        const textoOriginal = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Enviando...'; }
+        try {
+            const cookie = document.cookie.split('; ').find(c => c.startsWith('csrftoken='));
+            const resp = await fetch('/atencion/api/repositorio/enviar/', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': cookie ? decodeURIComponent(cookie.split('=')[1]) : '',
+                },
+                body: JSON.stringify({ formato: 'trabajo_parto', formulario_id: formularioId }),
+            });
+            const data = await resp.json().catch(() => ({ ok: false, mensaje: `HTTP ${resp.status}` }));
+            mostrarMensaje(data.mensaje || 'Error desconocido', data.ok ? 'success' : 'error');
+        } catch (error) {
+            console.error('❌ Error enviando al repositorio:', error);
+            mostrarMensaje('No se pudo contactar el servidor para enviar al repositorio', 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
+        }
+    }
+
     // Exponer al ámbito global
     window.descargarPDF = descargarPDF;
+    window.finalizarEnRepositorio = finalizarEnRepositorio;
 });
 
 // 2026-09-14: se eliminó toda la lógica de biometría y firma (SignaturePad,

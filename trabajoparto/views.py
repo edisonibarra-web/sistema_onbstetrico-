@@ -99,6 +99,8 @@ def parto_home(request):
         "items": items,
         "estructura_grid": estructura_grid,
         "profesional_nombre_sesion": nombre_profesional_sesion(request),
+        # FCF manual (False) o automática desde Dinámica (True) -- ver settings.
+        "fcf_automatica": settings.FCF_DINAMICA_AUTOMATICA,
     }
     return render(request, "desarrollo_frontend.html", context)
 
@@ -139,6 +141,7 @@ from trabajoparto.models import (
 
 
 from trabajoparto.utils_aseguradora import resolver_aseguradora_por_nombre
+from frecuenciafetal.sala_partos_db import calcular_edad_gestacional
 from trabajoparto.serializers import (
     AseguradoraSerializer,
     PacienteSerializer,
@@ -375,14 +378,16 @@ class PacienteViewSet(viewsets.ModelViewSet):
                         DATEDIFF(YEAR, PAC.GPAFECNAC, GETDATE()) AS edad,
                         PAC.GPAFECNAC AS fecha_nacimiento,
                         HCMWINGIN.HCCM03N191 AS grupo_sanguineo,
-                        HCMWINGIN.HCCM00N256,
-                        HCMWINGIN.HCCM00N80 AS g,
-                        HCMWINGIN.HCCM00N81 AS p,
-                        HCMWINGIN.HCCM00N82 AS c,
-                        HCMWINGIN.HCCM00N83 AS a,
+                        LEFT(HCMWINGIN.HCCM03N43, 500) AS analisis_eg,
+                        COALESCE(HCMWINGIN.HCCM01N318, HCMWINGIN.HCCM00N80) AS g,
+                        COALESCE(HCMWINGIN.HCCM01N319, HCMWINGIN.HCCM00N81) AS p,
+                        COALESCE(HCMWINGIN.HCCM01N320, HCMWINGIN.HCCM00N82) AS c,
+                        COALESCE(HCMWINGIN.HCCM01N321, HCMWINGIN.HCCM00N83) AS a,
                         HCMWINGIN.HCCM00N255,
                         ING.AINCONSEC AS numero_ingreso,
-                        CAM.HCACODIGO AS codigo_cama
+                        CAM.HCACODIGO AS codigo_cama,
+                        HCMWINGIN.HCCM05N79 AS fum,
+                        FOL.HCFECFOL AS fecha_folio
                     FROM HCMWINGIN
                     INNER JOIN HCNFOLIO AS FOL ON FOL.OID = HCMWINGIN.HCNFOLIO
                     INNER JOIN ADNINGRESO AS ING ON ING.OID = FOL.ADNINGRESO
@@ -411,7 +416,7 @@ class PacienteViewSet(viewsets.ModelViewSet):
                     edad = row[7] if row[7] else None
                     fecha_nac = row[8] if row[8] else None
                     grupo_sangre = row[9] if row[9] else None
-                    edad_gestacional = row[10] if row[10] else None
+                    edad_gestacional, _ = calcular_edad_gestacional(row[10], row[18], row[19])
                     g = row[11] if row[11] else None
                     p = row[12] if row[12] else None
                     c = row[13] if row[13] else None
@@ -689,13 +694,15 @@ class PacienteViewSet(viewsets.ModelViewSet):
                         GENPACIEN.PACSEGNOM + ' ' +
                         GENPACIEN.PACPRIAPE + ' ' +
                         GENPACIEN.PACSEGAPE AS nombre_paciente,
-                        HCMWINGIN.HCCM00N256,
-                        HCMWINGIN.HCCM00N80 AS g,
-                        HCMWINGIN.HCCM00N81 AS p,
-                        HCMWINGIN.HCCM00N82 AS c,
-                        HCMWINGIN.HCCM00N83 AS a,
+                        LEFT(HCMWINGIN.HCCM03N43, 500) AS analisis_eg,
+                        COALESCE(HCMWINGIN.HCCM01N318, HCMWINGIN.HCCM00N80) AS g,
+                        COALESCE(HCMWINGIN.HCCM01N319, HCMWINGIN.HCCM00N81) AS p,
+                        COALESCE(HCMWINGIN.HCCM01N320, HCMWINGIN.HCCM00N82) AS c,
+                        COALESCE(HCMWINGIN.HCCM01N321, HCMWINGIN.HCCM00N83) AS a,
                         HCMWINGIN.HCCM03N191 AS grupo_sanguineo,
-                        HCMWINGIN.HCCM00N255
+                        HCMWINGIN.HCCM00N255,
+                        HCMWINGIN.HCCM05N79 AS fum,
+                        HCNFOLIO.HCFECFOL AS fecha_folio
                     FROM HCMWINGIN
                     INNER JOIN HCNFOLIO
                         ON HCNFOLIO.OID = HCMWINGIN.HCNFOLIO
@@ -704,6 +711,7 @@ class PacienteViewSet(viewsets.ModelViewSet):
                     INNER JOIN GENPACIEN
                         ON GENPACIEN.OID = ADNINGRESO.GENPACIEN
                     {where_clause}
+                    ORDER BY HCNFOLIO.OID DESC
                 """
                 
                 cursor.execute(query, params)
@@ -721,7 +729,7 @@ class PacienteViewSet(viewsets.ModelViewSet):
                     'num_folio': row[1] if row[1] else None,  # Número de folio (HCNFOLIO.OID)
                     'num_historia_clinica': row[2] if row[2] else None,
                     'nombre_paciente': row[3] if row[3] else None,
-                    'edad_gestacional': row[4] if row[4] else None,
+                    'edad_gestacional': calcular_edad_gestacional(row[4], row[11], row[12])[0],
                     'g': row[5] if row[5] else None,
                     'p': row[6] if row[6] else None,
                     'c': row[7] if row[7] else None,
@@ -940,8 +948,8 @@ class PacienteViewSet(viewsets.ModelViewSet):
     
     def _obtener_obstetricos_dgempres99(self, num_identificacion, only_cache=False):
         """
-        Obtiene HCCM00N256 (edad gestacional), HCCM00N255 (controles prenatales),
-        HCCM00N80–83 (G, P, C, A), GENDETCON.GDENOMBRE (aseguradora) y diagnóstico de DGEMPRES03.
+        Obtiene la edad gestacional (ver calcular_edad_gestacional), HCCM00N255 (controles prenatales),
+        G, P, C, A (HCCM01N318–321 sección obstétrica, o HCCM00N80–83 ginecológica), GENDETCON.GDENOMBRE (aseguradora) y diagnóstico de DGEMPRES03.
         Retorna (edad_gestacional, n_controles_prenatales, aseguradora, diagnostico, g, p, c, a).
         """
         def _to_int_or_none(val):
@@ -958,7 +966,8 @@ class PacienteViewSet(viewsets.ModelViewSet):
             return (None, None, None, None, None, None, None, None)
         
         # 1. Intentar obtener de caché (TTL 10 min)
-        cache_key = f"obstetricos_{doc}"
+        # v2: la EG ya no sale de HCCM00N256 -- descarta lo cacheado con el campo viejo.
+        cache_key = f"obstetricos_v2_{doc}"
         cached_data = cache.get(cache_key)
         if cached_data:
             logger.info(f"⚡ [Cache Hit] Datos obstétricos recuperados para {doc}")
@@ -976,18 +985,29 @@ class PacienteViewSet(viewsets.ModelViewSet):
                 logger.info(f"🔍 [DGEMPRES03] Búsqueda exacta para obstetricos: doc={doc} alt={doc_alt}")
                 cursor.execute("""
                     SELECT TOP 1
-                        HCMWINGIN.HCCM00N256,
+                        LEFT(HCMWINGIN.HCCM03N43, 500) AS analisis_eg,
                         HCMWINGIN.HCCM00N255,
                         PLA.GDENOMBRE AS aseguradora,
                         DX.DIACODIGO + ' ' + DX.DIANOMBRE AS diagnostico,
-                        HCMWINGIN.HCCM00N80 AS g,
-                        HCMWINGIN.HCCM00N81 AS p,
-                        HCMWINGIN.HCCM00N82 AS c,
-                        HCMWINGIN.HCCM00N83 AS a
+                        COALESCE(HCMWINGIN.HCCM01N318, HCMWINGIN.HCCM00N80) AS g,
+                        COALESCE(HCMWINGIN.HCCM01N319, HCMWINGIN.HCCM00N81) AS p,
+                        COALESCE(HCMWINGIN.HCCM01N320, HCMWINGIN.HCCM00N82) AS c,
+                        COALESCE(HCMWINGIN.HCCM01N321, HCMWINGIN.HCCM00N83) AS a,
+                        HCMWINGIN.HCCM05N79 AS fum,
+                        HCMWINGIN.fecha_folio_mw AS fecha_folio
                     FROM GENPACIEN
                     LEFT JOIN ADNINGRESO ON ADNINGRESO.GENPACIEN = GENPACIEN.OID
                     LEFT JOIN HCNFOLIO ON HCNFOLIO.ADNINGRESO = ADNINGRESO.OID
-                    LEFT JOIN HCMWINGIN ON HCMWINGIN.HCNFOLIO = HCNFOLIO.OID
+                    -- HC de ingreso (HCMWINGIN) más reciente de la admisión: el folio
+                    -- más reciente suele ser una evolución sin HCMWINGIN, y un LEFT JOIN
+                    -- directo dejaba EG/G/P/C/A en NULL.
+                    OUTER APPLY (
+                        SELECT TOP 1 MW.*, FOLMW.HCFECFOL AS fecha_folio_mw
+                        FROM HCNFOLIO AS FOLMW
+                        INNER JOIN HCMWINGIN AS MW ON MW.HCNFOLIO = FOLMW.OID
+                        WHERE FOLMW.ADNINGRESO = ADNINGRESO.OID
+                        ORDER BY FOLMW.OID DESC
+                    ) AS HCMWINGIN
                     LEFT JOIN GENDETCON AS PLA ON ADNINGRESO.GENDETCON = PLA.OID
                     LEFT JOIN HCNDIAPAC AS DIAP ON HCNFOLIO.OID = DIAP.HCNFOLIO
                     LEFT JOIN GENDIAGNO AS DX ON DIAP.GENDIAGNO = DX.OID
@@ -1001,18 +1021,29 @@ class PacienteViewSet(viewsets.ModelViewSet):
                     logger.info(f"🔍 [DGEMPRES03] Búsqueda exacta falló, intentando normalizada para doc={doc} alt={doc_alt}")
                     cursor.execute("""
                         SELECT TOP 1
-                            HCMWINGIN.HCCM00N256,
+                            LEFT(HCMWINGIN.HCCM03N43, 500) AS analisis_eg,
                             HCMWINGIN.HCCM00N255,
                             PLA.GDENOMBRE AS aseguradora,
                             DX.DIACODIGO + ' ' + DX.DIANOMBRE AS diagnostico,
-                            HCMWINGIN.HCCM00N80 AS g,
-                            HCMWINGIN.HCCM00N81 AS p,
-                            HCMWINGIN.HCCM00N82 AS c,
-                            HCMWINGIN.HCCM00N83 AS a
+                            COALESCE(HCMWINGIN.HCCM01N318, HCMWINGIN.HCCM00N80) AS g,
+                            COALESCE(HCMWINGIN.HCCM01N319, HCMWINGIN.HCCM00N81) AS p,
+                            COALESCE(HCMWINGIN.HCCM01N320, HCMWINGIN.HCCM00N82) AS c,
+                            COALESCE(HCMWINGIN.HCCM01N321, HCMWINGIN.HCCM00N83) AS a,
+                            HCMWINGIN.HCCM05N79 AS fum,
+                            HCMWINGIN.fecha_folio_mw AS fecha_folio
                         FROM GENPACIEN
                         LEFT JOIN ADNINGRESO ON ADNINGRESO.GENPACIEN = GENPACIEN.OID
                         LEFT JOIN HCNFOLIO ON HCNFOLIO.ADNINGRESO = ADNINGRESO.OID
-                        LEFT JOIN HCMWINGIN ON HCMWINGIN.HCNFOLIO = HCNFOLIO.OID
+                        -- HC de ingreso (HCMWINGIN) más reciente de la admisión: el folio
+                    -- más reciente suele ser una evolución sin HCMWINGIN, y un LEFT JOIN
+                    -- directo dejaba EG/G/P/C/A en NULL.
+                    OUTER APPLY (
+                        SELECT TOP 1 MW.*, FOLMW.HCFECFOL AS fecha_folio_mw
+                        FROM HCNFOLIO AS FOLMW
+                        INNER JOIN HCMWINGIN AS MW ON MW.HCNFOLIO = FOLMW.OID
+                        WHERE FOLMW.ADNINGRESO = ADNINGRESO.OID
+                        ORDER BY FOLMW.OID DESC
+                    ) AS HCMWINGIN
                         LEFT JOIN GENDETCON AS PLA ON ADNINGRESO.GENDETCON = PLA.OID
                         LEFT JOIN HCNDIAPAC AS DIAP ON HCNFOLIO.OID = DIAP.HCNFOLIO
                         LEFT JOIN GENDIAGNO AS DX ON DIAP.GENDIAGNO = DX.OID
@@ -1021,7 +1052,7 @@ class PacienteViewSet(viewsets.ModelViewSet):
                     """, [doc, doc_alt])
                     row = cursor.fetchone()
                 if row:
-                    eg = _to_int_or_none(row[0])
+                    eg, _ = calcular_edad_gestacional(row[0], row[8], row[9])
                     nc = _to_int_or_none(row[1])
                     aseguradora = (row[2] or "").strip() or None
                     diagnostico = (row[3] or "").strip() or None
@@ -1034,7 +1065,7 @@ class PacienteViewSet(viewsets.ModelViewSet):
                     # Aumentar caché a 30 minutos (1800 seg) para mayor estabilidad en tablets
                     cache.set(cache_key, data, 1800)
                     elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
-                    logger.info(f"   [DGEMPRES03] HCCM00N256={eg} HCCM00N255={nc} G={g} P={p} C={c} A={a} aseguradora={aseguradora!r} diagnostico={diagnostico!r} para doc={doc} (elapsed={elapsed_ms}ms)")
+                    logger.info(f"   [DGEMPRES03] EG={eg} HCCM00N255={nc} G={g} P={p} C={c} A={a} aseguradora={aseguradora!r} diagnostico={diagnostico!r} para doc={doc} (elapsed={elapsed_ms}ms)")
                     return data
                 elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
                 logger.info(f"   [DGEMPRES03] Sin datos obstétricos para doc={doc} (elapsed={elapsed_ms}ms)")
@@ -1059,11 +1090,10 @@ class PacienteViewSet(viewsets.ModelViewSet):
         - Número de folio: usando HCNFOLIO.OID
         
         Campos HCMWINGIN utilizados:
-        - HCCM00N256: Edad gestacional
-        - HCCM00N80: G (Gravidez)
-        - HCCM00N81: P (Paridad)
-        - HCCM00N82: C (Cesáreas)
-        - HCCM00N83: A (Abortos)
+        - HCCM03N43 (análisis) / HCCM05N79 (FUM): Edad gestacional, vía
+          calcular_edad_gestacional (HCCM00N256 es "SEMANA INICIO", no la EG)
+        - G/P/C/A: HCCM01N318–321 (sección ANT. OBSTETRICOS) o, si está
+          vacía, HCCM00N80–83 (sección ANT. GINECOLOGICOS)
         - HCCM03N191: Grupo sanguíneo
         - HCCM00N255: Controles prenatales
         
@@ -1120,19 +1150,30 @@ class PacienteViewSet(viewsets.ModelViewSet):
                             ISNULL(GENPACIEN.PACSEGAPE,'')
                         )) AS nombres_completos,
                         GENPACIEN.GPAFECNAC,
-                        HCMWINGIN.HCCM00N256,
-                        HCMWINGIN.HCCM00N80 AS g,
-                        HCMWINGIN.HCCM00N81 AS p,
-                        HCMWINGIN.HCCM00N82 AS c,
-                        HCMWINGIN.HCCM00N83 AS a,
+                        LEFT(HCMWINGIN.HCCM03N43, 500) AS analisis_eg,
+                        COALESCE(HCMWINGIN.HCCM01N318, HCMWINGIN.HCCM00N80) AS g,
+                        COALESCE(HCMWINGIN.HCCM01N319, HCMWINGIN.HCCM00N81) AS p,
+                        COALESCE(HCMWINGIN.HCCM01N320, HCMWINGIN.HCCM00N82) AS c,
+                        COALESCE(HCMWINGIN.HCCM01N321, HCMWINGIN.HCCM00N83) AS a,
                         HCMWINGIN.HCCM03N191 AS grupo_sanguineo,
                         HCMWINGIN.HCCM00N255,
                         PLA.GDENOMBRE AS aseguradora,
-                        DX.DIACODIGO + ' ' + DX.DIANOMBRE AS diagnostico
+                        DX.DIACODIGO + ' ' + DX.DIANOMBRE AS diagnostico,
+                        HCMWINGIN.HCCM05N79 AS fum,
+                        HCMWINGIN.fecha_folio_mw AS fecha_folio
                     FROM GENPACIEN
                     LEFT JOIN ADNINGRESO ON ADNINGRESO.GENPACIEN = GENPACIEN.OID
                     LEFT JOIN HCNFOLIO ON HCNFOLIO.ADNINGRESO = ADNINGRESO.OID
-                    LEFT JOIN HCMWINGIN ON HCMWINGIN.HCNFOLIO = HCNFOLIO.OID
+                    -- HC de ingreso (HCMWINGIN) más reciente de la admisión: el folio
+                    -- más reciente suele ser una evolución sin HCMWINGIN, y un LEFT JOIN
+                    -- directo dejaba EG/G/P/C/A en NULL.
+                    OUTER APPLY (
+                        SELECT TOP 1 MW.*, FOLMW.HCFECFOL AS fecha_folio_mw
+                        FROM HCNFOLIO AS FOLMW
+                        INNER JOIN HCMWINGIN AS MW ON MW.HCNFOLIO = FOLMW.OID
+                        WHERE FOLMW.ADNINGRESO = ADNINGRESO.OID
+                        ORDER BY FOLMW.OID DESC
+                    ) AS HCMWINGIN
                     LEFT JOIN GENDETCON AS PLA ON ADNINGRESO.GENDETCON = PLA.OID
                     LEFT JOIN HCNDIAPAC AS DIAP ON HCNFOLIO.OID = DIAP.HCNFOLIO
                     LEFT JOIN GENDIAGNO AS DX ON DIAP.GENDIAGNO = DX.OID
@@ -1157,19 +1198,30 @@ class PacienteViewSet(viewsets.ModelViewSet):
                                 ISNULL(GENPACIEN.PACSEGAPE,'')
                             )) AS nombres_completos,
                             GENPACIEN.GPAFECNAC,
-                            HCMWINGIN.HCCM00N256,
-                            HCMWINGIN.HCCM00N80 AS g,
-                            HCMWINGIN.HCCM00N81 AS p,
-                            HCMWINGIN.HCCM00N82 AS c,
-                            HCMWINGIN.HCCM00N83 AS a,
+                            LEFT(HCMWINGIN.HCCM03N43, 500) AS analisis_eg,
+                            COALESCE(HCMWINGIN.HCCM01N318, HCMWINGIN.HCCM00N80) AS g,
+                            COALESCE(HCMWINGIN.HCCM01N319, HCMWINGIN.HCCM00N81) AS p,
+                            COALESCE(HCMWINGIN.HCCM01N320, HCMWINGIN.HCCM00N82) AS c,
+                            COALESCE(HCMWINGIN.HCCM01N321, HCMWINGIN.HCCM00N83) AS a,
                             HCMWINGIN.HCCM03N191 AS grupo_sanguineo,
                             HCMWINGIN.HCCM00N255,
                             PLA.GDENOMBRE AS aseguradora,
-                            DX.DIACODIGO + ' ' + DX.DIANOMBRE AS diagnostico
+                            DX.DIACODIGO + ' ' + DX.DIANOMBRE AS diagnostico,
+                            HCMWINGIN.HCCM05N79 AS fum,
+                            HCMWINGIN.fecha_folio_mw AS fecha_folio
                         FROM GENPACIEN
                         LEFT JOIN ADNINGRESO ON ADNINGRESO.GENPACIEN = GENPACIEN.OID
                         LEFT JOIN HCNFOLIO ON HCNFOLIO.ADNINGRESO = ADNINGRESO.OID
-                        LEFT JOIN HCMWINGIN ON HCMWINGIN.HCNFOLIO = HCNFOLIO.OID
+                        -- HC de ingreso (HCMWINGIN) más reciente de la admisión: el folio
+                    -- más reciente suele ser una evolución sin HCMWINGIN, y un LEFT JOIN
+                    -- directo dejaba EG/G/P/C/A en NULL.
+                    OUTER APPLY (
+                        SELECT TOP 1 MW.*, FOLMW.HCFECFOL AS fecha_folio_mw
+                        FROM HCNFOLIO AS FOLMW
+                        INNER JOIN HCMWINGIN AS MW ON MW.HCNFOLIO = FOLMW.OID
+                        WHERE FOLMW.ADNINGRESO = ADNINGRESO.OID
+                        ORDER BY FOLMW.OID DESC
+                    ) AS HCMWINGIN
                         LEFT JOIN GENDETCON AS PLA ON ADNINGRESO.GENDETCON = PLA.OID
                         LEFT JOIN HCNDIAPAC AS DIAP ON HCNFOLIO.OID = DIAP.HCNFOLIO
                         LEFT JOIN GENDIAGNO AS DX ON DIAP.GENDIAGNO = DX.OID
@@ -1189,7 +1241,7 @@ class PacienteViewSet(viewsets.ModelViewSet):
                 num_historia = pac_row[2]
                 nombres = pac_row[3]
                 fecha_nac = pac_row[4]
-                edad_gestacional = pac_row[5]
+                edad_gestacional, _ = calcular_edad_gestacional(pac_row[5], pac_row[14], pac_row[15])
                 g = pac_row[6]
                 p = pac_row[7]
                 c = pac_row[8]
@@ -1558,7 +1610,7 @@ class PacienteViewSet(viewsets.ModelViewSet):
             logger.info(f'   - ID: {paciente_data.get("id")}')
             logger.info(f'   - Documento: {paciente_data.get("num_identificacion")}')
             logger.info(f'   - Nombres: {paciente_data.get("nombres")}')
-            logger.info(f'   - Edad gestacional (HCCM00N256): {paciente_data.get("edad_gestacional")}')
+            logger.info(f'   - Edad gestacional: {paciente_data.get("edad_gestacional")}')
             logger.info(f'   - N° controles prenatales (HCCM00N255): {paciente_data.get("n_controles_prenatales")}')
             logger.info(f'   - Aseguradora (GENDETCON.GDENOMBRE): {paciente_data.get("aseguradora")}')
             logger.info(f'   - Diagnóstico (GENDIAGNO vía HCNDIAPAC): {paciente_data.get("diagnostico")}')

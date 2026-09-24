@@ -68,53 +68,83 @@ class FormularioRegistroView(TemplateView):
         return context
 
 
-# 2026-09-22: a pedido -- para mitigar que un área cierre el ciclo por error
-# antes de que la otra haya terminado, "Guardar Registro Completo" no puede
-# cerrar el registro antes de que pasen estas horas desde que se creó (ver
-# RegistroParto.created_at) -- coincide con el propio cronograma de
-# vigilancia posparto (controles cada 15/30/60 min hasta completar 6h), así
-# el cierre nunca llega antes de que razonablemente haya terminado el
-# monitoreo. El botón se oculta en pantalla antes de tiempo (ver
-# formulario.html), pero esto es lo que de verdad lo impide -- nunca hay que
-# confiar solo en que un botón esté oculto en el cliente.
-HORAS_MINIMAS_PARA_COMPLETAR = 6
+# "Guardar Registro Completo" no puede cerrar el registro antes de que termine
+# la vigilancia posparto. 2026-09-23: la regla ya NO es por reloj (6 horas
+# desde que se creó el registro -- ej. creado a las 6 a. m. se habilitaba a
+# las 12 m. aunque faltaran controles), sino por el propio cronograma: el
+# cierre se permite cuando ya está guardado el ÚLTIMO control posparto, el de
+# las 6 horas después del parto (minuto 360 del cronograma 15/30/60 --
+# PP_MINUTOS en formulario.html). El botón se bloquea en pantalla con la
+# misma regla, pero esto es lo que de verdad lo impide.
+MINUTO_ULTIMO_CONTROL_POSPARTO = 360
 
 
 def _intentar_cerrar_registro(instance, request):
     """
-    Cierra el ciclo (completado_en/completado_por) si ya pasaron al menos
-    HORAS_MINIMAS_PARA_COMPLETAR desde que se creó el registro. Devuelve un
-    mensaje de advertencia (str) si NO se pudo cerrar por eso, o None si se
-    cerró ahora mismo (o ya estaba cerrado de antes -- no es un error volver
-    a intentarlo, simplemente no hace nada).
+    Cierra el ciclo (completado_en/completado_por) si ya está registrado el
+    control posparto de las 6 horas (MINUTO_ULTIMO_CONTROL_POSPARTO).
+    Devuelve un mensaje de advertencia (str) si NO se pudo cerrar por eso, o
+    None si se cerró ahora mismo (o ya estaba cerrado de antes -- no es un
+    error volver a intentarlo, simplemente no hace nada).
     """
     if instance.completado_en is not None:
         return None
 
-    from datetime import timedelta
     from django.utils import timezone
 
-    faltante = (
-        instance.created_at + timedelta(hours=HORAS_MINIMAS_PARA_COMPLETAR)
-        - timezone.now()
-    )
-    if faltante > timedelta(0):
-        horas = int(faltante.total_seconds() // 3600)
-        minutos = int((faltante.total_seconds() % 3600) // 60)
-        disponible_desde = timezone.localtime(
-            instance.created_at + timedelta(hours=HORAS_MINIMAS_PARA_COMPLETAR)
-        )
+    controles = instance.controles_postparto.order_by('-minuto_control')
+    if not controles.filter(minuto_control__gte=MINUTO_ULTIMO_CONTROL_POSPARTO).exists():
+        ultimo = controles.first()
+        if ultimo is None:
+            detalle = 'Todavía no hay ningún control posparto registrado.'
+        else:
+            detalle = (
+                f'Último control registrado: {ultimo.minuto_control} min '
+                f'({ultimo.hora:%H:%M}).'
+            )
         return (
-            f"Aún no se puede cerrar el registro: el ciclo de vigilancia "
-            f"posparto dura {HORAS_MINIMAS_PARA_COMPLETAR} horas desde que "
-            f"se creó. Faltan {horas}h {minutos}min (disponible desde las "
-            f"{disponible_desde:%d/%m %H:%M})."
+            'Aún no se puede cerrar el registro: falta el último control '
+            'posparto, el de las 6 horas después del parto (minuto '
+            f'{MINUTO_ULTIMO_CONTROL_POSPARTO}). {detalle}'
         )
 
     instance.completado_en = timezone.now()
     instance.completado_por = nombre_profesional_sesion(request)
     instance.save(update_fields=['completado_en', 'completado_por'])
     return None
+
+
+def _cerrar_y_enviar_a_repositorio(instance, request, data):
+    """
+    Intenta el cierre del ciclo y, si el registro se cerró AHORA, envía el
+    formato final (PDF FRSPA-007) al repositorio clínico (NAS / carpeta local
+    de pruebas). Un fallo del envío no deshace el cierre: queda registrado en
+    DocumentoRepositorio y se informa en data['repositorio'] para reintentar
+    desde /atencion/api/repositorio/enviar/.
+    """
+    ya_estaba_cerrado = instance.completado_en is not None
+    advertencia_cierre = _intentar_cerrar_registro(instance, request)
+    if advertencia_cierre:
+        data['advertencia_cierre'] = advertencia_cierre
+        return
+    data['completado_en'] = instance.completado_en
+    data['completado_por'] = instance.completado_por
+    if ya_estaba_cerrado:
+        return
+
+    from obstetriciaunificador.repositorio import (
+        RepositorioError, enviar_control_posparto, resumen_envio,
+    )
+    try:
+        documento = enviar_control_posparto(
+            instance, usuario=nombre_profesional_sesion(request),
+        )
+        data['repositorio'] = resumen_envio(documento)
+    except RepositorioError as exc:
+        data['repositorio'] = {'ok': False, 'mensaje': str(exc)}
+    except Exception as exc:  # p. ej. error generando el PDF
+        logger.exception('Error enviando FRSPA-007 al repositorio')
+        data['repositorio'] = {'ok': False, 'mensaje': f'Error generando el PDF: {exc}'}
 
 
 @method_decorator(never_cache, name='dispatch')
@@ -185,12 +215,7 @@ class RegistroPartoViewSet(viewsets.ModelViewSet):
         # llega en la creación misma, para no dejar un registro "completo" a
         # medias sin su sello de cierre.
         if bool(request.data.get('completar')):
-            advertencia_cierre = _intentar_cerrar_registro(instance, request)
-            if advertencia_cierre:
-                response_data['advertencia_cierre'] = advertencia_cierre
-            else:
-                response_data['completado_en'] = instance.completado_en
-                response_data['completado_por'] = instance.completado_por
+            _cerrar_y_enviar_a_repositorio(instance, request, response_data)
 
         return Response(response_data)
 
@@ -207,12 +232,7 @@ class RegistroPartoViewSet(viewsets.ModelViewSet):
         # Completo" lo manda.
         if completar and response.status_code == 200:
             instance = self.get_object()
-            advertencia_cierre = _intentar_cerrar_registro(instance, request)
-            if advertencia_cierre:
-                response.data['advertencia_cierre'] = advertencia_cierre
-            else:
-                response.data['completado_en'] = instance.completado_en
-                response.data['completado_por'] = instance.completado_por
+            _cerrar_y_enviar_a_repositorio(instance, request, response.data)
         return response
 
     @action(detail=True, methods=['get'], url_path='pdf')

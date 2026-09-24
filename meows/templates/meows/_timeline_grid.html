@@ -46,6 +46,17 @@ página, colapsable con el botón "Ocultar/Mostrar".
         <a id="btn-generar-pdf-meows" href="{% url 'generar_pdf_meows' paciente_id=meows_paciente.id %}" class="btn-volver-parto" target="_blank">
             <span>📄</span> Generar PDF
         </a>
+        {% if not todo_origen_triaje %}
+        {# 2026-09-23: formato final -> repositorio clínico (NAS), carpeta #}
+        {# <cédula>/<ingreso>. Oculto en Triaje: sin ingreso no hay carpeta. #}
+        {# La lógica está en historial.html (finalizarMeowsRepositorio). #}
+        <button type="button" id="btn-finalizar-meows-repositorio" class="btn-volver-parto"
+                data-documento="{{ meows_paciente.numero_documento }}"
+                onclick="finalizarMeowsRepositorio(this)"
+                title="Genera el PDF final de MEOWS de este ingreso y lo guarda en el repositorio clínico">
+            <span>📤</span> Finalizar y enviar a repositorio
+        </button>
+        {% endif %}
         {% endif %}
         {% endif %}
         {# 2026-09-09: se quitó el botón "Nueva medición" -- los registros MEOWS #}
@@ -292,6 +303,18 @@ página, colapsable con el botón "Ocultar/Mostrar".
                         {% endif %}
                         {% elif columna.origen == 'triaje' %}
                         <span class="col-origen-triaje" title="Registrado en Triaje, antes del ingreso formal">🩺 Triaje</span>
+                        {% if columna.responsable %}
+                        {# 2026-09-23: quien registró la toma de triaje en esta app #}
+                        {# (Medicion.registrado_por). #}
+                        <span class="col-responsable-dinamica" title="Registrado en Triaje por {{ columna.responsable }}">👤 {{ columna.responsable }}</span>
+                        {% endif %}
+                        {% if mostrar_link_volver and todo_origen_triaje %}
+                        {# 2026-09-23: corregir una toma de triaje mientras la paciente #}
+                        {# siga sin ingreso (con ingreso, crear_medicion_triaje ya no lo #}
+                        {# permite: el triaje se envió al repositorio con esos datos). #}
+                        <a class="col-corregir-triaje" href="{% url 'editar_triaje' medicion_id=columna.medicion_id %}"
+                           title="Corregir esta toma de triaje">✏️ Corregir</a>
+                        {% endif %}
                         {% endif %}
                     </th>
                     {% endfor %}

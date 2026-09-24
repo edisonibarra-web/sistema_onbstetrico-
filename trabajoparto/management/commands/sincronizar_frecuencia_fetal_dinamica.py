@@ -85,6 +85,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         verbosity = options.get('verbosity', 1)
 
+        # 2026-09-23: la FCF volvió a ser MANUAL. Este comando queda intacto
+        # para reactivarlo en el futuro con FCF_DINAMICA_AUTOMATICA=True en el .env.
+        from django.conf import settings
+        if not settings.FCF_DINAMICA_AUTOMATICA:
+            self.stdout.write(
+                'Frecuencia Cardiaca Fetal en modo MANUAL (FCF_DINAMICA_AUTOMATICA=False): '
+                'no se sincroniza desde Dinámica.'
+            )
+            return
+
         try:
             parametro = Parametro.objects.get(id=_PARAMETRO_ID_FREC_CARD_FETAL)
             campo = CampoParametro.objects.get(id=_CAMPO_ID_VALOR)

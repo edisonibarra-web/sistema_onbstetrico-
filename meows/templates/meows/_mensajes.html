@@ -1,0 +1,130 @@
+{% comment %}
+Avisos del sistema (django.contrib.messages) con más presencia visual.
+2026-09-23: reemplaza la franja plana de color que se usaba en
+formulario.html y formulario_triaje.html (ej. "Registro de triaje guardado
+exitosamente."). Tarjeta con ícono, título, animación de entrada y botón para
+cerrar. Colores según message.tags: success / error / warning / (info).
+{% endcomment %}
+{% if messages %}
+<style>
+    .aviso-sistema-lista { display: grid; gap: 10px; padding: 12px 16px 4px; }
+    .aviso-sistema {
+        --c1: #16a34a; --c2: #22c55e; --fondo: #f0fdf4; --borde: #86efac; --texto: #14532d;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 52px 16px 18px;
+        border-radius: 16px;
+        background: linear-gradient(120deg, var(--fondo) 0%, #ffffff 70%);
+        border: 1.5px solid var(--borde);
+        border-left: 7px solid var(--c1);
+        box-shadow: 0 10px 24px color-mix(in srgb, var(--c1) 22%, transparent), 0 2px 4px rgba(15, 23, 42, 0.06);
+        color: var(--texto);
+        animation: avisoEntrada 0.45s cubic-bezier(.2, .9, .3, 1.2) both;
+        overflow: hidden;
+    }
+    .aviso-sistema::after {
+        /* brillo que cruza la tarjeta una vez al aparecer */
+        content: "";
+        position: absolute; inset: 0;
+        background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.75) 50%, transparent 70%);
+        transform: translateX(-100%);
+        animation: avisoBrillo 1.1s ease 0.35s 1 both;
+        pointer-events: none;
+    }
+    .aviso-sistema.aviso-error   { --c1: #dc2626; --c2: #f87171; --fondo: #fef2f2; --borde: #fca5a5; --texto: #7f1d1d; }
+    .aviso-sistema.aviso-warning { --c1: #d97706; --c2: #fbbf24; --fondo: #fffbeb; --borde: #fcd34d; --texto: #78350f; }
+    .aviso-sistema.aviso-info    { --c1: #2563eb; --c2: #60a5fa; --fondo: #eff6ff; --borde: #93c5fd; --texto: #1e3a8a; }
+
+    .aviso-sistema-icono {
+        position: relative;
+        flex-shrink: 0;
+        width: 48px; height: 48px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, var(--c2) 0%, var(--c1) 100%);
+        color: #ffffff;
+        box-shadow: 0 6px 14px color-mix(in srgb, var(--c1) 40%, transparent);
+    }
+    .aviso-sistema-icono svg { width: 26px; height: 26px; stroke-width: 2.6; }
+    .aviso-sistema.aviso-success .aviso-sistema-icono::before {
+        /* anillo que "late" alrededor del ícono en los avisos de éxito */
+        content: "";
+        position: absolute; inset: -6px;
+        border-radius: 50%;
+        border: 3px solid var(--c2);
+        animation: avisoPulso 1.6s ease-out 0.4s 3;
+        opacity: 0;
+    }
+    .aviso-sistema-texto { display: grid; gap: 2px; }
+    .aviso-sistema-titulo {
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        color: var(--c1);
+    }
+    .aviso-sistema-mensaje { font-size: 0.98rem; font-weight: 600; line-height: 1.4; }
+    .aviso-sistema-cerrar {
+        position: absolute; top: 10px; right: 10px;
+        width: 30px; height: 30px;
+        border: none; border-radius: 50%;
+        background: color-mix(in srgb, var(--c1) 12%, #ffffff);
+        color: var(--c1);
+        font-size: 1.1rem; font-weight: 800; line-height: 1;
+        cursor: pointer;
+    }
+    .aviso-sistema-cerrar:hover { background: color-mix(in srgb, var(--c1) 22%, #ffffff); }
+    .aviso-sistema.saliendo { animation: avisoSalida 0.3s ease forwards; }
+
+    @keyframes avisoEntrada {
+        0%   { opacity: 0; transform: translateY(-14px) scale(0.97); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes avisoBrillo { to { transform: translateX(100%); } }
+    @keyframes avisoPulso {
+        0%   { opacity: 0.9; transform: scale(0.85); }
+        100% { opacity: 0;   transform: scale(1.35); }
+    }
+    @keyframes avisoSalida { to { opacity: 0; transform: translateY(-10px); height: 0; padding-top: 0; padding-bottom: 0; margin: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+        .aviso-sistema, .aviso-sistema::after, .aviso-sistema-icono::before { animation: none !important; }
+    }
+</style>
+<section class="aviso-sistema-lista" aria-live="polite">
+    {% for message in messages %}
+    {% if message.tags == 'success' %}
+    <div class="aviso-sistema aviso-success" role="status">
+        <span class="aviso-sistema-icono"><i data-lucide="check"></i></span>
+        <span class="aviso-sistema-texto">
+            <span class="aviso-sistema-titulo">¡Guardado con éxito!</span>
+            <span class="aviso-sistema-mensaje">{{ message }}</span>
+        </span>
+    {% elif message.tags == 'error' %}
+    <div class="aviso-sistema aviso-error" role="alert">
+        <span class="aviso-sistema-icono"><i data-lucide="x"></i></span>
+        <span class="aviso-sistema-texto">
+            <span class="aviso-sistema-titulo">No se pudo completar</span>
+            <span class="aviso-sistema-mensaje">{{ message }}</span>
+        </span>
+    {% elif message.tags == 'warning' %}
+    <div class="aviso-sistema aviso-warning" role="alert">
+        <span class="aviso-sistema-icono"><i data-lucide="alert-triangle"></i></span>
+        <span class="aviso-sistema-texto">
+            <span class="aviso-sistema-titulo">Atención</span>
+            <span class="aviso-sistema-mensaje">{{ message }}</span>
+        </span>
+    {% else %}
+    <div class="aviso-sistema aviso-info" role="status">
+        <span class="aviso-sistema-icono"><i data-lucide="info"></i></span>
+        <span class="aviso-sistema-texto">
+            <span class="aviso-sistema-titulo">Información</span>
+            <span class="aviso-sistema-mensaje">{{ message }}</span>
+        </span>
+    {% endif %}
+        <button type="button" class="aviso-sistema-cerrar" aria-label="Cerrar aviso"
+                onclick="var a=this.closest('.aviso-sistema'); a.classList.add('saliendo'); setTimeout(function(){ a.remove(); }, 300);">×</button>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}

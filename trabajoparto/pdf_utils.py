@@ -385,7 +385,9 @@ def seccion_grid_mediciones(c, formulario, x, y, ancho_total):
     # genera columna propia en el PDF, para que no aparezca una columna
     # donde solo esa fila tiene dato y el resto está en blanco.
     horas_con_dato_manual = sorted(set(
-        m.tomada_en for m in mediciones if m.parametro_id != _PARAMETRO_ID_FREC_CARD_FETAL
+        m.tomada_en for m in mediciones
+        # 2026-09-23: con la FCF manual, su hora es una columna como cualquier otra.
+        if m.parametro_id != _PARAMETRO_ID_FREC_CARD_FETAL or not settings.FCF_DINAMICA_AUTOMATICA
     ))
     horas_unicas = horas_con_dato_manual if horas_con_dato_manual else sorted(set(m.tomada_en for m in mediciones))
     if not horas_unicas:
@@ -540,7 +542,7 @@ def seccion_grid_mediciones(c, formulario, x, y, ancho_total):
                     if med_h and med_h.valores.all():
                         vals_str = " / ".join(obtener_valor(v) for v in med_h.valores.all())
                         row_vals.append(Paragraph(vals_str, estilo_celda))
-                    elif param.id == _PARAMETRO_ID_FREC_CARD_FETAL:
+                    elif param.id == _PARAMETRO_ID_FREC_CARD_FETAL and settings.FCF_DINAMICA_AUTOMATICA:
                         heredado = valor_fcf_heredado(hora)
                         row_vals.append(Paragraph(heredado, estilo_heredado) if heredado else "")
                     else:
