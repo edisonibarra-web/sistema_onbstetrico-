@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AtencionParto, DocumentoRepositorio
+from .models import AccesoDocumentoRepositorio, AtencionParto, DocumentoRepositorio
 
 
 @admin.register(AtencionParto)
@@ -15,3 +15,10 @@ class DocumentoRepositorioAdmin(admin.ModelAdmin):
     list_filter = ('estado', 'modo', 'formato')
     search_fields = ('cedula', 'numero_ingreso', 'nombre_archivo')
     readonly_fields = [f.name for f in DocumentoRepositorio._meta.fields]
+
+
+@admin.register(AccesoDocumentoRepositorio)
+class AccesoDocumentoRepositorioAdmin(admin.ModelAdmin):
+    list_display = ('creado_en', 'usuario', 'cedula', 'numero_ingreso', 'nombre_archivo', 'ip')
+    search_fields = ('usuario', 'cedula', 'numero_ingreso', 'nombre_archivo')
+    readonly_fields = [f.name for f in AccesoDocumentoRepositorio._meta.fields]

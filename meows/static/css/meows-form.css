@@ -4813,3 +4813,6 @@ firma-canvas {
 .biometric-card.is-visible {
     display: flex !important;
 }
+
+/* 2026-09-24: el estilo "título en placa" (.titulo-placa) se movió a
+   obstetriciaunificador/css/titulo_placa.css (compartido con Sala de Partos). */

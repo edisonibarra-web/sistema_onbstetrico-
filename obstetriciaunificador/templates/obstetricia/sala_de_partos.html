@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} | Sistema Obstétrico Unificado</title>
     <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/titulo_placa.css' %}?v=20260924a">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
     <script src="{% static 'obstetriciaunificador/js/chart.umd.min.js' %}"></script>
     <style>
@@ -123,9 +124,32 @@
         .search-header .title-group {
             flex: 1;
             text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
         }
-        .search-header .subtitle { font-size: 11px; color: #7dd3fc; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
-        .search-header .main-title { font-size: 20px; font-weight: 800; color: #f8fafc; letter-spacing: -0.01em; }
+        /* 2026-09-24: mismo diseño "placa" que el resto de títulos, con el
+           azul marino de esta card: etiqueta espaciada, título grande, línea
+           de ayuda y franja de color a la izquierda (cian en Sala de Partos,
+           amarilla en Triaje, como el ícono de cada modo). */
+        .search-header { position: relative; overflow: hidden; padding-left: 34px; }
+        .search-header::before {
+            content: "";
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 6px;
+            background: linear-gradient(180deg, #7dd3fc 0%, #0891b2 100%);
+        }
+        .search-header.modo-triaje::before { background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%); }
+        .search-header .subtitle { font-size: 0.72rem; color: #7dd3fc; font-weight: 800; text-transform: uppercase; letter-spacing: 0.16em; }
+        .search-header.modo-triaje .subtitle { color: #fde047; }
+        .search-header .main-title { font-size: 1.55rem; font-weight: 800; color: #f8fafc; letter-spacing: -0.01em; line-height: 1.15; }
+        .search-header .ayuda { font-size: 0.86rem; font-weight: 500; color: #cbd5e1; }
+        @media (max-width: 700px) {
+            .search-header .main-title { font-size: 1.2rem; }
+            .search-header .ayuda { display: none; }
+        }
         .search-helper {
             margin: 0 0 14px 0;
             font-size: 0.84rem;
@@ -286,6 +310,48 @@
             text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
         }
         .filtro-etiqueta svg { width: 15px; height: 15px; color: #374151; }
+        /* 2026-09-24: mismo diseño "placa" que el resto de títulos, sin cambiar
+           el plateado del panel: franja pizarra a la izquierda y bloque de
+           título con insignia, etiqueta, título y ayuda. */
+        .filtros-panel { position: relative; padding-left: 24px; }
+        .filtros-panel::before {
+            content: "";
+            position: absolute;
+            left: -1px; top: -1px; bottom: -1px;
+            width: 6px;
+            border-radius: 16px 0 0 16px;
+            background: linear-gradient(180deg, #64748b 0%, #1f2937 100%);
+        }
+        @media (max-width: 700px) {
+            .filtro-etiqueta.filtro-titulo { min-width: 0; }
+            .filtro-titulo-ayuda { display: none; }
+            .filtro-titulo-principal { font-size: 1rem; }
+            .filtro-titulo-badge { width: 36px; height: 36px; }
+        }
+        .filtro-etiqueta.filtro-titulo {
+            gap: 12px;
+            min-width: 210px;
+            letter-spacing: normal;
+            text-transform: none;
+            text-shadow: none;
+        }
+        .filtro-titulo-badge {
+            flex-shrink: 0;
+            width: 42px; height: 42px;
+            border-radius: 12px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #64748b 0%, #1f2937 100%);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        }
+        .filtro-titulo-badge svg { width: 20px; height: 20px; color: #ffffff; stroke-width: 2.3; }
+        .filtro-titulo-texto { display: flex; flex-direction: column; gap: 1px; }
+        .filtro-titulo-kicker {
+            font-size: 0.66rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+            color: #334155; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+        .filtro-titulo-principal { font-size: 1.12rem; font-weight: 800; color: #0f172a; line-height: 1.15; }
+        .filtro-titulo-ayuda { font-size: 0.76rem; font-weight: 600; color: #475569; }
 
         .area-tabs,
         .tipo-tabs {
@@ -707,6 +773,9 @@
             mask-composite: exclude;
             pointer-events: none;
         }
+        /* 2026-09-24: encabezado en "placa" (mismo diseño que el resto de
+           títulos), conservando el grafito de esta card: placa translúcida
+           con franja plateada a la izquierda. */
         .card-clinico-header {
             display: flex;
             justify-content: space-between;
@@ -714,8 +783,20 @@
             flex-wrap: wrap;
             gap: 16px;
             margin-bottom: 16px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 16px 20px 16px 24px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 14px;
+            background: linear-gradient(120deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.04) 60%, rgba(255, 255, 255, 0.08) 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 16px rgba(15, 23, 42, 0.18);
+            position: relative;
+            overflow: hidden;
+        }
+        .card-clinico-header::before {
+            content: "";
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 5px;
+            background: linear-gradient(180deg, #f1f5f9 0%, #94a3b8 100%);
         }
         .card-clinico-identidad {
             display: flex;
@@ -725,38 +806,38 @@
         }
         .card-clinico-avatar-wrap {
             flex-shrink: 0;
-            width: 62px;
-            height: 62px;
-            border-radius: 50%;
-            padding: 3px;
-            background: rgba(255, 255, 255, 0.28);
-            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
+            width: 54px;
+            height: 54px;
+            border-radius: 15px;
+            padding: 2px;
+            background: rgba(255, 255, 255, 0.22);
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
         }
         .card-clinico-avatar {
             width: 100%;
             height: 100%;
-            border-radius: 50%;
+            border-radius: 13px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #ffffff;
+            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 55%, #cbd5e1 100%);
             color: #374151;
-            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.35);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.35), inset 0 1px 0 #ffffff;
         }
         .card-clinico-avatar i, .card-clinico-avatar svg { width: 28px; height: 28px; stroke-width: 2.25; }
         .card-clinico-title { min-width: 0; }
         .card-clinico-eyebrow {
             display: block;
-            font-size: 0.68rem;
+            font-size: 0.72rem;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.09em;
-            color: rgba(255, 255, 255, 0.75);
-            margin-bottom: 2px;
+            letter-spacing: 0.16em;
+            color: #cbd5e1;
+            margin-bottom: 3px;
         }
         .card-clinico-title h2 {
             margin: 0;
-            font-size: 1.28rem;
+            font-size: 1.55rem;
             color: #ffffff;
             font-weight: 800;
             letter-spacing: -0.01em;
@@ -949,6 +1030,9 @@
             background: linear-gradient(135deg, #111827 0%, #374151 45%, #4b5563 75%, #6b7280 100%);
             box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
         }
+        /* 2026-09-24: la placa va con margen dentro de la card (antes el
+           encabezado oscuro ocupaba todo el ancho). */
+        .patient-info-card .patient-info-placa { margin: 18px 22px 16px; }
         .patient-info-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1350,8 +1434,9 @@
                         <i data-lucide="bed-double" size="24"></i>
                     </div>
                     <div class="title-group">
-                        <div class="subtitle" id="search-header-subtitle">Consulta</div>
+                        <div class="subtitle" id="search-header-subtitle">Consulta · Sala de Partos</div>
                         <div class="main-title" id="search-header-title">Pacientes activos en Sala de Partos</div>
+                        <div class="ayuda" id="search-header-ayuda">Pacientes internadas en el área gineco-obstétrica (o gestantes en otra área), según Dinámica.</div>
                     </div>
                     <button type="button" class="active-patients-refresh" id="btn-refrescar-activos" onclick="cargarPacientesActivosSalaPartos()">
                         <i data-lucide="refresh-cw" size="14"></i> Actualizar
@@ -1379,7 +1464,14 @@
 
                     <div class="filtros-panel" role="group" aria-label="Filtros de pacientes">
                         <div class="filtro-fila">
-                            <span class="filtro-etiqueta"><i data-lucide="filter"></i> Ver pacientes</span>
+                            <span class="filtro-etiqueta filtro-titulo">
+                                <span class="filtro-titulo-badge"><i data-lucide="filter"></i></span>
+                                <span class="filtro-titulo-texto">
+                                    <span class="filtro-titulo-kicker">Filtros</span>
+                                    <span class="filtro-titulo-principal">Ver pacientes</span>
+                                    <span class="filtro-titulo-ayuda">Por servicio y tipo de paciente</span>
+                                </span>
+                            </span>
                             <!-- Grupos por servicio con sus tipos de paciente (ver renderAreaTabs). -->
                             <div class="vista-grupos" id="area-tabs" role="tablist" aria-label="Filtrar pacientes por servicio y tipo"></div>
                         </div>
@@ -1493,9 +1585,15 @@
 
             <!-- Card informativa (solo lectura) -->
             <div class="patient-info-card" id="patient-info-card">
-                <div class="patient-info-header">
-                    <i data-lucide="info" size="16"></i>
-                    Datos registrados del paciente
+                {# 2026-09-24: "título en placa" (obstetriciaunificador/css/titulo_placa.css). #}
+                <div class="section-title titulo-placa titulo-placa--sala patient-info-placa">
+                    <span class="section-icon-badge"><i data-lucide="clipboard-list"></i></span>
+                    <span class="titulo-placa-texto">
+                        <span class="titulo-placa-kicker">Tablero de la paciente · Sala de Partos</span>
+                        <span class="titulo-placa-principal">Datos registrados del paciente</span>
+                        <span class="titulo-placa-ayuda">Información de su ingreso en Dinámica.</span>
+                    </span>
+                    <span class="titulo-placa-chip">Solo lectura</span>
                 </div>
                 <div class="patient-info-grid">
                     <div class="patient-info-item">
@@ -2528,8 +2626,12 @@
             const subtitulo = document.getElementById('search-header-subtitle');
             const titulo = document.getElementById('search-header-title');
             if (icono) { icono.innerHTML = '<i data-lucide="bed-double" size="24"></i>'; icono.style.background = ''; }
-            if (subtitulo) subtitulo.textContent = 'Consulta';
+            if (subtitulo) subtitulo.textContent = 'Consulta · Sala de Partos';
             if (titulo) titulo.textContent = 'Pacientes activos en Sala de Partos';
+            const ayuda = document.getElementById('search-header-ayuda');
+            if (ayuda) ayuda.textContent = 'Pacientes internadas en el área gineco-obstétrica (o gestantes en otra área), según Dinámica.';
+            const cabecera = icono && icono.closest('.search-header');
+            if (cabecera) cabecera.classList.remove('modo-triaje');
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
         function aplicarEncabezadoTriaje() {
@@ -2540,8 +2642,12 @@
                 icono.innerHTML = '<i data-lucide="stethoscope" size="24"></i>';
                 icono.style.background = 'linear-gradient(135deg, #fde047, #f59e0b)';
             }
-            if (subtitulo) subtitulo.textContent = 'Consulta';
+            if (subtitulo) subtitulo.textContent = 'Consulta · Triaje';
             if (titulo) titulo.textContent = 'Pacientes en Triaje (sin ingreso)';
+            const ayuda = document.getElementById('search-header-ayuda');
+            if (ayuda) ayuda.textContent = 'Pacientes con signos vitales de triaje que todavía no tienen ingreso.';
+            const cabecera = icono && icono.closest('.search-header');
+            if (cabecera) cabecera.classList.add('modo-triaje');
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
@@ -2736,7 +2842,11 @@
                         },
                         body: JSON.stringify(pacienteActivo),
                     });
-                    if (!registro.ok) throw new Error(`HTTP ${registro.status}`);
+                    if (!registro.ok) {
+                        // 409: Dinámica confirma que la paciente no tiene ingreso (Triaje).
+                        const detalle = await registro.json().catch(() => ({}));
+                        throw new Error(detalle.error || `HTTP ${registro.status}`);
+                    }
 
                     response = await fetchConSesion(`/atencion/api/datos-paciente-unificado/?num_identificacion=${encodeURIComponent(doc)}`);
                     data = await response.json();
@@ -2749,7 +2859,8 @@
                 }
             } catch (error) {
                 console.error('Error al abrir la atención del paciente activo:', error);
-                alert('No se pudo abrir la atención de este paciente. Intente nuevamente.');
+                const motivo = (error && error.message && !/^HTTP \d+$/.test(error.message)) ? error.message : 'Intente nuevamente.';
+                alert('No se pudo abrir la atención de este paciente. ' + motivo);
                 if (list) list.innerHTML = previousHtml;
             }
         }

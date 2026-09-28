@@ -7,8 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulario MEOWS - Sistema de Alerta Temprana Obstétrico</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260904d">
+    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260924a">
     <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/titulo_placa.css' %}?v=20260924a">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
     <style>
         /* Esta vista usa el shell de encabezado + sidebar a borde completo (.app-layout-sidebar);
@@ -34,9 +35,15 @@
         <!-- SECCIÓN: INFORMACIÓN DEL PACIENTE -->
         <section class="section patient-section patient-section-redesigned">
             <div class="info-section">
-                <h3 class="info-section-title">
-                    <span class="info-section-title-icon"><i data-lucide="user"></i></span>
-                    Información del Paciente
+                {# 2026-09-24: "título en placa" (meows-form.css). #}
+                <h3 class="section-title titulo-placa titulo-placa--meows">
+                    <span class="section-icon-badge"><i data-lucide="user"></i></span>
+                    <span class="titulo-placa-texto">
+                        <span class="titulo-placa-kicker">Formulario MEOWS · Datos de la paciente</span>
+                        <span class="titulo-placa-principal">Información del paciente</span>
+                        <span class="titulo-placa-ayuda">Datos de la paciente a la que se le registra la toma.</span>
+                    </span>
+                    <span class="titulo-placa-chip">Escala MEOWS</span>
                 </h3>
                 <div class="info-section-row">
                     <div class="info-field size-lg">

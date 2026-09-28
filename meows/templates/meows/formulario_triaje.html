@@ -7,8 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulario Triaje MEOWS - Sistema de Alerta Temprana Obstétrico</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260904d">
+    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260924a">
     <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/titulo_placa.css' %}?v=20260924a">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
     <style>
         /* Mismo shell que meows/formulario.html -- ver ese archivo para la nota
@@ -17,6 +18,22 @@
         .sidebar-main-content { margin-top: 28px !important; }
         /* Cinta que distingue esta pantalla de la de Dinámica -- el registro
            de triaje es un flujo separado (ver meows/views.py:crear_medicion_triaje). */
+        /* Responsable del registro en "placa" con el campo a la derecha (como el
+           de Historial MEOWS). */
+        .responsable-placa-triaje { flex-wrap: wrap; width: 100%; margin: 1.5rem 0 0; }
+        .responsable-placa-triaje .titulo-placa-principal { cursor: pointer; }
+        .responsable-placa-triaje .responsable-placa-input {
+            flex: 1 1 320px; max-width: 520px; min-width: 220px; margin-left: auto;
+            padding: 12px 16px; font-size: 0.98rem; font-weight: 700; color: #0f172a;
+            border: 1.5px solid #cbd5e1; border-radius: 12px; background: #ffffff;
+            box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+        }
+        .responsable-placa-triaje .responsable-placa-input:focus {
+            outline: none; border-color: #7e22ce; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+        }
+        @media (max-width: 700px) {
+            .responsable-placa-triaje .responsable-placa-input { max-width: none; margin-left: 0; flex-basis: 100%; }
+        }
         .triaje-banner {
             background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
             color: #fff; font-weight: 700; padding: 10px 16px; border-radius: 10px;
@@ -41,17 +58,6 @@
 
         <!-- SECCIÓN: PARÁMETROS VITALES -->
         <section class="section parameters-section">
-            <h3 class="section-title">
-                <span class="section-icon-badge"><i data-lucide="activity"></i></span>
-                {% if medicion %}Editar Medición de Triaje{% else %}Parámetros Vitales — Triaje{% endif %}
-            </h3>
-            {% if medicion %}
-            <p class="section-description" style="color:#b45309;font-weight:600;">
-                ✏️ Estás corrigiendo el registro de triaje del {{ medicion.fecha_hora|date:"d/m/Y h:i A" }}. Al guardar
-                se actualizará este mismo registro (no se creará uno nuevo).
-            </p>
-            {% endif %}
-
             <form method="post" id="meows-form" class="meows-form">
                 {% csrf_token %}
                 <input type="hidden" name="medicion_id" value="{{ medicion.id|default:'' }}">
@@ -66,15 +72,21 @@
                      pantalla, el POST nunca los incluye. -->
                 <div class="section patient-section patient-section-redesigned">
                     <div class="info-section">
-                        <h3 class="info-section-title">
-                            <span class="info-section-title-icon"><i data-lucide="user"></i></span>
-                            Información del Paciente
+                        {# 2026-09-24: "título en placa" (meows-form.css). #}
+                        <h3 class="section-title titulo-placa titulo-placa--triaje">
+                            <span class="section-icon-badge"><i data-lucide="user"></i></span>
+                            <span class="titulo-placa-texto">
+                                <span class="titulo-placa-kicker">Triaje obstétrico · Datos de la paciente</span>
+                                <span class="titulo-placa-principal">Información del paciente</span>
+                                <span class="titulo-placa-ayuda">Si ya estuvo antes en el hospital, sus datos se completan solos; si no, digítelos.</span>
+                            </span>
+                            <span class="titulo-placa-chip">Sin ingreso</span>
                         </h3>
                         <div class="info-section-row">
                             <div class="info-field size-lg">
                                 <label class="info-field-label" for="nombre_completo"><span class="info-field-label-icon"><i data-lucide="user"></i></span>Nombre Completo *</label>
                                 <input type="text" id="nombre_completo" name="nombre_completo" class="patient-input"
-                                    placeholder="Ingrese nombre y apellidos" value="{% if paciente %}{{ paciente.nombres }} {{ paciente.apellidos }}{% endif %}" required>
+                                    placeholder="Ingrese nombre y apellidos" value="{% if paciente and not paciente.es_ficha_vacia %}{{ paciente.nombres }} {{ paciente.apellidos }}{% endif %}" required>
                             </div>
                             <div class="info-field size-sm">
                                 <label class="info-field-label" for="numero_documento"><span class="info-field-label-icon"><i data-lucide="file-text"></i></span>Número Documento *</label>
@@ -142,6 +154,24 @@
                     </button>
                 </div>
                 </div>
+
+                {# 2026-09-25: título de "Parámetros vitales" debajo de la barra de
+                   fecha/hora y botones, justo encima de las tarjetas de signos. #}
+                <h3 class="section-title titulo-placa {% if medicion %}titulo-placa--correccion{% else %}titulo-placa--triaje{% endif %}">
+                    <span class="section-icon-badge"><i data-lucide="{% if medicion %}pencil-line{% else %}activity{% endif %}"></i></span>
+                    <span class="titulo-placa-texto">
+                        <span class="titulo-placa-kicker">{% if medicion %}Corrección de registro · Triaje{% else %}Triaje obstétrico · Paciente sin ingreso{% endif %}</span>
+                        <span class="titulo-placa-principal">{% if medicion %}Editar medición de triaje{% else %}Parámetros vitales{% endif %}</span>
+                        {% if not medicion %}<span class="titulo-placa-ayuda">Registre los signos vitales tal como los tomó; la escala MEOWS se calcula sola.</span>{% endif %}
+                    </span>
+                    <span class="titulo-placa-chip">Escala MEOWS</span>
+                </h3>
+                {% if medicion %}
+                <p class="section-description" style="color:#b45309;font-weight:600;">
+                    ✏️ Estás corrigiendo el registro de triaje del {{ medicion.fecha_hora|date:"d/m/Y h:i A" }}. Al guardar
+                    se actualizará este mismo registro (no se creará uno nuevo).
+                </p>
+                {% endif %}
 
                 <div class="parametros-resumen-layout">
                 <div class="parameters-grid">
@@ -216,23 +246,18 @@
                 </div>
 
                 <div class="form-actions">
-                    <div class="responsable-firma-card">
-                        <div class="responsable-firma-header">
-                            <span class="responsable-firma-header-icon">👤</span>
-                            <div>
-                                <h4>Responsable del Registro</h4>
-                                <p class="responsable-firma-subtitle">Identificación del profesional a cargo de este triaje</p>
-                            </div>
-                        </div>
-
-                        <div class="responsable-field responsable-field-inline">
-                            <label for="responsable" class="responsable-label">
-                                <span class="icon">👤</span> Responsable del Registro
-                            </label>
-                            <input type="text" id="responsable" name="responsable" class="responsable-input"
-                                placeholder="Nombre del profesional responsable" autocomplete="off"
-                                value="{{ paciente.responsable|default:profesional_nombre_sesion|default:'' }}">
-                        </div>
+                    {# 2026-09-24: igual que "Responsable del reporte" del Historial MEOWS: una #}
+                    {# sola placa con el campo a la derecha, al final de la vista. #}
+                    <div class="section-title titulo-placa titulo-placa--triaje responsable-placa-triaje">
+                        <span class="section-icon-badge"><i data-lucide="user-check"></i></span>
+                        <span class="titulo-placa-texto">
+                            <span class="titulo-placa-kicker">Firma del registro · Triaje</span>
+                            <label for="responsable" class="titulo-placa-principal">Responsable del registro</label>
+                            <span class="titulo-placa-ayuda">Profesional a cargo de este triaje; queda en la línea de tiempo y en el PDF.</span>
+                        </span>
+                        <input type="text" id="responsable" name="responsable" class="responsable-input responsable-placa-input"
+                            placeholder="Nombre del profesional responsable" autocomplete="off" maxlength="255"
+                            value="{{ paciente.responsable|default:profesional_nombre_sesion|default:'' }}">
                     </div>
                 </div>
             </form>

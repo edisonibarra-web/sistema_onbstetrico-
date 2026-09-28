@@ -701,6 +701,8 @@ function mostrarBotonesFormularioGuardado() {
  * Se llama desde guardarTemporalParametro y desde los campos del encabezado.
  */
 function programarAutoguardadoParto(esperaMs = AUTOGUARDADO_PARTO_ESPERA_MS) {
+    // 2026-09-24: consultando un ingreso anterior/cerrado no se guarda nada.
+    if (esModoConsultaIngreso()) return;
     _autoguardadoPartoHayCambios = true;
     // Copia inmediata en el navegador: si se recarga antes de que salga el
     // guardado, se recupera al volver a abrir (restaurarBorradorLocalParto).
@@ -720,6 +722,7 @@ function programarAutoguardadoParto(esperaMs = AUTOGUARDADO_PARTO_ESPERA_MS) {
  * Devuelve true si quedó todo guardado.
  */
 async function autoguardarTrabajoParto({ manual = false } = {}) {
+    if (esModoConsultaIngreso()) return false;
     if (_autoguardadoPartoTimer) {
         clearTimeout(_autoguardadoPartoTimer);
         _autoguardadoPartoTimer = null;
@@ -843,12 +846,22 @@ const HORAS_VIGENCIA_BORRADOR = 12;
 // Dinámica) si el .env tiene FCF_DINAMICA_AUTOMATICA=True (ver parto_home).
 const PARAMETROS_AUTOMATICOS = window.FCF_DINAMICA_AUTOMATICA ? ['8'] : [];
 
+/**
+ * 2026-09-24: selector de ingresos. true si se está viendo un ingreso que NO
+ * es el actual (?ingreso= en la URL) o uno que ya quedó en solo consulta:
+ * nada se guarda ni se toca el borrador local del ingreso actual.
+ */
+function esModoConsultaIngreso() {
+    return Boolean(window.INGRESO_ELEGIDO) || Boolean(window.MODO_SOLO_CONSULTA);
+}
+
 function claveBorradorParto() {
     const doc = (obtenerValorInput('num_identificacion') || '').trim();
     return doc ? `trabajoparto_borrador_${doc}` : null;
 }
 
 function guardarBorradorLocalParto() {
+    if (esModoConsultaIngreso()) return;
     const clave = claveBorradorParto();
     if (!clave) return;
     try {
@@ -875,6 +888,8 @@ function borrarBorradorLocalParto() {
 
 /** Recupera lo que no alcanzó a guardarse (recarga/cierre en medio). Devuelve true si recuperó algo. */
 function restaurarBorradorLocalParto() {
+    // Viendo otro ingreso: el borrador (del ingreso actual) no se aplica ni se borra.
+    if (esModoConsultaIngreso()) return false;
     const clave = claveBorradorParto();
     if (!clave) return false;
     let borrador;
@@ -882,7 +897,9 @@ function restaurarBorradorLocalParto() {
     if (!borrador) return false;
     const vencido = !borrador.ts || (Date.now() - borrador.ts) > HORAS_VIGENCIA_BORRADOR * 3600 * 1000;
     const formularioActual = obtenerValorInput('formulario_id') || '';
-    const esDeOtroFormulario = borrador.formulario_id && formularioActual && String(borrador.formulario_id) !== String(formularioActual);
+    // 2026-09-24: también si la hoja actual todavía no existe (hoja nueva de un
+    // reingreso): el borrador de la hoja anterior NO se copia en la nueva.
+    const esDeOtroFormulario = borrador.formulario_id && String(borrador.formulario_id) !== String(formularioActual);
     if (vencido || esDeOtroFormulario) {
         borrarBorradorLocalParto();
         return false;
@@ -2555,7 +2572,10 @@ async function buscarPacienteCompleto(cedula, usarCache = true) {
         console.log(`Buscando paciente completo para identificación: ${cedula}`);
         
         const cacheKey = 'paciente_completo_data_cache';
-        const CACHE_VERSION = 7; // 7: EG corregida (ya no HCCM00N256). Incrementar si cambia estructura (ej. diagnostico, aseguradora, edad_gestacional, n_controles, estado)
+        // 2026-09-24: la respuesta depende del ingreso elegido: al ver un
+        // ingreso anterior no se usa ni se guarda esta caché.
+        if (window.INGRESO_ELEGIDO) usarCache = false;
+        const CACHE_VERSION = 8; // 8: una hoja por ingreso. 7: EG corregida (ya no HCCM00N256). Incrementar si cambia estructura (ej. diagnostico, aseguradora, edad_gestacional, n_controles, estado)
         // 2026-09-11: esta caché no vencía nunca por tiempo -- solo se
         // invalidaba al cambiar de paciente o subir CACHE_VERSION. Eso
         // dejaba la pantalla mostrando para siempre la Frecuencia Cardiaca
@@ -2597,7 +2617,8 @@ async function buscarPacienteCompleto(cedula, usarCache = true) {
         
         // Buscar datos del paciente desde la API
         console.log('Realizando petición HTTP al servidor...');
-        const data = await apiRequest(`/pacientes/buscar-completo/?num_identificacion=${encodeURIComponent(cedula)}`);
+        const ingresoElegido = window.INGRESO_ELEGIDO ? `&ingreso=${encodeURIComponent(window.INGRESO_ELEGIDO)}` : '';
+        const data = await apiRequest(`/pacientes/buscar-completo/?num_identificacion=${encodeURIComponent(cedula)}${ingresoElegido}`);
         
         // Verificar si el paciente fue encontrado (nuevo formato sin errores 404)
         if (!data || data.encontrado === false || !data.paciente) {
@@ -2608,7 +2629,7 @@ async function buscarPacienteCompleto(cedula, usarCache = true) {
         }
         
         // Guardar TODA la data completa en caché
-        try {
+        if (!window.INGRESO_ELEGIDO) try {
             const cacheData = {
                 _cacheVersion: CACHE_VERSION,
                 paciente: data.paciente,
@@ -4352,16 +4373,27 @@ document.addEventListener('DOMContentLoaded', function() {
         if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Enviando...'; }
         try {
             const cookie = document.cookie.split('; ').find(c => c.startsWith('csrftoken='));
-            const resp = await fetch('/atencion/api/repositorio/enviar/', {
+            const enviar = (forzar) => fetch('/atencion/api/repositorio/enviar/', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': cookie ? decodeURIComponent(cookie.split('=')[1]) : '',
                 },
-                body: JSON.stringify({ formato: 'trabajo_parto', formulario_id: formularioId }),
+                body: JSON.stringify({ formato: 'trabajo_parto', formulario_id: formularioId, forzar }),
             });
-            const data = await resp.json().catch(() => ({ ok: false, mensaje: `HTTP ${resp.status}` }));
+            let resp = await enviar(false);
+            let data = await resp.json().catch(() => ({ ok: false, mensaje: `HTTP ${resp.status}` }));
+            // 2026-09-25: sin cambios desde el último envío -> no se guarda otra
+            // copia idéntica, salvo que el usuario lo confirme.
+            if (data.sin_cambios) {
+                if (!confirm(`${data.mensaje}\n\n¿Desea guardar de todos modos OTRA copia en el repositorio?`)) {
+                    mostrarMensaje(data.mensaje, 'info');
+                    return;
+                }
+                resp = await enviar(true);
+                data = await resp.json().catch(() => ({ ok: false, mensaje: `HTTP ${resp.status}` }));
+            }
             mostrarMensaje(data.mensaje || 'Error desconocido', data.ok ? 'success' : 'error');
         } catch (error) {
             console.error('❌ Error enviando al repositorio:', error);

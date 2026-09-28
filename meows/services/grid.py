@@ -249,19 +249,26 @@ def _filtrar_ingreso_mas_reciente(mediciones):
     ]
 
 
-def construir_grid_meows(paciente):
+def construir_grid_meows(paciente, medicion_ids=None):
     """
     Dado un meows.Paciente, arma (grid_parametros, columnas) tal como los espera
     el partial meows/_timeline_grid.html. Devuelve columnas=[] si el paciente no
     tiene mediciones registradas. Solo incluye el ingreso más reciente si la
     paciente tuvo más de uno (ver _filtrar_ingreso_mas_reciente).
+
+    2026-09-24: `medicion_ids` = las tomas del ingreso elegido en el selector
+    de ingresos (obstetriciaunificador.ingresos); si se pasa, se usan
+    exactamente esas en lugar del filtro por el ingreso más reciente.
     """
     mediciones = Medicion.objects.filter(
         paciente=paciente
     ).select_related('formulario').prefetch_related(
         'valores__parametro'
     ).order_by("fecha_hora")
-    mediciones = _filtrar_ingreso_mas_reciente(list(mediciones))
+    if medicion_ids is not None:
+        mediciones = list(mediciones.filter(id__in=list(medicion_ids)))
+    else:
+        mediciones = _filtrar_ingreso_mas_reciente(list(mediciones))
 
     columnas = []
     for medicion in mediciones:

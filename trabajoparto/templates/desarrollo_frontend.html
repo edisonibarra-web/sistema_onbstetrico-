@@ -7,6 +7,7 @@
     <title>CONTROL DE TRABAJO DE PARTO</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260813b">
     <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/titulo_placa.css' %}?v=20260924b">
     <link rel="stylesheet" type="text/css" href="{% static 'css/vendor/toastify.min.css' %}">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/vendor/toastify.min.js' %}"></script>
@@ -52,6 +53,29 @@
             letter-spacing: 0.01em;
         }
         .info-section-green .info-section-title { color: #ffffff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+        /* 2026-09-24: títulos en "placa" (titulo_placa.css) conservando el color
+           de estas cards: sobre el degradado turquesa, texto blanco, etiqueta
+           celeste e ícono en círculo blanco (como el original). */
+        .info-section-green > .section-title.titulo-placa,
+        .info-section-green > .section-title.titulo-placa .titulo-placa-texto { text-align: left; }
+        .info-section-green > .section-title.titulo-placa {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            margin: 0 0 16px;
+        }
+        .info-section-green > .section-title.titulo-placa::after { display: none; }
+        .info-section-green > .section-title.titulo-placa .titulo-placa-kicker { color: #cffafe; }
+        .info-section-green > .section-title.titulo-placa .titulo-placa-principal { color: #ffffff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+        .info-section-green > .section-title.titulo-placa .titulo-placa-ayuda { color: #e0f2fe; }
+        .info-section-green > .section-title.titulo-placa .section-icon-badge {
+            background: #ffffff;
+            color: #0e7490;
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(4, 30, 39, 0.3);
+        }
         /* Subencabezado interno: separa subgrupos dentro de una misma card
            unificada (p.ej. "Información clínica" + "Resultados obstétricos")
            sin duplicar el fondo/borde de una card completa por cada uno. */
@@ -100,6 +124,8 @@
         }
         .info-field.size-xs { flex: 0 1 72px; }
         .info-field.size-sm { flex: 0 1 140px; }
+        /* 2026-09-24: campo Ingreso (7 dígitos) -- angosto para no partir la fila. */
+        .info-field.size-ingreso { flex: 0 1 96px; min-width: 86px; }
         .info-field.size-lg { flex: 2 1 135px; }
         .info-field.size-xl { flex: 3 1 240px; }
 
@@ -459,6 +485,7 @@
             color: #475569;
             border: 1px solid #e2e8f0;
         }
+        .autosave-parto-fila { display: flex; justify-content: flex-end; margin: 0 0 12px; min-height: 0; }
         #autosave-parto-status[data-estado="ok"] { background: #dcfce7; color: #166534; border-color: #86efac; }
         #autosave-parto-status[data-estado="guardando"],
         #autosave-parto-status[data-estado="pendiente"] { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
@@ -472,6 +499,8 @@
     {% include 'obstetricia/sidebar.html' with is_panel=False atencion_id=atencion_id documento=documento current_module='parto' %}
     <div class="sidebar-main-content">
     <div class="form-container">
+        {# 2026-09-24: selector de ingresos -- una hoja por ingreso; los anteriores en solo consulta. #}
+        {% if documento %}{% include 'obstetricia/_selector_ingreso.html' with documento=documento modulo='trabajo_parto' ingreso=ingreso_param %}{% endif %}
         <!-- Encabezado del Formulario -->
         <div class="meta-box">
         <!-- Parámetros dinámicos desde estructura (parametro.campos) -->
@@ -515,11 +544,20 @@
 
             <!-- Información del Paciente -->
             <div class="patient-info-section">
+                {# 2026-09-24: estado del guardado automático arriba de "1. Datos generales" (antes en el pie). #}
+                <div class="autosave-parto-fila">
+                    <span id="autosave-parto-status" aria-live="polite" style="margin-left:0"></span>
+                </div>
                 <div class="patient-info-card-parto">
                     <!-- 1. DATOS GENERALES -->
                     <section class="info-section info-section-green">
-                        <h3 class="info-section-title">
-                            1. Datos generales
+                        <h3 class="section-title titulo-placa">
+                            <span class="section-icon-badge"><i data-lucide="user"></i></span>
+                            <span class="titulo-placa-texto">
+                                <span class="titulo-placa-kicker">Trabajo de parto · FRSPA-022</span>
+                                <span class="titulo-placa-principal">1. Datos generales</span>
+                                <span class="titulo-placa-ayuda">Datos de la paciente y de su ingreso; los que llegan de Dinámica quedan bloqueados.</span>
+                            </span>
                         </h3>
                         <div class="info-section-row">
                             <div class="info-field size-sm">
@@ -532,6 +570,11 @@
                                        placeholder="Escriba el documento y presione Enter para buscar"
                                        onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarPaciente(); }">
                                 <input type="hidden" id="cedula" name="cedula">
+                            </div>
+                            <div class="info-field size-ingreso">
+                                <label class="info-field-label" for="numero_ingreso_vista"><span class="info-field-label-icon"><i data-lucide="folder-open"></i></span>Ingreso</label>
+                                <input type="text" id="numero_ingreso_vista" class="form-input patient-input" value="—" readonly tabindex="-1"
+                                       title="Número de ingreso en Dinámica (carpeta del repositorio clínico)">
                             </div>
                             <div class="info-field size-sm">
                                 <label class="info-field-label" for="num_historia_clinica"><span class="info-field-label-icon"><i data-lucide="file-text"></i></span>N° historia clinica</label>
@@ -580,8 +623,12 @@
                     <!-- 2-3. INFORMACIÓN CLÍNICA + RESULTADOS OBSTÉTRICOS (unificadas en una sola card,
                          separadas por un divisor interno para conservar la organización por subgrupos) -->
                     <section class="info-section info-section-green">
-                        <h3 class="info-section-title">
-                            2. Información clínica
+                        <h3 class="section-title titulo-placa">
+                            <span class="section-icon-badge"><i data-lucide="stethoscope"></i></span>
+                            <span class="titulo-placa-texto">
+                                <span class="titulo-placa-kicker">Trabajo de parto · FRSPA-022</span>
+                                <span class="titulo-placa-principal">2. Información clínica</span>
+                            </span>
                         </h3>
                         <div class="info-section-row">
                             <div class="info-field size-sm">
@@ -654,12 +701,14 @@
                     }
                 </style>
                 <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: #ffffff; flex-shrink: 0;">
-                        <span style="font-size: 1.2em;">🕒</span>
+                    {# 2026-09-24: insignia en "placa" (turquesa, como la franja izquierda de esta barra). #}
+                    <div class="hora-control-badge" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, #22d3ee 0%, #0e7490 100%); color: #ffffff; flex-shrink: 0; box-shadow: 0 6px 16px rgba(8, 145, 178, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);">
+                        <i data-lucide="clock" style="width: 24px; height: 24px; stroke-width: 2.3;"></i>
                     </div>
 
                     <div style="flex: 0 0 auto;">
-                        <label for="hora-control-fecha" style="display: block; font-weight: 700; font-size: 0.82em; letter-spacing: 0.02em; text-transform: uppercase; color: #334155; margin-bottom: 4px;">Hora del control actual</label>
+                        <span style="display: block; font-weight: 800; font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: #0e7490; text-align: left;">Trabajo de parto · Control actual</span>
+                        <label for="hora-control-fecha" style="display: block; font-weight: 800; font-size: 1.25rem; letter-spacing: -0.01em; color: #0f172a; margin: 1px 0 8px; text-align: left; line-height: 1.15;">Hora del control</label>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <!-- 2026-09-23: fecha + hora en 12 h con AM/PM (el datetime-local nativo
                                  mostraba 24 h sin AM/PM según el sistema operativo). El valor real
@@ -1218,10 +1267,34 @@
                 #footer-parto .responsible-input:not([readonly]) { border-color: #0891b2 !important; box-shadow: 0 2px 8px rgba(8, 145, 178, 0.2), inset 0 1px 2px rgba(0,0,0,0.05) !important; }
                 #btn-guardar { background: linear-gradient(135deg, #0891b2 0%, #155e75 100%) !important; box-shadow: 0 4px 15px rgba(8, 145, 178, 0.35) !important; }
                 #btn-guardar:hover { background: linear-gradient(135deg, #155e75 0%, #0891b2 100%) !important; box-shadow: 0 6px 24px rgba(8, 145, 178, 0.45) !important; }
+                /* 2026-09-24: Responsable en "placa" (insignia, etiqueta, título y
+                   ayuda) conservando su color: fondo claro, borde y franja turquesa. */
+                #footer-parto .responsable-placa-tp { flex: 1 1 560px; flex-wrap: wrap; gap: 16px; padding: 16px 20px 16px 24px; text-align: left; }
+                #footer-parto .rp-badge {
+                    flex-shrink: 0; width: 48px; height: 48px; border-radius: 14px;
+                    display: inline-flex; align-items: center; justify-content: center;
+                    background: linear-gradient(135deg, #22d3ee 0%, #0e7490 100%); color: #ffffff;
+                    box-shadow: 0 6px 16px rgba(8, 145, 178, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+                    position: relative; z-index: 1;
+                }
+                #footer-parto .rp-badge svg { width: 24px; height: 24px; stroke-width: 2.3; }
+                #footer-parto .rp-texto { display: flex; flex-direction: column; gap: 3px; flex: 1 1 260px; min-width: 0; position: relative; z-index: 1; }
+                #footer-parto .rp-kicker { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: #0891b2; }
+                #footer-parto .responsible-field label.rp-principal {
+                    font-size: 1.35rem !important; font-weight: 800; letter-spacing: -0.01em !important;
+                    text-transform: none !important; color: #0f172a !important; text-shadow: none !important; line-height: 1.15;
+                }
+                #footer-parto .rp-ayuda { font-size: 0.84rem; font-weight: 500; color: #475569; }
+                #footer-parto .responsable-placa-tp .responsible-input { flex: 1 1 280px; min-width: 240px; margin-left: auto; position: relative; z-index: 1; }
             </style>
             <div class="form-footer" id="footer-parto">
-                <div class="responsible-field">
-                    <label>RESPONSABLE:</label>
+                <div class="responsible-field responsable-placa-tp">
+                    <span class="rp-badge"><i data-lucide="user-check"></i></span>
+                    <span class="rp-texto">
+                        <span class="rp-kicker">Firma del registro · Trabajo de parto</span>
+                        <label for="responsable" class="rp-principal">Responsable</label>
+                        <span class="rp-ayuda">Se precarga con quien inició sesión; queda en cada control y en el PDF.</span>
+                    </span>
                     <input type="text" id="responsable" name="responsable"
                            class="responsible-input" required maxlength="255"
                            placeholder="Nombre del profesional responsable"
@@ -1232,8 +1305,6 @@
                 <div class="form-actions">
                     <!-- 2026-09-23: sin botón de guardar -- el formulario se guarda
                          solo (ver autoguardarTrabajoParto en main.js). -->
-                    <span id="autosave-parto-status" aria-live="polite" style="margin-left:0"></span>
-                    <br>
                     <button type="button" id="btn-descargar-pdf" class="btn btn-pdf" onclick="descargarPDF()" style="display: none; background: #dc2626; color: #ffffff; padding: 12px 24px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">📄 Descargar PDF Reporte</button>
                     <button type="button" id="btn-finalizar-repositorio" class="btn" onclick="finalizarEnRepositorio()" title="Genera el PDF final de este formulario y lo guarda en el repositorio clínico (carpeta cédula / ingreso activo)" style="display: none; background: #0f766e; color: #ffffff; padding: 12px 24px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; margin-top: 10px; margin-left: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">📤 Finalizar y enviar a repositorio</button>
                 </div>
@@ -1260,7 +1331,43 @@
         Si no defines nada, config.js la infiere automáticamente con window.location.hostname.
     -->
     <script>window.FCF_DINAMICA_AUTOMATICA = {{ fcf_automatica|yesno:'true,false' }};</script>
-    <script src="{% static 'js/main.js' %}?v=20260923i"></script>
+    {# 2026-09-24: ingreso elegido en el selector (vacío = el actual). #}
+    <script>window.INGRESO_ELEGIDO = "{{ ingreso_param|default:''|escapejs }}";</script>
+    <script>
+        // 2026-09-24: campo "Ingreso" de la tarjeta = ingreso elegido en el selector.
+        document.addEventListener('selector-ingreso:cargado', function (ev) {
+            var campo = document.getElementById('numero_ingreso_vista');
+            var d = ev.detail || {};
+            if (!campo) return;
+            var s = d.seleccion;
+            campo.value = !s ? 'Sin ingreso' : (s.especial ? s.titulo : s.numero);
+            campo.title = s && !s.especial ? 'Ingreso ' + s.numero + ' · desde ' + s.fecha_ingreso + (s.fecha_egreso ? ' hasta ' + s.fecha_egreso + ' (cerrado)' : (s.en_curso ? ' (en curso)' : '')) : '';
+        });
+    </script>
+    <script>
+        // 2026-09-24: ingreso anterior o cerrado -> solo consulta (ver
+        // obstetricia/_selector_ingreso.html): se ve la hoja de ESE ingreso con
+        // sus controles; no se guarda nada (ni guardado automático, ni borrador).
+        // Configuración del modo solo consulta de este módulo.
+        window.SOLO_CONSULTA_CONFIG = {
+            contenedor: document.querySelector('.sidebar-main-content') || document.body,
+            permitir: '#btn-vista-previa, #btn-vista-previa-meows, #btn-descargar-pdf, '
+                + '[onclick*="cerrar"], [onclick*="Cerrar"], [onclick*="VistaPrevia"], [onclick*="imprimir"], [onclick*="Imprimir"]',
+            bloquearEnvios: ['/api/', '/atencion/api/repositorio/enviar/'],
+            estado: 'autosave-parto-status',
+        };
+        document.addEventListener('selector-ingreso:cargado', function (ev) {
+            if (!ev.detail) return;
+            if (!ev.detail.solo_consulta) {
+                // ?ingreso= apuntaba al ingreso ACTUAL (p. ej. un enlace guardado):
+                // se trabaja normal, con guardado automático.
+                if (window.INGRESO_ELEGIDO && ev.detail.es_actual) window.INGRESO_ELEGIDO = '';
+                return;
+            }
+            window.activarSoloConsulta(window.SOLO_CONSULTA_CONFIG);
+        });
+    </script>
+    <script src="{% static 'js/main.js' %}?v=20260925a"></script>
     <script>
     (function() {
       const docFromCard = "{{ documento|default:''|escapejs }}".trim();

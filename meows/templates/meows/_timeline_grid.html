@@ -20,9 +20,32 @@ resumen. En las demás vistas (meows/historial.html) NO se pasa esta variable
 página, colapsable con el botón "Ocultar/Mostrar".
 {% endcomment %}
 <section class="section timeline-section{% if abrir_en_modal %} timeline-section--compact{% endif %}">
+    {# 2026-09-24: en el Historial MEOWS, "título en placa" (meows-form.css) con los #}
+    {# botones agrupados a la derecha. En Control Posparto (modal) queda como antes. #}
+    {% if mostrar_link_volver and not abrir_en_modal %}
+    <h3 class="section-title titulo-placa timeline-placa {% if todo_origen_triaje %}titulo-placa--triaje{% else %}titulo-placa--meows{% endif %}">
+        <span class="section-icon-badge"><i data-lucide="line-chart"></i></span>
+        <span class="titulo-placa-texto">
+            <span class="titulo-placa-kicker">Historial clínico MEOWS · {% if todo_origen_triaje %}Triaje{% else %}Dinámica{% endif %}</span>
+            <span class="titulo-placa-principal">{% if todo_origen_triaje %}Línea de tiempo triaje{% else %}Línea de tiempo clínica{% endif %}</span>
+            <span class="titulo-placa-ayuda">{% if todo_origen_triaje %}Signos vitales registrados en Triaje, antes del ingreso.{% else %}Signos vitales registrados en Dinámica, con el puntaje MEOWS de cada toma.{% endif %}</span>
+        </span>
+        <span class="timeline-placa-acciones">
+    {% elif abrir_en_modal %}
+    {# 2026-09-24: versión compacta (Control Posparto) también en "placa", en verde. #}
+    <h3 class="section-title titulo-placa timeline-placa titulo-placa--posparto">
+        <span class="section-icon-badge"><i data-lucide="line-chart"></i></span>
+        <span class="titulo-placa-texto">
+            <span class="titulo-placa-kicker">Control posparto · Signos vitales de Dinámica</span>
+            <span class="titulo-placa-principal">Línea de tiempo clínica MEOWS</span>
+            <span class="titulo-placa-ayuda">Resumen de las tomas de la paciente; ábrala en grande para ver el detalle.</span>
+        </span>
+        <span class="timeline-placa-acciones">
+    {% else %}
     <h3 class="section-title">
         <span class="section-icon-badge"><i data-lucide="line-chart"></i></span>
         {% if mostrar_link_volver %}{% if todo_origen_triaje %}Línea de Tiempo Triaje{% else %}Línea de Tiempo Clínica (Dinámica){% endif %}{% else %}Control Posparto Inmediato{% endif %}
+    {% endif %}
         {% if mostrar_link_volver %}
         {% if not todo_origen_triaje %}
         {# 2026-09-22: oculto en Triaje -- una paciente sin ingreso todavía no #}
@@ -46,17 +69,8 @@ página, colapsable con el botón "Ocultar/Mostrar".
         <a id="btn-generar-pdf-meows" href="{% url 'generar_pdf_meows' paciente_id=meows_paciente.id %}" class="btn-volver-parto" target="_blank">
             <span>📄</span> Generar PDF
         </a>
-        {% if not todo_origen_triaje %}
-        {# 2026-09-23: formato final -> repositorio clínico (NAS), carpeta #}
-        {# <cédula>/<ingreso>. Oculto en Triaje: sin ingreso no hay carpeta. #}
-        {# La lógica está en historial.html (finalizarMeowsRepositorio). #}
-        <button type="button" id="btn-finalizar-meows-repositorio" class="btn-volver-parto"
-                data-documento="{{ meows_paciente.numero_documento }}"
-                onclick="finalizarMeowsRepositorio(this)"
-                title="Genera el PDF final de MEOWS de este ingreso y lo guarda en el repositorio clínico">
-            <span>📤</span> Finalizar y enviar a repositorio
-        </button>
-        {% endif %}
+        {# 2026-09-24: se quitó "Finalizar y enviar a repositorio": el PDF MEOWS #}
+        {# se guarda solo en la NAS al egreso (ver historial.html). #}
         {% endif %}
         {% endif %}
         {# 2026-09-09: se quitó el botón "Nueva medición" -- los registros MEOWS #}
@@ -70,6 +84,9 @@ página, colapsable con el botón "Ocultar/Mostrar".
             <span id="meows-toggle-icon">➖</span> <span id="meows-toggle-label">Ocultar</span>
         </button>
         {% endif %}
+    {% if mostrar_link_volver and not abrir_en_modal or abrir_en_modal %}
+        </span>
+    {% endif %}
     </h3>
 
     {% if abrir_en_modal %}
@@ -308,7 +325,7 @@ página, colapsable con el botón "Ocultar/Mostrar".
                         {# (Medicion.registrado_por). #}
                         <span class="col-responsable-dinamica" title="Registrado en Triaje por {{ columna.responsable }}">👤 {{ columna.responsable }}</span>
                         {% endif %}
-                        {% if mostrar_link_volver and todo_origen_triaje %}
+                        {% if mostrar_link_volver and todo_origen_triaje and not solo_consulta %}
                         {# 2026-09-23: corregir una toma de triaje mientras la paciente #}
                         {# siga sin ingreso (con ingreso, crear_medicion_triaje ya no lo #}
                         {# permite: el triaje se envió al repositorio con esos datos). #}

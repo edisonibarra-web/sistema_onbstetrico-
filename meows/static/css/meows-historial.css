@@ -1540,3 +1540,29 @@
         max-width: 74px;
     }
 }
+
+
+/* 2026-09-24: encabezado de la Línea de Tiempo en "placa" (ver .titulo-placa
+   en meows-form.css). Aquí solo se anula el estilo lila de
+   .timeline-section .section-title y se agrupan los botones a la derecha. */
+.timeline-section .section-title.titulo-placa {
+    padding: 16px 20px;
+    background: linear-gradient(120deg, #f8fafc 0%, #e2e8f0 55%, #f1f5f9 100%);
+    border: 1px solid #cbd5e1;
+    border-radius: 16px;
+    margin-bottom: 1.25rem;
+    font-size: inherit;
+    flex-wrap: wrap;
+}
+.timeline-placa-acciones {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-left: auto;
+}
+.timeline-placa-acciones a.btn-volver-parto:first-of-type { margin-left: 0; }
+@media (max-width: 900px) {
+    .timeline-placa-acciones { width: 100%; justify-content: flex-start; margin-left: 0; }
+}

@@ -12,15 +12,22 @@
          puntaje/riesgo, mejor una sola fuente de verdad. Donde ambos archivos definen
          lo mismo (body, .container, .section, .info-item, .btn, etc.) gana
          meows-resultado.css por cargar después, así el resto de esta página no cambia. -->
-    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260904d">
+    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260924a">
     <link rel="stylesheet" href="{% static 'css/meows-resultado.css' %}?v=20260909b">
     <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/titulo_placa.css' %}?v=20260924a">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
     <style>
         /* Esta vista usa el shell de encabezado + sidebar a borde completo (.app-layout-sidebar);
            el padding por defecto del body (definido en meows-resultado.css para páginas simples)
            deja un espacio muerto en blanco alrededor del encabezado y el sidebar. Se anula aquí. */
         body { margin: 0 !important; padding: 0 !important; }
+        /* 2026-09-24: chip + botón a la derecha de la placa "Detalle de parámetros". */
+    .detalle-section .titulo-placa { flex-wrap: wrap; }
+    .detalle-section .titulo-placa .titulo-placa-texto { flex: 1 1 260px; }
+    .titulo-placa-acciones { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-left: auto; justify-content: flex-end; }
+    .titulo-placa .btn-historial-placa { margin: 0; font-size: 0.88rem; white-space: nowrap; text-transform: none; letter-spacing: normal; }
+    @media (max-width: 700px) { .titulo-placa-acciones { width: 100%; justify-content: flex-start; margin-left: 0; } }
     </style>
 </head>
 <body>
@@ -31,9 +38,15 @@
     <div class="container">
         <!-- SECCIÓN: INFORMACIÓN DEL PACIENTE -->
         <section class="section patient-section">
-            <h3 class="section-title">
-                <span class="icon">👤</span>
-                Información del Paciente
+            {# 2026-09-24: mismo diseño "título en placa" que Triaje (meows-form.css). #}
+            <h3 class="section-title titulo-placa {% if medicion.origen == 'triaje' %}titulo-placa--triaje{% else %}titulo-placa--meows{% endif %}">
+                <span class="section-icon-badge"><i data-lucide="user"></i></span>
+                <span class="titulo-placa-texto">
+                    <span class="titulo-placa-kicker">Resultado MEOWS · {% if medicion.origen == 'triaje' %}Triaje{% elif medicion.origen == 'dinamica' %}Signos vitales de Dinámica{% else %}Registro manual{% endif %}</span>
+                    <span class="titulo-placa-principal">Información del paciente</span>
+                    <span class="titulo-placa-ayuda">Datos de la paciente evaluada en esta toma.</span>
+                </span>
+                <span class="titulo-placa-chip">Toma {{ medicion.fecha_hora|date:"d/m/Y h:i A" }}</span>
             </h3>
             {# 2026-09-23: ficha compacta: nombre, documento, fecha de nacimiento y edad. #}
             <style>
@@ -99,9 +112,14 @@
 
         <!-- SECCIÓN: RESULTADO MEOWS -->
         <section class="section resultado-section">
-            <h3 class="section-title">
-                <span class="icon">📊</span>
-                Evaluación MEOWS
+            <h3 class="section-title titulo-placa {% if medicion.origen == 'triaje' %}titulo-placa--triaje{% else %}titulo-placa--meows{% endif %}">
+                <span class="section-icon-badge"><i data-lucide="gauge"></i></span>
+                <span class="titulo-placa-texto">
+                    <span class="titulo-placa-kicker">Resultado MEOWS · Puntaje de la toma</span>
+                    <span class="titulo-placa-principal">Evaluación MEOWS</span>
+                    <span class="titulo-placa-ayuda">Puntaje total y nivel de riesgo calculados con los signos vitales de esta toma.</span>
+                </span>
+                {% if medicion.meows_riesgo %}<span class="titulo-placa-chip">Riesgo {{ medicion.meows_riesgo }}</span>{% endif %}
             </h3>
             
             <div class="resultado-card resultado-{{ medicion.meows_riesgo|lower }}">
@@ -156,9 +174,21 @@
              de esta página, ver comentario ahí); meows-resultado.css solo aporta lo
              específico de esta pantalla. -->
         <section class="section detalle-section">
-            <h3 class="section-title">
-                <span class="icon">📋</span>
-                Detalle de Parámetros
+            <h3 class="section-title titulo-placa {% if medicion.origen == 'triaje' %}titulo-placa--triaje{% else %}titulo-placa--meows{% endif %}">
+                <span class="section-icon-badge"><i data-lucide="clipboard-list"></i></span>
+                <span class="titulo-placa-texto">
+                    <span class="titulo-placa-kicker">Resultado MEOWS · Signos vitales</span>
+                    <span class="titulo-placa-principal">Detalle de parámetros</span>
+                    <span class="titulo-placa-ayuda">Valor registrado y puntaje de cada parámetro.</span>
+                </span>
+                {# 2026-09-24: "Ver Historial del Paciente" movido aquí (antes, sección aparte al final). #}
+                <span class="titulo-placa-acciones">
+                    <span class="titulo-placa-chip">Solo lectura</span>
+                    <a href="{% url 'historial_meows' paciente_id=medicion.paciente.id %}" class="btn btn-info btn-historial-placa">
+                        <span class="btn-icon">📊</span>
+                        Ver Historial del Paciente
+                    </a>
+                </span>
             </h3>
             <p class="detalle-solo-lectura-nota">🔒 Solo lectura: estos valores vienen de Dinámica y ya no se pueden editar aquí.</p>
 
@@ -221,22 +251,16 @@
             </div>
         </section>
 
-        <!-- SECCIÓN: ACCIONES -->
-        <section class="section acciones-section">
-            <div class="acciones-buttons">
-                {# 2026-09-09: se quitaron "Corregir esta Medición" y "Registrar Nueva #}
-                {# Toma" -- los registros MEOWS ahora vienen únicamente de la #}
-                {# sincronización automática con Dinámica (fuente de verdad). El #}
-                {# código de crear/editar (crear_medicion_meows en views.py) se #}
-                {# conserva bloqueado como respaldo, no se expone en la interfaz. #}
-                <a href="{% url 'historial_meows' paciente_id=medicion.paciente.id %}" class="btn btn-info">
-                    <span class="btn-icon">📊</span>
-                    Ver Historial del Paciente
-                </a>
-            </div>
-        </section>
+        {# 2026-09-24: la sección de acciones ("Ver Historial del Paciente") se integró #}
+        {# en la placa "Detalle de parámetros". ("Corregir esta Medición" y "Registrar #}
+        {# Nueva Toma" se habían quitado el 2026-09-09: MEOWS viene solo de Dinámica.) #}
     </div>
     </div>
 </div>
+<script>
+    /* 2026-09-24: el sidebar dibuja los íconos (lucide) antes de que exista el
+       resto de la página; se vuelve a llamar aquí para el ícono del título. */
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+</script>
 </body>
 </html>

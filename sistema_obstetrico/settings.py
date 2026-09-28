@@ -246,7 +246,9 @@ DATABASES = {
         # donde Dinámica realmente corre (DGEMPRES01 en 172.20.100.188) en vez
         # de a DGEMPRES_NEXUS (172.20.100.209) — cambiar solo el .env, sin tocar
         # código, y así también es más simple/seguro volver a producción después.
-        'ENGINE': 'mssql',
+        # 2026-09-24: 'mssql' + cortocircuito si Dinámica no responde (ver
+        # sistema_obstetrico/db_readonly/base.py).
+        'ENGINE': 'sistema_obstetrico.db_readonly',
         'NAME': os.environ.get('DGEMPRES_NEXUS_NAME') or 'DGEMPRES_NEXUS',
         'USER': os.environ.get('DGEMPRES_NEXUS_USER', ''),
         'PASSWORD': os.environ.get('DGEMPRES_NEXUS_PASSWORD', ''),
@@ -263,6 +265,10 @@ DATABASES = {
             # cuánto se espera para establecer la conexión -- no afecta el
             # tiempo permitido para que una consulta ya conectada termine.
             'extra_params': 'Encrypt=yes;TrustServerCertificate=yes;Connection Timeout=5',
+            # 2026-09-24: el backend mssql IGNORA el "Connection Timeout" de
+            # extra_params (abre la conexión con login timeout 0 = el del
+            # driver, 15 s medidos). Este es el valor que sí se respeta.
+            'connection_timeout': 5,
         },
     },
 }
@@ -380,6 +386,17 @@ REPO_FTP_TIMEOUT = int(os.environ.get('REPO_FTP_TIMEOUT') or 30)
 # activo y valor "heredado" en Vista Previa / PDF. Un solo interruptor para
 # todo -- ver trabajoparto (views.parto_home, pdf_utils, static/js/main.js).
 FCF_DINAMICA_AUTOMATICA = os.environ.get('FCF_DINAMICA_AUTOMATICA', 'False') == 'True'
+
+# ---------------------------------------------------------------------------
+# Consulta de registros por número de ingreso (selector de ingresos en MEOWS,
+# Trabajo de Parto y Control Posparto) -- ver obstetriciaunificador/ingresos.py.
+# FECHA_INICIO_APP (AAAA-MM-DD): desde cuándo el hospital usa esta app. Los
+#   ingresos anteriores sin registros se muestran como "Registros en físico".
+#   Vacío = se toma la fecha del primer registro guardado en el sistema.
+# INGRESO_HORAS_GRACIA_EDICION: horas después del egreso en que el ingreso
+#   todavía se puede editar (notas tardías); después queda en solo consulta.
+FECHA_INICIO_APP = (os.environ.get('FECHA_INICIO_APP') or '').strip()
+INGRESO_HORAS_GRACIA_EDICION = int(os.environ.get('INGRESO_HORAS_GRACIA_EDICION') or 24)
 
 LOGIN_URL = '/login/'
 

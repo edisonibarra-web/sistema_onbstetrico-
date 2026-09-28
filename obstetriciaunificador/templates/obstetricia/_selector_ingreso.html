@@ -1,0 +1,343 @@
+{% comment %}
+2026-09-24: selector de ingresos -- consulta de registros por número de ingreso.
+Se incluye en MEOWS (historial), Trabajo de Parto y Control Posparto:
+
+    {% include 'obstetricia/_selector_ingreso.html' with documento=documento modulo='meows' ingreso=ingreso_param %}
+
+- La lista y los conteos salen de /atencion/api/ingresos/ (ver
+  obstetriciaunificador/ingresos.py). Por defecto se muestran solo los
+  ingresos que interesan (urgencias / hospitalización / con registros);
+  "Ver todos" muestra también consultas externas, laboratorios y anulados.
+- Al elegir un ingreso se recarga la página con ?ingreso=<número>; cada
+  módulo filtra sus registros con ese parámetro. Sin parámetro = ingreso actual.
+- Publica window.SELECTOR_INGRESO (el resumen) y el evento
+  "selector-ingreso:cargado" en document, para que cada módulo aplique el
+  modo solo consulta.
+- "Documentos en el repositorio": lista los archivos de <cédula>/<ingreso>
+  en la NAS (de esta app y de otros aplicativos) y los abre pasando por la app.
+{% endcomment %}
+<style>
+.sel-ing {
+    --sel-borde: #cbd5e1;
+    --sel-fondo: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    --sel-texto: #1e293b;
+    --sel-suave: #475569;
+    background: var(--sel-fondo);
+    border: 1px solid var(--sel-borde);
+    border-radius: 14px;
+    padding: 12px 16px;
+    margin: 0 0 18px 0;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06), inset 0 1px 0 #ffffff;
+    color: var(--sel-texto);
+    font-family: inherit;
+}
+.sel-ing[hidden] { display: none; }
+.sel-ing__fila { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.sel-ing__titulo {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-weight: 800; font-size: 0.82rem; letter-spacing: 0.06em; text-transform: uppercase; color: #334155;
+}
+.sel-ing__titulo-icono {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 9px;
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); color: #fff; font-size: 0.95rem;
+    box-shadow: 0 2px 6px rgba(100, 116, 139, 0.4);
+}
+.sel-ing__select {
+    flex: 1 1 360px; min-width: 0; max-width: 100%;
+    padding: 9px 12px; border: 1px solid #94a3b8; border-radius: 10px;
+    background: #fff; color: var(--sel-texto); font: inherit; font-size: 0.92rem; font-weight: 600;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06); cursor: pointer;
+}
+.sel-ing__select:focus { outline: 2px solid #64748b; outline-offset: 1px; }
+.sel-ing__todos {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--sel-suave);
+    cursor: pointer; user-select: none; white-space: nowrap;
+}
+.sel-ing__btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 999px; border: 1px solid #94a3b8;
+    background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%); color: #1e293b;
+    font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+.sel-ing__btn:hover:not(:disabled) { box-shadow: 0 3px 10px rgba(100, 116, 139, 0.35); transform: translateY(-1px); }
+.sel-ing__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.sel-ing__avisos { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.sel-ing__avisos:empty { display: none; }
+.sel-ing__aviso {
+    display: flex; align-items: flex-start; gap: 10px; flex-wrap: nowrap;
+    padding: 9px 12px; border-radius: 10px; font-size: 0.86rem; line-height: 1.4; border: 1px solid;
+}
+.sel-ing__aviso > span { flex: 1 1 auto; min-width: 0; }
+.sel-ing__aviso strong { font-weight: 800; }
+.sel-ing__aviso a { color: inherit; font-weight: 800; }
+.sel-ing__aviso--consulta { background: #fff7ed; border-color: #fdba74; color: #7c2d12; }
+.sel-ing__aviso--gracia { background: #fefce8; border-color: #fde047; color: #713f12; }
+.sel-ing__aviso--nas-ok { background: #f0fdf4; border-color: #86efac; color: #14532d; }
+.sel-ing__aviso--nas-error { background: #fef2f2; border-color: #fca5a5; color: #7f1d1d; }
+.sel-ing__aviso--info { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
+.sel-ing__docs {
+    margin-top: 10px; background: #fff; border: 1px solid var(--sel-borde); border-radius: 10px; padding: 10px 12px;
+}
+.sel-ing__docs[hidden] { display: none; }
+.sel-ing__docs-titulo { font-weight: 800; font-size: 0.85rem; color: #334155; margin: 0 0 8px 0; }
+.sel-ing__docs-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sel-ing__docs-lista li { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; flex-wrap: wrap; }
+.sel-ing__docs-lista a { color: #1d4ed8; font-weight: 600; word-break: break-all; }
+.sel-ing__etiqueta {
+    font-size: 0.7rem; font-weight: 800; padding: 2px 7px; border-radius: 999px;
+    background: #e2e8f0; color: #334155; text-transform: uppercase; letter-spacing: 0.03em;
+}
+.sel-ing__etiqueta--app { background: #dbeafe; color: #1e3a8a; }
+.sel-ing__vacio { font-size: 0.85rem; color: var(--sel-suave); }
+@media (max-width: 700px) {
+    .sel-ing { padding: 10px 12px; }
+    .sel-ing__select { flex-basis: 100%; }
+}
+</style>
+
+<section class="sel-ing" id="sel-ing" hidden
+         data-doc="{{ documento|default:'' }}"
+         data-modulo="{{ modulo }}"
+         data-ingreso="{{ ingreso|default:'' }}">
+    <div class="sel-ing__fila">
+        <span class="sel-ing__titulo"><span class="sel-ing__titulo-icono" aria-hidden="true">🗂️</span>Ingreso</span>
+        <select class="sel-ing__select" id="sel-ing-select" aria-label="Ingreso de la paciente"></select>
+        <label class="sel-ing__todos" title="Muestra también consultas externas, laboratorios e ingresos anulados">
+            <input type="checkbox" id="sel-ing-todos"> Ver todos los ingresos <span id="sel-ing-ocultos"></span>
+        </label>
+        <button type="button" class="sel-ing__btn" id="sel-ing-docs-btn" title="Archivos guardados en la carpeta de este ingreso en el repositorio clínico">
+            📁 Documentos en el repositorio
+        </button>
+    </div>
+    <div class="sel-ing__avisos" id="sel-ing-avisos" aria-live="polite"></div>
+    <div class="sel-ing__docs" id="sel-ing-docs" hidden></div>
+</section>
+
+<style>
+/* Modo solo consulta (ingreso anterior o cerrado). */
+.modo-solo-consulta .solo-consulta-deshabilitado { opacity: 0.65; cursor: not-allowed !important; }
+.sel-ing-toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 10050;
+    max-width: min(92vw, 560px); padding: 12px 18px; border-radius: 12px;
+    background: #7c2d12; color: #fff; font-weight: 700; font-size: 0.9rem; line-height: 1.4;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+</style>
+<script>
+/*
+ * activarSoloConsulta({contenedor, permitir, bloquearEnvios}):
+ * - deshabilita inputs/selects/textareas/botones dentro de `contenedor`
+ *   (también los que se dibujen después), salvo los que coincidan con el
+ *   selector CSS `permitir` (vista previa, PDF, cerrar modales...);
+ * - bloquea en el navegador cualquier POST/PUT/PATCH/DELETE a las rutas de
+ *   `bloquearEnvios` (el guardado automático no puede escribir sobre el
+ *   ingreso consultado). El servidor también lo rechaza.
+ */
+window.activarSoloConsulta = function (opciones) {
+    if (window.MODO_SOLO_CONSULTA) return;
+    window.MODO_SOLO_CONSULTA = true;
+    var contenedor = opciones.contenedor || document.body;
+    var permitir = opciones.permitir || '';
+    var prefijos = opciones.bloquearEnvios || [];
+    document.body.classList.add('modo-solo-consulta');
+    var estadoGuardado = opciones.estado && document.getElementById(opciones.estado);
+    if (estadoGuardado) estadoGuardado.textContent = '🔒 ' + (opciones.textoEstado || 'Solo consulta: los cambios no se guardan.');
+
+    function avisar(texto) {
+        var t = document.createElement('div');
+        t.className = 'sel-ing-toast';
+        t.setAttribute('role', 'alert');
+        t.textContent = texto;
+        document.body.appendChild(t);
+        setTimeout(function () { t.remove(); }, 4000);
+    }
+    function deshabilitar(raizNodo) {
+        var campos = raizNodo.querySelectorAll ? raizNodo.querySelectorAll('input, select, textarea, button') : [];
+        for (var i = 0; i < campos.length; i++) {
+            var el = campos[i];
+            if (el.closest('#sel-ing')) continue;
+            if (permitir && el.matches(permitir)) continue;
+            if (el.type === 'hidden') continue;
+            el.disabled = true;
+            el.classList.add('solo-consulta-deshabilitado');
+            el.title = 'Solo consulta: este ingreso no se puede modificar';
+        }
+    }
+    deshabilitar(contenedor);
+    new MutationObserver(function (cambios) {
+        cambios.forEach(function (c) {
+            c.addedNodes.forEach(function (n) { if (n.nodeType === 1) deshabilitar(n); });
+            if (c.type === 'attributes' && c.target.disabled === false && !c.target.closest('#sel-ing')
+                && !(permitir && c.target.matches(permitir)) && c.target.matches('input, select, textarea, button')
+                && c.target.type !== 'hidden') {
+                c.target.disabled = true;
+            }
+        });
+    }).observe(contenedor, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
+
+    var fetchOriginal = window.fetch;
+    window.fetch = function (recurso, init) {
+        var metodo = ((init && init.method) || (recurso && recurso.method) || 'GET').toUpperCase();
+        var url = typeof recurso === 'string' ? recurso : (recurso && recurso.url) || '';
+        var ruta = url.replace(window.location.origin, '');
+        if (metodo !== 'GET' && metodo !== 'HEAD' && prefijos.some(function (p) { return ruta.indexOf(p) === 0; })) {
+            avisar('🔒 Solo consulta: no se guardan cambios en este ingreso.');
+            return Promise.resolve(new Response(JSON.stringify({ detail: 'Solo consulta: este ingreso no se puede modificar.' }), {
+                status: 403, headers: { 'Content-Type': 'application/json' },
+            }));
+        }
+        return fetchOriginal.apply(this, arguments);
+    };
+};
+</script>
+<script>
+(function () {
+    var raiz = document.getElementById('sel-ing');
+    if (!raiz || raiz.dataset.iniciado) return;
+    raiz.dataset.iniciado = '1';
+    var doc = raiz.dataset.doc, modulo = raiz.dataset.modulo;
+    var select = document.getElementById('sel-ing-select');
+    var chkTodos = document.getElementById('sel-ing-todos');
+    var avisos = document.getElementById('sel-ing-avisos');
+    var panelDocs = document.getElementById('sel-ing-docs');
+    var btnDocs = document.getElementById('sel-ing-docs-btn');
+    var resumen = null;
+    if (!doc || !modulo) return;
+
+    function esc(t) {
+        var d = document.createElement('div');
+        d.textContent = t == null ? '' : String(t);
+        return d.innerHTML;
+    }
+    function textoOpcion(o) {
+        if (o.especial) return o.titulo + ' · ' + o.detalle;
+        var fin = o.fecha_egreso ? o.fecha_egreso : (o.en_curso ? 'en curso' : (o.tipo === 'consulta' ? '' : 'sin egreso registrado'));
+        var partes = [o.numero + ' · ' + o.fecha_ingreso + (fin ? ' → ' + fin : '')];
+        if (o.tipo_texto) partes.push(o.tipo_texto);
+        if (o.anulado) partes.push('ANULADO');
+        partes.push(o.detalle);
+        if (o.nas_enviados) partes.push(o.nas_enviados + ' PDF en NAS');
+        return (o.es_actual ? '★ ' : '') + partes.join(' · ');
+    }
+    function urlConIngreso(numero) {
+        var url = new URL(window.location.href);
+        if (numero && numero !== resumen.actual) url.searchParams.set('ingreso', numero);
+        else url.searchParams.delete('ingreso');
+        return url.toString();
+    }
+    function pintarSelect() {
+        var todos = chkTodos.checked;
+        var visibles = resumen.opciones.filter(function (o) { return todos || o.relevante || o.numero === resumen.elegido; });
+        var ocultos = resumen.opciones.length - resumen.opciones.filter(function (o) { return o.relevante || o.numero === resumen.elegido; }).length;
+        document.getElementById('sel-ing-ocultos').textContent = ocultos ? '(' + ocultos + ' más)' : '';
+        chkTodos.parentElement.style.display = ocultos ? '' : 'none';
+        select.innerHTML = visibles.map(function (o) {
+            return '<option value="' + esc(o.numero) + '"' + (o.numero === resumen.elegido ? ' selected' : '') + '>' + esc(textoOpcion(o)) + '</option>';
+        }).join('');
+    }
+    function pintarAvisos() {
+        var html = [];
+        var s = resumen.seleccion;
+        if (!resumen.dinamica_ok) {
+            html.push('<div class="sel-ing__aviso sel-ing__aviso--info">⚠️ <span>Dinámica no responde en este momento: se muestran los ingresos que ya conoce la app.</span></div>');
+        }
+        if (s && resumen.solo_consulta) {
+            var volver = resumen.actual && resumen.elegido !== resumen.actual
+                ? ' <a href="' + esc(urlConIngreso(resumen.actual)) + '">Volver al ingreso actual</a>' : '';
+            var texto;
+            if (s.especial) {
+                texto = 'Estás viendo <strong>' + esc(s.titulo.toLowerCase()) + '</strong>. Solo consulta.';
+            } else if (resumen.elegido !== resumen.actual) {
+                texto = 'Estás viendo el ingreso <strong>' + esc(s.numero) + '</strong>'
+                    + (s.fecha_egreso ? ' (cerrado el ' + esc(s.fecha_egreso) + ')' : '')
+                    + '. <strong>Solo consulta</strong>: no se puede modificar.';
+            } else {
+                texto = 'La paciente egresó y ya pasaron ' + esc(resumen.horas_gracia)
+                    + ' h: este ingreso quedó en <strong>solo consulta</strong>. Si hace falta una corrección, solicítela a un administrador.';
+            }
+            html.push('<div class="sel-ing__aviso sel-ing__aviso--consulta">🔒 <span>' + texto + volver + '</span></div>');
+        } else if (s && !s.especial && s.editable_hasta) {
+            html.push('<div class="sel-ing__aviso sel-ing__aviso--gracia">⏳ <span>La paciente egresó el ' + esc(s.fecha_egreso)
+                + '. Se pueden completar registros hasta el <strong>' + esc(s.editable_hasta) + '</strong>; después quedará en solo consulta.</span></div>');
+        }
+        if (s && !s.especial) {
+            if (s.nas_modulo_error) {
+                html.push('<div class="sel-ing__aviso sel-ing__aviso--nas-error">✖ <span><strong>No se pudo guardar en ' + esc(resumen.destino_repositorio)
+                    + '</strong> el último formato de este módulo. Se reintentará automáticamente.</span></div>');
+            } else if (s.nas_modulo_enviados) {
+                html.push('<div class="sel-ing__aviso sel-ing__aviso--nas-ok">✔ <span><strong>Guardado en ' + esc(resumen.destino_repositorio)
+                    + '</strong> el ' + esc(s.nas_modulo_ultimo) + (s.nas_modulo_enviados > 1 ? ' (' + s.nas_modulo_enviados + ' versiones)' : '') + '.</span></div>');
+            }
+            if (s.vacio) {
+                html.push('<div class="sel-ing__aviso sel-ing__aviso--info">📄 <span>' + esc(s.detalle) + '.</span></div>');
+            }
+        }
+        avisos.innerHTML = html.join('');
+    }
+    function cargarDocumentos() {
+        var s = resumen.seleccion;
+        panelDocs.hidden = false;
+        panelDocs.innerHTML = '<p class="sel-ing__vacio">Consultando ' + esc(resumen.destino_repositorio) + '…</p>';
+        fetch('/atencion/api/ingresos/documentos/?doc=' + encodeURIComponent(doc) + '&ingreso=' + encodeURIComponent(s.numero), { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.ok) {
+                    panelDocs.innerHTML = '<p class="sel-ing__vacio">⚠️ ' + esc(data.mensaje || 'No se pudo consultar el repositorio.') + '</p>';
+                    return;
+                }
+                var titulo = '<p class="sel-ing__docs-titulo">Documentos del ingreso ' + esc(s.numero) + ' en ' + esc(data.destino) + '</p>';
+                if (!data.archivos.length) {
+                    panelDocs.innerHTML = titulo + '<p class="sel-ing__vacio">No hay documentos guardados en la carpeta de este ingreso.'
+                        + (s.vacio ? ' ' + esc(s.detalle) + '.' : '') + '</p>';
+                    return;
+                }
+                panelDocs.innerHTML = titulo + '<ul class="sel-ing__docs-lista">' + data.archivos.map(function (a) {
+                    var href = '/atencion/api/ingresos/documento/?doc=' + encodeURIComponent(doc) + '&ingreso=' + encodeURIComponent(s.numero) + '&archivo=' + encodeURIComponent(a.nombre);
+                    return '<li>📄 <a href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(a.nombre) + '</a>'
+                        + '<span class="sel-ing__etiqueta' + (a.de_esta_app ? ' sel-ing__etiqueta--app' : '') + '">' + (a.de_esta_app ? 'Esta app' : 'Otro aplicativo') + '</span></li>';
+                }).join('') + '</ul>';
+            })
+            .catch(function () { panelDocs.innerHTML = '<p class="sel-ing__vacio">⚠️ No se pudo contactar el servidor.</p>'; });
+    }
+
+    select.addEventListener('change', function () { window.location.href = urlConIngreso(select.value); });
+    chkTodos.addEventListener('change', pintarSelect);
+    btnDocs.addEventListener('click', function () {
+        if (!panelDocs.hidden) { panelDocs.hidden = true; return; }
+        cargarDocumentos();
+    });
+
+    var url = '/atencion/api/ingresos/?doc=' + encodeURIComponent(doc) + '&modulo=' + encodeURIComponent(modulo)
+        + '&ingreso=' + encodeURIComponent(raiz.dataset.ingreso || '') + '&fresco=1';
+    fetch(url, { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+            if (!data || !data.ok) return;
+            var ingresosReales = (data.opciones || []).filter(function (o) { return !o.especial; });
+            if (data.dinamica_ok && !ingresosReales.length && window.SOLO_CONSULTA_CONFIG && window.activarSoloConsulta) {
+                // Dinámica confirma que la paciente NO tiene ningún ingreso: es de
+                // Triaje. Trabajo de Parto y Posparto son de Sala de Partos, así
+                // que no se registra nada aquí hasta que tenga ingreso.
+                raiz.hidden = false;
+                raiz.querySelector('.sel-ing__fila').style.display = 'none';
+                avisos.innerHTML = '<div class="sel-ing__aviso sel-ing__aviso--consulta" role="alert">🩺 <span><strong>Paciente sin ingreso (Triaje).</strong> '
+                    + 'Los registros de Sala de Partos se habilitan cuando admisiones registre su ingreso en Dinámica. '
+                    + 'Mientras tanto, sus signos vitales se registran en <a href="/atencion/sala-de-partos/?tab=triaje">Triaje</a>.</span></div>';
+                window.activarSoloConsulta(Object.assign({}, window.SOLO_CONSULTA_CONFIG, { textoEstado: 'Paciente sin ingreso: no se registra en Sala de Partos.' }));
+                return;
+            }
+            if (!data.opciones.length) return;  // sin ingresos conocidos (p. ej. Dinámica caída): no se muestra
+            resumen = data;
+            window.SELECTOR_INGRESO = data;
+            var s = data.seleccion;
+            btnDocs.disabled = !s || !!s.especial;
+            raiz.hidden = false;
+            pintarSelect();
+            pintarAvisos();
+            document.dispatchEvent(new CustomEvent('selector-ingreso:cargado', { detail: data }));
+        })
+        .catch(function () { /* sin selector: el módulo funciona como siempre */ });
+})();
+</script>

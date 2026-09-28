@@ -31,6 +31,9 @@ from .serializers import (
     ControlGloboSerializer, ControlSuturaSerializer,
 )
 from .pdf_generator import generar_pdf_registro
+from .responsables import (
+    firma_sesion, registrar_participacion, responsables_para_api, valores_modelo,
+)
 from .sala_partos_db import listar_pacientes_sala_partos
 from obstetriciaunificador.models import AtencionParto
 from sistema_obstetrico.auth_utils import login_required_if_enabled, nombre_profesional_sesion
@@ -48,6 +51,9 @@ class FormularioRegistroView(TemplateView):
         context = super().get_context_data(**kwargs)
         context["atencion_id"] = self.request.GET.get("atencion")
         context["documento"] = self.request.GET.get("doc")
+        # 2026-09-24: ingreso elegido en el selector de ingresos (vacío = actual).
+        from obstetriciaunificador.ingresos import limpiar_numero_ingreso
+        context["ingreso_param"] = limpiar_numero_ingreso(self.request.GET.get("ingreso"))
         # API base: en sistema_obstetrico la API fetal está en /fetal/api/
         context["api_base_url"] = self.request.build_absolute_uri("/fetal/api")
         # Nombre del profesional en sesión (login DGH, o el usuario local
@@ -108,9 +114,19 @@ def _intentar_cerrar_registro(instance, request):
             f'{MINUTO_ULTIMO_CONTROL_POSPARTO}). {detalle}'
         )
 
-    instance.completado_en = timezone.now()
-    instance.completado_por = nombre_profesional_sesion(request)
-    instance.save(update_fields=['completado_en', 'completado_por'])
+    # 2026-09-25: cierre ATÓMICO -- solo cierra si nadie lo cerró todavía
+    # (antes: leer y luego guardar; dos pestañas cerrando a la vez enviaban
+    # el formato dos veces). Solo quien lo cerró de verdad lo envía.
+    completado_en = timezone.now()
+    completado_por = nombre_profesional_sesion(request)
+    cerrados = RegistroParto.objects.filter(pk=instance.pk, completado_en__isnull=True).update(
+        completado_en=completado_en, completado_por=completado_por,
+    )
+    if cerrados:
+        instance.completado_en, instance.completado_por = completado_en, completado_por
+        instance._cerrado_ahora = True
+    else:
+        instance.refresh_from_db(fields=['completado_en', 'completado_por'])
     return None
 
 
@@ -122,15 +138,14 @@ def _cerrar_y_enviar_a_repositorio(instance, request, data):
     DocumentoRepositorio y se informa en data['repositorio'] para reintentar
     desde /atencion/api/repositorio/enviar/.
     """
-    ya_estaba_cerrado = instance.completado_en is not None
     advertencia_cierre = _intentar_cerrar_registro(instance, request)
     if advertencia_cierre:
         data['advertencia_cierre'] = advertencia_cierre
         return
     data['completado_en'] = instance.completado_en
     data['completado_por'] = instance.completado_por
-    if ya_estaba_cerrado:
-        return
+    if not getattr(instance, '_cerrado_ahora', False):
+        return  # ya estaba cerrado (o lo cerró otra pestaña justo antes): no se reenvía
 
     from obstetriciaunificador.repositorio import (
         RepositorioError, enviar_control_posparto, resumen_envio,
@@ -140,15 +155,55 @@ def _cerrar_y_enviar_a_repositorio(instance, request, data):
             instance, usuario=nombre_profesional_sesion(request),
         )
         data['repositorio'] = resumen_envio(documento)
-    except RepositorioError as exc:
-        data['repositorio'] = {'ok': False, 'mensaje': str(exc)}
+    except RepositorioError as exc:  # SinCambiosError = ya está en el repositorio (ok)
+        data['repositorio'] = {'ok': getattr(exc, 'documento', None) is not None, 'mensaje': str(exc)}
     except Exception as exc:  # p. ej. error generando el PDF
         logger.exception('Error enviando FRSPA-007 al repositorio')
         data['repositorio'] = {'ok': False, 'mensaje': f'Error generando el PDF: {exc}'}
 
+class BloqueoIngresoCerradoMixin:
+    """
+    2026-09-24: un ingreso que egresó hace más de
+    settings.INGRESO_HORAS_GRACIA_EDICION horas queda en SOLO CONSULTA --
+    se rechaza cualquier escritura sobre sus registros (el selector de
+    ingresos ya lo bloquea en pantalla; esto es lo que de verdad lo impide).
+    Crear un registro NUEVO no se bloquea. Ante cualquier duda (Dinámica sin
+    respuesta, sin número de ingreso) se permite: nunca frenar la atención.
+    """
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return
+        registro_id = kwargs.get('registro_pk') or (kwargs.get('pk') if isinstance(self, RegistroPartoViewSet) else None)
+        if not registro_id:
+            return
+        registro = RegistroParto.objects.select_related('atencion').filter(pk=registro_id).first()
+        if registro is None:
+            return
+        from obstetriciaunificador.ingresos import motivo_bloqueo_edicion
+        motivo = motivo_bloqueo_edicion(registro.atencion, request.user, creado_en=registro.created_at)
+        if motivo:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(motivo)
+
+
+
+class ParticipacionEnEdicionMixin:
+    """2026-09-28: corregir un control ya guardado también cuenta como haber
+    diligenciado el registro (el control conserva a quien lo registró). Solo
+    si de verdad cambió algo: al guardar, el formulario reenvía todos los
+    controles ya guardados aunque nadie los haya tocado."""
+
+    def perform_update(self, serializer):
+        antes = valores_modelo(serializer.instance)
+        super().perform_update(serializer)
+        if valores_modelo(serializer.instance) != antes:
+            registrar_participacion(serializer.instance.registro, self.request)
+
 
 @method_decorator(never_cache, name='dispatch')
-class RegistroPartoViewSet(viewsets.ModelViewSet):
+class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     queryset = RegistroParto.objects.all().order_by('-created_at')
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -214,8 +269,10 @@ class RegistroPartoViewSet(viewsets.ModelViewSet):
         # HORAS_MINIMAS_PARA_COMPLETAR) -- se maneja igual aquí por si acaso
         # llega en la creación misma, para no dejar un registro "completo" a
         # medias sin su sello de cierre.
+        registrar_participacion(instance, request)
         if bool(request.data.get('completar')):
             _cerrar_y_enviar_a_repositorio(instance, request, response_data)
+        response_data['responsables'] = responsables_para_api(instance)
 
         return Response(response_data)
 
@@ -230,10 +287,28 @@ class RegistroPartoViewSet(viewsets.ModelViewSet):
         # mismo submitForm() sin este flag) puede cerrar el registro por
         # accidente -- ver formulario.html, solo el botón "Guardar Registro
         # Completo" lo manda.
-        if completar and response.status_code == 200:
+        if response.status_code == 200:
             instance = self.get_object()
-            _cerrar_y_enviar_a_repositorio(instance, request, response.data)
+            # 2026-09-28: el autoguardado reenvía todo aunque nadie haya
+            # cambiado nada -- solo cuenta como participante quien de verdad
+            # cambió algo (o cerró el registro).
+            if getattr(self, '_hubo_cambios', False) or completar:
+                registrar_participacion(instance, request)
+            if completar:
+                _cerrar_y_enviar_a_repositorio(instance, request, response.data)
+            response.data['responsables'] = responsables_para_api(instance)
         return response
+
+    def perform_update(self, serializer):
+        antes = valores_modelo(serializer.instance)
+        super().perform_update(serializer)
+        self._hubo_cambios = valores_modelo(serializer.instance) != antes
+
+    @action(detail=True, methods=['get'], url_path='responsables')
+    def responsables(self, request, pk=None):
+        """2026-09-28: quiénes diligenciaron el registro y qué hizo cada uno
+        (liviano: la pantalla lo refresca después de cada guardado)."""
+        return Response(responsables_para_api(self.get_object()))
 
     @action(detail=True, methods=['get'], url_path='pdf')
     def descargar_pdf(self, request, pk=None):
@@ -289,7 +364,8 @@ class RegistroPartoViewSet(viewsets.ModelViewSet):
 
         documento = (request.query_params.get('documento') or '').strip()
         nombre = (request.query_params.get('nombre') or '').strip()
-        responsable = (request.query_params.get('responsable') or '').strip()
+        # 2026-09-28: el responsable ya no se escribe a mano -- sale de la sesión.
+        responsable = nombre_profesional_sesion(request)
         registro_vacio = RegistroParto(
             nombre_paciente=nombre,
             identificacion=documento,
@@ -337,6 +413,24 @@ class RegistroPartoViewSet(viewsets.ModelViewSet):
         atencion_id = (request.query_params.get('atencion') or '').strip()
         documento = (request.query_params.get('documento') or '').strip()
         registro = None
+        # 2026-09-24: selector de ingresos -- el registro del ingreso elegido
+        # (?ingreso=; sin él, el actual), no "el más reciente de la paciente":
+        # en un reingreso no debe abrirse el registro del ingreso anterior.
+        if documento:
+            try:
+                from obstetriciaunificador.ingresos import resumen_ingresos
+                resumen, grupos = resumen_ingresos(documento, 'control_posparto', request.query_params.get('ingreso') or '', fresco=True)
+            except Exception:
+                resumen, grupos = None, {}
+            if resumen and resumen['elegido']:
+                ids = grupos.get(resumen['elegido'], [])
+                registro = self.queryset.filter(id__in=ids).order_by('-created_at').first()
+                if registro is None:
+                    return Response({'encontrado': False, 'solo_consulta': resumen['solo_consulta']})
+                data = RegistroPartoSerializer(registro).data
+                data['encontrado'] = True
+                data['solo_consulta'] = resumen['solo_consulta']
+                return Response(data)
         if atencion_id.isdigit():
             registro = self.queryset.filter(atencion_id=atencion_id).order_by('-created_at').first()
         if registro is None and documento:
@@ -371,7 +465,7 @@ class RegistroPartoViewSet(viewsets.ModelViewSet):
 
 
 @method_decorator(never_cache, name='dispatch')
-class ControlFetocardiaViewSet(viewsets.ModelViewSet):
+class ControlFetocardiaViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     serializer_class = ControlFetocardiaSerializer
 
     def get_queryset(self):
@@ -394,7 +488,8 @@ class ControlFetocardiaViewSet(viewsets.ModelViewSet):
                     registro.save(update_fields=["atencion"])
             except Exception:
                 pass
-        serializer.save(registro=registro)
+        serializer.save(registro=registro, **firma_sesion(self.request, con_responsable=True))
+        registrar_participacion(registro, self.request)
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
@@ -416,7 +511,7 @@ class ControlFetocardiaViewSet(viewsets.ModelViewSet):
 
 
 @method_decorator(never_cache, name='dispatch')
-class ControlRecienNacidoViewSet(viewsets.ModelViewSet):
+class ControlRecienNacidoViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     serializer_class = ControlRecienNacidoSerializer
 
     def get_queryset(self):
@@ -439,7 +534,8 @@ class ControlRecienNacidoViewSet(viewsets.ModelViewSet):
                     registro.save(update_fields=["atencion"])
             except Exception:
                 pass
-        serializer.save(registro=registro)
+        serializer.save(registro=registro, **firma_sesion(self.request))
+        registrar_participacion(registro, self.request)
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
@@ -455,7 +551,7 @@ class ControlRecienNacidoViewSet(viewsets.ModelViewSet):
 
 
 @method_decorator(never_cache, name='dispatch')
-class ControlPostpartoViewSet(viewsets.ModelViewSet):
+class ControlPostpartoViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     serializer_class = ControlPostpartoSerializer
 
     def get_queryset(self):
@@ -478,7 +574,8 @@ class ControlPostpartoViewSet(viewsets.ModelViewSet):
                     registro.save(update_fields=["atencion"])
             except Exception:
                 pass
-        serializer.save(registro=registro)
+        serializer.save(registro=registro, **firma_sesion(self.request, con_responsable=True))
+        registrar_participacion(registro, self.request)
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
@@ -500,7 +597,7 @@ class ControlPostpartoViewSet(viewsets.ModelViewSet):
 
 
 @method_decorator(never_cache, name='dispatch')
-class ControlSangradoViewSet(viewsets.ModelViewSet):
+class ControlSangradoViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     """
     Controles periódicos de cuantificación gravimétrica del sangrado. A
     diferencia de fetocardia/postparto, nace ya "edit-safe": el
@@ -515,7 +612,8 @@ class ControlSangradoViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         registro = get_object_or_404(RegistroParto, pk=self.kwargs['registro_pk'])
-        serializer.save(registro=registro)
+        serializer.save(registro=registro, **firma_sesion(self.request))
+        registrar_participacion(registro, self.request)
         # El `estado` (semáforo) de cada control se calcula en el backend
         # según el acumulado hasta ese punto -- nunca lo manda el cliente.
         # recalcular_estados_sangrado reconsulta las filas desde la BD (para
@@ -526,7 +624,10 @@ class ControlSangradoViewSet(viewsets.ModelViewSet):
         serializer.instance.refresh_from_db()
 
     def perform_update(self, serializer):
+        antes = valores_modelo(serializer.instance)
         serializer.save()
+        if valores_modelo(serializer.instance) != antes:
+            registrar_participacion(serializer.instance.registro, self.request)
         recalcular_estados_sangrado(serializer.instance.registro)
         serializer.instance.refresh_from_db()
 
@@ -538,7 +639,7 @@ class ControlSangradoViewSet(viewsets.ModelViewSet):
 
 
 @method_decorator(never_cache, name='dispatch')
-class ControlGloboViewSet(viewsets.ModelViewSet):
+class ControlGloboViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     """Controles periódicos del globo de seguridad. El `estado` es el valor
     elegido directamente por quien registra (no se deriva de nada más),
     a diferencia de ControlSangrado."""
@@ -550,11 +651,12 @@ class ControlGloboViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         registro = get_object_or_404(RegistroParto, pk=self.kwargs['registro_pk'])
-        serializer.save(registro=registro)
+        serializer.save(registro=registro, **firma_sesion(self.request))
+        registrar_participacion(registro, self.request)
 
 
 @method_decorator(never_cache, name='dispatch')
-class ControlSuturaViewSet(viewsets.ModelViewSet):
+class ControlSuturaViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     """Controles periódicos de sutura y heridas. El `estado` es el valor
     elegido directamente por quien registra (no se deriva de nada más),
     a diferencia de ControlSangrado."""
@@ -566,7 +668,8 @@ class ControlSuturaViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         registro = get_object_or_404(RegistroParto, pk=self.kwargs['registro_pk'])
-        serializer.save(registro=registro)
+        serializer.save(registro=registro, **firma_sesion(self.request))
+        registrar_participacion(registro, self.request)
 
 
 # 2026-09-14: se eliminaron guardar_huella_bebe() y guardar_firma_digital()

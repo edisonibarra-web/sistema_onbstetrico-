@@ -5,9 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial MEOWS - {{ paciente.nombres }} {{ paciente.apellidos }}</title>
-    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260814d">
-    <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260923a">
+    <link rel="stylesheet" href="{% static 'css/meows-form.css' %}?v=20260924a">
+    <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260924a">
     <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/titulo_placa.css' %}?v=20260924a">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
     <style>
         /* Esta vista usa el shell de encabezado + sidebar a borde completo (.app-layout-sidebar);
@@ -20,59 +21,33 @@
            el resto de pantallas que usan el mismo shell. */
         .sidebar-main-content { margin-top: 28px !important; }
 
-        /* Campo RESPONSABLE del reporte MEOWS (mismo lenguaje visual que las
-           cards de esta vista). */
-        .meows-responsable-section {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            flex-wrap: wrap;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-left: 4px solid #7c3aed;
-            border-radius: 14px;
-            padding: 16px 20px;
-            margin: 0 0 1.25rem;
-            box-shadow: 0 8px 24px rgba(67, 56, 202, 0.06);
-        }
-        .meows-responsable-label {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.8rem;
-            font-weight: 800;
-            letter-spacing: 0.04em;
-            color: #5b21b6;
-            white-space: nowrap;
-        }
-        .meows-responsable-label .info-section-title-icon {
-            width: 30px; height: 30px;
-            display: inline-flex; align-items: center; justify-content: center;
-            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
-            border-radius: 9px;
-            color: #6d28d9;
-        }
-        .meows-responsable-label svg { width: 16px; height: 16px; }
+        /* Campo RESPONSABLE del reporte MEOWS -- 2026-09-24: en "placa" (ver
+           .titulo-placa en meows-form.css), con el campo a la derecha. */
+        .responsable-placa { flex-wrap: wrap; margin-top: 1.5rem; }
+        .responsable-placa .titulo-placa-principal { cursor: pointer; }
         .meows-responsable-input {
             flex: 1 1 320px;
+            max-width: 520px;
             min-width: 220px;
-            padding: 11px 14px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #1e293b;
-            border: 1.5px solid #d8b4fe;
-            border-radius: 10px;
-            background: #faf5ff;
+            margin-left: auto;
+            padding: 12px 16px;
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: #0f172a;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
             transition: border-color .15s ease, box-shadow .15s ease;
         }
         .meows-responsable-input:focus {
             outline: none;
-            border-color: #7c3aed;
-            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
-            background: #ffffff;
+            border-color: var(--placa-acento-2, #4338ca);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
         }
-        @media (max-width: 640px) {
-            .meows-responsable-section { padding: 14px 16px; }
+        .meows-responsable-input[readonly] { background: #f1f5f9; color: #475569; }
+        @media (max-width: 700px) {
+            .meows-responsable-input { max-width: none; margin-left: 0; flex-basis: 100%; }
         }
     </style>
 </head>
@@ -82,7 +57,9 @@
     // seguro recargarla sola si llega una alerta de esta misma paciente, para
     // que la Línea de Tiempo Clínica muestre la columna nueva sin esperar a que
     // alguien le dé F5. Ver iniciarSondeoAlertasMeows en obstetricia/sidebar.html.
-    window.MEOWS_AUTO_REFRESH_GRID = true;
+    // 2026-09-24: al consultar un ingreso anterior (solo consulta) no se
+    // recarga sola: no llegan tomas nuevas a un ingreso cerrado.
+    window.MEOWS_AUTO_REFRESH_GRID = {% if solo_consulta %}false{% else %}true{% endif %};
 </script>
 {% include 'obstetricia/header_formatos.html' with current_module='meows' documento=documento modulo_titulo='Historial Clínico MEOWS' modulo_subtitulo='Evolución del Estado Clínico' %}
 <div class="app-layout-sidebar">
@@ -92,9 +69,15 @@
         <!-- SECCIÓN: INFORMACIÓN DEL PACIENTE -->
         <section class="section patient-section patient-section-redesigned">
             <div class="info-section">
-                <h3 class="info-section-title">
-                    <span class="info-section-title-icon"><i data-lucide="user"></i></span>
-                    Información del Paciente
+                {# 2026-09-24: "título en placa" (meows-form.css). #}
+                <h3 class="section-title titulo-placa {% if todo_origen_triaje %}titulo-placa--triaje{% else %}titulo-placa--meows{% endif %}">
+                    <span class="section-icon-badge"><i data-lucide="user"></i></span>
+                    <span class="titulo-placa-texto">
+                        <span class="titulo-placa-kicker">Historial clínico MEOWS{% if todo_origen_triaje %} · Triaje{% endif %}</span>
+                        <span class="titulo-placa-principal">Información del paciente</span>
+                        <span class="titulo-placa-ayuda">Datos de la paciente y del ingreso que se está consultando.</span>
+                    </span>
+                    <span class="titulo-placa-chip">{% if numero_ingreso %}Ingreso {{ numero_ingreso }}{% else %}Sin ingreso{% endif %}</span>
                 </h3>
                 <div class="patient-info-grid">
                     <div class="info-item">
@@ -131,6 +114,15 @@
             </div>
         </section>
 
+        <!-- 2026-09-24: selector de ingresos (consulta de registros por número
+             de ingreso) -- ver obstetricia/_selector_ingreso.html. -->
+        {% include 'obstetricia/_selector_ingreso.html' with documento=paciente.numero_documento modulo='meows' ingreso=ingreso_param %}
+
+
+        <!-- SECCIÓN: CUADRÍCULA CLÍNICA DE MEDICIONES (incluye "Generar PDF" junto a "Regresar a Trabajo de Parto"; 2026-09-09: se quitó "Nueva Medición", ver _timeline_grid.html) -->
+        {% include 'meows/_timeline_grid.html' with meows_paciente=paciente mostrar_link_volver=True %}
+
+        {# 2026-09-24: movido al final de la vista (a pedido): primero se revisan las tomas y al final se valida quién firma el reporte. #}
         <!-- CAMPO RESPONSABLE: MEOWS ya no se diligencia a mano (las mediciones
              llegan solas de Dinámica). 2026-09-14: a pedido explícito, este
              campo YA NO se precarga con el profesional en sesión de esta app
@@ -139,20 +131,19 @@
              (ver responsable_meows_mas_reciente en meows/views.py), y sigue
              siendo editable. Su valor es el que sale en el bloque
              "VALIDACIÓN DEL REPORTE MEOWS" del PDF. -->
-        <section class="section meows-responsable-section">
-            <label for="meows-responsable" class="meows-responsable-label">
-                <span class="info-section-title-icon"><i data-lucide="user-check"></i></span>
-                RESPONSABLE DEL REPORTE
-            </label>
+        <section class="section-title titulo-placa responsable-placa {% if todo_origen_triaje %}titulo-placa--triaje{% else %}titulo-placa--meows{% endif %}">
+            <span class="section-icon-badge"><i data-lucide="user-check"></i></span>
+            <span class="titulo-placa-texto">
+                <span class="titulo-placa-kicker">Validación del reporte MEOWS</span>
+                <label for="meows-responsable" class="titulo-placa-principal">Responsable del reporte</label>
+                <span class="titulo-placa-ayuda">Es el nombre que sale en el PDF. Se precarga con quien digitó la toma más reciente; corríjalo si es otro.</span>
+            </span>
             <input type="text" id="meows-responsable" class="meows-responsable-input"
-                   maxlength="255" autocomplete="off"
+                   maxlength="255" autocomplete="off"{% if solo_consulta %} readonly{% endif %}
                    value="{{ responsable_meows_default|default:'' }}"
                    placeholder="Nombre del profesional responsable"
                    title="Se precarga con quien digitó en Dinámica el registro más reciente; edítelo si es otro. Es el nombre que aparece en el PDF.">
         </section>
-
-        <!-- SECCIÓN: CUADRÍCULA CLÍNICA DE MEDICIONES (incluye "Generar PDF" junto a "Regresar a Trabajo de Parto"; 2026-09-09: se quitó "Nueva Medición", ver _timeline_grid.html) -->
-        {% include 'meows/_timeline_grid.html' with meows_paciente=paciente mostrar_link_volver=True %}
     </div>
     </div>
 </div>
@@ -173,41 +164,22 @@
         var campo = document.getElementById('meows-responsable');
         if (!linkPdf || !campo) return;
         var baseHref = linkPdf.getAttribute('href').split('?')[0];
+        // 2026-09-24: el PDF es del ingreso elegido en el selector de ingresos.
+        var ingresoElegido = '{{ ingreso_param|escapejs }}';
         linkPdf.addEventListener('click', function () {
             var val = (campo.value || '').trim();
-            linkPdf.setAttribute('href', val ? baseHref + '?responsable=' + encodeURIComponent(val) : baseHref);
+            var params = [];
+            if (val) params.push('responsable=' + encodeURIComponent(val));
+            if (ingresoElegido) params.push('ingreso=' + encodeURIComponent(ingresoElegido));
+            linkPdf.setAttribute('href', params.length ? baseHref + '?' + params.join('&') : baseHref);
         });
     })();
 
-    // "Finalizar y enviar a repositorio": genera el PDF MEOWS de las tomas
-    // del ingreso activo y lo guarda en el repositorio clínico (NAS, o la
-    // carpeta local de pruebas según REPOSITORIO_MODO). Cada envío queda con
-    // un consecutivo nuevo, nunca sobrescribe uno anterior.
-    function finalizarMeowsRepositorio(btn) {
-        if (!confirm('¿Finalizar el formato MEOWS de este ingreso y enviarlo al repositorio clínico?')) return;
-        var campo = document.getElementById('meows-responsable');
-        var cookie = document.cookie.split('; ').find(function (c) { return c.indexOf('csrftoken=') === 0; });
-        var textoOriginal = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span>⏳</span> Enviando...';
-        fetch('/atencion/api/repositorio/enviar/', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': cookie ? decodeURIComponent(cookie.split('=')[1]) : '',
-            },
-            body: JSON.stringify({
-                formato: 'meows',
-                documento: btn.dataset.documento,
-                responsable: campo ? (campo.value || '').trim() : '',
-            }),
-        })
-            .then(function (r) { return r.json().catch(function () { return { ok: false, mensaje: 'HTTP ' + r.status }; }); })
-            .then(function (data) { alert((data.ok ? '✅ ' : '❌ ') + (data.mensaje || 'Error desconocido')); })
-            .catch(function (err) { alert('❌ No se pudo contactar el servidor: ' + err); })
-            .finally(function () { btn.disabled = false; btn.innerHTML = textoOriginal; });
-    }
+    // 2026-09-24: se quitó el botón "Finalizar y enviar a repositorio" (a
+    // pedido): el PDF MEOWS se guarda SOLO en el repositorio clínico cuando la
+    // paciente egresa (obstetriciaunificador.repositorio.enviar_meows_al_egreso)
+    // y cada envío aparece en la campana "NAS" del encabezado y en el sello
+    // del selector de ingresos.
 </script>
 </body>
 </html>

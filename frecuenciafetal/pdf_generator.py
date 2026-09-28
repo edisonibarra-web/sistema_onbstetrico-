@@ -318,10 +318,16 @@ def generar_pdf_registro(registro, es_plantilla=False):
             return valor.strftime('%H:%M')
         return _safe_str(valor) or '—'
 
-    # Responsable único para todo el apartado (no por cada columna de control).
+    # Responsable(s) del apartado (no por cada columna de control). 2026-09-28:
+    # si varias personas tomaron fetocardia, van todas (firma automática).
     responsable_fc = ''
     if not es_plantilla:
-        responsable_fc = next((_safe_str(fc.responsable) for fc in fcs if fc.responsable), '') or '—'
+        nombres_fc = []
+        for fc in fcs:
+            nombre = _safe_str(getattr(fc, 'registrado_por', '') or fc.responsable).strip()
+            if nombre and nombre not in nombres_fc:
+                nombres_fc.append(nombre)
+        responsable_fc = ', '.join(nombres_fc) or '—'
 
     data_fc = [
         ['FECHA'] + [_campo_fc(fc, 'fecha') for fc in fcs_pad],
@@ -612,8 +618,63 @@ def generar_pdf_registro(registro, es_plantilla=False):
     # dibujada, huella digital, firma profesional en base64) a pedido
     # explícito, antes de salir a producción. Solo queda el nombre en texto
     # del responsable, que siempre se imprime cuando existe.
+    # 2026-09-28: el formato lo diligencian por lo general dos o más personas;
+    # la firma es automática (profesional en sesión) y aquí van TODAS, con lo
+    # que hizo cada una -- ver frecuenciafetal/responsables.py.
+    responsables = []
+    if not es_plantilla and getattr(registro, 'pk', None) is not None:
+        from .responsables import resumen_responsables
+        try:
+            responsables = resumen_responsables(registro)
+        except Exception:
+            responsables = []
     tiene_responsable = bool((registro.nombre_firma_paciente or registro.profesional_nombre or '').strip())
-    if tiene_responsable:
+    if responsables:
+        from django.utils import timezone as _tz
+
+        def _hora(dt):
+            return _tz.localtime(dt).strftime('%d/%m/%y %I:%M %p') if dt else ''
+
+        elements.append(Spacer(1, 0.4*cm))
+        estilo_celda = ParagraphStyle(name='RespCelda', fontSize=7.5, leading=9.5, fontName='Helvetica')
+        estilo_nombre = ParagraphStyle(name='RespNombre', fontSize=8, leading=10, fontName='Helvetica-Bold')
+        filas = [['RESPONSABLES DEL REGISTRO', '', '', ''],
+                 ['#', 'PROFESIONAL', 'QUÉ DILIGENCIÓ', 'DESDE – HASTA']]
+        for i, r in enumerate(responsables, start=1):
+            desde, hasta = _hora(r['desde']), _hora(r['hasta'])
+            tiempo = f'{desde} – {hasta}' if desde and hasta and desde != hasta else (desde or hasta)
+            filas.append([
+                str(i),
+                Paragraph(_fix_mojibake_text(r['nombre']) or '—', estilo_nombre),
+                Paragraph(' · '.join(r['detalle']), estilo_celda),
+                Paragraph(tiempo, estilo_celda),
+            ])
+        cw = [0.8*cm, 6.2*cm, ANCHO_UTIL - 0.8*cm - 6.2*cm - 4.6*cm, 4.6*cm]
+        tbl_resp = Table(filas, colWidths=cw, repeatRows=2)
+        tbl_resp.setStyle(TableStyle([
+            ('SPAN', (0, 0), (-1, 0)),
+            ('BACKGROUND', (0, 0), (-1, 0), COLOR_HEADER),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8.5),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('BACKGROUND', (0, 1), (-1, 1), COLOR_LABEL),
+            ('FONTSIZE', (0, 1), (-1, 1), 7),
+            ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+            ('FONTSIZE', (0, 2), (0, -1), 8),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('BOX', (0, 0), (-1, -1), BORDE, COLOR_BORDE),
+            ('INNERGRID', (0, 1), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ]))
+        elements.append(tbl_resp)
+        elements.append(Paragraph(
+            "<font size='6.5' color='#64748b'>Firma automática: cada profesional queda registrado con el usuario "
+            "con el que inició sesión al guardar su parte del formato.</font>", styles['Normal']))
+    elif tiene_responsable:
         elements.append(Spacer(1, 0.5*cm))
 
         col_firma = []

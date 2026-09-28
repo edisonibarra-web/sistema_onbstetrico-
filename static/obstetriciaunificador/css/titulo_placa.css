@@ -1,0 +1,104 @@
+/* ==========================================================================
+   2026-09-24: "título en placa" -- encabezado de sección profesional (placa
+   plateada, franja de color a la izquierda, etiqueta pequeña + título +
+   ayuda, insignia a la derecha). Usado en Triaje (Parámetros vitales) y en
+   Resultado MEOWS (Información del Paciente).
+     <h3 class="section-title titulo-placa titulo-placa--triaje">
+       <span class="section-icon-badge">...</span>
+       <span class="titulo-placa-texto">
+         <span class="titulo-placa-kicker">...</span>
+         <span class="titulo-placa-principal">...</span>
+         <span class="titulo-placa-ayuda">...</span>
+       </span>
+       <span class="titulo-placa-chip">...</span>
+     </h3>
+   Variantes de color: --triaje (morado, como su campana), --meows (azul
+   índigo), --correccion (ámbar).
+   ========================================================================== */
+.section-title.titulo-placa {
+    --placa-acento-1: #818cf8;
+    --placa-acento-2: #4338ca;
+    --placa-texto-acento: #4338ca;
+    --placa-borde-chip: #c7d2fe;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 0 0 22px 0;
+    padding: 16px 20px;
+    border: 1px solid #cbd5e1;
+    border-radius: 16px;
+    background: linear-gradient(120deg, #f8fafc 0%, #e2e8f0 55%, #f1f5f9 100%);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08), inset 0 1px 0 #ffffff;
+    position: relative;
+    overflow: hidden;
+    font-size: inherit;
+    font-family: inherit;
+    text-transform: none;
+    letter-spacing: normal;
+    color: inherit;
+}
+.section-title.titulo-placa::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 5px; height: auto;
+    border-radius: 0;
+    background: linear-gradient(180deg, var(--placa-acento-1) 0%, var(--placa-acento-2) 100%);
+}
+.titulo-placa.titulo-placa--triaje { --placa-acento-1: #a855f7; --placa-acento-2: #7e22ce; --placa-texto-acento: #7e22ce; --placa-borde-chip: #d8b4fe; }
+.titulo-placa.titulo-placa--meows { --placa-acento-1: #818cf8; --placa-acento-2: #4338ca; --placa-texto-acento: #4338ca; --placa-borde-chip: #c7d2fe; }
+.titulo-placa.titulo-placa--correccion { --placa-acento-1: #fbbf24; --placa-acento-2: #d97706; --placa-texto-acento: #b45309; --placa-borde-chip: #fcd34d; }
+.titulo-placa .section-icon-badge {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: linear-gradient(135deg, var(--placa-acento-1) 0%, var(--placa-acento-2) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #ffffff;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.titulo-placa .section-icon-badge svg { width: 24px; height: 24px; stroke-width: 2.3; }
+.titulo-placa-texto { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.titulo-placa-kicker {
+    font-size: 0.72rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--placa-texto-acento);
+}
+.titulo-placa-principal {
+    font-size: 1.55rem; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; color: #0f172a;
+}
+.titulo-placa-ayuda { font-size: 0.86rem; font-weight: 500; color: #475569; letter-spacing: 0; }
+label.titulo-placa-principal { display: block; margin: 0; }
+/* h4 (card de responsable en Triaje) con el mismo aspecto que h3 */
+h4.section-title.titulo-placa { margin-bottom: 16px; }
+.titulo-placa-chip {
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 999px;
+    background: #ffffff; border: 1px solid var(--placa-borde-chip); color: var(--placa-acento-2);
+    font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    white-space: nowrap;
+}
+.titulo-placa-chip::before {
+    content: ''; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--placa-acento-1);
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.25);
+}
+@media (max-width: 700px) {
+    .section-title.titulo-placa { padding: 12px 12px 12px 16px; gap: 10px; }
+    .titulo-placa .section-icon-badge { width: 38px; height: 38px; border-radius: 11px; }
+    .titulo-placa .section-icon-badge svg { width: 20px; height: 20px; }
+    .titulo-placa-kicker { font-size: 0.64rem; letter-spacing: 0.08em; }
+    .titulo-placa-principal { font-size: 1.15rem; overflow-wrap: anywhere; }
+    .titulo-placa-ayuda, .titulo-placa-chip { display: none; }
+}
+
+/* La insignia del ícono no depende de meows-form.css (Sala de Partos no lo carga). */
+.titulo-placa .section-icon-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+/* Sala de Partos: turquesa del tablero. */
+.titulo-placa.titulo-placa--sala { --placa-acento-1: #22d3ee; --placa-acento-2: #0e7490; --placa-texto-acento: #0e7490; --placa-borde-chip: #a5f3fc; }
+/* Control Posparto: verde esmeralda del módulo. */
+.titulo-placa.titulo-placa--posparto { --placa-acento-1: #34d399; --placa-acento-2: #047857; --placa-texto-acento: #047857; --placa-borde-chip: #a7f3d0; }

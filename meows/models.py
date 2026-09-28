@@ -64,6 +64,18 @@ class Paciente(models.Model):
         return f"{self.numero_documento} - {self.nombres} {self.apellidos}"
 
     @property
+    def es_ficha_vacia(self):
+        """
+        2026-09-24: True si es solo la ficha vacía ("N/A N/A") que se crea al
+        abrir un módulo con un documento (abrir_meows_desde_atencion,
+        abrir_historial_meows_desde_documento, abrir_triaje) -- NO es una
+        paciente registrada de verdad: Triaje no debe decir "Ya está
+        registrada: N/A N/A" ni precargar ese nombre.
+        """
+        vacio = ('', 'N/A')
+        return (self.nombres or '').strip().upper() in vacio and (self.apellidos or '').strip().upper() in vacio
+
+    @property
     def info_externa(self):
         """Devuelve la instancia de Genpacien asociada, o None si la BD remota no está disponible."""
         # Cache por instancia para evitar múltiples consultas remotas

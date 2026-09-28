@@ -10,7 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="{% static 'css/vendor/cropper.min.css' %}" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
-  <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260923a">
+  <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/titulo_placa.css' %}?v=20260924b">
+  <link rel="stylesheet" href="{% static 'css/meows-historial.css' %}?v=20260924a">
   <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
   <script src="{% static 'js/vendor/cropper.min.js' %}"></script>
   <style>
@@ -229,6 +230,85 @@
       box-sizing: content-box;
       background: rgba(6, 95, 70, 0.12);
       border-radius: 50%;
+    }
+
+    /* 2026-09-24: títulos de sección en "placa" (titulo_placa.css), pegados a
+       su contenido de abajo: solo las esquinas de arriba redondeadas. Se
+       conserva la clase .doc-section-title para que el bloque siguiente se
+       siga uniendo (reglas "+ .fc-card-body", "+ table"...). */
+    /* Se conserva el color ORIGINAL de estas franjas (verde menta con texto
+       verde oscuro e ícono en círculo blanco); solo cambia la estructura. */
+    .doc-section-title.titulo-placa {
+      background: var(--pcard-accent-600);
+      color: var(--pcard-text-dark);
+      text-transform: none;
+      letter-spacing: normal;
+      font-size: inherit;
+      font-weight: inherit;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 10px 10px 0 0;
+      margin-top: 22px;
+      margin-bottom: 0;
+      box-shadow: 0 4px 10px rgba(5, 150, 105, 0.2);
+    }
+    .doc-section-title.titulo-placa::after { background: var(--pcard-text-dark); }
+    .doc-section-title.titulo-placa .titulo-placa-kicker { color: var(--pcard-text-dark); opacity: 0.85; }
+    .doc-section-title.titulo-placa .titulo-placa-principal { font-size: 1.3rem; color: var(--pcard-text-dark); }
+    .doc-section-title.titulo-placa .titulo-placa-ayuda { color: #047857; }
+    .doc-section-title.titulo-placa .section-icon-badge,
+    .pcard-section > .section-title.titulo-placa .section-icon-badge {
+      background: #ffffff;
+      color: var(--pcard-text-dark);
+      border: none;
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(4, 30, 39, 0.3);
+    }
+    /* El ícono ya va en su círculo blanco: sin el fondo/padding de la franja vieja. */
+    .doc-section-title.titulo-placa .section-icon-badge svg {
+      width: 22px; height: 22px; padding: 0; background: none; border-radius: 0;
+    }
+    /* Datos de la paciente: como antes, directamente sobre el verde de su tarjeta. */
+    .pcard-section > .section-title.titulo-placa {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      margin: 0 0 16px;
+    }
+    .pcard-section > .section-title.titulo-placa::after { display: none; }
+    .pcard-section > .section-title.titulo-placa .titulo-placa-kicker,
+    .pcard-section > .section-title.titulo-placa .titulo-placa-principal { color: var(--pcard-text-dark); }
+    .pcard-section > .section-title.titulo-placa .titulo-placa-ayuda { color: #047857; }
+    /* Tarjeta del responsable: blanca con borde turquesa, como la original. */
+    .section-title.titulo-placa.responsable-placa-posparto {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 26px rgba(8, 145, 178, 0.08);
+    }
+    .section-title.titulo-placa.responsable-placa-posparto::after { background: #0891b2; width: 4px; }
+    .section-title.titulo-placa.responsable-placa-posparto .titulo-placa-kicker { color: #0e7490; }
+    .section-title.titulo-placa.responsable-placa-posparto .section-icon-badge {
+      background: linear-gradient(135deg, #cffafe, #a5f3fc);
+      color: #0e7490;
+      border: none;
+      box-shadow: none;
+    }
+    /* Línea de tiempo MEOWS (compacta): 2026-09-25, en placa PLATEADA
+       (mismo fondo de las demás placas) con franja verde del módulo. */
+    .timeline-section--compact .section-title.titulo-placa {
+      background: linear-gradient(135deg, #c3c9d0 0%, #eef1f4 28%, #d3d8de 52%, #f4f6f8 74%, #bcc3cb 100%);
+      border: 1px solid #a3abb5;
+      border-radius: 14px;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(100, 116, 139, 0.35);
+      padding: 14px 18px 14px 22px;
+    }
+    .timeline-section--compact .section-title.titulo-placa .titulo-placa-ayuda { color: #334155; }
+    .timeline-section--compact .section-title.titulo-placa::after { display: block; }
+    .timeline-section--compact .section-title.titulo-placa .section-icon-badge {
+      background: linear-gradient(135deg, #b0b6bd 0%, #e8ebee 45%, #ced3d9 100%);
+      border: 1px solid #aab0b8;
+      color: #4338ca;
     }
 
     .documento-clinico .doc-preview > .doc-section-title:first-child {
@@ -1380,6 +1460,14 @@
       color: #991b1b;
       border-color: rgba(239, 68, 68, 0.4);
       background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    }
+
+    /* 2026-09-28: autoguardado en espera (falta un dato mínimo para crear el
+       registro) -- antes no se mostraba nada y se perdía lo digitado. */
+    .autosave-status.autosave-pendiente {
+      color: #92400e;
+      border-color: rgba(245, 158, 11, 0.45);
+      background: linear-gradient(135deg, #fffbeb 0%, #fde68a 100%);
     }
 
     /* 2026-09-22: registro cerrado (ver bloquearFormularioCerrado) -- tono
@@ -2665,6 +2753,39 @@
     @media (max-width: 560px) {
       .responsable-card { padding: 16px; gap: 12px; }
     }
+    /* 2026-09-24: responsable en "placa" (titulo_placa.css) con el campo a la derecha. */
+    .responsable-placa-posparto { flex-wrap: wrap; margin: 0; }
+    .responsable-placa-posparto .titulo-placa-texto { flex: 1 1 340px; }
+    .responsable-placa-input { flex: 0 1 460px; max-width: 520px; width: auto; margin-left: auto; font-weight: 700; }
+    .responsable-placa-input:focus { border-color: #047857; box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.18); }
+    /* 2026-09-28: responsables automáticos (sin campo para escribir). */
+    .responsable-sesion-chip {
+      display: inline-flex; align-items: center; gap: 6px; margin-left: auto;
+      padding: 8px 14px; border-radius: 999px; background: #ecfeff; border: 1px solid #a5f3fc;
+      color: #0e7490; font-size: 0.8rem; font-weight: 600; white-space: nowrap;
+    }
+    .responsable-sesion-chip svg { width: 15px; height: 15px; }
+    .responsable-sesion-chip strong { color: #164e63; font-weight: 800; }
+    .lista-responsables { display: grid; gap: 10px; margin-top: 14px; }
+    .lista-responsables-vacia { margin: 0; padding: 12px 14px; border: 1px dashed #cbd5e1; border-radius: 10px; color: #64748b; font-size: 0.86rem; }
+    .responsable-item {
+      display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center;
+      padding: 12px 14px; border: 1px solid #e2e8f0; border-left: 4px solid #0891b2; border-radius: 10px; background: #f8fafc;
+    }
+    .responsable-item-num {
+      width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+      background: #cffafe; color: #0e7490; font-weight: 800; font-size: 0.85rem;
+    }
+    .responsable-item-nombre { font-weight: 800; color: #0f172a; font-size: 0.95rem; }
+    .responsable-item-detalle { margin-top: 3px; color: #475569; font-size: 0.8rem; line-height: 1.45; }
+    .responsable-item-tiempo { color: #64748b; font-size: 0.78rem; font-weight: 600; text-align: right; white-space: nowrap; }
+    .responsable-item.es-sesion { border-left-color: #10b981; background: #f0fdf4; }
+    @media (max-width: 700px) {
+      .responsable-sesion-chip { margin-left: 0; white-space: normal; }
+      .responsable-item { grid-template-columns: 32px 1fr; }
+      .responsable-item-tiempo { grid-column: 2; text-align: left; }
+      .responsable-placa-input { max-width: none; margin-left: 0; flex-basis: 100%; }
+    }
 
     .signature-pad-card {
       padding: 0;
@@ -2771,6 +2892,9 @@
 
         <main class="main-content">
 
+          {# 2026-09-24: selector de ingresos (consulta de registros por número de ingreso). #}
+          {% if documento %}{% include 'obstetricia/_selector_ingreso.html' with documento=documento modulo='control_posparto' ingreso=ingreso_param %}{% endif %}
+
           <div class="autosave-status-row">
             <span id="autosave-status" class="autosave-status" aria-live="polite"></span>
           </div>
@@ -2778,9 +2902,14 @@
           <div class="documento-clinico doc-preview" id="panel-paciente">
 
             <div class="pcard-section">
-              <h3 class="pcard-title">
-                <span class="pcard-title-icon"><i data-lucide="user"></i></span>
-                Datos de la paciente
+              {# 2026-09-24: "título en placa" (obstetriciaunificador/css/titulo_placa.css). #}
+              <h3 class="section-title titulo-placa titulo-placa--posparto">
+                <span class="section-icon-badge"><i data-lucide="user"></i></span>
+                <span class="titulo-placa-texto">
+                  <span class="titulo-placa-kicker">Control posparto inmediato · FRSPA-007</span>
+                  <span class="titulo-placa-principal">Datos de la paciente</span>
+                  <span class="titulo-placa-ayuda">Se completan con los datos de su ingreso; revise y complete lo que falte.</span>
+                </span>
               </h3>
               <div class="pcard-row">
                 <div class="pcard-field pcard-lg">
@@ -2793,6 +2922,11 @@
                     oninput="document.getElementById('paciente_id').value = this.value.replace(/\D/g, '')">
                   <input type="hidden" id="paciente_id">
                   <input type="hidden" id="formulario_id">
+                </div>
+                <div class="pcard-field pcard-sm">
+                  <label class="pcard-field-label" for="numero_ingreso_vista"><span class="pcard-field-label-icon"><i data-lucide="folder-open"></i></span>Ingreso</label>
+                  <input type="text" id="numero_ingreso_vista" class="doc-input" value="—" readonly tabindex="-1"
+                    title="Número de ingreso en Dinámica (carpeta del repositorio clínico)">
                 </div>
                 <div class="pcard-field pcard-sm">
                   <label class="pcard-field-label" for="edad_gestacional"><span class="pcard-field-label-icon"><i data-lucide="baby"></i></span>Edad gestacional (semanas)</label>
@@ -2809,7 +2943,14 @@
               </div>
             </div>
 
-            <div class="doc-section-title"><i data-lucide="activity"></i> Control de Fetocardia</div>
+            <div class="doc-section-title section-title titulo-placa titulo-placa--posparto">
+              <span class="section-icon-badge"><i data-lucide="activity"></i></span>
+              <span class="titulo-placa-texto">
+                <span class="titulo-placa-kicker">Control posparto · Expulsivo</span>
+                <span class="titulo-placa-principal">Control de fetocardia</span>
+                <span class="titulo-placa-ayuda">Frecuencia cardiaca fetal durante el expulsivo, registrada cada 5 minutos.</span>
+              </span>
+            </div>
             <div class="fc-card-body">
               <div class="fc-toolbar">
                 <span class="fc-intervalo-badge" title="Intervalo fijo de registro">
@@ -2832,7 +2973,14 @@
               </div>
             </div>
 
-            <div class="doc-section-title"><i data-lucide="clipboard-list"></i> Características del Parto</div>
+            <div class="doc-section-title section-title titulo-placa titulo-placa--posparto">
+              <span class="section-icon-badge"><i data-lucide="clipboard-list"></i></span>
+              <span class="titulo-placa-texto">
+                <span class="titulo-placa-kicker">Control posparto · Parto</span>
+                <span class="titulo-placa-principal">Características del parto</span>
+                <span class="titulo-placa-ayuda">Tipo de parto, alumbramiento, hora del parto, desgarro y episiotomía.</span>
+              </span>
+            </div>
             <table>
               <tr>
                 <td class="doc-label" style="width:20%">Tipo de parto</td>
@@ -3070,6 +3218,28 @@
                     box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12), 0 0 14px var(--accent-color);
                 }
                 .category-title-text { position: relative; z-index: 1; flex: 1; text-align: left; }
+                /* 2026-09-24: encabezados en "placa" (insignia, etiqueta, título y
+                   ayuda) conservando su color: gris pizarra con rayas, la cinta de
+                   peligro animada y el punto del semáforo. */
+                .category-title.category-title-placa {
+                    gap: 12px;
+                    padding: 14px 16px;
+                    font-size: inherit;
+                    letter-spacing: normal;
+                    text-transform: none;
+                }
+                .category-title-placa .category-icon-chip {
+                    width: 44px; height: 44px; min-width: 44px;
+                    border-radius: 13px;
+                    font-size: 1.3rem;
+                }
+                .category-title-placa .category-title-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+                .category-title-placa .ct-kicker {
+                    font-size: 0.64rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+                    color: rgba(255, 255, 255, 0.75);
+                }
+                .category-title-placa .ct-principal { font-size: 1.06rem; font-weight: 800; color: #ffffff; line-height: 1.15; }
+                .category-title-placa .ct-ayuda { font-size: 0.74rem; font-weight: 500; color: rgba(255, 255, 255, 0.82); }
                 .status-dot {
                     position: relative;
                     z-index: 1;
@@ -3237,6 +3407,110 @@
                     animation: hint-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
                         beacon-flash 1.6s ease-in-out 0.4s infinite;
                 }
+                /* ===== 2026-09-24: cuerpo de las tarjetas más profesional =====
+                   Mismos colores del semáforo (rojo alerta / verde normal), pero
+                   en tono clínico: paneles claros con franja de color, sin
+                   bloques sólidos parpadeando. */
+                .semaforo-label {
+                    display: block;
+                    margin-top: 12px;
+                    font-size: 0.66rem;
+                    font-weight: 800;
+                    letter-spacing: 0.14em;
+                    text-transform: uppercase;
+                    color: #64748b;
+                    text-align: left;
+                }
+                .category-card .semaforo-select {
+                    appearance: none;
+                    -webkit-appearance: none;
+                    text-align: left;
+                    text-align-last: left;
+                    padding: 11px 14px;
+                    margin-top: 5px;
+                    font-size: 0.86rem;
+                    line-height: 1.35;
+                    white-space: normal;
+                    border-radius: 10px;
+                    border: 1px solid #e2e8f0 !important;
+                    border-left: 5px solid #94a3b8 !important;
+                    background: #f8fafc !important;
+                    color: #334155 !important;
+                    -webkit-text-fill-color: #334155 !important;
+                    text-shadow: none !important;
+                    box-shadow: none !important;
+                    animation: none !important;
+                    opacity: 1;
+                    cursor: default;
+                }
+                .category-card .semaforo-select[data-val="NORMAL"] {
+                    background: #ecfdf5 !important;
+                    border-color: #a7f3d0 !important;
+                    border-left-color: #10b981 !important;
+                    color: #065f46 !important;
+                    -webkit-text-fill-color: #065f46 !important;
+                }
+                .category-card .semaforo-select[data-val="ALERTA"],
+                .category-card .semaforo-select[data-val="HEMATOMA"],
+                .category-card .semaforo-select[data-val="INFECCION"] {
+                    background: #fef2f2 !important;
+                    border-color: #fecaca !important;
+                    border-left-color: #dc2626 !important;
+                    color: #991b1b !important;
+                    -webkit-text-fill-color: #991b1b !important;
+                }
+                .category-card .semaforo-hint {
+                    --hint-color: #dc2626;
+                    --hint-dark: #991b1b;
+                    color: #7f1d1d;
+                    font-weight: 600;
+                    background: #fff5f5;
+                    border: 1px solid #fecaca;
+                    border-left: 5px solid var(--hint-color);
+                    border-radius: 10px;
+                    padding: 12px 14px 12px 56px;
+                    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.10);
+                }
+                .category-card .semaforo-hint.hint-success {
+                    --hint-color: #10b981;
+                    --hint-dark: #065f46;
+                    color: #064e3b;
+                    background: #f0fdf4;
+                    border-color: #bbf7d0;
+                    border-left-color: var(--hint-color);
+                    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.10);
+                }
+                .category-card .semaforo-hint::before {
+                    content: "!";
+                    left: 14px;
+                    background: var(--hint-color);
+                    color: #ffffff;
+                    font-size: 1rem;
+                    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
+                }
+                .category-card .semaforo-hint.hint-success::before { content: "✓"; }
+                /* Sin destello de toda la caja: solo el ícono late suave en alerta. */
+                .category-card .semaforo-hint::after { display: none; }
+                .category-card .semaforo-hint.visible:not(.hint-success) {
+                    animation: hint-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+                }
+                .category-card .semaforo-hint.visible:not(.hint-success)::before {
+                    animation: hint-icono-latido 1.8s ease-in-out infinite;
+                }
+                @keyframes hint-icono-latido {
+                    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45); }
+                    50% { box-shadow: 0 0 0 7px rgba(220, 38, 38, 0); }
+                }
+                .category-card .semaforo-hint .semaforo-hint-eyebrow {
+                    color: var(--hint-dark);
+                    font-size: 0.74rem;
+                    letter-spacing: 0.12em;
+                    margin-bottom: 3px;
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .category-card .semaforo-hint.visible:not(.hint-success)::before { animation: none; }
+                }
+
                 .semaforo-badge {
                     position: relative;
                     display: inline-flex;
@@ -3303,13 +3577,24 @@
                     .status-dot { animation: none; }
                 }
             </style>
-            <div class="doc-section-title"><i data-lucide="alert-triangle"></i> Características del sangrado, involución uterina y herida</div>
+            <div class="doc-section-title section-title titulo-placa titulo-placa--posparto">
+              <span class="section-icon-badge"><i data-lucide="alert-triangle"></i></span>
+              <span class="titulo-placa-texto">
+                <span class="titulo-placa-kicker">Control posparto · Vigilancia</span>
+                <span class="titulo-placa-principal">Sangrado, involución uterina y herida</span>
+                <span class="titulo-placa-ayuda">Globo de seguridad, sangrado cuantificado y sutura, cada uno con su semáforo de alerta.</span>
+              </span>
+            </div>
             <div class="parameter-buttons-section">
 
                 <div class="category-card card-info">
-                    <h3 class="category-title">
+                    <h3 class="category-title category-title-placa">
                         <span class="category-icon-chip">🎈</span>
-                        <span class="category-title-text">Globo de seguridad</span>
+                        <span class="category-title-text">
+                            <span class="ct-kicker">Involución uterina</span>
+                            <span class="ct-principal">Globo de seguridad</span>
+                            <span class="ct-ayuda">Tono del útero después del parto.</span>
+                        </span>
                         <span class="status-dot" aria-hidden="true"></span>
                     </h3>
                     <div class="buttons-container">
@@ -3318,8 +3603,9 @@
                             <span>Historial / Agregar control</span>
                             <span class="btn-historial-count" id="globo-registros-count">0</span>
                         </button>
+                        <span class="semaforo-label">Estado · último control</span>
                         <select id="globo_seguridad" class="doc-input semaforo-select" data-val="" disabled title="Se sincroniza automáticamente con el último control del historial -- use 'Historial / Agregar control' para registrar uno nuevo.">
-                            <option value="">— Seleccionar —</option>
+                            <option value="">Sin registros</option>
                             <option value="NORMAL">Normal: útero firme y contraído</option>
                             <option value="ALERTA">Alerta: útero blando, relajado, atonía</option>
                         </select>
@@ -3328,9 +3614,13 @@
                 </div>
 
                 <div class="category-card card-danger">
-                    <h3 class="category-title">
+                    <h3 class="category-title category-title-placa">
                         <span class="category-icon-chip">🩸</span>
-                        <span class="category-title-text">Sangrado cuantificado</span>
+                        <span class="category-title-text">
+                            <span class="ct-kicker">Pérdida sanguínea</span>
+                            <span class="ct-principal">Sangrado cuantificado</span>
+                            <span class="ct-ayuda">c.c. acumulados: pesados o medidos.</span>
+                        </span>
                         <span class="status-dot" aria-hidden="true"></span>
                     </h3>
                     <div class="buttons-container centered">
@@ -3348,9 +3638,13 @@
                 </div>
 
                 <div class="category-card card-neutral">
-                    <h3 class="category-title">
+                    <h3 class="category-title category-title-placa">
                         <span class="category-icon-chip">🧵</span>
-                        <span class="category-title-text">Sutura y heridas</span>
+                        <span class="category-title-text">
+                            <span class="ct-kicker">Herida / episiorrafia</span>
+                            <span class="ct-principal">Sutura y heridas</span>
+                            <span class="ct-ayuda">Bordes, dolor y coloración.</span>
+                        </span>
                         <span class="status-dot" aria-hidden="true"></span>
                     </h3>
                     <div class="buttons-container">
@@ -3359,8 +3653,9 @@
                             <span>Historial / Agregar control</span>
                             <span class="btn-historial-count" id="sutura-registros-count">0</span>
                         </button>
+                        <span class="semaforo-label">Estado · último control</span>
                         <select id="sutura_heridas" class="doc-input semaforo-select" data-val="" disabled title="Se sincroniza automáticamente con el último control del historial -- use 'Historial / Agregar control' para registrar uno nuevo.">
-                            <option value="">— Seleccionar —</option>
+                            <option value="">Sin registros</option>
                             <option value="NORMAL">Normal: bordes afrontados, dolor tolerable, sin cambios de coloración</option>
                             <option value="HEMATOMA">Alerta: hematoma (masa violácea, tensa, dolor intenso)</option>
                             <option value="INFECCION">Alerta: (eritema, calor local, edema, secreción purulenta)</option>
@@ -3504,25 +3799,33 @@
               </div>
             </div>
 
-            <div class="doc-section-title" id="panel-huella"><i data-lucide="user-check"></i> Responsable del Registro</div>
+            <div class="doc-section-title section-title titulo-placa titulo-placa--posparto" id="panel-huella">
+              <span class="section-icon-badge"><i data-lucide="user-check"></i></span>
+              <span class="titulo-placa-texto">
+                <span class="titulo-placa-kicker">Control posparto · Firma</span>
+                <span class="titulo-placa-principal">Responsable del registro</span>
+                <span class="titulo-placa-ayuda">Profesional que responde por este registro y cuyo nombre queda en el PDF.</span>
+              </span>
+            </div>
             <div class="doc-firma-panel" style="border:1px solid #cbd5e1;border-top:none;padding:18px;background:#fff">
-              <div class="huella-signature-section" style="max-width:900px;width:100%;margin:0 auto">
+              <div class="huella-signature-section" style="width:100%;margin:0">
 
-                {# Campo RESPONSABLE — se precarga con el profesional en sesión #}
-                {# (igual que Trabajo de Parto / MEOWS) y es editable. Es el #}
-                {# nombre que aparece en el PDF. #}
-                <div class="responsable-card">
-                  <div class="responsable-card-icon"><i data-lucide="user-check"></i></div>
-                  <div class="responsable-card-body">
-                    <label for="signature-name" class="responsable-card-label">RESPONSABLE DEL REGISTRO</label>
-                    <input type="text" id="signature-name" class="responsable-card-input"
-                      placeholder="Nombre completo del responsable" maxlength="255" autocomplete="off"
-                      value="{{ profesional_nombre_sesion|default:'' }}"
-                      title="Se precarga con el profesional que inició sesión; edítelo si es otro. Es el nombre que aparece en el PDF.">
-                    <p class="responsable-card-hint">
-                      Se completa automáticamente con quien inició sesión. Es el nombre que queda en el reporte PDF.
-                    </p>
-                  </div>
+                {# 2026-09-28: RESPONSABLES automáticos -- ya no se escribe a mano. #}
+                {# El servidor firma cada guardado con el profesional en sesión; #}
+                {# si lo diligencian dos o más personas, quedan todas (pantalla y PDF). #}
+                <div class="section-title titulo-placa titulo-placa--posparto responsable-placa-posparto">
+                  <span class="section-icon-badge"><i data-lucide="users"></i></span>
+                  <span class="titulo-placa-texto">
+                    <span class="titulo-placa-kicker">Firma automática del registro</span>
+                    <span class="titulo-placa-principal">Responsables del registro</span>
+                    <span class="titulo-placa-ayuda">Se registran solos con el usuario que inició sesión: cada profesional que diligencia una parte queda aquí y en el PDF.</span>
+                  </span>
+                  <span class="responsable-sesion-chip" title="Profesional con la sesión iniciada: lo que guarde quedará a su nombre">
+                    <i data-lucide="user-check"></i> Usted: <strong>{{ profesional_nombre_sesion|default:'—' }}</strong>
+                  </span>
+                </div>
+                <div id="lista-responsables" class="lista-responsables">
+                  <p class="lista-responsables-vacia">Aún no se ha guardado nada en este registro. Al guardar, su nombre quedará aquí automáticamente.</p>
                 </div>
               </div>
             </div>
@@ -3595,6 +3898,64 @@
           }
 
           let savedRegistroId = null;
+
+          // 2026-09-28: responsables automáticos. El servidor firma cada
+          // guardado con el profesional en sesión; aquí solo se muestran.
+          const PROFESIONAL_SESION_FRSPA = '{{ profesional_nombre_sesion|default:""|escapejs }}';
+
+          function escaparHtml(texto) {
+            return String(texto == null ? '' : texto).replace(/[&<>"']/g, c => ({
+              '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+            }[c]));
+          }
+
+          function formatoFechaHoraCorta(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            if (isNaN(d)) return '';
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            let h = d.getHours();
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            return `${dd}/${mm} ${String(h).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} ${ampm}`;
+          }
+
+          function renderResponsables(lista) {
+            const cont = document.getElementById('lista-responsables');
+            if (!cont) return;
+            if (!Array.isArray(lista) || lista.length === 0) {
+              cont.innerHTML = '<p class="lista-responsables-vacia">Aún no se ha guardado nada en este registro. Al guardar, su nombre quedará aquí automáticamente.</p>';
+              return;
+            }
+            const sesion = (PROFESIONAL_SESION_FRSPA || '').trim().toUpperCase();
+            cont.innerHTML = lista.map((r, i) => {
+              const desde = formatoFechaHoraCorta(r.desde);
+              const hasta = formatoFechaHoraCorta(r.hasta);
+              const tiempo = desde && hasta && desde !== hasta ? `${desde} – ${hasta}` : (desde || hasta);
+              const esSesion = sesion && String(r.nombre || '').trim().toUpperCase() === sesion;
+              return `<div class="responsable-item${esSesion ? ' es-sesion' : ''}">
+                <span class="responsable-item-num">${i + 1}</span>
+                <div>
+                  <div class="responsable-item-nombre">${escaparHtml(r.nombre)}${esSesion ? ' <small style="color:#047857;font-weight:700;">(usted)</small>' : ''}</div>
+                  <div class="responsable-item-detalle">${escaparHtml((r.detalle || []).join(' · '))}</div>
+                </div>
+                <span class="responsable-item-tiempo">${escaparHtml(tiempo)}</span>
+              </div>`;
+            }).join('');
+          }
+
+          let _refrescoResponsablesTimer = null;
+          function refrescarResponsables() {
+            if (!savedRegistroId) return;
+            clearTimeout(_refrescoResponsablesTimer);
+            _refrescoResponsablesTimer = setTimeout(async () => {
+              try {
+                const res = await fetch(`${API_BASE}/registros/${savedRegistroId}/responsables/`, { headers: getHeaders() });
+                if (res.ok) renderResponsables(await res.json());
+              } catch (_) { /* no bloquea nada: es solo informativo */ }
+            }, 400);
+          }
 
           function switchTab(name) {
             // El documento ya no usa pestañas: navega/desplaza a la sección correspondiente.
@@ -4700,6 +5061,7 @@
               if (!res.ok) return false;
               const guardado = await res.json();
               control.id = guardado.id;
+              refrescarResponsables();
               // `estado` (semáforo) lo calcula el backend según el acumulado
               // hasta este control -- nunca se manda, siempre se refleja el
               // que devuelve la respuesta.
@@ -4930,6 +5292,7 @@
                 const creado = await res.json();
                 control.id = creado.id;
               }
+              refrescarResponsables();
               return true;
             } catch (e) {
               console.warn(`No se pudo sincronizar el control de ${tipo} con el servidor:`, e);
@@ -5099,14 +5462,9 @@
               globo_seguridad: val('globo_seguridad') || null,
               sangrado_cuantificado_cc: int('sangrado_cuantificado_cc'),
               sutura_heridas: val('sutura_heridas') || null,
-              // 2026-09-14: antes el nombre de "RESPONSABLE DEL REGISTRO"
-              // (signature-name) solo se guardaba si además se dibujaba una
-              // firma a mano (ver persistSignatureIfPresent) -- si la
-              // enfermera solo lo escribía y guardaba el formulario normal,
-              // nunca llegaba a nombre_firma_paciente, así que el PDF no
-              // tenía de dónde tomar el responsable. Ahora viaja siempre en
-              // el guardado normal, sin depender de que exista una firma.
-              nombre_firma_paciente: val('signature-name') || null,
+              // 2026-09-28: el responsable ya no viaja desde el navegador: el
+              // servidor firma cada guardado con el profesional en sesión
+              // (frecuenciafetal/responsables.py).
               controles_postparto: buildPostpartoData(),
               controles_fetocardia: buildFetocardiaData(),
               // Solo viaja en la creación inicial (ver submitForm: se borra en
@@ -5128,7 +5486,11 @@
             if (!payload.nombre_paciente) { if (!silencioso) marcarCampoError('nombre_paciente'); return 'El nombre de la paciente es requerido.'; }
             if (!payload.identificacion) { if (!silencioso) marcarCampoError('identificacion'); return 'La identificación es requerida.'; }
             if (!payload.edad_gestacional) { if (!silencioso) marcarCampoError('edad_gestacional'); return 'La edad gestacional es requerida.'; }
-            if (!payload.nombre_acompanante) { if (!silencioso) marcarCampoError('nombre_acompanante'); return 'El nombre del acompañante en el parto es requerido.'; }
+            // 2026-09-28: el acompañante NO frena el autoguardado (antes, si
+            // faltaba, no se guardaba nada en silencio y al recargar se perdía
+            // todo lo digitado). Sigue siendo obligatorio al guardar a mano /
+            // "Guardar Registro Completo".
+            if (!payload.nombre_acompanante && !silencioso) { marcarCampoError('nombre_acompanante'); return 'El nombre del acompañante en el parto es requerido.'; }
             for (let i = 0; i < (payload.controles_postparto || []).length; i++) {
               const cp = payload.controles_postparto[i];
               if (!cp.fecha || !cp.hora) {
@@ -5224,6 +5586,8 @@
             const error = validate(payload, silencioso);
             if (error) {
               if (!silencioso) showToast(error, 'error');
+              // 2026-09-28: ya no en silencio -- se avisa qué falta.
+              else if (!window.MODO_SOLO_CONSULTA && !registroCerrado) actualizarEstadoAutoguardado('pendiente', error);
               return false;
             }
 
@@ -5394,6 +5758,7 @@
                 marcarControlesGuardados(data);
               }
 
+              refrescarResponsables();
               if (silencioso) {
                 actualizarEstadoAutoguardado('ok');
               } else {
@@ -5480,10 +5845,10 @@
           // bloquearFormularioCerrado más abajo.
           let registroCerrado = false;
 
-          function actualizarEstadoAutoguardado(estado) {
+          function actualizarEstadoAutoguardado(estado, detalle = '') {
             const el = document.getElementById('autosave-status');
             if (!el) return;
-            el.classList.remove('autosave-ok', 'autosave-error', 'autosave-guardando', 'autosave-cerrado');
+            el.classList.remove('autosave-ok', 'autosave-error', 'autosave-guardando', 'autosave-cerrado', 'autosave-pendiente');
             const hora = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             // El tamaño se fija con el atributo "size" directamente sobre el
             // <i data-lucide>, no con una clase CSS -- las clases propias no
@@ -5499,12 +5864,15 @@
             } else if (estado === 'error') {
               el.classList.add('autosave-error');
               el.innerHTML = '<i data-lucide="alert-triangle" size="15" style="display:block"></i> No se pudo autoguardar (revise la conexión); se reintentará solo.';
+            } else if (estado === 'pendiente') {
+              el.classList.add('autosave-pendiente');
+              el.innerHTML = `<i data-lucide="pause-circle" size="15" style="display:block"></i> Aún no se guarda automáticamente: ${escaparHtml(detalle || 'faltan datos de la paciente')}`;
             }
             if (typeof lucide !== 'undefined') lucide.createIcons();
           }
 
           async function autoguardarSilencioso() {
-            if (registroCerrado) return;
+            if (registroCerrado || window.MODO_SOLO_CONSULTA) return;
             if (autoguardadoEnCurso) {
               // 2026-09-22: ya hay un guardado en curso (ej. terminando de
               // sincronizar controles de postparto/fetocardia anidados, que
@@ -5525,7 +5893,8 @@
           }
 
           function programarAutoguardado() {
-            if (registroCerrado) return;
+            // 2026-09-24: tampoco en solo consulta (ingreso anterior o cerrado).
+            if (registroCerrado || window.MODO_SOLO_CONSULTA) return;
             if (autosaveTimer) clearTimeout(autosaveTimer);
             autosaveTimer = setTimeout(autoguardarSilencioso, AUTOSAVE_DEBOUNCE_MS);
           }
@@ -5545,6 +5914,7 @@
             ).forEach(el => {
               if (el.id === 'btn-pdf') return; // Descargar PDF sigue disponible
               if (el.id === 'btn-reenviar-repositorio') return;
+              if (el.closest('#sel-ing')) return; // selector de ingresos: siempre disponible
               el.disabled = true;
             });
             const btnCompletar = document.getElementById('submit-btn');
@@ -5707,6 +6077,7 @@
 
               const pName = (data.nombre_paciente != null && data.nombre_paciente !== '') ? String(data.nombre_paciente) : '';
               savedRegistroId = data.id;
+              renderResponsables(data.responsables || []);
 
               // Actualizar campos para polling y Android
               const idRaw = (data.identificacion != null && data.identificacion !== '') ? String(data.identificacion) : '';
@@ -5788,13 +6159,24 @@
             const textoOriginal = btn ? btn.innerHTML : '';
             if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
             try {
-              const resp = await fetch('/atencion/api/repositorio/enviar/', {
+              const enviar = (forzar) => fetch('/atencion/api/repositorio/enviar/', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                body: JSON.stringify({ formato: 'control_posparto', registro_id: savedRegistroId }),
+                body: JSON.stringify({ formato: 'control_posparto', registro_id: savedRegistroId, forzar }),
               });
-              const data = await resp.json().catch(() => ({ ok: false, mensaje: 'HTTP ' + resp.status }));
+              let resp = await enviar(false);
+              let data = await resp.json().catch(() => ({ ok: false, mensaje: 'HTTP ' + resp.status }));
+              // 2026-09-25: sin cambios desde el último envío -> no se guarda otra
+              // copia idéntica, salvo que el usuario lo confirme.
+              if (data.sin_cambios) {
+                if (!confirm(data.mensaje + '\n\n¿Desea guardar de todos modos OTRA copia en el repositorio?')) {
+                  showToast('ℹ️ ' + data.mensaje, 'info');
+                  return;
+                }
+                resp = await enviar(true);
+                data = await resp.json().catch(() => ({ ok: false, mensaje: 'HTTP ' + resp.status }));
+              }
               showToast((data.ok ? '📤 ' : '⚠️ ') + (data.mensaje || 'Error desconocido'), data.ok ? 'success' : 'error');
             } catch (err) {
               showToast('⚠️ No se pudo contactar el servidor para enviar al repositorio.', 'error');
@@ -5816,15 +6198,10 @@
               // guardado aquí.
               const idVal = (document.getElementById('identificacion')?.value || '').trim();
               const nombreVal = (document.getElementById('nombre_paciente')?.value || '').trim();
-              // "RESPONSABLE DEL REGISTRO" ya se precarga con el profesional en
-              // sesión (ver signature-name arriba) -- se manda igual para que
-              // quede integrado en el PDF aunque todavía no se haya guardado
-              // nada ni dibujado una firma.
-              const responsableVal = (document.getElementById('signature-name')?.value || '').trim();
+              // 2026-09-28: el responsable lo pone el servidor (profesional en sesión).
               const params = new URLSearchParams({ t: Date.now() });
               if (idVal) params.set('documento', idVal);
               if (nombreVal) params.set('nombre', nombreVal);
-              if (responsableVal) params.set('responsable', responsableVal);
               url = `${API_BASE}/registros/pdf-plantilla/?${params.toString()}`;
             }
             try {
@@ -5958,6 +6335,9 @@
               const params = new URLSearchParams();
               if (atencionIdUrl) params.set('atencion', atencionIdUrl);
               if (docFromUrl) params.set('documento', docFromUrl);
+              // 2026-09-24: registro del ingreso elegido en el selector de ingresos.
+              const ingresoUrl = "{{ ingreso_param|default:''|escapejs }}".trim();
+              if (ingresoUrl) params.set('ingreso', ingresoUrl);
               fetch(`${API_BASE}/registros/por-atencion/?${params.toString()}`, { headers: getHeaders() })
                 .then(r => r.json())
                 .then(data => {
@@ -5969,6 +6349,31 @@
                 })
                 .catch(() => { if (docFromUrl) precargarDatosPacienteUnificado(docFromUrl); });
             }
+          });
+
+          // 2026-09-24: ingreso anterior o cerrado -> solo consulta (ver
+          // obstetricia/_selector_ingreso.html). Se ve todo, no se guarda nada:
+          // ni botones, ni guardado automático (el servidor también lo rechaza).
+          window.SOLO_CONSULTA_CONFIG = {
+            contenedor: document.querySelector('.main-wrapper') || document.body,
+            permitir: '[onclick*="VistaPrevia"], [onclick*="cerrar"], [onclick*="Cerrar"], [onclick*="pdf"], [onclick*="PDF"], '
+              + '[onclick*="descargar"], [onclick*="Descargar"], [onclick*="imprimir"], [onclick*="Imprimir"], '
+              + '[onclick*="MeowsTimeline"], [onclick*="MeowsReferencia"], [onclick*="toggleMeowsGrid"], .preview-modal-close',
+            bloquearEnvios: ['/fetal/api/', '/atencion/api/repositorio/enviar/'],
+            estado: 'autosave-status',
+          };
+          document.addEventListener('selector-ingreso:cargado', function (ev) {
+            if (!ev.detail || !ev.detail.solo_consulta) return;
+            window.activarSoloConsulta(window.SOLO_CONSULTA_CONFIG);
+          });
+
+          // 2026-09-24: campo "Ingreso" de la tarjeta = ingreso elegido en el selector.
+          document.addEventListener('selector-ingreso:cargado', function (ev) {
+            const campo = document.getElementById('numero_ingreso_vista');
+            const s = (ev.detail || {}).seleccion;
+            if (!campo) return;
+            campo.value = !s ? 'Sin ingreso' : (s.especial ? s.titulo : s.numero);
+            campo.title = s && !s.especial ? `Ingreso ${s.numero} · desde ${s.fecha_ingreso}${s.fecha_egreso ? ' hasta ' + s.fecha_egreso + ' (cerrado)' : (s.en_curso ? ' (en curso)' : '')}` : '';
           });
 
           function precargarDatosPacienteUnificado(docFromUrl) {

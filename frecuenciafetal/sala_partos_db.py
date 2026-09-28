@@ -375,12 +375,51 @@ def listar_pacientes_sala_partos(query=None, limit=50):
     return out[:limit]
 
 
+def paciente_en_sala_partos(cedula):
+    """
+    2026-09-24: ¿La paciente aparece HOY en la lista de Sala de Partos?
+    MISMO criterio que listar_pacientes_sala_partos (estancia activa en
+    Hospitalización/Sala de Partos/Cuidado Intermedio gineco -- HSUCODIGO
+    0304/0305/0307 -- o ingreso marcado como gestante en cualquier área).
+
+    Triaje lo usa para sacar de su lista a la paciente en cuanto pasa a Sala
+    de Partos: antes Triaje usaba otro criterio (solo Hospitalización y
+    Cuidado Intermedio) y una paciente en cama de Sala de Partos o gestante
+    en observación de urgencias aparecía en las DOS listas a la vez.
+    Devuelve None si Dinámica no respondió (no se sabe).
+    """
+    cedula = (cedula or '').strip()
+    if not cedula or not dinamica_disponible():
+        return None
+    sql = """
+    SELECT TOP 1 1
+    FROM HPNESTANC AS EST
+    INNER JOIN HPNDEFCAM AS CAM ON EST.HPNDEFCAM = CAM.OID
+    INNER JOIN HPNSUBGRU AS SUB ON CAM.HPNSUBGRU = SUB.OID
+    INNER JOIN ADNINGRESO AS ING ON EST.ADNINGRES = ING.OID
+    INNER JOIN GENPACIEN AS PAC ON ING.GENPACIEN = PAC.OID
+    WHERE PAC.PACNUMDOC = %s
+      AND EST.HESFECSAL IS NULL
+      AND (SUB.HSUCODIGO IN ('0304', '0305', '0307') OR ING.AINGESTAN = 1)
+    """
+    try:
+        with connections['readonly'].cursor() as cursor:
+            cursor.execute(sql, [cedula])
+            return cursor.fetchone() is not None
+    except Exception as exc:
+        _marcar_dinamica_caida(exc)
+        return None
+
+
 def consultar_ingreso_paciente(cedula):
     """
     Ingreso de Dinámica al que pertenecen los formatos de la paciente:
     el ingreso ACTIVO (estancia sin fecha de salida, HPNESTANC.HESFECSAL IS
     NULL) y, si ya no hay ninguno activo (p. ej. se dio de alta minutos antes
-    de finalizar el formato), el ingreso más reciente.
+    de finalizar el formato), el ingreso más reciente. 2026-09-24: se
+    ignoran los ingresos anulados y, a igual condición, se prefiere uno de
+    urgencias/hospitalización antes que una consulta externa (Dinámica crea un
+    ingreso por cada consulta, laboratorio, etc.).
 
     Devuelve {'numero_ingreso': str (ADNINGRESO.AINCONSEC), 'fecha_ingreso':
     datetime, 'activo': bool} o None (sin conexión / sin ingresos).
@@ -388,7 +427,7 @@ def consultar_ingreso_paciente(cedula):
     repositorio clínico (NAS).
     """
     cedula = (cedula or '').strip()
-    if not cedula or 'readonly' not in settings.DATABASES:
+    if not cedula or not dinamica_disponible():
         return None
     sql = """
     SELECT TOP 1
@@ -398,14 +437,19 @@ def consultar_ingreso_paciente(cedula):
             SELECT 1 FROM HPNESTANC AS EST
             WHERE EST.ADNINGRES = ING.OID AND EST.HESFECSAL IS NULL
         ) THEN 1 ELSE 0 END AS activo
+        ,CASE WHEN ING.AINTIPING = 2 OR ING.AINURGCON = 0 THEN 1 ELSE 0 END AS clinico
     FROM ADNINGRESO AS ING
     INNER JOIN GENPACIEN AS PAC ON ING.GENPACIEN = PAC.OID
-    WHERE PAC.PACNUMDOC = %s
-    ORDER BY activo DESC, ING.AINFECING DESC, ING.OID DESC
+    WHERE PAC.PACNUMDOC = %s AND ING.AINESTADO <> %s
+    ORDER BY activo DESC, clinico DESC, ING.AINFECING DESC, ING.OID DESC
     """
-    with connections['readonly'].cursor() as cursor:
-        cursor.execute(sql, [cedula])
-        row = cursor.fetchone()
+    try:
+        with connections['readonly'].cursor() as cursor:
+            cursor.execute(sql, [cedula, AINESTADO_ANULADO])
+            row = cursor.fetchone()
+    except Exception as exc:
+        _marcar_dinamica_caida(exc)
+        raise
     if not row or row[0] is None:
         return None
     return {
@@ -440,3 +484,167 @@ def consultar_aseguradora_paciente(cedula):
         return None
     nombre = (row[0] or '').strip() if row else ''
     return nombre or None
+
+
+# 2026-09-24: "cortocircuito" para las consultas de ingresos. Si Dinámica no
+# responde, cada intento espera el timeout de conexión del driver (~15 s); sin
+# esto, el selector de ingresos o un guardado quedarían esperando en cada
+# consulta. Tras una falla de conexión se deja de intentar durante
+# SEGUNDOS_PAUSA_DINAMICA y las funciones de abajo responden "sin conexión" al
+# instante (la app sigue con los ingresos que ya conoce).
+# (El motor de la conexión, sistema_obstetrico/db_readonly, aplica la misma
+# pausa a TODA la app; esto solo evita llegar a intentarlo.)
+from sistema_obstetrico.db_readonly.base import (  # noqa: E402
+    CLAVE_DINAMICA_CAIDA as _CLAVE_DINAMICA_CAIDA, SEGUNDOS_PAUSA_DINAMICA,
+)
+
+
+def dinamica_disponible():
+    from django.core.cache import cache
+    return 'readonly' in settings.DATABASES and not cache.get(_CLAVE_DINAMICA_CAIDA)
+
+
+def _marcar_dinamica_caida(exc):
+    from django.core.cache import cache
+    from django.db import OperationalError, InterfaceError
+    if isinstance(exc, (OperationalError, InterfaceError)):
+        cache.set(_CLAVE_DINAMICA_CAIDA, True, SEGUNDOS_PAUSA_DINAMICA)
+
+
+# ADNINGRESO.AINESTADO: 2 = anulado (todos tienen ADFECANULA). Verificado el
+# 2026-09-24 sobre el último año de ingresos.
+AINESTADO_ANULADO = 2
+
+
+def _tipo_ingreso(tipo_ingreso, urgencias_consulta):
+    """ADNINGRESO.AINTIPING = 2 -> hospitalización; AINURGCON = 0 -> urgencias;
+    el resto (AINTIPING 1 + AINURGCON 1/10...) son consultas externas,
+    laboratorios, etc. (una paciente puede tener decenas). Verificado el
+    2026-09-24: las hospitalizaciones tienen estancias y fecha de egreso; las
+    consultas externas nunca tienen egreso."""
+    if tipo_ingreso == 2:
+        return 'hospitalizacion'
+    if urgencias_consulta == 0:
+        return 'urgencias'
+    return 'consulta'
+
+
+def consultar_estado_ingreso(numero_ingreso):
+    """
+    Estado de un ingreso de Dinámica (ADNINGRESO.AINCONSEC).
+
+    2026-09-24: el egreso se toma de la fecha de egreso OFICIAL del ingreso
+    (ADNINGRESO.AINFECEGRE, que Dinámica llena al registrar el egreso,
+    ADNINGRESO.ADNEGRESO) y ya no de la última salida de las estancias:
+    cubre también a las pacientes que nunca tuvieron cama.
+
+    Devuelve {'activo': bool, 'fecha_egreso': datetime|None,
+    'tiene_estancias': bool, 'anulado': bool, 'tipo': str}
+    o None si no hay conexión o el ingreso no existe.
+    """
+    numero_ingreso = str(numero_ingreso or '').strip()
+    if not numero_ingreso or not dinamica_disponible():
+        return None
+    sql = """
+    SELECT
+        ING.AINFECEGRE,
+        ING.AINESTADO,
+        ING.AINTIPING,
+        ING.AINURGCON,
+        (SELECT COUNT(*) FROM HPNESTANC AS EST WHERE EST.ADNINGRES = ING.OID) AS estancias
+    FROM ADNINGRESO AS ING
+    WHERE ING.AINCONSEC = %s
+    """
+    try:
+        with connections['readonly'].cursor() as cursor:
+            cursor.execute(sql, [numero_ingreso])
+            row = cursor.fetchone()
+    except Exception as exc:
+        _marcar_dinamica_caida(exc)
+        return None
+    if not row:
+        return None
+    fecha_egreso, estado, tipo_ing, urg_con, estancias = row
+    anulado = estado == AINESTADO_ANULADO
+    return {
+        'activo': fecha_egreso is None and not anulado,
+        'fecha_egreso': fecha_egreso,
+        'tiene_estancias': (estancias or 0) > 0,
+        'anulado': anulado,
+        'tipo': _tipo_ingreso(tipo_ing, urg_con),
+    }
+
+
+def consultar_ingresos_paciente(cedula):
+    """
+    TODOS los ingresos de la paciente en Dinámica, del más reciente al más
+    antiguo: [{'numero_ingreso', 'fecha_ingreso', 'fecha_egreso', 'anulado',
+    'tipo' ('hospitalizacion'|'urgencias'|'consulta'), 'estancia_abierta'}].
+    Fechas tal cual vienen de Dinámica (hora local de Bogotá, sin zona).
+    Devuelve None si no hay conexión (distinto de [] = sin ingresos).
+    """
+    cedula = (cedula or '').strip()
+    if not cedula or not dinamica_disponible():
+        return None
+    sql = """
+    SELECT
+        ING.AINCONSEC,
+        ING.AINFECING,
+        ING.AINFECEGRE,
+        ING.AINESTADO,
+        ING.AINTIPING,
+        ING.AINURGCON,
+        CASE WHEN EXISTS (
+            SELECT 1 FROM HPNESTANC AS EST
+            WHERE EST.ADNINGRES = ING.OID AND EST.HESFECSAL IS NULL
+        ) THEN 1 ELSE 0 END AS estancia_abierta
+    FROM ADNINGRESO AS ING
+    INNER JOIN GENPACIEN AS PAC ON ING.GENPACIEN = PAC.OID
+    WHERE PAC.PACNUMDOC = %s
+    ORDER BY ING.AINFECING DESC, ING.OID DESC
+    """
+    try:
+        with connections['readonly'].cursor() as cursor:
+            cursor.execute(sql, [cedula])
+            rows = cursor.fetchall()
+    except Exception as exc:
+        _marcar_dinamica_caida(exc)
+        return None
+    return [
+        {
+            'numero_ingreso': str(r[0]).strip(),
+            'fecha_ingreso': r[1],
+            'fecha_egreso': r[2],
+            'anulado': r[3] == AINESTADO_ANULADO,
+            'tipo': _tipo_ingreso(r[4], r[5]),
+            'estancia_abierta': bool(r[6]),
+        }
+        for r in rows if r[0] is not None
+    ]
+
+
+def consultar_ingresos_de_folios(folios):
+    """{HCNFOLIO.OID: número de ingreso (AINCONSEC)} -- cada toma MEOWS traída
+    de Dinámica guarda su folio (Medicion.dinamica_folio), y el folio sabe a
+    qué ingreso pertenece: asignación exacta, sin depender de fechas.
+    Devuelve {} si no hay conexión."""
+    folios = sorted({int(f) for f in folios if f is not None})
+    if not folios or not dinamica_disponible():
+        return {}
+    resultado = {}
+    try:
+        with connections['readonly'].cursor() as cursor:
+            for i in range(0, len(folios), 500):
+                lote = folios[i:i + 500]
+                marcas = ', '.join(['%s'] * len(lote))
+                cursor.execute(
+                    f"""SELECT FOL.OID, ING.AINCONSEC FROM HCNFOLIO AS FOL
+                    INNER JOIN ADNINGRESO AS ING ON FOL.ADNINGRESO = ING.OID
+                    WHERE FOL.OID IN ({marcas})""",
+                    lote,
+                )
+                resultado.update({int(f): str(n).strip() for f, n in cursor.fetchall() if n is not None})
+    except Exception as exc:
+        _marcar_dinamica_caida(exc)
+        return {}
+    return resultado

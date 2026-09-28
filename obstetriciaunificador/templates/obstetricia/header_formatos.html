@@ -68,7 +68,21 @@
     margin-top: 4px;
 }
 
+/* 2026-09-28: columna izquierda del encabezado -- campana NAS. */
+.header-formatos-izquierda {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    position: relative;
+    /* Por encima de la barra lateral: el panel de la campana se abre hacia
+       abajo a la izquierda y, con z-index bajo, quedaba tapado por ella. */
+    z-index: 10050;
+}
 .header-formatos-logo-right {
+    grid-row: 1;
     display: flex !important;
     align-items: center !important;
     gap: 16px !important;
@@ -257,6 +271,11 @@
 </style>
 {% comment %}Encabezado institucional unificado para formatos{% endcomment %}
 <header class="header-formatos-institucionales">
+    {# 2026-09-28: campana "NAS" (confirma cada registro guardado en el repositorio #}
+    {# clínico) -- sola en el extremo IZQUIERDO del encabezado, a pedido. #}
+    <div class="header-formatos-izquierda">
+        {% include 'obstetricia/_campana_nas.html' %}
+    </div>
     <div class="header-formatos-institucional">
         <img src="{% static 'img/logo_hospital.png' %}" alt="Logo Hospital">
         <div class="header-formatos-institucional-texto">

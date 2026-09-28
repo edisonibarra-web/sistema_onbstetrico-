@@ -12,11 +12,14 @@ from meows.services.grid import construir_grid_meows
 # Importación diferida del generador PDF para evitar errores de WeasyPrint al iniciar
 # from meows.generador_pdf_meows import generar_pdf_meows
 import json
+import logging
 from django.views.decorators.cache import never_cache
 from datetime import date, datetime, timedelta
 from django.utils import timezone
 from django.utils.timesince import timesince
 from sistema_obstetrico.auth_utils import login_required_if_enabled, nombre_profesional_sesion
+
+logger = logging.getLogger(__name__)
 
 
 @login_required_if_enabled
@@ -120,6 +123,13 @@ def crear_medicion_meows(request, paciente_id=None, medicion_id=None):
     medicion_editar = None
     if medicion_id:
         medicion_editar = get_object_or_404(Medicion, id=medicion_id)
+        # 2026-09-24: una toma de un ingreso ya cerrado (pasada la gracia tras
+        # el egreso) queda en solo consulta.
+        from obstetriciaunificador.ingresos import motivo_bloqueo_edicion
+        motivo = motivo_bloqueo_edicion(medicion_editar.atencion, request.user)
+        if motivo:
+            messages.error(request, motivo)
+            return redirect(f"/meows/resultado/{medicion_id}/")
         paciente = medicion_editar.paciente
     else:
         paciente = get_object_or_404(Paciente, id=paciente_id)
@@ -430,7 +440,10 @@ def _buscar_prefill_triaje(numero_documento):
         return None
 
     paciente_local = Paciente.objects.filter(numero_documento=numero_documento).first()
-    if paciente_local:
+    # 2026-09-24: una ficha vacía ("N/A N/A", creada solo por abrir un módulo
+    # con ese documento) no es una paciente registrada: se sigue buscando en
+    # Dinámica y, si no está, se trata como paciente nueva.
+    if paciente_local and not paciente_local.es_ficha_vacia:
         return {
             'origen': 'local',
             'paciente_id': paciente_local.id,
@@ -455,7 +468,7 @@ def _buscar_prefill_triaje(numero_documento):
     seg_ape = f" {ext.PACSEGAPE}" if ext.PACSEGAPE else ""
     return {
         'origen': 'nexus',
-        'paciente_id': None,
+        'paciente_id': paciente_local.id if paciente_local else None,
         'nombres': f"{ext.PACPRINOM}{seg_nom}".strip(),
         'apellidos': f"{ext.PACPRIAPE}{seg_ape}".strip(),
         'sexo': 'M' if ext.GPASEXPAC == 1 else ('F' if ext.GPASEXPAC == 2 else ''),
@@ -507,13 +520,22 @@ def abrir_triaje(request, doc=None):
     if not documento:
         return redirect("/")
 
-    if _obtener_estancia_activa_gineco(documento):
+    if _ya_en_sala_de_partos(documento):
         # Ya tiene ingreso activo: Dinámica la cubre, no se abre triaje para
         # no competir con esa fuente.
         messages.info(request, "Esta paciente ya tiene ingreso activo: sus mediciones se registran desde Dinámica.")
         return redirect(f"/meows/crear/{documento}/")
 
     paciente = Paciente.objects.filter(numero_documento=documento).first()
+    if paciente and paciente.es_ficha_vacia:
+        # Ficha vacía: si Dinámica sí conoce a la paciente, se completa con sus datos.
+        datos = _buscar_prefill_triaje(documento)
+        if datos and datos['origen'] == 'nexus':
+            paciente.nombres = datos['nombres'] or paciente.nombres
+            paciente.apellidos = datos['apellidos'] or paciente.apellidos
+            paciente.sexo = datos['sexo'] or paciente.sexo
+            paciente.fecha_nacimiento = datos['fecha_nacimiento'] or paciente.fecha_nacimiento
+            paciente.save(update_fields=['nombres', 'apellidos', 'sexo', 'fecha_nacimiento'])
     if not paciente:
         datos = _buscar_prefill_triaje(documento)
         if datos and datos['origen'] == 'nexus':
@@ -552,7 +574,7 @@ def crear_medicion_triaje(request, paciente_id=None, medicion_id=None):
     else:
         paciente = get_object_or_404(Paciente, id=paciente_id)
 
-    if _obtener_estancia_activa_gineco(paciente.numero_documento):
+    if _ya_en_sala_de_partos(paciente.numero_documento):
         messages.info(request, "Esta paciente ya tiene ingreso activo: sus mediciones se registran desde Dinámica.")
         return redirect(f"/meows/historial/{paciente.id}/")
 
@@ -739,7 +761,7 @@ def api_pacientes_triaje(request):
 
     resultado = []
     for p in pacientes:
-        if _obtener_estancia_activa_gineco(p.numero_documento):
+        if _ya_en_sala_de_partos(p.numero_documento):
             continue
         ultima = (
             Medicion.objects.filter(paciente=p, origen='triaje')
@@ -915,6 +937,23 @@ def api_calcular_score(request):
             'success': False,
             'error': str(e)
         }, status=400)
+
+
+def _ya_en_sala_de_partos(numero_documento):
+    """
+    2026-09-24: la paciente ya pasó de Triaje a Sala de Partos -- mismo
+    criterio que la lista de Sala de Partos (ver
+    frecuenciafetal.sala_partos_db.paciente_en_sala_partos). Antes Triaje usaba
+    _obtener_estancia_activa_gineco (solo Hospitalización y Cuidado Intermedio
+    gineco) y una paciente en cama de Sala de Partos, o gestante en urgencias,
+    salía en las dos listas y se le podían seguir registrando tomas de triaje.
+    Si Dinámica no responde, se usa el criterio anterior como respaldo.
+    """
+    from frecuenciafetal.sala_partos_db import paciente_en_sala_partos
+    en_sala = paciente_en_sala_partos(numero_documento)
+    if en_sala is None:
+        return bool(_obtener_estancia_activa_gineco(numero_documento))
+    return en_sala
 
 
 def _obtener_estancia_activa_gineco(numero_documento):
@@ -1325,6 +1364,27 @@ def responsable_meows_default(request, paciente):
     return responsable_meows_mas_reciente(paciente) or nombre_profesional_sesion(request)
 
 
+def _tomas_del_ingreso_elegido(request, documento):
+    """
+    2026-09-24: selector de ingresos (obstetriciaunificador.ingresos). Devuelve
+    (resumen | None, ids de Medicion del ingreso elegido | None). None en ids =
+    la paciente no tiene ingresos conocidos (p. ej. triaje sin ingreso, o
+    Dinámica caída en una paciente sin atención con ingreso): se muestra como
+    antes. ?ingreso= en la URL elige el ingreso; sin él, el ingreso actual.
+    """
+    if not documento:
+        return None, None
+    try:
+        from obstetriciaunificador.ingresos import resumen_ingresos
+        resumen, grupos = resumen_ingresos(documento, 'meows', request.GET.get('ingreso') or '', fresco=True)
+    except Exception:
+        logger.exception("No se pudo calcular el selector de ingresos de MEOWS")
+        return None, None
+    if not resumen['elegido']:
+        return resumen, None
+    return resumen, grupos.get(resumen['elegido'], [])
+
+
 @login_required_if_enabled
 def historial_meows_paciente(request, paciente_id):
     """
@@ -1337,7 +1397,9 @@ def historial_meows_paciente(request, paciente_id):
     """
     paciente = get_object_or_404(Paciente, id=paciente_id)
 
-    grid_parametros, columnas = construir_grid_meows(paciente)
+    documento = request.GET.get("doc") or paciente.numero_documento
+    resumen_ingreso, ids_ingreso = _tomas_del_ingreso_elegido(request, documento)
+    grid_parametros, columnas = construir_grid_meows(paciente, medicion_ids=ids_ingreso)
 
     # 2026-09-22: a pedido, para diferenciar de un vistazo si esta paciente
     # todavía está en Triaje (sin ningún registro de Dinámica todavía) --
@@ -1346,7 +1408,6 @@ def historial_meows_paciente(request, paciente_id):
     # de Dinámica (ya tuvo ingreso), vuelve a "Línea de Tiempo Clínica".
     todo_origen_triaje = bool(columnas) and all(c['origen'] != 'dinamica' for c in columnas)
 
-    documento = request.GET.get("doc") or paciente.numero_documento
     atencion_id = request.GET.get("atencion")
     if not atencion_id and documento:
         # Si no viene por la URL, buscamos la atención activa más reciente de este paciente
@@ -1375,7 +1436,24 @@ def historial_meows_paciente(request, paciente_id):
         except Exception:
             pass  # Dinámica no disponible: la tarjeta muestra "-"
 
+    # Ingreso elegido en el selector: la tarjeta muestra ESE número.
+    solo_consulta = bool(resumen_ingreso and resumen_ingreso['solo_consulta'])
+    ingreso_param = ''
+    if resumen_ingreso and resumen_ingreso['elegido']:
+        if resumen_ingreso['elegido'].isdigit():
+            numero_ingreso = resumen_ingreso['elegido']
+        if resumen_ingreso['elegido'] != resumen_ingreso['actual']:
+            ingreso_param = resumen_ingreso['elegido']
+
+    # 2026-09-24: Triaje y Sala de Partos son independientes. Una paciente que
+    # solo tiene tomas de triaje y ningún ingreso no muestra en el menú los
+    # módulos de Sala de Partos (MEOWS / Posparto / Trabajo de Parto).
+    if todo_origen_triaje and not numero_ingreso:
+        atencion_id = None
+
     return render(request, "meows/historial.html", {
+        "solo_consulta": solo_consulta,
+        "ingreso_param": ingreso_param,
         "paciente": paciente,
         "grid_parametros": grid_parametros,
         "columnas": columnas,
@@ -1411,6 +1489,11 @@ def generar_pdf_meows_paciente(request, paciente_id):
     ).select_related('formulario').prefetch_related(
         'valores__parametro'
     ).order_by("fecha_hora")
+    # 2026-09-24: solo las tomas del ingreso elegido (el mismo que muestra la
+    # Línea de Tiempo con el selector de ingresos; sin ?ingreso=, el actual).
+    _, ids_ingreso = _tomas_del_ingreso_elegido(request, paciente.numero_documento)
+    if ids_ingreso is not None:
+        mediciones_qs = mediciones_qs.filter(id__in=ids_ingreso)
     
     if not mediciones_qs.exists():
         messages.error(request, 'El paciente no tiene mediciones registradas para generar el PDF.')

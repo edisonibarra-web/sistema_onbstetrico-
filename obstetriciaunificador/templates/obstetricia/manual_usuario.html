@@ -488,7 +488,7 @@
                     <h1>Manual de Usuario del Sistema Obstétrico Unificado</h1>
                     <div class="manual-meta">
                         <span><i data-lucide="hospital" size="13"></i> Hospital Universitario Departamental de Nariño</span>
-                        <span><i data-lucide="tag" size="13"></i> Versión del manual 1.2</span>
+                        <span><i data-lucide="tag" size="13"></i> Versión del manual 1.3</span>
                         <span><i data-lucide="calendar" size="13"></i> Actualizado el 23 de septiembre de 2026</span>
                     </div>
                     <p>
@@ -532,8 +532,9 @@
                         <a href="#sec-parto"><span class="dot" style="background:var(--c-parto)"></span>6. Trabajo de Parto</a>
                         <a href="#sec-pdf"><span class="dot" style="background:var(--c-sala)"></span>7. PDF unificado</a>
                         <a href="#sec-repositorio"><span class="dot" style="background:#0f766e"></span>8. Repositorio clínico (NAS)</a>
-                        <a href="#sec-faq"><span class="dot" style="background:var(--c-manual)"></span>9. Preguntas frecuentes</a>
-                        <a href="#sec-seguridad"><span class="dot" style="background:#0f172a"></span>10. Seguridad, permisos y roles</a>
+                        <a href="#sec-ingresos"><span class="dot" style="background:#475569"></span>9. Consultar registros por ingreso</a>
+                        <a href="#sec-faq"><span class="dot" style="background:var(--c-manual)"></span>10. Preguntas frecuentes</a>
+                        <a href="#sec-seguridad"><span class="dot" style="background:#0f172a"></span>11. Seguridad, permisos y roles</a>
                     </div>
                 </div>
 
@@ -564,7 +565,7 @@
                         <i data-lucide="shield-alert" size="18"></i>
                         <span>Este sistema maneja información clínica de pacientes. No comparta su usuario ni su
                         contraseña con nadie, ni siquiera con otro compañero de turno — cada quien debe ingresar con
-                        su propia cuenta. Vea más recomendaciones en la sección 10 (Seguridad).</span>
+                        su propia cuenta. Vea más recomendaciones en la sección 11 (Seguridad).</span>
                     </div>
 
                     <h3 class="step-title">Iniciar sesión</h3>
@@ -670,7 +671,7 @@
 
                     <h3 class="step-title">Las campanas de alertas y el botón de salir (siempre visibles, arriba a la derecha)</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 8px;">
-                        En la esquina superior derecha hay <b>dos campanas</b> 🔔, cada una con su rótulo:
+                        En la esquina superior derecha hay <b>tres botones redondos</b>, cada uno con su rótulo:
                     </p>
                     <ul class="plain">
                         <li><b>DINÁMICA</b> (azul): alertas MEOWS de <b>cualquier</b> paciente con ingreso, calculadas
@@ -678,7 +679,31 @@
                         <li><b>TRIAJE</b> (morada) <span class="badge-nuevo">Nuevo</span>: alertas de los signos vitales
                             tomados en <b>Triaje</b>, antes de que la paciente tenga ingreso. Funciona igual que la de
                             Dinámica, pero por separado, para que nunca se mezclen (ver sección 3).</li>
+                        <li><b>NAS</b> (ícono de servidor) <span class="badge-nuevo">Nuevo</span>: confirma cada registro
+                            que quedó <b>guardado en el repositorio clínico</b> (la NAS), incluidos los envíos automáticos
+                            (MEOWS al egreso, Triaje al ingreso). Así no queda la duda de si se guardó.
+                            Cada profesional ve solo los de <b>sus pacientes</b>: aquellas en las que registró algo en los
+                            últimos 15 días (tomas, controles, cierres) y los formatos que envió. El nombre se reconoce aunque
+                            esté escrito en otro orden (por ejemplo, Dinámica pone primero los apellidos). Ven todos los
+                            administradores y quienes Sistemas agregue al grupo <b>"Ve todas las notificaciones NAS"</b>
+                            (por ejemplo, las jefes de enfermería).
+                            <ul class="plain" style="margin-top:6px;">
+                                <li><b>Gris:</b> no hay novedades.</li>
+                                <li><b>Verde con número:</b> hay registros guardados que usted aún no ha mirado.</li>
+                                <li><b>Roja con pulso:</b> algún envío falló (el sistema lo reintenta solo; vea la sección 8).</li>
+                                <li>Si la pantalla está abierta cuando se guarda un registro, además aparece un aviso
+                                    verde abajo a la derecha: <i>"Registro MEOWS guardado en la NAS"</i>, con la paciente y el ingreso.</li>
+                            </ul>
+                        </li>
                     </ul>
+                    <div class="screenshot-frame" style="max-width:460px;">
+                        <img src="{% static 'manual/campana_nas.png' %}?v=1" alt="Campana NAS abierta con la lista de registros guardados en el repositorio">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Campana NAS abierta (datos ficticios): cada línea dice qué formato se guardó, de qué paciente, en qué ingreso, cuándo y con qué nombre de archivo.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
                         Justo al lado de la campana está el botón rojo circular de <b>Cerrar Sesión</b> (ícono de
                         salida). Le pide confirmación antes de cerrar la sesión, para evitar que la cierre por
@@ -985,9 +1010,10 @@
                     </ul>
                     <div class="callout warn">
                         <i data-lucide="alert-triangle" size="18"></i>
-                        <span>En Triaje <b>no hay botón</b> "Finalizar y enviar a repositorio": mientras la paciente no
-                        tenga ingreso no existe la carpeta del ingreso donde guardar el formato. Si la paciente se va
-                        sin que le hagan ingreso, su triaje queda guardado en el sistema, pero no se envía al repositorio.</span>
+                        <span>Mientras la paciente no tenga ingreso no existe la carpeta del ingreso donde guardar el
+                        formato. Si la paciente se va sin que le hagan ingreso, su triaje queda guardado en el sistema
+                        (se consulta en la opción <b>"Triajes sin ingreso"</b> del selector de ingresos, sección 9), pero
+                        no se envía al repositorio.</span>
                     </div>
                 </section>
 
@@ -1105,55 +1131,37 @@
                         <li><code class="btnname">📄 Generar PDF</code>: descarga el formato oficial MEOWS con todas
                             las mediciones de la paciente (si tiene muchas, se reparten en varias páginas para que
                             ninguna quede afuera). Solo lo descarga a su computador; <b>no</b> lo guarda en el repositorio.</li>
-                        <li><code class="btnname">📤 Finalizar y enviar a repositorio</code> <span class="badge-nuevo">Nuevo</span>:
-                            genera el formato final MEOWS del ingreso actual y lo guarda en el repositorio clínico. Vea
-                            el detalle justo abajo.</li>
+                        <li><b>Selector de ingresos</b> <span class="badge-nuevo">Nuevo</span>: arriba de la línea de
+                            tiempo, para ver las tomas de un ingreso anterior de la paciente (sección 9).</li>
                     </ul>
 
-                    <h3 class="step-title">Finalizar el formato MEOWS y enviarlo al repositorio clínico <span class="badge-nuevo">Nuevo</span></h3>
-                    <div class="screenshot-frame hotspot-frame">
-                        <img src="{% static 'manual/meows_finalizar_repositorio.png' %}?v=2" alt="Línea de Tiempo Clínica MEOWS con el botón Finalizar y enviar a repositorio">
-                        <button type="button" class="hotspot" data-num="1" style="left:66.2%;top:58%" title="Generar PDF">1</button>
-                        <button type="button" class="hotspot" data-num="2" style="left:87.6%;top:56.5%" title="Finalizar y enviar a repositorio">2</button>
-                        <button type="button" class="hotspot" data-num="3" style="left:30.5%;top:42.9%" title="Responsable del reporte">3</button>
-                        <button type="button" class="hotspot" data-num="4" style="left:33.5%;top:83.3%" title="Responsable de cada toma">4</button>
-                    </div>
-                    <div class="screenshot-caption">
-                        <i data-lucide="camera" size="14"></i>
-                        <span>Historial Clínico MEOWS de una paciente (datos ficticios): la tarjeta muestra el nuevo campo Ingreso, y el botón nuevo está entre "Generar PDF" y "Ocultar".</span>
-                        <span class="zoom-hint">🔍 Clic para ampliar</span>
-                    </div>
-                    <div class="hotspot-hint"><i data-lucide="mouse-pointer-click" size="14"></i> Haga clic en cada número de la captura para ver su explicación:</div>
-                    <div class="hotspot-panel">
-                        <div class="hotspot-panel-item" data-num="1"><b class="num">1</b><span><b>Generar PDF:</b> descarga el PDF para verlo o imprimirlo. No lo guarda en el repositorio.</span></div>
-                        <div class="hotspot-panel-item" data-num="2"><b class="num">2</b><span><b>Finalizar y enviar a repositorio:</b> genera el PDF final y lo guarda en la carpeta de la paciente y de su ingreso.</span></div>
-                        <div class="hotspot-panel-item" data-num="3"><b class="num">3</b><span><b>Responsable del reporte:</b> el nombre que queda impreso en el PDF. Viene precargado con quien digitó la toma más reciente; puede cambiarlo antes de finalizar.</span></div>
-                        <div class="hotspot-panel-item" data-num="4"><b class="num">4</b><span><b>Responsable de cada toma:</b> debajo del distintivo "Dinámica" aparece quien digitó esa toma en Dinámica (o, en tomas de Triaje, quien la registró en este sistema).</span></div>
-                    </div>
-                    <ol class="steps">
-                        <li>Abra el <b>Historial Clínico MEOWS</b> de la paciente (desde la tarjeta <b>MODULO MEOWS</b> en Sala de Partos).</li>
-                        <li>En la tarjeta <b>Información del Paciente</b>, revise el campo <b>Ingreso</b> <span class="badge-nuevo">Nuevo</span>:
-                            es el número de ingreso en cuya carpeta se guardará el formato.</li>
-                        <li>Verifique el nombre en <b>RESPONSABLE DEL REPORTE</b>.</li>
-                        <li>Presione <code class="btnname">📤 Finalizar y enviar a repositorio</code> y confirme el
-                            mensaje <i>"¿Finalizar el formato MEOWS de este ingreso y enviarlo al repositorio clínico?"</i>.</li>
-                        <li>Espere unos segundos: el botón cambia a <b>"⏳ Enviando..."</b> y luego aparece un mensaje:
-                            <ul class="plain" style="margin-top:6px;">
-                                <li><b>✅ "Formato guardado en la NAS: &lt;documento&gt;/&lt;ingreso&gt;/otros_escala_meows_&lt;documento&gt;_&lt;n&gt;.pdf"</b>: quedó guardado.</li>
-                                <li><b>❌ "No se pudo guardar el formato…"</b> con la causa: vea qué hacer en la sección 8.</li>
-                            </ul>
-                        </li>
-                    </ol>
+                    <h3 class="step-title">Guardado automático del formato MEOWS en la NAS al egreso <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt">
+                        Ya <b>no hay botón</b> "Finalizar y enviar a repositorio" en MEOWS: el formato se guarda
+                        <b>solo</b> en el repositorio clínico cuando la paciente egresa. No hay que presionar nada.
+                    </p>
                     <ul class="plain">
-                        <li>El PDF incluye las tomas <b>del ingreso actual</b> (desde la fecha del ingreso), más las
-                            tomas de <b>triaje</b> de hasta 24 horas antes del ingreso. No mezcla tomas de ingresos anteriores.</li>
-                        <li>Puede finalizar más de una vez (por ejemplo, al terminar cada turno o al dar de alta). Cada
-                            envío se guarda como un archivo nuevo con el siguiente número (<b>_1</b>, <b>_2</b>, <b>_3</b>…);
-                            <b>nunca se reemplaza</b> un archivo anterior.</li>
-                        <li>Si la paciente no tiene mediciones en este ingreso, el sistema avisa
-                            <i>"La paciente no tiene mediciones MEOWS en este ingreso"</i> y no envía nada.</li>
-                        <li>En la <b>Línea de Tiempo Triaje</b> este botón no aparece (vea la sección 3).</li>
+                        <li><b>Cuándo:</b> cuando admisiones registra el <b>egreso</b> del ingreso en Dinámica (la fecha
+                            de egreso oficial del ingreso). Aplica también a las pacientes que nunca tuvieron cama
+                            asignada. El sistema lo revisa en cada sincronización con Dinámica, así que queda guardado
+                            pocos minutos después del egreso.</li>
+                        <li><b>Qué contiene:</b> todas las tomas <b>de ese ingreso</b> (las que llegan de Dinámica se
+                            ubican por su folio, así que nunca se mezclan tomas de otro ingreso), más las tomas de
+                            <b>triaje</b> de hasta 24 horas antes del ingreso.</li>
+                        <li><b>Una sola vez por ingreso.</b> Si el envío falla (por ejemplo, la NAS no responde), se
+                            reintenta solo en las siguientes revisiones, hasta 5 veces.</li>
+                        <li><b>Responsable del reporte:</b> el PDF lleva el nombre de quien digitó en Dinámica la toma
+                            más reciente. El campo <b>RESPONSABLE DEL REPORTE</b> de la pantalla solo cambia el nombre
+                            del PDF que usted descarga con <code class="btnname">📄 Generar PDF</code>.</li>
+                        <li>Los ingresos <b>anulados</b> en Dinámica no se envían.</li>
                     </ul>
+                    <div class="callout">
+                        <i data-lucide="badge-check" size="18"></i>
+                        <span><b>¿Cómo sé que quedó guardado?</b> Tres formas: (1) la campana <b>NAS</b> del encabezado
+                        se pone verde y muestra <i>"Registro MEOWS guardado en la NAS"</i>; (2) en el selector de
+                        ingresos aparece el sello verde <b>"✔ Guardado en la NAS el …"</b>; (3) con el botón
+                        <b>Documentos en el repositorio</b> se ve el archivo en la carpeta del ingreso (sección 9).</span>
+                    </div>
 
                     <h3 class="step-title">Al abrir el detalle de una medición</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0 0 6px;">
@@ -1371,6 +1379,14 @@
                             materna) — el sistema le sugiere uno según el diagnóstico, pero siempre revíselo.</li>
                         <li>Complete los antecedentes: <b>Gestas, Partos, Cesáreas, Abortos</b> (G/P/C/A).</li>
                     </ol>
+                    <div class="callout">
+                        <i data-lucide="files" size="18"></i>
+                        <span><b>Una hoja por ingreso</b> <span class="badge-nuevo">Nuevo</span>: si la paciente
+                        vuelve a ingresar, el sistema abre una <b>hoja nueva y limpia</b> para el nuevo ingreso. La
+                        hoja del ingreso anterior queda guardada tal cual y se consulta con el selector de ingresos
+                        (sección 9). Antes se abría siempre la última hoja de la paciente y se mezclaban los
+                        ingresos.</span>
+                    </div>
 
                     <h3 class="step-title">Registrar los parámetros por hora</h3>
                     <ol class="steps">
@@ -1538,8 +1554,8 @@
                         <div class="lvl1"><span class="dir">📁 1234567890</span><span class="nota">← documento de la paciente</span></div>
                         <div class="lvl2"><span class="dir">📁 1812342</span><span class="nota">← número de ingreso en Dinámica</span></div>
                         <div class="lvl3"><span class="file">📄 otros_triaje_obstetrico_1234567890_1.pdf</span><span class="nota">← automático al registrarse el ingreso</span></div>
-                        <div class="lvl3"><span class="file">📄 otros_escala_meows_1234567890_1.pdf</span><span class="nota">← botón "Finalizar" en MEOWS</span></div>
-                        <div class="lvl3"><span class="file">📄 otros_escala_meows_1234567890_2.pdf</span><span class="nota">← MEOWS finalizado otra vez (no reemplaza al _1)</span></div>
+                        <div class="lvl3"><span class="file">📄 otros_escala_meows_1234567890_1.pdf</span><span class="nota">← automático al egreso de la paciente</span></div>
+                        <div class="lvl3"><span class="file">📄 otros_escala_meows_1234567890_2.pdf</span><span class="nota">← otra versión del formato (no reemplaza al _1)</span></div>
                         <div class="lvl3"><span class="file">📄 otros_trabajo_de_parto_1234567890_1.pdf</span><span class="nota">← botón "Finalizar" en Trabajo de Parto</span></div>
                         <div class="lvl3"><span class="file">📄 otros_control_posparto_inmediato_1234567890_1.pdf</span><span class="nota">← automático con "Guardar Registro Completo"</span></div>
                         <div class="lvl3"><span class="otro">📄 otros_escala_downton_1234567890_2753.pdf</span><span class="nota">← documentos de otros aplicativos, no se tocan</span></div>
@@ -1564,8 +1580,8 @@
                             </tr>
                             <tr>
                                 <td><b>MEOWS</b></td>
-                                <td>Al presionar <b>Finalizar y enviar a repositorio</b> en el Historial Clínico MEOWS.</td>
-                                <td>El profesional</td>
+                                <td><b>Automático al egreso</b> de la paciente (fecha de egreso oficial en Dinámica). Una sola vez por ingreso; si falla, se reintenta solo.</td>
+                                <td>Automático</td>
                                 <td><code>otros_escala_meows_&lt;doc&gt;_&lt;n&gt;.pdf</code></td>
                             </tr>
                             <tr>
@@ -1596,8 +1612,10 @@
                             formatos quedan junto a los de los demás aplicativos, sin carpetas duplicadas.</li>
                         <li><b>Nunca sobrescribe:</b> si un formato se envía varias veces en el mismo ingreso, cada envío
                             queda como un archivo nuevo con el número siguiente (_1, _2, _3…). Los anteriores no se tocan.</li>
-                        <li><b>Solo formatos finales:</b> el Control Posparto solo se envía cerrado; MEOWS y Trabajo de
-                            Parto, cuando usted presiona "Finalizar".</li>
+                        <li><b>Solo formatos finales:</b> el Control Posparto solo se envía cerrado; MEOWS, cuando la
+                            paciente egresa; Trabajo de Parto, cuando usted presiona "Finalizar".</li>
+                        <li><b>Siempre se confirma:</b> cada envío (exitoso o fallido) aparece en la campana <b>NAS</b> del
+                            encabezado y en el sello del selector de ingresos de cada módulo (sección 9).</li>
                         <li><b>Siempre en el ingreso correcto:</b> se usa el ingreso activo de la paciente; si ya fue dada
                             de alta, el más reciente. Si la paciente no tiene ningún ingreso en Dinámica, no se envía nada y
                             el sistema lo avisa.</li>
@@ -1620,7 +1638,7 @@
                             <tr><td><i>"El registro aún no está cerrado ('Guardar Registro Completo')…"</i></td>
                                 <td>Solo se envían formatos de Control Posparto cerrados. Registre el control de las 6 horas después del parto y cierre el registro.</td></tr>
                             <tr><td><i>"No se pudo guardar el formato en la NAS: …"</i> (problema de conexión, tiempo de espera, permisos)</td>
-                                <td>La NAS no respondió en ese momento. Intente de nuevo en unos minutos: en MEOWS y Trabajo de Parto con el botón "Finalizar y enviar a repositorio"; en Control Posparto con "Reenviar a repositorio". Si el error continúa, avise a <b>Sistemas</b> con el nombre y documento de la paciente: el intento queda registrado en la bitácora.</td></tr>
+                                <td>La NAS no respondió en ese momento. Los envíos automáticos (MEOWS al egreso, Triaje) se reintentan solos. Para los demás, intente de nuevo en unos minutos: en Trabajo de Parto con el botón "Finalizar y enviar a repositorio"; en Control Posparto con "Reenviar a repositorio". Si el error continúa, avise a <b>Sistemas</b> con el nombre y documento de la paciente: el intento queda registrado en la bitácora.</td></tr>
                         </tbody>
                     </table>
 
@@ -1659,12 +1677,121 @@
                     </ul>
                 </section>
 
+                <!-- 9. CONSULTAR REGISTROS POR NÚMERO DE INGRESO -->
+                <section class="section-card c-repo" id="sec-ingresos">
+                    <div class="section-head">
+                        <div class="section-icon"><i data-lucide="folder-search"></i></div>
+                        <h2>9. Consultar registros por número de ingreso <span class="badge-nuevo">Nuevo</span></h2>
+                    </div>
+                    <p class="section-sub">
+                        En <b>MEOWS</b> (Historial Clínico), <b>Trabajo de Parto</b> y <b>Control Posparto</b> hay, arriba, un
+                        selector con los <b>ingresos de la paciente</b>. Al elegir uno, el módulo muestra <b>solo los
+                        registros de ese ingreso</b>. No hay que saberse el número de ingreso: se elige de la lista.
+                    </p>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/ingreso_selector.png' %}?v=1" alt="Selector de ingresos en el Historial Clínico MEOWS con el sello de guardado y los documentos del repositorio">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Selector de ingresos en MEOWS (datos ficticios): el ingreso actual, el sello verde de guardado en el repositorio y la lista de documentos de la carpeta del ingreso.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+
+                    <h3 class="step-title">Cómo leer cada opción de la lista</h3>
+                    <p class="txt"><code>★ 1812162 · 09/09/2026 → en curso · Hospitalización · 88 tomas MEOWS · 2 PDF en NAS</code></p>
+                    <ul class="plain">
+                        <li><b>★</b> marca el <b>ingreso actual</b>, que es el que se abre siempre por defecto. El
+                            mismo número aparece en el campo <b>Ingreso</b> de la tarjeta de la paciente en los tres módulos.</li>
+                        <li><b>Número de ingreso · fecha de ingreso → fecha de egreso</b> (o <b>"en curso"</b> si la paciente sigue hospitalizada).</li>
+                        <li><b>Tipo:</b> Urgencias u Hospitalización.</li>
+                        <li><b>Cuántos registros</b> de este módulo tiene ese ingreso (tomas MEOWS, hojas de Trabajo de
+                            Parto o registros posparto) y cuántos <b>PDF</b> hay guardados en la NAS.</li>
+                        <li>Por defecto solo aparecen los ingresos que interesan aquí (urgencias, hospitalización o con
+                            registros). Marque <b>"Ver todos los ingresos"</b> para ver también consultas externas,
+                            laboratorios e ingresos anulados.</li>
+                    </ul>
+
+                    <h3 class="step-title">Cuando un ingreso no tiene registros</h3>
+                    <table class="info-table">
+                        <thead><tr><th>Texto</th><th>Qué significa</th></tr></thead>
+                        <tbody>
+                            <tr><td><b>Registros en físico (antes de la implementación de la app)</b></td>
+                                <td>El ingreso fue antes de que el hospital empezara a usar este sistema: sus registros están en papel.</td></tr>
+                            <tr><td><b>… · parte en físico</b></td>
+                                <td>El ingreso empezó antes de usar el sistema: una parte está aquí y otra en papel.</td></tr>
+                            <tr><td><b>Sin registros de este módulo en este ingreso</b></td>
+                                <td>El ingreso es posterior, pero no se usó este módulo (por ejemplo, una paciente ginecológica no tiene Trabajo de Parto).</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="txt">
+                        Además pueden aparecer dos opciones especiales: <b>"Triajes sin ingreso"</b> (pacientes que se
+                        fueron desde Triaje sin que les hicieran ingreso) y <b>"Registros sin ingreso asociado"</b>
+                        (registros cuya fecha no coincide con ningún ingreso). Ningún registro queda oculto.
+                    </p>
+
+                    <h3 class="step-title">Ver un ingreso anterior: solo consulta</h3>
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/ingreso_solo_consulta.png' %}?v=1" alt="Aviso de solo consulta al ver un ingreso anterior">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Ingreso anterior en Trabajo de Parto (datos ficticios): el aviso naranja indica que es solo consulta y ofrece volver al ingreso actual.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+                    <ol class="steps">
+                        <li>Elija el ingreso en la lista. La página se recarga mostrando <b>solo</b> los registros de ese ingreso.</li>
+                        <li>Aparece el aviso naranja <b>"🔒 Estás viendo el ingreso … Solo consulta"</b>: se puede ver
+                            todo, abrir la Vista Previa y descargar el PDF, pero <b>no se puede modificar nada</b> (los
+                            campos y botones de edición quedan apagados y el guardado automático se detiene).</li>
+                        <li>Para volver, use el enlace <b>"Volver al ingreso actual"</b> del aviso o elija el ingreso con ★.</li>
+                    </ol>
+
+                    <h3 class="step-title">Notas tardías: 24 horas después del egreso</h3>
+                    <ul class="plain">
+                        <li>Después del egreso, el ingreso <b>se puede seguir completando durante 24 horas</b> (notas que
+                            se terminan de registrar tarde). Un aviso amarillo indica hasta qué fecha y hora.</li>
+                        <li>Pasadas las 24 horas, el ingreso queda en <b>solo consulta</b>. Si hace falta una corrección,
+                            la hace un <b>administrador</b>; si el formato ya estaba en la NAS, se guarda una versión nueva
+                            (_2, _3…) sin borrar la anterior.</li>
+                        <li>El bloqueo se aplica también en el servidor: aunque alguien intente guardar por otra vía, el
+                            sistema lo rechaza con el mismo mensaje.</li>
+                    </ul>
+
+                    <h3 class="step-title">Documentos en el repositorio</h3>
+                    <p class="txt">
+                        El botón <code class="btnname">📁 Documentos en el repositorio</code> lista los archivos que hay en
+                        la carpeta de ese ingreso en la NAS: los de este sistema (<b>Esta app</b>) y los de otros
+                        aplicativos del hospital (<b>Otro aplicativo</b>). Clic en un archivo para abrirlo. Queda
+                        registrado quién abrió cada documento.
+                    </p>
+
+                    <h3 class="step-title">Si Dinámica no responde</h3>
+                    <p class="txt" style="margin:0;">
+                        El selector muestra el aviso <i>"Dinámica no responde en este momento: se muestran los ingresos
+                        que ya conoce la app"</i> y sigue funcionando con esos ingresos. Mientras tanto nunca se bloquea
+                        la edición: el registro de la atención no se detiene.
+                    </p>
+                </section>
+
                 <!-- 9. FAQ -->
                 <section class="section-card c-manual" id="sec-faq">
                     <div class="section-head">
                         <div class="section-icon"><i data-lucide="help-circle"></i></div>
-                        <h2>9. Preguntas frecuentes</h2>
+                        <h2>10. Preguntas frecuentes</h2>
                     </div>
+
+                    <h3 class="step-title">¿Cómo sé que un registro quedó guardado en la NAS? <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt">
+                        Mire la campana <b>NAS</b> del encabezado (verde = guardado, roja = falló y se reintenta) o el
+                        sello verde <b>"✔ Guardado en la NAS"</b> en el selector de ingresos del módulo (secciones 1 y 9).
+                    </p>
+
+                    <h3 class="step-title">¿Puedo ver los registros de un ingreso anterior de la paciente? <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt">
+                        Sí: elíjalo en el selector de ingresos de MEOWS, Trabajo de Parto o Control Posparto. Se ve en
+                        solo consulta (sección 9).
+                    </p>
 
                     <h3 class="step-title">No encuentro a mi paciente en Sala de Partos, ¿qué hago?</h3>
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
@@ -1747,8 +1874,9 @@
 
                     <h3 class="step-title">¿Por qué no veo el botón "Finalizar y enviar a repositorio"? <span class="badge-nuevo">Nuevo</span></h3>
                     <p class="txt" style="margin:0;">
-                        En <b>Trabajo de Parto</b> aparece solo después de guardar el formulario por primera vez. En
-                        <b>MEOWS</b> no aparece en la Línea de Tiempo Triaje (el triaje se envía solo). <b>Control
+                        En <b>Trabajo de Parto</b> aparece solo después de guardar el formulario por primera vez (y no
+                        aparece al consultar un ingreso anterior). <b>MEOWS</b> ya no tiene ese botón: el formato se
+                        guarda solo al egreso de la paciente (sección 4). <b>Control
                         Posparto</b> no tiene ese botón: se envía automáticamente al usar "Guardar Registro Completo", y
                         después del cierre aparece <b>"Reenviar a repositorio"</b> para reintentar o enviar una versión corregida.
                     </p>
@@ -1780,7 +1908,7 @@
                 <section class="section-card c-manual" id="sec-seguridad" style="--section-accent:#0f172a;">
                     <div class="section-head">
                         <div class="section-icon" style="background:linear-gradient(135deg,#475569,#0f172a);"><i data-lucide="shield-check"></i></div>
-                        <h2>10. Seguridad, permisos y roles</h2>
+                        <h2>11. Seguridad, permisos y roles</h2>
                     </div>
                     <p class="section-sub">
                         Qué puede hacer cada tipo de cuenta dentro del sistema, y buenas prácticas para el manejo de

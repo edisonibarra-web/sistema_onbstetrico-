@@ -1,4 +1,5 @@
 
+from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from django.db.models import Q
@@ -6,7 +7,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
 from .models import AtencionParto
 from .repositorio import (
-    RepositorioError, enviar_control_posparto, enviar_meows, enviar_trabajo_parto,
+    RepositorioError, SinCambiosError, enviar_control_posparto, enviar_meows, enviar_trabajo_parto,
     enviar_triaje_si_corresponde, resolver_atencion_ingreso, resumen_envio,
 )
 import logging
@@ -814,6 +815,13 @@ def registrar_atencion_desde_sala_partos(request):
         pass
 
     atencion, _ = resolver_atencion_ingreso(doc)
+    if atencion is None:
+        # Dinámica confirma que no tiene ingreso: es una paciente de Triaje.
+        return JsonResponse({
+            "ok": False,
+            "error": "La paciente no tiene ingreso en Dinámica (está en Triaje). Los módulos de "
+                     "Sala de Partos se habilitan cuando admisiones registre su ingreso.",
+        }, status=409)
 
     return JsonResponse({
         "ok": True,
@@ -836,6 +844,8 @@ def api_enviar_repositorio(request):
       {"formato": "trabajo_parto", "formulario_id": 12}
       {"formato": "control_posparto", "registro_id": "<uuid>"}   (reintento;
           normalmente se envía solo al "Guardar Registro Completo")
+      + "forzar": true para guardar otra copia aunque el contenido no haya
+        cambiado desde el último envío (sin él, eso responde 409 sin_cambios).
     """
     import json
     from sistema_obstetrico.auth_utils import nombre_profesional_sesion
@@ -847,23 +857,31 @@ def api_enviar_repositorio(request):
 
     formato = (data.get("formato") or "").strip()
     usuario = nombre_profesional_sesion(request)
+    forzar = data.get("forzar") is True
     try:
         if formato == "meows":
             documento = enviar_meows(
                 data.get("documento"), usuario=usuario,
                 responsable=(data.get("responsable") or "").strip() or None, request=request,
+                forzar=forzar,
             )
         elif formato == "trabajo_parto":
             formulario = get_object_or_404(
                 Formulario.objects.select_related("paciente", "aseguradora", "atencion"),
                 id=data.get("formulario_id"),
             )
-            documento = enviar_trabajo_parto(formulario, usuario=usuario)
+            documento = enviar_trabajo_parto(formulario, usuario=usuario, forzar=forzar)
         elif formato == "control_posparto":
             registro = get_object_or_404(RegistroParto, pk=data.get("registro_id"))
-            documento = enviar_control_posparto(registro, usuario=usuario)
+            documento = enviar_control_posparto(registro, usuario=usuario, forzar=forzar)
         else:
             return JsonResponse({"ok": False, "mensaje": f"Formato no válido: {formato!r}"}, status=400)
+    except SinCambiosError as exc:
+        return JsonResponse({
+            "ok": False, "sin_cambios": True, "mensaje": str(exc),
+            "nombre_archivo": exc.documento.nombre_archivo,
+            "numero_ingreso": exc.documento.numero_ingreso,
+        }, status=409)
     except RepositorioError as exc:
         return JsonResponse({"ok": False, "mensaje": str(exc)}, status=400)
 
@@ -1016,3 +1034,163 @@ def sala_de_partos(request):
         "is_dashboard": False,  # No es dashboard general
         "title": "Sala de Partos"
     })
+
+
+# ---------------------------------------------------------------------------
+# 2026-09-24: consulta de registros por número de ingreso -- selector de
+# ingresos de MEOWS, Trabajo de Parto y Control Posparto (ver ingresos.py y
+# templates/obstetricia/_selector_ingreso.html) y campana "NAS".
+# ---------------------------------------------------------------------------
+@require_http_methods(["GET"])
+@login_required_if_enabled
+def api_ingresos_paciente(request):
+    """GET /atencion/api/ingresos/?doc=...&modulo=meows|trabajo_parto|control_posparto&ingreso=..."""
+    from .ingresos import MODULOS, resumen_ingresos
+
+    doc = (request.GET.get("doc") or "").strip()
+    modulo = (request.GET.get("modulo") or "").strip()
+    if not doc or modulo not in MODULOS:
+        return JsonResponse({"ok": False, "mensaje": "Parámetros doc y modulo requeridos."}, status=400)
+    # fresco=1: al ABRIR la pantalla el selector debe mostrar el ingreso
+    # vigente ya (un ingreso recién creado en Dinámica); el vigilante que
+    # revisa cada 3 min usa lo recordado (30 s).
+    fresco = request.GET.get("fresco") == "1"
+    resumen, _ = resumen_ingresos(doc, modulo, request.GET.get("ingreso") or "", fresco=fresco)
+    return JsonResponse({"ok": True, **resumen})
+
+
+@require_http_methods(["GET"])
+@login_required_if_enabled
+def api_documentos_ingreso(request):
+    """GET /atencion/api/ingresos/documentos/?doc=...&ingreso=... -- archivos de
+    <cédula>/<ingreso> en el repositorio (de esta app y de otros aplicativos)."""
+    from .ingresos import limpiar_numero_ingreso
+    from .repositorio import listar_documentos_ingreso
+
+    doc = (request.GET.get("doc") or "").strip()
+    ingreso = limpiar_numero_ingreso(request.GET.get("ingreso"))
+    if not doc or not ingreso.isdigit():
+        return JsonResponse({"ok": False, "mensaje": "Parámetros doc e ingreso requeridos."}, status=400)
+    destino = "la carpeta local de pruebas" if settings.REPOSITORIO_MODO == "local" else "la NAS"
+    try:
+        archivos = listar_documentos_ingreso(doc, ingreso)
+    except Exception as exc:
+        logger.warning("No se pudo consultar el repositorio (%s/%s): %s", doc, ingreso, exc)
+        return JsonResponse({
+            "ok": False, "modo": settings.REPOSITORIO_MODO,
+            "mensaje": f"No se pudo consultar {destino} en este momento. "
+                       "Los registros de la app se siguen viendo normalmente.",
+        }, status=502)
+    return JsonResponse({
+        "ok": True, "modo": settings.REPOSITORIO_MODO, "destino": destino,
+        "archivos": [{"nombre": nombre, "de_esta_app": nombre.startswith("otros_")} for nombre in archivos],
+    })
+
+
+@require_http_methods(["GET"])
+@login_required_if_enabled
+def api_documento_ingreso(request):
+    """GET /atencion/api/ingresos/documento/?doc=...&ingreso=...&archivo=... --
+    entrega el archivo pasando por la app (las credenciales de la NAS nunca
+    llegan al navegador) y deja constancia de quién lo abrió."""
+    import mimetypes
+    from sistema_obstetrico.auth_utils import nombre_profesional_sesion
+    from .ingresos import limpiar_numero_ingreso
+    from .models import AccesoDocumentoRepositorio
+    from .repositorio import leer_documento_ingreso
+
+    doc = (request.GET.get("doc") or "").strip()
+    ingreso = limpiar_numero_ingreso(request.GET.get("ingreso"))
+    archivo = (request.GET.get("archivo") or "").strip()
+    if not doc or not ingreso.isdigit() or not archivo:
+        return HttpResponse("Parámetros incompletos.", status=400, content_type="text/plain; charset=utf-8")
+    try:
+        contenido = leer_documento_ingreso(doc, ingreso, archivo)
+    except RepositorioError:
+        return HttpResponse("Documento no encontrado.", status=404, content_type="text/plain; charset=utf-8")
+    except Exception as exc:
+        logger.warning("No se pudo leer %s/%s/%s del repositorio: %s", doc, ingreso, archivo, exc)
+        return HttpResponse("No se pudo consultar el repositorio en este momento.", status=502,
+                            content_type="text/plain; charset=utf-8")
+    AccesoDocumentoRepositorio.objects.create(
+        usuario=(nombre_profesional_sesion(request) or getattr(request.user, "username", "") or "anónimo")[:255],
+        cedula=doc[:50], numero_ingreso=ingreso[:30], nombre_archivo=archivo[:255],
+        ip=(request.META.get("REMOTE_ADDR") or "")[:64],
+    )
+    tipo = mimetypes.guess_type(archivo)[0] or "application/octet-stream"
+    respuesta = HttpResponse(contenido, content_type=tipo)
+    # Nombres con tildes/ñ (de otros aplicativos) no caben en una cabecera
+    # latin-1: content_disposition_header los codifica según RFC 6266.
+    from django.utils.http import content_disposition_header
+    respuesta["Content-Disposition"] = content_disposition_header(False, archivo)
+    respuesta["X-Content-Type-Options"] = "nosniff"
+    return respuesta
+
+
+NOMBRES_FORMATO_NOTIFICACION = {
+    "meows": "MEOWS",
+    "trabajo_parto": "Trabajo de Parto",
+    "control_posparto": "Control Posparto",
+    "triaje": "Triaje",
+}
+
+
+@require_http_methods(["GET"])
+@login_required_if_enabled
+def api_notificaciones_repositorio(request):
+    """GET /atencion/api/repositorio/notificaciones/ -- últimos envíos al
+    repositorio (exitosos y fallidos) para la campana "NAS" del encabezado.
+
+    2026-09-24: cada profesional ve solo los de SUS pacientes (las que atendió
+    en los últimos días, ver obstetriciaunificador/notificaciones.py) y los
+    que él mismo envió; los administradores ven todos."""
+    from datetime import timedelta
+    from .models import DocumentoRepositorio
+    from .notificaciones import documentos_del_profesional, envio_propio, es_administrador, nombres_del_profesional
+
+    desde = timezone.now() - timedelta(days=3)
+    recientes = DocumentoRepositorio.objects.filter(creado_en__gte=desde).order_by("-id")
+    if es_administrador(request.user):
+        alcance = "todas"
+        documentos = list(recientes[:40])
+    else:
+        alcance = "mis_pacientes"
+        nombres = nombres_del_profesional(request)
+        mis_documentos = documentos_del_profesional(nombres)
+        # En la base: los de sus pacientes + los envíos hechos a mano (pocos);
+        # de estos últimos, en Python, los que hizo esta misma persona.
+        candidatos = recientes.filter(
+            Q(cedula__in=list(mis_documentos)) | ~Q(enviado_por__startswith="automático")
+        )[:300]
+        documentos = [
+            d for d in candidatos
+            if d.cedula in mis_documentos or envio_propio(d.enviado_por, nombres)
+        ][:40]
+    pacientes = {
+        p["numero_documento"]: " ".join(x for x in (p["nombres"], p["apellidos"]) if x).strip()
+        for p in MeowsPaciente.objects.filter(numero_documento__in={d.cedula for d in documentos})
+        .values("numero_documento", "nombres", "apellidos")
+    }
+    destino = "la NAS" if settings.REPOSITORIO_MODO == "nas" else "la carpeta local de pruebas"
+    items = []
+    for d in documentos:
+        ok = d.estado == DocumentoRepositorio.ESTADO_ENVIADO
+        formato = NOMBRES_FORMATO_NOTIFICACION.get(d.formato, d.formato)
+        automatico = (d.enviado_por or "").startswith("automático")
+        items.append({
+            "id": d.id,
+            "ok": ok,
+            "formato": formato,
+            "paciente": pacientes.get(d.cedula) or d.cedula,
+            "documento": d.cedula,
+            "numero_ingreso": d.numero_ingreso,
+            "archivo": d.nombre_archivo,
+            "fecha": timezone.localtime(d.creado_en).strftime("%d/%m/%Y %I:%M %p"),
+            "automatico": automatico,
+            "mensaje": (
+                f"Registro {formato} guardado en {destino}" if ok
+                else f"No se pudo guardar el registro {formato} en {destino}"
+                + (" (se reintentará automáticamente)" if automatico else "")
+            ),
+        })
+    return JsonResponse({"ok": True, "items": items, "modo": settings.REPOSITORIO_MODO, "alcance": alcance})

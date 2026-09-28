@@ -1,0 +1,164 @@
+{% comment %}
+2026-09-24: campana "NAS" -- confirma cada formato guardado en el repositorio
+clínico (NAS, o la carpeta local de pruebas), incluidos los envíos
+AUTOMÁTICOS (MEOWS al egreso, Triaje al ingreso), para no quedar con la duda.
+- Verde con contador: hay guardados nuevos sin mirar.
+- Roja con pulso: algún envío falló (se reintenta solo).
+- Mientras la pantalla está abierta, cada envío nuevo aparece además como
+  aviso emergente.
+Datos: /atencion/api/repositorio/notificaciones/ (últimos 3 días). Lo "ya
+visto" se recuerda en este navegador (si no se puede, solo en memoria).
+Se incluye desde obstetricia/header_formatos.html.
+{% endcomment %}
+<style>
+#nas-campana-btn:not(.tiene-error) {
+    background: linear-gradient(135deg, #94a3b8 0%, #475569 100%);
+    box-shadow: 0 4px 14px rgba(71, 85, 105, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+#nas-campana-btn.tiene-nuevos:not(.tiene-error) {
+    background: linear-gradient(135deg, #4ade80 0%, #15803d 100%);
+    box-shadow: 0 4px 14px rgba(21, 128, 61, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+#nas-campana-btn.tiene-error {
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    animation: meows-campana-pulso-rojo 1.6s ease-in-out infinite;
+}
+#nas-campana-btn .meows-campana-badge { color: #15803d; }
+#nas-campana-btn.tiene-error .meows-campana-badge { color: #b91c1c; }
+.meows-campana-etiqueta-nas { color: #cbd5e1; }
+.nas-panel {
+    /* 2026-09-28: la campana va a la izquierda del encabezado -> el panel también. */
+    position: fixed; top: 96px; left: 24px; z-index: 10040;
+    width: min(420px, calc(100vw - 32px)); max-height: min(70vh, 560px); overflow: hidden;
+    display: flex; flex-direction: column;
+    background: #ffffff; border: 1px solid #cbd5e1; border-radius: 14px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28); font-family: inherit; color: #1e293b;
+}
+.nas-panel[hidden] { display: none; }
+.nas-panel__cab {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 12px 16px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-bottom: 1px solid #cbd5e1; font-weight: 800; font-size: 0.92rem;
+}
+.nas-panel__alcance { display: block; font-size: 0.74rem; font-weight: 600; color: #64748b; margin-top: 2px; }
+.nas-panel__cerrar { background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: #475569; }
+.nas-panel__lista { list-style: none; margin: 0; padding: 6px 0; overflow-y: auto; }
+.nas-panel__item { display: flex; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.84rem; line-height: 1.35; }
+.nas-panel__item--nuevo { background: #f0fdf4; }
+.nas-panel__item--error { background: #fef2f2; }
+.nas-panel__icono { font-size: 1.1rem; flex-shrink: 0; }
+.nas-panel__texto strong { display: block; font-weight: 800; }
+.nas-panel__meta { color: #64748b; font-size: 0.78rem; word-break: break-all; }
+.nas-panel__vacio { padding: 18px 16px; color: #64748b; font-size: 0.86rem; }
+.nas-toast {
+    position: fixed; right: 24px; bottom: 24px; z-index: 10060;
+    max-width: min(92vw, 440px); padding: 14px 18px; border-radius: 12px;
+    color: #fff; font-size: 0.9rem; line-height: 1.4; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+    display: flex; gap: 10px; align-items: flex-start;
+}
+.nas-toast--ok { background: linear-gradient(135deg, #16a34a 0%, #166534 100%); }
+.nas-toast--error { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
+.nas-toast strong { display: block; }
+</style>
+<div class="meows-campana-grupo">
+    <button type="button" class="meows-campana-btn" id="nas-campana-btn" title="Registros guardados en la NAS" aria-haspopup="true" aria-controls="nas-panel" data-usuario="{{ request.user.username|default:'' }}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 6h.01"/><path d="M6 18h.01"/></svg>
+        <span class="meows-campana-badge" id="nas-campana-badge" hidden>0</span>
+    </button>
+    <span class="meows-campana-etiqueta meows-campana-etiqueta-nas">NAS</span>
+</div>
+<div class="nas-panel" id="nas-panel" hidden role="dialog" aria-label="Registros guardados en la NAS">
+    <div class="nas-panel__cab">
+        <span><span>🗄️ Registros guardados en el repositorio</span>
+            <span class="nas-panel__alcance" id="nas-panel-alcance"></span></span>
+        <button type="button" class="nas-panel__cerrar" id="nas-panel-cerrar" title="Cerrar">&times;</button>
+    </div>
+    <ul class="nas-panel__lista" id="nas-panel-lista"></ul>
+</div>
+<script>
+(function () {
+    var btn = document.getElementById('nas-campana-btn');
+    if (!btn || btn.dataset.iniciado) return;
+    btn.dataset.iniciado = '1';
+    var badge = document.getElementById('nas-campana-badge');
+    var panel = document.getElementById('nas-panel');
+    var lista = document.getElementById('nas-panel-lista');
+    // Por usuario: en el servicio varios profesionales comparten computador.
+    var CLAVE = 'nas_notificaciones_ultimo_visto:' + (btn.dataset.usuario || '');
+    var INTERVALO_MS = 60 * 1000;
+    var items = [];
+    var alcance = 'mis_pacientes';
+    var idsConocidos = null;  // null = primera carga (no se muestran avisos emergentes)
+    var ultimoVisto = 0;
+    try { ultimoVisto = parseInt(localStorage.getItem(CLAVE) || '0', 10) || 0; } catch (e) { ultimoVisto = 0; }
+
+    function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+    function guardarVisto() {
+        ultimoVisto = items.reduce(function (m, i) { return Math.max(m, i.id); }, ultimoVisto);
+        try { localStorage.setItem(CLAVE, String(ultimoVisto)); } catch (e) { /* solo en memoria */ }
+    }
+    function pintar() {
+        var nuevos = items.filter(function (i) { return i.id > ultimoVisto; });
+        var errores = nuevos.filter(function (i) { return !i.ok; });
+        badge.hidden = !nuevos.length;
+        badge.textContent = nuevos.length > 99 ? '99+' : String(nuevos.length);
+        btn.classList.toggle('tiene-nuevos', nuevos.length > 0);
+        btn.classList.toggle('tiene-error', errores.length > 0);
+        btn.title = errores.length ? 'Hay registros que no se pudieron guardar en la NAS'
+            : (nuevos.length ? nuevos.length + ' registro(s) guardado(s) en la NAS' : 'Registros guardados en la NAS');
+        document.getElementById('nas-panel-alcance').textContent = alcance === 'todas'
+            ? 'Todas las pacientes (administrador) · últimos 3 días'
+            : 'Sus pacientes (las que atendió en los últimos 15 días) · últimos 3 días';
+        if (!items.length) {
+            lista.innerHTML = '<li class="nas-panel__vacio">' + (alcance === 'todas'
+                ? 'Sin envíos al repositorio en los últimos 3 días.'
+                : 'Sin envíos al repositorio de sus pacientes en los últimos 3 días.') + '</li>';
+            return;
+        }
+        lista.innerHTML = items.map(function (i) {
+            var clase = !i.ok ? ' nas-panel__item--error' : (i.id > ultimoVisto ? ' nas-panel__item--nuevo' : '');
+            return '<li class="nas-panel__item' + clase + '"><span class="nas-panel__icono">' + (i.ok ? '✔️' : '✖️') + '</span>'
+                + '<span class="nas-panel__texto"><strong>' + esc(i.mensaje) + '</strong>'
+                + esc(i.paciente) + ' · Ingreso ' + esc(i.numero_ingreso || '—')
+                + '<br><span class="nas-panel__meta">' + esc(i.fecha) + (i.automatico ? ' · automático' : '')
+                + (i.archivo ? ' · ' + esc(i.archivo) : '') + '</span></span></li>';
+        }).join('');
+    }
+    function avisar(i) {
+        var t = document.createElement('div');
+        t.className = 'nas-toast ' + (i.ok ? 'nas-toast--ok' : 'nas-toast--error');
+        t.setAttribute('role', 'status');
+        t.innerHTML = '<span style="font-size:1.3rem">' + (i.ok ? '✔️' : '✖️') + '</span><span><strong>' + esc(i.mensaje) + '</strong>'
+            + esc(i.paciente) + ' · Ingreso ' + esc(i.numero_ingreso || '—') + '</span>';
+        document.body.appendChild(t);
+        setTimeout(function () { t.remove(); }, 7000);
+    }
+    function sondear() {
+        fetch('/atencion/api/repositorio/notificaciones/', { credentials: 'same-origin' })
+            .then(function (r) {
+                if (!r.ok || (r.redirected && r.url.indexOf('/login/') !== -1)) return null;
+                return r.json();
+            })
+            .then(function (data) {
+                if (!data || !data.ok) return;
+                items = data.items || [];
+                alcance = data.alcance || 'mis_pacientes';
+                if (idsConocidos !== null) {
+                    items.filter(function (i) { return !idsConocidos[i.id]; }).slice(0, 3).forEach(avisar);
+                }
+                idsConocidos = {};
+                items.forEach(function (i) { idsConocidos[i.id] = true; });
+                pintar();
+            })
+            .catch(function () { /* red caída o sesión expirada: se reintenta en el próximo ciclo */ });
+    }
+    btn.addEventListener('click', function () {
+        panel.hidden = !panel.hidden;
+        if (!panel.hidden) { pintar(); guardarVisto(); setTimeout(pintar, 4000); }
+    });
+    document.getElementById('nas-panel-cerrar').addEventListener('click', function () { panel.hidden = true; pintar(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) { panel.hidden = true; pintar(); } });
+    sondear();
+    setInterval(sondear, INTERVALO_MS);
+})();
+</script>

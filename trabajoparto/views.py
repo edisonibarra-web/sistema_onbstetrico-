@@ -33,6 +33,8 @@ logger = logging.getLogger(__name__)
 @never_cache
 @login_required_if_enabled
 def parto_home(request):
+    from obstetriciaunificador.ingresos import limpiar_numero_ingreso
+
     """Entrada simple del modulo Parto desde la vista unificada."""
     atencion_id = request.GET.get("atencion")
     documento = request.GET.get("doc")
@@ -101,6 +103,8 @@ def parto_home(request):
         "profesional_nombre_sesion": nombre_profesional_sesion(request),
         # FCF manual (False) o automática desde Dinámica (True) -- ver settings.
         "fcf_automatica": settings.FCF_DINAMICA_AUTOMATICA,
+        # 2026-09-24: ingreso elegido en el selector de ingresos (vacío = actual).
+        "ingreso_param": limpiar_numero_ingreso(request.GET.get("ingreso")),
     }
     return render(request, "desarrollo_frontend.html", context)
 
@@ -207,7 +211,7 @@ class PacienteViewSet(viewsets.ModelViewSet):
         sirviéndose obsoleta durante esa ventana.
         """
         instance = serializer.save()
-        cache.delete(f"resp_completa_{instance.num_identificacion}")
+        cache.delete(f"resp_completa_{instance.num_identificacion}_")
 
     @action(detail=True, methods=['get'])
     def formularios(self, request, id=None):
@@ -1469,7 +1473,9 @@ class PacienteViewSet(viewsets.ModelViewSet):
         # Intentar obtener respuesta completa de caché para mayor velocidad (TTL 10 seg).
         # forzar_externo pide explícitamente un dato fresco, así que no debe servirse
         # nunca desde este caché rápido.
-        key_resp = f"resp_completa_{num_identificacion or num_folio}"
+        # 2026-09-24: la respuesta depende del ingreso elegido (selector de ingresos).
+        ingreso_param = str(request.query_params.get('ingreso') or '').strip()
+        key_resp = f"resp_completa_{num_identificacion or num_folio}_{ingreso_param}"
         resp_cached = None if forzar_externo else cache.get(key_resp)
         if resp_cached:
             logger.info(f"⚡ [Rapid Cache Hit] Respuesta completa servida para {num_identificacion or num_folio}")
@@ -1615,10 +1621,9 @@ class PacienteViewSet(viewsets.ModelViewSet):
             logger.info(f'   - Aseguradora (GENDETCON.GDENOMBRE): {paciente_data.get("aseguradora")}')
             logger.info(f'   - Diagnóstico (GENDIAGNO vía HCNDIAPAC): {paciente_data.get("diagnostico")}')
             
-            # 4. Buscar el formulario más reciente del paciente
-            formulario = Formulario.objects.filter(
-                paciente=paciente
-            ).select_related('paciente', 'aseguradora').first()
+            # 4. La hoja del ingreso elegido (una hoja por ingreso, ver
+            #    _hoja_del_ingreso); antes: el formulario más reciente.
+            formulario, ids_controles, info_ingreso = _hoja_del_ingreso(paciente, ingreso_param)
             
             # 5. Inicializar variables para formulario y mediciones
             formulario_data = None
@@ -1634,7 +1639,10 @@ class PacienteViewSet(viewsets.ModelViewSet):
                 # Incluir item del parámetro para que esté disponible en el serializador
                 mediciones = Medicion.objects.filter(
                     formulario=formulario
-                ).select_related(
+                )
+                if ids_controles is not None:
+                    mediciones = mediciones.filter(id__in=ids_controles)
+                mediciones = mediciones.select_related(
                     'formulario', 'parametro', 'parametro__item'
                 ).prefetch_related(
                     'valores__campo'
@@ -1659,11 +1667,12 @@ class PacienteViewSet(viewsets.ModelViewSet):
                 'paciente': paciente_data,
                 'formulario': formulario_data,
                 'mediciones': mediciones_data,
-                'huella': huella_data
+                'huella': huella_data,
+                'ingreso': info_ingreso,
             }
             
             # Guardar en caché rápida para evitar re-consultas en ráfaga (TTL 10 seg)
-            key_resp = f"resp_completa_{num_identificacion or num_folio}"
+            key_resp = f"resp_completa_{num_identificacion or num_folio}_{ingreso_param}"
             cache.set(key_resp, response_data, 10)
 
             response = Response(response_data, status=status.HTTP_200_OK)
@@ -1681,11 +1690,111 @@ class PacienteViewSet(viewsets.ModelViewSet):
 
 
 
-class FormularioViewSet(viewsets.ModelViewSet):
+
+
+class BloqueoIngresoCerradoMixin:
+    """
+    2026-09-24: una hoja cuyo ingreso egresó hace más de
+    settings.INGRESO_HORAS_GRACIA_EDICION horas queda en SOLO CONSULTA: se
+    rechaza cualquier escritura sobre ella, sus controles o sus valores (el
+    selector de ingresos ya lo bloquea en pantalla; esto es lo que de verdad
+    lo impide). Ante cualquier duda (Dinámica sin respuesta, hoja sin
+    ingreso) se permite: nunca frenar la atención.
+    """
+
+    def _formulario_objetivo(self, request, kwargs):
+        return None
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return
+        try:
+            formulario = self._formulario_objetivo(request, kwargs)
+        except Exception:
+            formulario = None
+        if formulario is None:
+            return
+        from obstetriciaunificador.ingresos import motivo_bloqueo_edicion
+        motivo = motivo_bloqueo_edicion(formulario.atencion, request.user, creado_en=formulario.created_at)
+        if motivo:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(motivo)
+
+
+def _id_de(valor):
+    valor = str(valor or '').strip()
+    return int(valor) if valor.isdigit() else None
+
+
+def _hoja_del_ingreso(paciente, ingreso_param=''):
+    """
+    2026-09-24: UNA HOJA POR INGRESO. Antes se abría siempre "el formulario
+    más reciente de la paciente", así que en un reingreso se seguía
+    escribiendo sobre la hoja del ingreso anterior (y se pisaban sus datos
+    generales). Ahora, con el selector de ingresos
+    (obstetriciaunificador.ingresos):
+
+    - Ingreso ACTUAL: la hoja de este ingreso -- la ligada a su atención o, si
+      no hay, una hoja que ya tenga controles de este ingreso (hojas antiguas
+      sin ingreso: se liga a la atención actual). Si no hay ninguna -> None y
+      el frontend crea una hoja nueva y limpia para este ingreso.
+    - Ingreso ANTERIOR: su hoja, con SOLO los controles de ese ingreso, en
+      solo consulta.
+    - Sin ingresos conocidos (p. ej. Dinámica caída en una paciente local):
+      comportamiento anterior (la hoja más reciente).
+
+    Devuelve (formulario | None, ids de Medicion | None = todas, info) con
+    info = {'solo_consulta', 'ingreso', 'es_actual'}.
+    """
+    from obstetriciaunificador.ingresos import resumen_ingresos
+    from obstetriciaunificador.repositorio import resolver_atencion_ingreso
+
+    doc = (paciente.num_identificacion or '').strip()
+    anterior = Formulario.objects.filter(paciente=paciente).select_related('paciente', 'aseguradora', 'atencion').first()
+    info = {'solo_consulta': False, 'ingreso': '', 'es_actual': True}
+    try:
+        resumen, grupos = resumen_ingresos(doc, 'trabajo_parto', ingreso_param, fresco=True)
+    except Exception:
+        logger.exception('Selector de ingresos no disponible en Trabajo de Parto')
+        return anterior, None, info
+    elegido = resumen['elegido']
+    if not elegido:
+        return anterior, None, info
+    info = {'solo_consulta': resumen['solo_consulta'], 'ingreso': elegido, 'es_actual': resumen['es_actual']}
+    grupo = grupos.get(elegido, {})
+    hojas = Formulario.objects.select_related('paciente', 'aseguradora', 'atencion')
+
+    if not resumen['es_actual']:
+        formulario = hojas.filter(id__in=list(grupo)).order_by('-fecha_actualizacion').first()
+        return formulario, (grupo.get(formulario.id, []) if formulario else None), info
+
+    formulario = hojas.filter(paciente=paciente, atencion__numero_ingreso=elegido).first()
+    if formulario is None and grupo:
+        formulario = hojas.filter(id__in=list(grupo)).order_by('-fecha_actualizacion').first()
+        if formulario is not None:
+            atencion, info_dinamica = resolver_atencion_ingreso(doc)
+            if (info_dinamica is not None and atencion is not None and atencion.numero_ingreso == elegido
+                    and formulario.atencion_id != atencion.id):
+                formulario.atencion = atencion
+                formulario.save(update_fields=['atencion'])
+    if formulario is None:
+        return None, None, info
+    # Del ingreso actual se muestran todos los controles de la hoja que
+    # correspondan a este ingreso (una hoja antigua reutilizada conserva los
+    # del ingreso anterior, que se ven al elegir ese ingreso).
+    return formulario, grupo.get(formulario.id), info
+
+
+class FormularioViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     """
     ViewSet para gestionar Formularios
     Permite CRUD completo sobre el modelo Formulario
     """
+
+    def _formulario_objetivo(self, request, kwargs):
+        return Formulario.objects.select_related('atencion').filter(id=_id_de(kwargs.get('id'))).first()
+
     queryset = Formulario.objects.select_related('paciente', 'aseguradora').all()
     serializer_class = FormularioSerializer
     lookup_field = 'id'
@@ -1739,6 +1848,25 @@ class FormularioViewSet(viewsets.ModelViewSet):
         atencion_id = str(atencion_id).strip()
         if atencion_id.isdigit():
             serializer.save(atencion_id=int(atencion_id))
+            return
+        # 2026-09-24: una hoja por ingreso -- si la pantalla no manda la
+        # atención, la hoja nueva queda ligada al ingreso ACTUAL de la paciente.
+        atencion = None
+        paciente = serializer.validated_data.get('paciente')
+        if paciente is not None and paciente.num_identificacion:
+            try:
+                from obstetriciaunificador.repositorio import resolver_atencion_ingreso
+                atencion, info = resolver_atencion_ingreso(paciente.num_identificacion)
+                # Sin respuesta de Dinámica, resolver_atencion_ingreso devuelve
+                # "la atención más reciente", que puede ser la de un ingreso
+                # anterior: mejor dejar la hoja sin ligar (el selector la ubica
+                # por fecha) que ligarla al ingreso equivocado.
+                if info is None:
+                    atencion = None
+            except Exception:
+                logger.exception('No se pudo ligar la hoja nueva al ingreso actual')
+        if atencion is not None:
+            serializer.save(atencion=atencion)
             return
         serializer.save()
 
@@ -1843,11 +1971,18 @@ class FormularioItemParametroViewSet(viewsets.ModelViewSet):
     lookup_field = 'id'
 
 
-class MedicionViewSet(viewsets.ModelViewSet):
+class MedicionViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     """
     ViewSet para gestionar Mediciones
     Permite CRUD completo sobre el modelo Medicion
     """
+
+    def _formulario_objetivo(self, request, kwargs):
+        if kwargs.get('id'):
+            medicion = Medicion.objects.select_related('formulario__atencion').filter(id=_id_de(kwargs['id'])).first()
+            return medicion.formulario if medicion else None
+        return Formulario.objects.select_related('atencion').filter(id=_id_de(request.data.get('formulario'))).first()
+
     queryset = Medicion.objects.select_related(
         'formulario', 'parametro'
     ).prefetch_related('valores__campo').all()
@@ -1879,11 +2014,19 @@ class MedicionViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class MedicionValorViewSet(viewsets.ModelViewSet):
+class MedicionValorViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     """
     ViewSet para gestionar Valores de Mediciones
     Permite CRUD completo sobre el modelo MedicionValor
     """
+
+    def _formulario_objetivo(self, request, kwargs):
+        if kwargs.get('id'):
+            valor = MedicionValor.objects.select_related('medicion__formulario__atencion').filter(id=_id_de(kwargs['id'])).first()
+            return valor.medicion.formulario if valor else None
+        medicion = Medicion.objects.select_related('formulario__atencion').filter(id=_id_de(request.data.get('medicion'))).first()
+        return medicion.formulario if medicion else None
+
     queryset = MedicionValor.objects.select_related('medicion', 'campo').all()
     serializer_class = MedicionValorSerializer
     lookup_field = 'id'

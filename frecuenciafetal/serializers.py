@@ -34,11 +34,16 @@ class AtencionToleranteField(serializers.PrimaryKeyRelatedField):
             raise
 
 
+# 2026-09-28: los campos de firma (quién registró) los pone SOLO el servidor
+# con el profesional en sesión -- nunca se aceptan del cliente.
+CAMPOS_FIRMA = ['registrado_por', 'registrado_en']
+
+
 class ControlFetocardiaSerializer(serializers.ModelSerializer):
     class Meta:
         model = ControlFetocardia
         fields = '__all__'
-        read_only_fields = ['registro']
+        read_only_fields = ['registro', 'responsable'] + CAMPOS_FIRMA
 
 
 class GlucometriaSerializer(serializers.ModelSerializer):
@@ -54,7 +59,7 @@ class ControlRecienNacidoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ControlRecienNacido
         fields = '__all__'
-        read_only_fields = ['registro']
+        read_only_fields = ['registro'] + CAMPOS_FIRMA
 
     def create(self, validated_data):
         glucometrias_data = validated_data.pop('glucometrias', [])
@@ -79,7 +84,7 @@ class ControlPostpartoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ControlPostpartoInmediato
         fields = '__all__'
-        read_only_fields = ['registro']
+        read_only_fields = ['registro', 'responsable'] + CAMPOS_FIRMA
 
 
 class ControlSangradoSerializer(serializers.ModelSerializer):
@@ -88,21 +93,21 @@ class ControlSangradoSerializer(serializers.ModelSerializer):
         fields = '__all__'
         # `estado` (semáforo) se calcula en el backend -- ver
         # `recalcular_estados_sangrado` en models.py -- nunca lo manda el cliente.
-        read_only_fields = ['registro', 'estado']
+        read_only_fields = ['registro', 'estado'] + CAMPOS_FIRMA
 
 
 class ControlGloboSerializer(serializers.ModelSerializer):
     class Meta:
         model = ControlGlobo
         fields = '__all__'
-        read_only_fields = ['registro']
+        read_only_fields = ['registro'] + CAMPOS_FIRMA
 
 
 class ControlSuturaSerializer(serializers.ModelSerializer):
     class Meta:
         model = ControlSutura
         fields = '__all__'
-        read_only_fields = ['registro']
+        read_only_fields = ['registro'] + CAMPOS_FIRMA
 
 
 # 2026-09-22: una vez que el registro tiene completado_en (se cerró con
@@ -130,6 +135,8 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
     controles_sangrado = ControlSangradoSerializer(many=True, required=False)
     controles_globo = ControlGloboSerializer(many=True, required=False)
     controles_sutura = ControlSuturaSerializer(many=True, required=False)
+    # 2026-09-28: quiénes diligenciaron el registro y qué hizo cada uno.
+    responsables = serializers.SerializerMethodField()
 
     class Meta:
         model = RegistroParto
@@ -137,7 +144,17 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
         # Solo la vista (RegistroPartoViewSet, al recibir el flag "completar"
         # del botón "Guardar Registro Completo") puede escribir estos dos --
         # nunca directo desde el payload de un guardado normal.
-        read_only_fields = ['completado_en', 'completado_por']
+        # 2026-09-28: el responsable ya no se escribe a mano: lo pone el
+        # servidor (creado_por + participaciones, ver responsables.py).
+        read_only_fields = ['completado_en', 'completado_por', 'creado_por', 'nombre_firma_paciente']
+
+    def get_responsables(self, obj):
+        from .responsables import responsables_para_api
+        return responsables_para_api(obj)
+
+    def _firma(self, con_responsable=False):
+        from .responsables import firma_sesion
+        return firma_sesion(self.context.get('request'), con_responsable=con_responsable)
 
     def create(self, validated_data):
         fetocardia_data = validated_data.pop('controles_fetocardia', []) or []
@@ -147,6 +164,8 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
         globo_data = validated_data.pop('controles_globo', []) or []
         sutura_data = validated_data.pop('controles_sutura', []) or []
 
+        firma = self._firma()
+        validated_data['creado_por'] = firma['registrado_por']
         registro = RegistroParto.objects.create(**validated_data)
 
         for fc in fetocardia_data:
@@ -155,30 +174,30 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
                 'fecha': fc_dict.get('fecha'),
                 'hora': fc_dict.get('hora'),
                 'fetocardia': fc_dict.get('fetocardia'),
-                'responsable': fc_dict.get('responsable', '') or '',
             }
             if fc_clean['fecha'] is not None and fc_clean['hora'] is not None and fc_clean['fetocardia'] is not None:
-                ControlFetocardia.objects.create(registro=registro, **fc_clean)
+                ControlFetocardia.objects.create(registro=registro, **fc_clean, **self._firma(con_responsable=True))
 
         if rn_data:
             glucometrias = rn_data.pop('glucometrias', [])
-            rn = ControlRecienNacido.objects.create(registro=registro, **rn_data)
+            rn = ControlRecienNacido.objects.create(registro=registro, **rn_data, **firma)
             for g in glucometrias:
                 GlucometriaRecienNacido.objects.create(control_rn=rn, **g)
 
         for cp in postparto_data:
-            ControlPostpartoInmediato.objects.create(registro=registro, **cp)
+            cp = {k: v for k, v in dict(cp).items() if k != 'responsable'}
+            ControlPostpartoInmediato.objects.create(registro=registro, **cp, **self._firma(con_responsable=True))
 
         for sc in sangrado_data:
-            ControlSangrado.objects.create(registro=registro, **sc)
+            ControlSangrado.objects.create(registro=registro, **sc, **firma)
         if sangrado_data:
             recalcular_estados_sangrado(registro)
 
         for cg in globo_data:
-            ControlGlobo.objects.create(registro=registro, **cg)
+            ControlGlobo.objects.create(registro=registro, **cg, **firma)
 
         for cs in sutura_data:
-            ControlSutura.objects.create(registro=registro, **cs)
+            ControlSutura.objects.create(registro=registro, **cs, **firma)
 
         return registro
 
@@ -211,9 +230,12 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
             pass
         if rn_data is not None:
             glucometrias = rn_data.pop('glucometrias', [])
-            rn, _ = ControlRecienNacido.objects.update_or_create(
+            rn, creado = ControlRecienNacido.objects.update_or_create(
                 registro=instance, defaults=rn_data
             )
+            if creado or not rn.registrado_por:
+                firma = self._firma()
+                ControlRecienNacido.objects.filter(pk=rn.pk).update(**firma)
             rn.glucometrias.all().delete()
             for g in glucometrias:
                 GlucometriaRecienNacido.objects.create(control_rn=rn, **g)

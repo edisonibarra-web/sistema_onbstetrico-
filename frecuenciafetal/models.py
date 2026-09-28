@@ -125,6 +125,8 @@ class RegistroParto(models.Model):
         max_length=255, blank=True, null=True,
         verbose_name="Cerrado por",
     )
+    # 2026-09-28: profesional en sesión que CREÓ el registro (automático).
+    creado_por = models.CharField(max_length=255, blank=True, default='', verbose_name="Creado por")
 
     class Meta:
         verbose_name = "Registro de Parto"
@@ -148,6 +150,12 @@ class ControlFetocardia(models.Model):
         verbose_name="Fetocardia (lpm)"
     )
     responsable = models.CharField(max_length=200, blank=True, default='', verbose_name="Responsable")
+
+    # 2026-09-28: firma AUTOMÁTICA -- profesional en sesión que guardó este
+    # control (nombre_profesional_sesion) y cuándo. Nunca se escribe a mano;
+    # la pone el servidor (ver frecuenciafetal/responsables.py).
+    registrado_por = models.CharField(max_length=255, blank=True, default='')
+    registrado_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Control de Fetocardia"
@@ -224,6 +232,12 @@ class ControlSangrado(models.Model):
         verbose_name="Estado del semáforo en este control"
     )
 
+    # 2026-09-28: firma AUTOMÁTICA -- profesional en sesión que guardó este
+    # control (nombre_profesional_sesion) y cuándo. Nunca se escribe a mano;
+    # la pone el servidor (ver frecuenciafetal/responsables.py).
+    registrado_por = models.CharField(max_length=255, blank=True, default='')
+    registrado_en = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         verbose_name = "Control de Sangrado"
         verbose_name_plural = "Controles de Sangrado"
@@ -251,6 +265,12 @@ class ControlGlobo(models.Model):
         verbose_name="Estado del globo de seguridad en este control"
     )
 
+    # 2026-09-28: firma AUTOMÁTICA -- profesional en sesión que guardó este
+    # control (nombre_profesional_sesion) y cuándo. Nunca se escribe a mano;
+    # la pone el servidor (ver frecuenciafetal/responsables.py).
+    registrado_por = models.CharField(max_length=255, blank=True, default='')
+    registrado_en = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         verbose_name = "Control de Globo de Seguridad"
         verbose_name_plural = "Controles de Globo de Seguridad"
@@ -277,6 +297,12 @@ class ControlSutura(models.Model):
         max_length=20, choices=RegistroParto.SUTURA_HERIDAS_CHOICES,
         verbose_name="Estado de sutura y heridas en este control"
     )
+
+    # 2026-09-28: firma AUTOMÁTICA -- profesional en sesión que guardó este
+    # control (nombre_profesional_sesion) y cuándo. Nunca se escribe a mano;
+    # la pone el servidor (ver frecuenciafetal/responsables.py).
+    registrado_por = models.CharField(max_length=255, blank=True, default='')
+    registrado_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Control de Sutura y Heridas"
@@ -386,6 +412,12 @@ class ControlRecienNacido(models.Model):
     # 2026-09-14: se eliminó la captura de huella plantar del recién nacido
     # (foto/base64) a pedido explícito, antes de salir a producción.
 
+    # 2026-09-28: firma AUTOMÁTICA -- profesional en sesión que guardó este
+    # control (nombre_profesional_sesion) y cuándo. Nunca se escribe a mano;
+    # la pone el servidor (ver frecuenciafetal/responsables.py).
+    registrado_por = models.CharField(max_length=255, blank=True, default='')
+    registrado_en = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         verbose_name = "Control del Recién Nacido"
 
@@ -463,6 +495,12 @@ class ControlPostpartoInmediato(models.Model):
 
     responsable = models.CharField(max_length=200, blank=True, null=True)
 
+    # 2026-09-28: firma AUTOMÁTICA -- profesional en sesión que guardó este
+    # control (nombre_profesional_sesion) y cuándo. Nunca se escribe a mano;
+    # la pone el servidor (ver frecuenciafetal/responsables.py).
+    registrado_por = models.CharField(max_length=255, blank=True, default='')
+    registrado_en = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         verbose_name = "Control Postparto Inmediato"
         verbose_name_plural = "Controles Postparto Inmediato"
@@ -506,3 +544,29 @@ class IntentoLoginFallido(models.Model):
 
     def __str__(self):
         return f"{self.ip} -> '{self.username}' ({self.creado:%Y-%m-%d %H:%M:%S})"
+
+
+class ParticipacionRegistroParto(models.Model):
+    """
+    2026-09-28: el formato FRSPA-007 lo diligencian por lo general dos o más
+    personas (p. ej. una hasta cierta parte y otra el resto, en otro turno).
+    Cada profesional que guarda algo en el registro -- datos generales o
+    cualquier control -- queda aquí UNA vez, con la primera y la última vez
+    que escribió. Lo llena solo el servidor con el profesional en sesión
+    (nunca a mano); de aquí salen los "Responsables del registro" de la
+    pantalla y del PDF (ver frecuenciafetal/responsables.py).
+    """
+    registro = models.ForeignKey(RegistroParto, on_delete=models.CASCADE, related_name='participaciones')
+    profesional = models.CharField(max_length=255)
+    usuario = models.CharField(max_length=150, blank=True, default='')
+    primera_vez = models.DateTimeField()
+    ultima_vez = models.DateTimeField()
+
+    class Meta:
+        ordering = ['primera_vez']
+        unique_together = [('registro', 'profesional')]
+        verbose_name = "Participación en registro de parto"
+        verbose_name_plural = "Participaciones en registros de parto"
+
+    def __str__(self):
+        return f"{self.profesional} -> {self.registro_id}"

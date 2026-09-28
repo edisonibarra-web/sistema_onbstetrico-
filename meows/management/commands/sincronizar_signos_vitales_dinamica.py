@@ -428,11 +428,19 @@ class Command(BaseCommand):
         # formato va al repositorio clínico (NAS), carpeta de ese ingreso.
         # Recorre las pacientes con triaje, no solo las activas de arriba: la
         # paciente pudo quedar ingresada en un área que no es gineco.
-        from obstetriciaunificador.repositorio import enviar_triajes_pendientes
+        from obstetriciaunificador.repositorio import enviar_meows_egresos_pendientes, enviar_triajes_pendientes
         for documento, envio in enviar_triajes_pendientes():
             estilo = self.style.SUCCESS if envio.estado == envio.ESTADO_ENVIADO else self.style.ERROR
             self.stdout.write(estilo(
                 f'[TRIAJE] {documento}/{envio.numero_ingreso}: {envio.estado} '
+                f'{envio.nombre_archivo or envio.detalle_error}'
+            ))
+        # 2026-09-23: MEOWS de las pacientes que ya egresaron -> repositorio,
+        # automático (una vez por ingreso).
+        for documento, envio in enviar_meows_egresos_pendientes():
+            estilo = self.style.SUCCESS if envio.estado == envio.ESTADO_ENVIADO else self.style.ERROR
+            self.stdout.write(estilo(
+                f'[MEOWS EGRESO] {documento}/{envio.numero_ingreso}: {envio.estado} '
                 f'{envio.nombre_archivo or envio.detalle_error}'
             ))
 
