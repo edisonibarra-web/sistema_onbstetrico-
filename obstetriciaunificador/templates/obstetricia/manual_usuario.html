@@ -583,10 +583,10 @@
                     </div>
                     <div class="hotspot-hint"><i data-lucide="mouse-pointer-click" size="14"></i> Haga clic en cada número de la captura para ver su explicación:</div>
                     <div class="hotspot-panel" data-hotspot-panel="login">
-                        <div class="hotspot-panel-item" data-num="1"><b class="num">1</b><span><b>Usuario:</b> escriba el mismo código con el que ingresa a Dinámica Gerencial (o el que eligió al crear su cuenta local).</span></div>
-                        <div class="hotspot-panel-item" data-num="2"><b class="num">2</b><span><b>Contraseña:</b> la misma clave de Dinámica Gerencial (o la que definió al registrarse localmente).</span></div>
+                        <div class="hotspot-panel-item" data-num="1"><b class="num">1</b><span><b>Usuario:</b> escriba el mismo código con el que ingresa a Dinámica Gerencial.</span></div>
+                        <div class="hotspot-panel-item" data-num="2"><b class="num">2</b><span><b>Contraseña:</b> la misma clave de Dinámica Gerencial.</span></div>
                         <div class="hotspot-panel-item" data-num="3"><b class="num">3</b><span><b>Botón Ingresar:</b> valida sus credenciales contra Dinámica y, si son correctas, lo lleva directo a Sala de Partos.</span></div>
-                        <div class="hotspot-panel-item" data-num="4"><b class="num">4</b><span><b>Crear cuenta nueva:</b> enlace a <code class="btnname">/registro/</code> para quien todavía no tiene usuario en Dinámica.</span></div>
+                        <div class="hotspot-panel-item" data-num="4"><b class="num">4</b><span><b>¿No puede ingresar?:</b> si todavía no tiene usuario en Dinámica Gerencial o no recuerda su contraseña, acérquese al área de Sistemas del hospital. Este sistema no permite crear cuentas propias.</span></div>
                     </div>
                     <ol class="steps">
                         <li>Abra el sistema en su navegador. Si no tiene una sesión iniciada, verá la pantalla de inicio de sesión de arriba.</li>
@@ -595,8 +595,8 @@
                         <li>Si el usuario o la contraseña no son correctos, el sistema le muestra el mensaje
                             "Usuario o contraseña incorrectos en Dinámica Gerencial." Verifique los datos e intente de nuevo.</li>
                         <li>Si Dinámica Gerencial no responde en ese momento (caída o problema de red), el mensaje es distinto:
-                            "No se pudo validar contra Dinámica Gerencial en este momento (sin conexión). Intente de nuevo en unos
-                            minutos, o ingrese con una cuenta local de este sistema si tiene una creada como respaldo." — en ese
+                            "No fue posible validar las credenciales institucionales en este momento. Intente nuevamente en unos
+                            minutos. Si el problema continúa, comuníquese con el área de Sistemas." — en ese
                             caso su contraseña puede ser correcta, simplemente no se pudo verificar todavía.</li>
                         <li>Con la sesión ya iniciada, entrar de nuevo a <code class="btnname">/login/</code> (o a la raíz del sitio)
                             lo redirige automáticamente a Sala de Partos — no vuelve a mostrarle el formulario.</li>
@@ -1922,18 +1922,15 @@
                         app). Así funciona el acceso en la práctica:
                     </p>
                     <ul class="plain">
-                        <li>Cualquier usuario que inicie sesión correctamente (con cuenta de Dinámica o cuenta local)
+                        <li>Cualquier usuario que inicie sesión correctamente con su cuenta de Dinámica Gerencial
                             tiene acceso completo a los tres módulos clínicos: MEOWS, Control Posparto Inmediato y
                             Trabajo de Parto, para cualquier paciente en Sala de Partos.</li>
                         <li>No hay pantallas ni acciones que se oculten u oscurezcan según el cargo del usuario.</li>
-                        <li>El sistema sí distingue internamente, solo para fines de auditoría, las cuentas creadas
-                            por autorregistro local (grupo interno <i>"Registro local (no Dinámica)"</i>) de las que
-                            se validaron contra Dinámica — pero esa distinción no cambia lo que la persona puede
-                            hacer en la app.</li>
+                        <li>Este sistema no crea usuarios: las cuentas se crean únicamente en Dinámica Gerencial,
+                            a través del área de Sistemas.</li>
                         <li>El panel de administración de Django (<code class="btnname">/admin/</code>) es aparte y
                             está reservado a personal de Sistemas con una cuenta de superusuario técnica; ninguna
-                            cuenta creada por el login normal o por <code class="btnname">/registro/</code> puede
-                            entrar ahí.</li>
+                            cuenta que ingrese por el login normal puede entrar ahí.</li>
                         <li>El acceso al sistema completo puede exigirse o desactivarse de forma global (para todos
                             los usuarios a la vez) desde la configuración del servidor — eso lo administra
                             exclusivamente el área de Sistemas, no es algo que se configure desde la interfaz.</li>

@@ -780,8 +780,7 @@ def login_view(request):
                 error = (
                     "No fue posible validar las credenciales institucionales en "
                     "este momento. Intente nuevamente en unos minutos. Si el "
-                    "problema continúa, use una cuenta local de este sistema (si "
-                    "tiene una creada como respaldo) o comuníquese con Sistemas."
+                    "problema continúa, comuníquese con el área de Sistemas."
                 )
                 logger.warning("Login no verificable: Dinámica Gerencial no respondió.")
                 # No cuenta como intento fallido real: no fue un error de
@@ -792,133 +791,6 @@ def login_view(request):
                 _registrar_intento_login_fallido(ip, u)
 
     return render(request, 'frecuenciafetal/login.html', {'error': error, 'next': next_url})
-
-
-def _usuario_existe_en_dinamica(username):
-    """
-    Consulta de SOLO LECTURA a GENUSUARIO (nunca escribe) para saber si ya
-    existe un usuario ACTIVO con ese nombre en Dinámica. Se usa exclusivamente
-    para bloquear el auto-registro local (ver registro_usuario_view) sobre un
-    username que ya pertenece a una cuenta real de Dinámica — sin este chequeo,
-    cualquiera podría "reservar" localmente el nombre de un usuario real del
-    hospital y hacerse pasar por él dentro de esta app (aunque nunca podría
-    tocar Dinámica mismo con esa cuenta local). Si la consulta a Dinámica
-    falla por cualquier motivo, se asume que SÍ existe (fail-safe: bloquea el
-    registro en vez de arriesgarse a crear un duplicado silencioso).
-    """
-    from django.db import connections
-    try:
-        with connections['readonly'].cursor() as cursor:
-            cursor.execute(
-                "SELECT 1 FROM GENUSUARIO WHERE USUNOMBRE = %s AND USUESTADO = 1",
-                [username],
-            )
-            return cursor.fetchone() is not None
-    except Exception:
-        logger.warning(
-            "No se pudo verificar el usuario contra Dinámica Gerencial durante el "
-            "registro; se bloquea el alta por precaución."
-        )
-        return True
-
-
-def registro_usuario_view(request):
-    """
-    Registro de cuenta LOCAL para quien no tiene (o cree no tener) usuario en
-    Dinámica Gerencial.
-
-    2026-09-09: a propósito, esto NUNCA escribe en la base de datos de
-    Dinámica (GENUSUARIO/GENUSUWEB) — la cuenta se crea SOLO en el modelo
-    User de Django, igual que ya hace DGHBackend para las cuentas validadas
-    contra Dinámica (ver frecuenciafetal/auth_dgh.py). Se decidió así porque
-    escribir directamente en el ERP del hospital desde fuera de su propia
-    interfaz es un riesgo mucho mayor que mantener un registro local aparte:
-    no sabemos qué triggers, validaciones o relaciones con roles/permisos
-    (GENROL, GENUSUROL) exige Dinámica para una cuenta nueva, y un registro a
-    medias podría dejar una cuenta "rota" en el sistema central del hospital.
-
-    Por eso mismo, un username que ya exista como usuario ACTIVO en
-    GENUSUARIO queda bloqueado aquí (ver _usuario_existe_en_dinamica): si
-    alguien ya tiene cuenta real en Dinámica, DEBE entrar con esa cuenta por
-    el login normal (frecuenciafetal.auth_dgh.DGHBackend) — el registro local
-    es solo para quien de verdad no tiene ninguna cuenta en Dinámica todavía.
-
-    Se recomienda (no se obliga) usar el mismo usuario/clave que en Dinámica:
-    si esa persona llega a tener cuenta real allá más adelante con el MISMO
-    username, DGHBackend reutiliza el mismo registro de Django al validarla
-    (ver User.objects.get_or_create en auth_dgh.py) — la transición es
-    transparente, sin necesidad de otro registro.
-    """
-    if request.user.is_authenticated:
-        return redirect('/atencion/sala-de-partos/')
-
-    error = None
-    next_url = request.GET.get('next', '/atencion/sala-de-partos/')
-
-    if request.method == 'POST':
-        from django.contrib.auth.models import User, Group
-
-        username = (request.POST.get('username') or '').strip()
-        nombre_completo = (request.POST.get('nombre_completo') or '').strip()
-        password = request.POST.get('password') or ''
-        password2 = request.POST.get('password2') or ''
-        next_url = request.POST.get('next', '/atencion/sala-de-partos/')
-
-        if not username or not nombre_completo or not password:
-            error = "Complete usuario, nombre completo y contraseña."
-        elif len(password) < 6:
-            error = "La contraseña debe tener al menos 6 caracteres."
-        elif password != password2:
-            error = "Las contraseñas no coinciden."
-        elif User.objects.filter(username__iexact=username).exists() or _usuario_existe_en_dinamica(username):
-            # 2026-09-09 -- hallazgo "enumeración de usuarios vía /registro/":
-            # antes había un mensaje distinto para "ya existe localmente" y
-            # "ya existe en Dinámica", lo que permitía a cualquiera (sin
-            # necesitar contraseña) usar este formulario como oráculo para
-            # averiguar qué usernames de Dinámica son válidos y están
-            # activos -- información útil para luego dirigir un ataque de
-            # fuerza bruta contra esas cuentas confirmadas. Se une en un solo
-            # mensaje genérico que no revela cuál de los dos casos ocurrió.
-            # (El `or` de Python evalúa de izquierda a derecha y se detiene
-            # en el primero que sea True, así que la consulta a Dinámica de
-            # _usuario_existe_en_dinamica ni siquiera se ejecuta cuando ya
-            # existe localmente.)
-            error = (
-                "No fue posible crear la cuenta con ese usuario. Si ya tiene acceso "
-                "(en este sistema o en Dinámica Gerencial), use el login normal en "
-                "vez de registrarse aquí."
-            )
-        else:
-            user = User.objects.create_user(username=username, password=password)
-            user.first_name = nombre_completo
-            user.is_staff = False
-            user.save()
-            # Marca de auditoría: distingue a simple vista (ej. en el admin de
-            # Django) las cuentas creadas por este registro local de las que
-            # vienen de Dinámica vía DGHBackend (esas nunca quedan en este grupo).
-            grupo_local, _ = Group.objects.get_or_create(name='Registro local (no Dinámica)')
-            user.groups.add(grupo_local)
-
-            from django.contrib.auth import login
-            # dgh_info mínimo: solo el nombre que la persona diligenció, para
-            # que "profesional_nombre_sesion" (usado en varios encabezados,
-            # ver meows/views.py y trabajoparto/views.py) no quede vacío. El
-            # resto de campos (codigo_medico, tarjeta_pro, etc.) se dejan sin
-            # poner — ya están manejados con gracia como ausentes en el resto
-            # del sistema.
-            request.session['dgh_info'] = {'nombre_completo': nombre_completo}
-            # Con AUTHENTICATION_BACKENDS teniendo 2 entradas (DGHBackend +
-            # ModelBackend), login() exige saber cuál backend "certificó" a
-            # este user -- se especifica ModelBackend a mano porque esta
-            # cuenta se acaba de crear con create_user(), nunca pasó por
-            # DGHBackend.authenticate().
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            return redirect(next_url)
-
-    return render(request, 'frecuenciafetal/registro.html', {
-        'error': error,
-        'next': next_url,
-    })
 
 
 @require_http_methods(["GET", "POST"])

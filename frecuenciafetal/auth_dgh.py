@@ -108,7 +108,7 @@ class DGHBackend(BaseBackend):
                         # 🔒 HALLAZGO DE SEGURIDAD 2026-09-09 — "secuestro de identidad":
                         # esta cuenta de Django YA existía con una contraseña local
                         # utilizable, es decir, alguien la creó antes desde /registro/
-                        # (ver registro_usuario_view en views.py) usando este mismo
+                        # (auto-registro local, eliminado el 2026-09-30) usando este mismo
                         # username. Como ese username ACABA de validarse con éxito
                         # contra Dinámica, dos escenarios son posibles: (a) la misma
                         # persona se registró localmente antes de tener cuenta en

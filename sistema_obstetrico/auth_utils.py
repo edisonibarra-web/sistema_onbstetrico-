@@ -19,7 +19,7 @@ def login_required_if_enabled(view_func):
 # ---------------------------------------------------------------------------
 # Nombre del profesional en sesión (para autocompletar el campo "Responsable").
 # request.session['dgh_info'] lo llena frecuenciafetal.auth_dgh al validar
-# contra Dinámica y también registro_usuario_view para cuentas locales.
+# contra Dinámica.
 # ---------------------------------------------------------------------------
 
 def nombre_profesional_sesion(request):
