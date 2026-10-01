@@ -1119,6 +1119,73 @@ function calcularHorasColumnaVistaPrevia(mediciones) {
  * el servidor vía json_script), así nunca queda desactualizada respecto a los
  * parámetros realmente disponibles en el formulario.
  */
+// --- Alertas clínicas de Trabajo de Parto (2026-10-01) -------------------
+// Cada regla evalúa el valor numérico guardado de un parámetro. Para agregar
+// otra alerta basta con sumar una regla aquí: la Vista previa la marca sola
+// (aviso arriba de la tabla + celda resaltada).
+const REGLAS_ALERTA_TRABAJO_PARTO = [
+    {
+        parametroId: 6,  // DURACIÓN (PARAM_DURACION_CONTRACCIONES, declarado más abajo)
+        nivel: 'roja',
+        cumple: n => n > 60,
+        mensaje: n => `Duración de la contracción de ${n} seg (mayor a 60 seg)`,
+    },
+];
+
+function valorNumericoMedicion(m) {
+    for (const v of (m.valores || [])) {
+        if (v.valor_number !== null && v.valor_number !== undefined && v.valor_number !== '') {
+            const n = parseFloat(v.valor_number);
+            if (!isNaN(n)) return n;
+        }
+        if (v.valor_text !== null && v.valor_text !== undefined && /^\s*\d+([.,]\d+)?\s*$/.test(String(v.valor_text))) {
+            return parseFloat(String(v.valor_text).replace(',', '.'));
+        }
+    }
+    return null;
+}
+
+/** Alertas presentes en las mediciones: [{clave: "pid|hora", hora, nivel, texto}]. */
+function detectarAlertasTrabajoParto(mediciones) {
+    const alertas = [];
+    (mediciones || []).forEach(m => {
+        const pid = parseInt(m.parametro_id || (m.parametro && m.parametro.id) || m.parametro);
+        const reglas = REGLAS_ALERTA_TRABAJO_PARTO.filter(r => r.parametroId === pid);
+        if (!reglas.length) return;
+        const n = valorNumericoMedicion(m);
+        if (n === null) return;
+        reglas.forEach(r => {
+            if (r.cumple(n)) alertas.push({ clave: `${pid}|${m.tomada_en}`, hora: m.tomada_en, nivel: r.nivel, texto: r.mensaje(n) });
+        });
+    });
+    return alertas.sort((a, b) => new Date(a.hora) - new Date(b.hora));
+}
+
+function renderAlertasVistaPrevia(alertas) {
+    const cont = document.getElementById('preview-alertas');
+    if (!cont) return;
+    if (!alertas || !alertas.length) {
+        cont.hidden = true;
+        cont.innerHTML = '';
+        return;
+    }
+    const items = alertas.map(a => {
+        const d = new Date(a.hora);
+        const cuando = `${d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} · `
+            + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
+        return `<li><strong>${cuando}</strong> — ${a.texto}</li>`;
+    }).join('');
+    cont.innerHTML = `
+        <div class="preview-alerta-roja" role="alert">
+            <span class="preview-alerta-icono" aria-hidden="true">🚨</span>
+            <div>
+                <div class="preview-alerta-titulo">Alerta roja · ${alertas.length === 1 ? '1 hallazgo' : alertas.length + ' hallazgos'}</div>
+                <ul class="preview-alerta-lista">${items}</ul>
+            </div>
+        </div>`;
+    cont.hidden = false;
+}
+
 function construirGrillaVistaPrevia(mediciones, horasUnicas, responsableFormulario) {
     const estructura = window.ESTRUCTURA_ITEMS || [];
     if (!estructura.length) {
@@ -1141,7 +1208,7 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas, responsableFormular
             if (v.valor_text !== null && v.valor_text !== undefined) valor = v.valor_text;
             else if (v.valor_number !== null && v.valor_number !== undefined) valor = formatearValorNumero(v.valor_number);
             else if (v.valor_boolean !== null && v.valor_boolean !== undefined) valor = v.valor_boolean ? 'SÍ' : 'NO';
-            return valor !== null ? normalizarTextoVistaPrevia(valor) : null;
+            return valor !== null ? formatearValorContraccion(pid, normalizarTextoVistaPrevia(valor)) : null;
         }).filter(v => v !== null && v !== '');
 
         if (textos.length) {
@@ -1195,6 +1262,9 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas, responsableFormular
     };
 
     // Encabezado: Ítem | Parámetro | una columna por hora
+    const alertasPorClave = {};
+    detectarAlertasTrabajoParto(mediciones).forEach(a => { alertasPorClave[a.clave] = a; });
+
     let html = '<table class="preview-grid-table"><thead><tr>';
     html += '<th class="preview-grid-th-item" rowspan="2">Ítem</th>';
     html += '<th class="preview-grid-th-param" rowspan="2">Parámetro</th>';
@@ -1234,11 +1304,13 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas, responsableFormular
                         horaCarryTxt = new Date(carry.hora).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
                     }
                 }
-                const clase = heredado ? ' valor-heredado' : (valor ? ' tiene-valor' : '');
-                const titulo = heredado ? ` title="Frecuencia Cardiaca Fetal tomada de Dinámica a las ${horaCarryTxt}"` : '';
+                const alerta = !heredado && valor ? alertasPorClave[`${param.id}|${hora}`] : null;
+                const clase = heredado ? ' valor-heredado' : (alerta ? ` valor-alerta-${alerta.nivel}` : (valor ? ' tiene-valor' : ''));
+                const titulo = heredado ? ` title="Frecuencia Cardiaca Fetal tomada de Dinámica a las ${horaCarryTxt}"`
+                    : (alerta ? ` title="Alerta ${alerta.nivel}: ${alerta.texto}"` : '');
                 const contenido = heredado
                     ? `${valor}<span class="valor-heredado-hora">🔗 ${horaCarryTxt}</span>`
-                    : (valor || '—');
+                    : (alerta ? `🚨 ${valor}` : (valor || '—'));
                 html += `<td class="preview-grid-td-valor${clase}"${titulo}>${contenido}</td>`;
             });
 
@@ -1270,6 +1342,7 @@ function limpiarFormularioInformativo() {
     if (medicionesScroll) {
         medicionesScroll.innerHTML = '';
     }
+    renderAlertasVistaPrevia([]);
 }
 
 
@@ -1380,6 +1453,7 @@ async function actualizarFormularioInformativo(formularioId, datosCompletos = nu
                 
                 // Construir la grilla Item -> Parámetro x Hora (misma estructura que el PDF)
                 medicionesScroll.innerHTML = construirGrillaVistaPrevia(mediciones, horasUnicas, formulario.responsable);
+                renderAlertasVistaPrevia(detectarAlertasTrabajoParto(mediciones));
 
                 // Sincronizar también con el grid principal (hidden columns/inputs) si es necesario
                 const mainTimeInputs = document.querySelectorAll('.time-input');
@@ -2045,6 +2119,21 @@ function formatearHora12(valorHHMM) {
 /**
  * Actualiza la información visual en el botón del parámetro para mostrar el valor ingresado.
  */
+// 2026-10-01: Actividad uterina -- el dato se guarda como número, pero se
+// muestra como lo escribe el personal: FRECUENCIA (5) = contracciones en 10
+// minutos ("3/10") y DURACIÓN (6) = segundos ("25 seg"). Mismo formato en el
+// botón, la vista previa y el PDF (ver formatear_valor_contraccion en pdf_utils.py).
+const PARAM_FRECUENCIA_CONTRACCIONES = 5;
+const PARAM_DURACION_CONTRACCIONES = 6;
+function formatearValorContraccion(parametroId, texto) {
+    const pid = parseInt(parametroId, 10);
+    const limpio = String(texto ?? '').trim();
+    if (!/^\d+(\.\d+)?$/.test(limpio)) return texto;  // vacío o ya con formato
+    if (pid === PARAM_FRECUENCIA_CONTRACCIONES) return `${limpio}/10`;
+    if (pid === PARAM_DURACION_CONTRACCIONES) return `${limpio} seg`;
+    return texto;
+}
+
 function actualizarBotonUI(parametroId) {
     // 2026-09-23: la FCF (parámetro 8) llega sola de Dinámica y su botón lo
     // pinta actualizarPreviewFrecuenciaCardiacaFetal (último valor + su hora
@@ -2070,7 +2159,7 @@ function actualizarBotonUI(parametroId) {
         // el texto completo (con salto de línea si hace falta), sin truncar.
         // Se usa valor_texto (la descripción completa de la opción elegida,
         // ej. "0 Sin dinámica") cuando existe; valor es solo el código guardado.
-        let partes = mediciones.map(m => m.valor_texto || m.valor);
+        let partes = mediciones.map(m => formatearValorContraccion(parametroId, m.valor_texto || m.valor));
 
         // Botón MEMBRANAS (11): si quedó "Rotas", mostrar también la hora de la
         // ruptura (parámetro 14 / campo 18) junto al valor, en formato 12h.

@@ -34,6 +34,10 @@
         @media (max-width: 700px) {
             .responsable-placa-triaje .responsable-placa-input { max-width: none; margin-left: 0; flex-basis: 100%; }
         }
+        /* 2026-10-01: % de O2 requerido -- color del tramo elegido. */
+        .o2-req-select.o2-blanco { background-color: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+        .o2-req-select.o2-verde { background-color: #dcfce7 !important; color: #166534 !important; border-color: #22c55e !important; font-weight: 700; }
+        .o2-req-select.o2-rojo { background-color: #fee2e2 !important; color: #b91c1c !important; border-color: #ef4444 !important; font-weight: 800; }
         .triaje-banner {
             background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
             color: #fff; font-weight: 700; padding: 10px 16px; border-radius: 10px;
@@ -194,6 +198,19 @@
                                 <option value="14" {% if parametro.valor_actual == '14' %}selected{% endif %}>NO ALERTA (Glasgow &lt; 15)</option>
                             </select>
                             <span class="input-unit">{{ parametro.unidad }}</span>
+                            {% elif parametro.codigo == 'o2_req' %}
+                            {# 2026-10-01: % de O2 requerido como lista de los 3 tramos de la #}
+                            {# tabla MEOWS. Cada valor cae en su RangoParametro (0-23 -> 0, #}
+                            {# 24-39 -> 1, >=40 -> 3); el color lo pone marcarColorO2Req(). #}
+                            <select id="{{ parametro.codigo }}" name="{{ parametro.codigo }}"
+                                class="parameter-input parameter-select o2-req-select" data-param="{{ parametro.codigo }}"
+                                data-unidad="{{ parametro.unidad }}" data-valor-actual="{{ parametro.valor_actual|default:'' }}">
+                                <option value="">seleccione</option>
+                                <option value="21" data-color="blanco">Aire ambiente (21%) · 0 puntos</option>
+                                <option value="24" data-color="verde">24 – 39 % · 1 punto</option>
+                                <option value="40" data-color="rojo">≥ 40 % · 3 puntos</option>
+                            </select>
+                            <span class="input-unit">{{ parametro.unidad }}</span>
                             {% else %}
                             <input type="number" id="{{ parametro.codigo }}" name="{{ parametro.codigo }}"
                                 class="parameter-input"
@@ -288,6 +305,25 @@
     </script>
     <script src="{% static 'js/meows-form.js' %}?v=20261001"></script>
     <script>
+        // 2026-10-01: % de O2 requerido (lista de 3 tramos) -- color del tramo
+        // elegido (blanco / verde / rojo) y, al corregir un triaje, se
+        // preselecciona el tramo que corresponde al valor guardado.
+        (function () {
+            const sel = document.getElementById('o2_req');
+            if (!sel || sel.tagName !== 'SELECT') return;
+            function marcarColorO2Req() {
+                const opt = sel.options[sel.selectedIndex];
+                sel.classList.remove('o2-blanco', 'o2-verde', 'o2-rojo');
+                if (opt && opt.dataset.color) sel.classList.add('o2-' + opt.dataset.color);
+            }
+            const actual = parseFloat(sel.dataset.valorActual);
+            if (!isNaN(actual)) {
+                sel.value = actual >= 40 ? '40' : (actual >= 24 ? '24' : '21');
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            sel.addEventListener('change', marcarColorO2Req);
+            marcarColorO2Req();
+        })();
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }

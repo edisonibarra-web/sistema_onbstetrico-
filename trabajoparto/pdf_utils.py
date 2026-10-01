@@ -332,6 +332,26 @@ def _formatear_valor_numero(valor_number):
     return f"{f:.1f}".rstrip('0').rstrip('.')
 
 
+# 2026-10-01: Actividad uterina -- mismo formato que el formulario
+# (formatearValorContraccion en main.js): FRECUENCIA = contracciones en 10
+# minutos ("3/10"), DURACIÓN = segundos ("25 seg").
+_PARAMETRO_ID_FRECUENCIA_CONTRACCIONES = 5
+_PARAMETRO_ID_DURACION_CONTRACCIONES = 6
+
+
+def formatear_valor_contraccion(parametro_id, texto):
+    limpio = str(texto or '').strip()
+    try:
+        float(limpio)
+    except ValueError:
+        return texto
+    if parametro_id == _PARAMETRO_ID_FRECUENCIA_CONTRACCIONES:
+        return f'{limpio}/10'
+    if parametro_id == _PARAMETRO_ID_DURACION_CONTRACCIONES:
+        return f'{limpio} seg'
+    return texto
+
+
 def obtener_valor(valor):
     """
     Obtiene el valor de MedicionValor según su tipo.
@@ -540,7 +560,7 @@ def seccion_grid_mediciones(c, formulario, x, y, ancho_total):
                 for hora in horas_pagina:
                     med_h = next((m for m in mediciones if m.parametro_id == param.id and m.tomada_en == hora), None)
                     if med_h and med_h.valores.all():
-                        vals_str = " / ".join(obtener_valor(v) for v in med_h.valores.all())
+                        vals_str = " / ".join(formatear_valor_contraccion(param.id, obtener_valor(v)) for v in med_h.valores.all())
                         row_vals.append(Paragraph(vals_str, estilo_celda))
                     elif param.id == _PARAMETRO_ID_FREC_CARD_FETAL and settings.FCF_DINAMICA_AUTOMATICA:
                         heredado = valor_fcf_heredado(hora)

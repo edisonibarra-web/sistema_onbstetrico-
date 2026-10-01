@@ -402,6 +402,23 @@
            usa el resto de la app para marcar "dato de Dinámica" (no lo
            escribió la enfermera a mano), con la hora real de la toma siempre
            visible debajo del valor -- no solo al pasar el mouse. */
+        /* 2026-10-01: alerta roja (p. ej. duración de contracción > 60 seg). */
+        .preview-grid-td-valor.valor-alerta-roja {
+            background: #fee2e2;
+            color: #b91c1c;
+            font-weight: 900;
+            box-shadow: inset 0 0 0 2px #ef4444;
+        }
+        .preview-alertas { margin: 0 0 12px; }
+        .preview-alerta-roja {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 12px 16px; border-radius: 12px;
+            background: #fef2f2; border: 1px solid #fca5a5; border-left: 5px solid #dc2626;
+            color: #7f1d1d;
+        }
+        .preview-alerta-icono { font-size: 1.4rem; line-height: 1; }
+        .preview-alerta-titulo { font-weight: 900; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.04em; color: #b91c1c; }
+        .preview-alerta-lista { margin: 4px 0 0; padding-left: 18px; font-size: 0.9rem; line-height: 1.5; }
         .preview-grid-td-valor.valor-heredado {
             background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
             color: #6d28d9;
@@ -670,6 +687,8 @@
 
                 <div class="preview-card-body">
                     <div class="preview-section-title">Mediciones por fecha y hora</div>
+                    {# 2026-10-01: alertas clínicas (ver REGLAS_ALERTA_TRABAJO_PARTO en main.js) #}
+                    <div id="preview-alertas" class="preview-alertas" hidden></div>
                     <div id="preview-mediciones-scroll" class="preview-mediciones-scroll">
                         <div id="preview-empty-state" class="preview-empty-state">
                             <span class="preview-empty-icon">📋</span>
@@ -1119,6 +1138,10 @@
                         border-color: #5eead4 !important;
                         background-color: #ffffff;
                     }
+                    /* 2026-10-01: Frecuencia "x/10" y Duración "seg" junto a la casilla. */
+                    .input-con-sufijo { display: flex; align-items: center; gap: 10px; }
+                    .input-con-sufijo .data-input-modal { flex: 1; min-width: 0; }
+                    .input-sufijo { font-weight: 800; font-size: 1.05em; color: #475569; white-space: nowrap; }
                     .modal-parametro .data-input-modal:focus {
                         outline: none;
                         border-color: #0891b2 !important;
@@ -1167,9 +1190,15 @@
                                             <option value="<32.0">< 32.0 Hipotermia profunda</option><option value="32.0-34.9">32.0 – 34.9 Hipotermia moderada</option><option value="35.0-35.9">35.0 – 35.9 Hipotermia leve</option><option value="36.0-37.4">36.0 – 37.4 Normotermia</option><option value="37.5-37.9">37.5 – 37.9 Febrícula</option><option value="38.0-38.9">38.0 – 38.9 Fiebre</option><option value="39.0-40.9">39.0 – 40.9 Hipertermia</option><option value=">=41.0">≥ 41.0 Emergencia vital</option>
                                         </select>
                                         {% elif parametro.id == 5 and campo.id == 16 %}
-                                        <input type="number" min="0" max="20" step="1" inputmode="numeric" pattern="[0-9]*" class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Contracciones en 10 min" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onkeypress="return event.charCode >= 48 && event.charCode <= 57;" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <div class="input-con-sufijo">
+                                            <input type="number" min="0" max="20" step="1" inputmode="numeric" pattern="[0-9]*" class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Contracciones en 10 min (ej. 3)" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onkeypress="return event.charCode >= 48 && event.charCode <= 57;" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <span class="input-sufijo">/10</span>
+                                        </div>
                                         {% elif parametro.id == 6 and campo.id == 17 %}
-                                        <input type="number" min="0" max="600" step="1" inputmode="numeric" pattern="[0-9]*" class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Duración en segundos" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onkeypress="return event.charCode >= 48 && event.charCode <= 57;" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                        <div class="input-con-sufijo">
+                                            <input type="number" min="0" max="600" step="1" inputmode="numeric" pattern="[0-9]*" class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Duración en segundos (ej. 25)" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onkeypress="return event.charCode >= 48 && event.charCode <= 57;" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
+                                            <span class="input-sufijo">seg</span>
+                                        </div>
                                         {% elif parametro.id == 7 and campo.id == 9 %}
                                         <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
                                             <option value="">Seleccione...</option>
@@ -1213,7 +1242,7 @@
                                         {% elif parametro.id == 13 and campo.id == 12 %}
                                         <select class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em;">
                                             <option value="">Seleccione...</option>
-                                            <option value="Meconio grado I">Meconio grado I</option><option value="Meconio grado II">Meconio grado II</option><option value="Meconio grado III">Meconio grado III</option>
+                                            <option value="Claro">Claro</option><option value="Meconio grado I">Meconio grado I</option><option value="Meconio grado II">Meconio grado II</option><option value="Meconio grado III">Meconio grado III</option>
                                         </select>
                                         {% elif parametro.id == 13 and campo.id == 28 %}
                                         <textarea class="data-input-modal form-input" data-parametro-id="{{ parametro.id }}" data-campo-id="{{ campo.id }}" data-tipo-valor="{{ campo.tipo_valor }}" placeholder="Observaciones (opcional)" rows="2" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1em; resize: vertical;"></textarea>
@@ -1400,7 +1429,7 @@
             window.activarSoloConsulta(window.SOLO_CONSULTA_CONFIG);
         });
     </script>
-    <script src="{% static 'js/main.js' %}?v=20260925a"></script>
+    <script src="{% static 'js/main.js' %}?v=20261001b"></script>
     <script>
     (function() {
       const docFromCard = "{{ documento|default:''|escapejs }}".trim();
