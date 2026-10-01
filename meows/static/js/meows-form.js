@@ -943,7 +943,9 @@ async function inicializar() {
     // número libre (igual que ya funciona "fr") en vez de forzarlo a encajar
     // en una de las opciones fijas del select — ver MEOWS_ORIGEN_DINAMICA en
     // formulario.html.
-    if (!window.MEOWS_ORIGEN_DINAMICA) {
+    // 2026-10-01: en Triaje (MEOWS_CAMPOS_LIBRES) los signos vitales se
+    // digitan como número, sin listas de valores fijos.
+    if (!window.MEOWS_ORIGEN_DINAMICA && !window.MEOWS_CAMPOS_LIBRES) {
         // Convertir temperatura a select
         convertirTempASelect();
 

@@ -314,6 +314,13 @@ class ControlSutura(models.Model):
         return f"Sutura {self.estado} - min {self.minuto_control}"
 
 
+def _ruta_huella_rn(instancia, nombre_archivo):
+    """media/huellas_rn/<registro>/huella_<fecha-hora>.pdf -- el nombre que
+    trae el archivo subido nunca se usa (puede traer datos de la paciente)."""
+    from django.utils import timezone
+    return f"huellas_rn/{instancia.registro_id}/huella_{timezone.localtime():%Y%m%d_%H%M%S}.pdf"
+
+
 class ControlRecienNacido(models.Model):
     """Datos del recién nacido"""
     GENERO_CHOICES = [('M', 'Masculino'), ('F', 'Femenino'), ('I', 'Indeterminado')]
@@ -323,17 +330,22 @@ class ControlRecienNacido(models.Model):
         on_delete=models.CASCADE,
         related_name='control_recien_nacido'
     )
-    hora_nacimiento = models.TimeField(verbose_name="Hora de Nacimiento")
-    pasa_uci_neonatal = models.BooleanField(default=False, verbose_name="Pasa a UCI Neonatal")
+    # 2026-09-30: card "Control del recién nacido" en el formulario. Los
+    # campos que antes eran obligatorios quedan opcionales: el formulario se
+    # autoguarda mientras se diligencia, y el recién nacido se va llenando
+    # por partes (ej. la oximetría y la TA de las 12 h llegan después). Los
+    # Sí/No admiten "sin dato" (null) para no imprimir un "No" que nadie marcó.
+    hora_nacimiento = models.TimeField(blank=True, null=True, verbose_name="Hora de Nacimiento")
+    pasa_uci_neonatal = models.BooleanField(blank=True, null=True, default=None, verbose_name="Pasa a UCI Neonatal")
     causa_uci = models.TextField(blank=True, null=True, verbose_name="Causa UCI")
 
-    genero = models.CharField(max_length=1, choices=GENERO_CHOICES)
+    genero = models.CharField(max_length=1, choices=GENERO_CHOICES, blank=True, null=True)
     peso = models.DecimalField(
-        max_digits=10, decimal_places=2,
+        max_digits=10, decimal_places=2, blank=True, null=True,
         verbose_name="Peso (g)"
     )
     talla = models.DecimalField(
-        max_digits=10, decimal_places=2,
+        max_digits=10, decimal_places=2, blank=True, null=True,
         verbose_name="Talla (cm)"
     )
     pc = models.DecimalField(
@@ -351,18 +363,23 @@ class ControlRecienNacido(models.Model):
 
     # APGAR
     apgar_1min = models.SmallIntegerField(
+        blank=True, null=True,
         verbose_name="APGAR 1 minuto"
     )
     apgar_5min = models.SmallIntegerField(
+        blank=True, null=True,
         verbose_name="APGAR 5 minutos"
     )
     apgar_10min = models.SmallIntegerField(
         blank=True, null=True,
         verbose_name="APGAR 10 minutos"
     )
+    # 2026-09-30: en el formato físico TSH se marca "SI" (muestra tomada),
+    # no un valor numérico -- el resultado llega después, por laboratorio.
+    tsh_tomada = models.BooleanField(blank=True, null=True, default=None, verbose_name="TSH tomada")
     tsh = models.DecimalField(
         max_digits=10, decimal_places=2, blank=True, null=True,
-        verbose_name="TSH"
+        verbose_name="TSH (resultado, sin uso en el formulario)"
     )
     hemoclasificacion = models.CharField(
         max_length=10, blank=True, null=True,
@@ -378,9 +395,9 @@ class ControlRecienNacido(models.Model):
     )
 
     # Lavado gástrico
-    lavado_gastrico = models.BooleanField(default=False, verbose_name="Lavado Gástrico")
-    lavado_elimina = models.BooleanField(default=False, verbose_name="Elimina")
-    meconio = models.BooleanField(default=False, verbose_name="Meconio")
+    lavado_gastrico = models.BooleanField(blank=True, null=True, default=None, verbose_name="Lavado Gástrico")
+    lavado_elimina = models.BooleanField(blank=True, null=True, default=None, verbose_name="Elimina")
+    meconio = models.BooleanField(blank=True, null=True, default=None, verbose_name="Meconio")
 
     # Oximetría
     oximetria_nacimiento_preductal = models.SmallIntegerField(
@@ -405,12 +422,31 @@ class ControlRecienNacido(models.Model):
     ta_msi = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA MSI")
     ta_mid = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA MID")
     ta_miiz = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA MIIZ")
+    # 2026-10-01: los ta_* de arriba son la toma de las 12 h de nacido; se
+    # agregan las tomas de las 24 h y las 48 h (mismos cuatro miembros).
+    ta24_msd = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA 24 h MSD")
+    ta24_msi = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA 24 h MSI")
+    ta24_mid = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA 24 h MID")
+    ta24_miiz = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA 24 h MIIZ")
+    ta48_msd = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA 48 h MSD")
+    ta48_msi = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA 48 h MSI")
+    ta48_mid = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA 48 h MID")
+    ta48_miiz = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA 48 h MIIZ")
 
     neonato_atendido_por = models.CharField(max_length=200, blank=True, null=True)
-    valorado_pediatra = models.BooleanField(default=False, verbose_name="Valorado por Pediatra antes del Egreso")
+    valorado_pediatra = models.BooleanField(blank=True, null=True, default=None, verbose_name="Valorado por Pediatra antes del Egreso")
 
     # 2026-09-14: se eliminó la captura de huella plantar del recién nacido
     # (foto/base64) a pedido explícito, antes de salir a producción.
+    # 2026-09-30: vuelve la huella plantar, pero como PDF escaneado que se
+    # sube desde el formulario (no captura biométrica en vivo). Nunca se sirve
+    # por /media/: solo por la API autenticada (RegistroPartoViewSet.huella_rn).
+    huella_pdf = models.FileField(
+        upload_to=_ruta_huella_rn, max_length=255, blank=True, null=True,
+        verbose_name="Huella plantar (PDF)",
+    )
+    huella_subida_por = models.CharField(max_length=255, blank=True, default='')
+    huella_subida_en = models.DateTimeField(null=True, blank=True)
 
     # 2026-09-28: firma AUTOMÁTICA -- profesional en sesión que guardó este
     # control (nombre_profesional_sesion) y cuándo. Nunca se escribe a mano;

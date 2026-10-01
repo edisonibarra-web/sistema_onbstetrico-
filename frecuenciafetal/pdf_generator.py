@@ -298,6 +298,13 @@ def generar_pdf_registro(registro, es_plantilla=False):
     elements.append(tbl_part)
     elements.append(Spacer(1, 0.28*cm))
 
+    # ========== CONTROL DEL RECIÉN NACIDO ==========
+    # 2026-09-30: a pedido, justo debajo de "Características del parto".
+    rn = _recien_nacido(registro, es_plantilla)
+    ubicacion_huella = {}  # la llena _TablaConHuella al dibujarse
+    elements.append(KeepTogether(_tabla_recien_nacido(registro, rn, es_plantilla, ubicacion_huella)))
+    elements.append(Spacer(1, 0.28*cm))
+
     # ========== CONTROL FETOCARDIA ==========
     # Diseño transpuesto (parámetros en filas, controles en columnas), igual
     # a como está diagramado el formato físico del hospital: FECHA / HORA /
@@ -739,4 +746,291 @@ def generar_pdf_registro(registro, es_plantilla=False):
         elements.append(tbl_firma_vacia)
 
     doc.build(elements)
-    return buffer.getvalue()
+    pdf_bytes = buffer.getvalue()
+    if rn is not None and rn.huella_pdf:
+        pdf_bytes = _incrustar_huella(pdf_bytes, registro, rn, ubicacion_huella)
+    return pdf_bytes
+
+
+# ---------------------------------------------------------------------------
+# 2026-09-30: Control del recién nacido + huella plantar.
+# Misma distribución del formato físico: datos a la izquierda (una sola tabla
+# en cuadrícula etiqueta | valor | etiqueta | valor, cada valor como Paragraph
+# para que ajuste en varias líneas sin desbordarse) y el recuadro HUELLA a la
+# derecha, ocupando todas las filas. La huella (PDF escaneado) se incrusta
+# DENTRO de ese recuadro después de construir el documento: _TablaConHuella
+# registra al dibujarse la posición exacta del recuadro en la página, y
+# _incrustar_huella pone ahí la primera hoja de la huella (vectorial, escalada).
+# ---------------------------------------------------------------------------
+
+ANCHO_HUELLA = 5.4 * cm
+MARGEN_HUELLA = 0.18 * cm
+
+
+def _recien_nacido(registro, es_plantilla):
+    if es_plantilla or getattr(registro, 'pk', None) is None:
+        return None
+    from .models import ControlRecienNacido
+    return ControlRecienNacido.objects.filter(registro_id=registro.pk).first()
+
+
+def _hora_nacimiento(registro, rn):
+    """Hora de nacimiento = hora de parto. Registros anteriores al 2026-09-30
+    pudieron guardar una hora de nacimiento propia: si existe, se respeta."""
+    if rn is not None and rn.hora_nacimiento:
+        return rn.hora_nacimiento
+    return getattr(registro, 'hora_parto', None)
+
+
+class _TablaConHuella(Table):
+    """Table que, al dibujarse, guarda en `ubicacion` la página y el
+    rectángulo absoluto (en puntos) de la celda HUELLA (última columna, todas
+    las filas de datos)."""
+
+    def __init__(self, *args, ubicacion=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._ubicacion = ubicacion if ubicacion is not None else {}
+
+    def draw(self):
+        super().draw()
+        x0, x1 = self._colpositions[-2], self._colpositions[-1]
+        y_arriba, y_abajo = self._rowpositions[1], self._rowpositions[-1]
+        ax, ay = self.canv.absolutePosition(x0, y_abajo)
+        self._ubicacion.update({
+            'pagina': self.canv.getPageNumber(),
+            'x': ax, 'y': ay, 'ancho': x1 - x0, 'alto': y_arriba - y_abajo,
+        })
+
+
+def _tabla_recien_nacido(registro, rn, es_plantilla, ubicacion):
+    estilo_lbl = ParagraphStyle(name='RNLbl', fontName='Helvetica-Bold', fontSize=7, leading=8.6,
+                                textColor=colors.HexColor('#334155'))
+    estilo_val = ParagraphStyle(name='RNVal', fontName='Helvetica', fontSize=7.5, leading=9.2,
+                                textColor=COLOR_TEXTO)
+    estilo_huella = ParagraphStyle(name='RNHuella', fontName='Helvetica', fontSize=7, leading=9,
+                                   alignment=TA_CENTER, textColor=colors.HexColor('#94a3b8'))
+    vacio = '' if es_plantilla else '—'
+
+    def txt(valor, sufijo=''):
+        if valor is None or valor == '':
+            return vacio
+        if hasattr(valor, 'strftime'):
+            return valor.strftime('%H:%M')
+        if hasattr(valor, 'normalize'):  # Decimal: 2495.00 -> 2495
+            valor = format(valor.normalize(), 'f')
+        return f"{_fix_mojibake_text(valor)}{sufijo}"
+
+    def v(attr, sufijo=''):
+        return txt(None if rn is None else getattr(rn, attr, None), sufijo)
+
+    def sino(attr):
+        """[X] Sí  [ ] No -- sin marcar ninguna si no hay dato (o plantilla)."""
+        valor = None if rn is None else getattr(rn, attr, None)
+        si = 'X' if valor is True else '&nbsp;&nbsp;'
+        no = 'X' if valor is False else '&nbsp;&nbsp;'
+        return f"[{si}] Sí &nbsp;&nbsp; [{no}] No"
+
+    def marca(attr, opcion):
+        valor = None if rn is None else getattr(rn, attr, None)
+        return 'X' if valor == opcion else '&nbsp;&nbsp;'
+
+    def check(attr):
+        return 'X' if (rn is not None and getattr(rn, attr, False)) else '&nbsp;&nbsp;'
+
+    L = lambda t: Paragraph(t, estilo_lbl)
+    V = lambda t: Paragraph(t if t else '&nbsp;', estilo_val)
+
+    glucos = ''
+    if rn is not None:
+        glucos = ' &nbsp;·&nbsp; '.join(
+            f"{g.hora:%H:%M} → {format(g.resultado.normalize(), 'f')} mg/dL"
+            for g in rn.glucometrias.order_by('hora')
+        )
+    parto_atendido = '' if es_plantilla else (_fix_mojibake_text(registro.parto_atendido_por) or '—')
+    apgar = (f"1': <b>{v('apgar_1min')}</b> &nbsp; 5': <b>{v('apgar_5min')}</b> &nbsp; "
+             f"10': <b>{v('apgar_10min')}</b>")
+    oxi = lambda a, b: f"Pre: <b>{v(a, '%')}</b> &nbsp; Pos: <b>{v(b, '%')}</b>"
+    # 2026-10-01: tomas de las 12, 24 y 48 h (ta_* = 12 h, ta24_*, ta48_*).
+    ta = lambda p: (f"MSD: <b>{v(p + '_msd')}</b> &nbsp; MSI: <b>{v(p + '_msi')}</b> &nbsp; "
+                    f"MID: <b>{v(p + '_mid')}</b> &nbsp; MIIZ: <b>{v(p + '_miiz')}</b>")
+
+    # Filas de datos: [etiqueta, valor, etiqueta, valor]; None en la 3a
+    # posición = el valor ocupa las 3 columnas (texto largo).
+    datos = [
+        ['Hora de nacimiento', txt(_hora_nacimiento(registro, rn)), 'Pasa a UCI neonatal', sino('pasa_uci_neonatal')],
+        ['Causa', v('causa_uci'), None, None],
+        ['Género', f"[{marca('genero', 'M')}] M &nbsp; [{marca('genero', 'F')}] F &nbsp; [{marca('genero', 'I')}] I",
+         'Peso', v('peso', ' g')],
+        ['Talla', v('talla', ' cm'), 'Perímetro cefálico', v('pc', ' cm')],
+        ['Perímetro torácico', v('pt', ' cm'), 'Perímetro abdominal', v('p_abd', ' cm')],
+        ['APGAR', apgar, 'TSH tomada', sino('tsh_tomada')],
+        ['Hemoclasificación', v('hemoclasificacion'), 'Vacunas', f"[{check('vacuna_hb')}] HB &nbsp; [{check('vacuna_bcg')}] BCG"],
+        ['Líquido amniótico', v('caracteristicas_liquido_amniotico'), None, None],
+        ['Lavado gástrico', sino('lavado_gastrico'), 'Elimina', sino('lavado_elimina')],
+        ['Meconio', sino('meconio'), 'Valorado por pediatra antes del egreso', sino('valorado_pediatra')],
+        ['Oximetría al nacer', oxi('oximetria_nacimiento_preductal', 'oximetria_nacimiento_posductal'),
+         'Oximetría a las 12 h', oxi('oximetria_12h_preductal', 'oximetria_12h_posductal')],
+        ['TA neonato 12 h', ta('ta'), None, None],
+        ['TA neonato 24 h', ta('ta24'), None, None],
+        ['TA neonato 48 h', ta('ta48'), None, None],
+        ['Glucometrías', glucos or vacio, None, None],
+        ['Parto atendido por', parto_atendido, 'Neonato atendido por', v('neonato_atendido_por')],
+    ]
+
+    if rn is not None and rn.huella_pdf:
+        celda_huella = ''  # la huella se incrusta aquí después (_incrustar_huella)
+    elif es_plantilla:
+        celda_huella = ''  # recuadro vacío para tomar la huella en tinta
+    else:
+        celda_huella = Paragraph('Sin huella cargada', estilo_huella)
+
+    filas = [['CONTROL DEL RECIÉN NACIDO', '', '', '', 'HUELLA PLANTAR']]
+    estilos = [
+        ('SPAN', (0, 0), (3, 0)),
+        ('BACKGROUND', (0, 0), (-1, 0), COLOR_HEADER),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (3, 0), 9),
+        ('FONTSIZE', (4, 0), (4, 0), 7.5),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 3.2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3.2),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('BOX', (0, 0), (-1, -1), BORDE, COLOR_BORDE),
+        ('INNERGRID', (0, 1), (3, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ('LINEBEFORE', (4, 0), (4, -1), BORDE, COLOR_BORDE),
+    ]
+    for i, (l1, v1, l2, v2) in enumerate(datos, start=1):
+        if l2 is None:
+            filas.append([L(l1), V(v1), '', '', ''])
+            estilos.append(('SPAN', (1, i), (3, i)))
+        else:
+            filas.append([L(l1), V(v1), L(l2), V(v2), ''])
+        estilos.append(('BACKGROUND', (0, i), (0, i), COLOR_LABEL))
+        if l2 is not None:
+            estilos.append(('BACKGROUND', (2, i), (2, i), COLOR_LABEL))
+    ultima = len(filas) - 1
+    filas[1][4] = celda_huella
+    estilos += [('SPAN', (4, 1), (4, ultima)), ('VALIGN', (4, 1), (4, ultima), 'MIDDLE')]
+
+    ancho_datos = ANCHO_UTIL - ANCHO_HUELLA
+    cw = [ancho_datos * f for f in (0.20, 0.30, 0.22, 0.28)] + [ANCHO_HUELLA]
+    tbl = _TablaConHuella(filas, colWidths=cw, ubicacion=ubicacion)
+    tbl.setStyle(TableStyle(estilos))
+    return [tbl]
+
+
+def _pagina_huella(rn):
+    """Hojas del PDF de la huella (lista vacía si no se puede leer)."""
+    import logging
+    from pypdf import PdfReader
+    try:
+        with rn.huella_pdf.open('rb') as f:
+            paginas = list(PdfReader(io.BytesIO(f.read())).pages)
+        for p in paginas:
+            p.transfer_rotation_to_content()
+        return paginas
+    except Exception:
+        logging.getLogger(__name__).exception('No se pudo leer el PDF de la huella del RN (rn %s)', rn.pk)
+        return []
+
+
+def _encajar(pagina_destino, pagina_huella, x, y, ancho, alto):
+    """Pone pagina_huella escalada y centrada dentro del rectángulo (x, y, ancho, alto)."""
+    from pypdf import Transformation
+    caja = pagina_huella.mediabox
+    w, h = float(caja.width), float(caja.height)
+    escala = min(ancho / w, alto / h)
+    tx = x + (ancho - w * escala) / 2 - float(caja.left) * escala
+    ty = y + (alto - h * escala) / 2 - float(caja.bottom) * escala
+    pagina_destino.merge_transformed_page(pagina_huella, Transformation().scale(escala, escala).translate(tx, ty))
+
+
+def _texto_en_rect(pagina_destino, x, y, ancho, alto, texto):
+    from pypdf import PdfReader
+    from reportlab.pdfgen import canvas as rl_canvas
+    buf = io.BytesIO()
+    c = rl_canvas.Canvas(buf, pagesize=(float(pagina_destino.mediabox.width), float(pagina_destino.mediabox.height)))
+    c.setFont('Helvetica-Bold', 7)
+    c.setFillColor(colors.HexColor('#b91c1c'))
+    for i, linea in enumerate(texto.split('\n')):
+        c.drawCentredString(x + ancho / 2, y + alto / 2 - i * 9, linea)
+    c.showPage()
+    c.save()
+    buf.seek(0)
+    pagina_destino.merge_page(PdfReader(buf).pages[0])
+
+
+def _incrustar_huella(pdf_bytes, registro, rn, ubicacion):
+    """Incrusta la primera hoja de la huella dentro del recuadro HUELLA. Si el
+    PDF de la huella trae más hojas (máx. 3), las adicionales van al final
+    con el mismo encabezado de identificación (_anexar_hojas_huella)."""
+    from pypdf import PdfReader, PdfWriter
+
+    escritor = PdfWriter(clone_from=PdfReader(io.BytesIO(pdf_bytes)))
+    paginas = _pagina_huella(rn)
+    if ubicacion.get('pagina'):
+        destino = escritor.pages[ubicacion['pagina'] - 1]
+        x = ubicacion['x'] + MARGEN_HUELLA
+        y = ubicacion['y'] + MARGEN_HUELLA
+        ancho = ubicacion['ancho'] - 2 * MARGEN_HUELLA
+        alto = ubicacion['alto'] - 2 * MARGEN_HUELLA
+        if paginas:
+            _encajar(destino, paginas[0], x, y, ancho, alto)
+            if len(paginas) > 1:
+                _texto_en_rect(destino, x, y - alto / 2 + 10, ancho, alto,
+                               f'+{len(paginas) - 1} hoja(s) adicional(es) al final')
+        else:
+            _texto_en_rect(destino, x, y, ancho, alto, 'No se pudo incluir\nla huella. Verifíquela\nen el sistema.')
+    else:
+        # No debería pasar (la tabla siempre se dibuja); por si acaso, todas al final.
+        _anexar_hojas_huella(escritor, registro, rn, paginas)
+        paginas = []
+    if len(paginas) > 1:
+        _anexar_hojas_huella(escritor, registro, rn, paginas[1:], desde=2, total=len(paginas))
+    salida = io.BytesIO()
+    escritor.write(salida)
+    return salida.getvalue()
+
+
+def _anexar_hojas_huella(escritor, registro, rn, paginas, desde=1, total=None):
+    """Hojas adicionales de la huella al final, con encabezado de identificación."""
+    from pypdf import PdfReader
+    from reportlab.pdfgen import canvas as rl_canvas
+    from django.utils import timezone
+
+    total = total or len(paginas)
+    ancho_pag, alto_pag = A4
+    caja_x, caja_y = MARGIN, MARGIN
+    caja_w = ancho_pag - 2 * MARGIN
+    caja_h = alto_pag - 2 * MARGIN - 3.2 * cm
+    subida = ''
+    if rn.huella_subida_en:
+        subida = f"Cargada por {rn.huella_subida_por or '—'} el {timezone.localtime(rn.huella_subida_en):%d/%m/%Y %I:%M %p}"
+    for n, pagina in enumerate(paginas, start=desde):
+        buf = io.BytesIO()
+        c = rl_canvas.Canvas(buf, pagesize=A4)
+        y = alto_pag - MARGIN
+        c.setFillColor(COLOR_HEADER)
+        c.rect(MARGIN, y - 0.75 * cm, caja_w, 0.75 * cm, stroke=0, fill=1)
+        c.setFillColor(colors.white)
+        c.setFont('Helvetica-Bold', 10)
+        c.drawCentredString(ancho_pag / 2, y - 0.52 * cm,
+                            f'HUELLA PLANTAR DEL RECIÉN NACIDO · FRSPA-007 (hoja {n} de {total})')
+        c.setFillColor(COLOR_TEXTO)
+        c.setFont('Helvetica-Bold', 8)
+        c.drawString(MARGIN, y - 1.35 * cm, f"Madre: {_fix_mojibake_text(registro.nombre_paciente)}")
+        c.drawRightString(MARGIN + caja_w, y - 1.35 * cm, f"Identificación: {_safe_str(registro.identificacion)}")
+        c.setFont('Helvetica', 7.5)
+        c.drawRightString(MARGIN + caja_w, y - 1.9 * cm, subida)
+        c.setStrokeColor(COLOR_BORDE)
+        c.setLineWidth(BORDE)
+        c.rect(caja_x, caja_y, caja_w, caja_h, stroke=1, fill=0)
+        c.showPage()
+        c.save()
+        buf.seek(0)
+        base = PdfReader(buf).pages[0]
+        _encajar(base, pagina, caja_x + 0.3 * cm, caja_y + 0.3 * cm, caja_w - 0.6 * cm, caja_h - 0.6 * cm)
+        escritor.add_page(base)

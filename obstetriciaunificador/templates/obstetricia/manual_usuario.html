@@ -489,7 +489,7 @@
                     <div class="manual-meta">
                         <span><i data-lucide="hospital" size="13"></i> Hospital Universitario Departamental de Nariño</span>
                         <span><i data-lucide="tag" size="13"></i> Versión del manual 1.3</span>
-                        <span><i data-lucide="calendar" size="13"></i> Actualizado el 23 de septiembre de 2026</span>
+                        <span><i data-lucide="calendar" size="13"></i> Actualizado el 1 de octubre de 2026</span>
                     </div>
                     <p>
                         Esta guía explica, paso a paso y sin tecnicismos, cómo usar cada pantalla del sistema:
@@ -511,6 +511,9 @@
                         <br>• <b>Repositorio clínico (NAS):</b> los formatos finales de MEOWS, Control Posparto,
                         Trabajo de Parto y Triaje se guardan en la carpeta de la paciente y de su ingreso
                         (secciones 4 a 6 y sección 8).
+                        <br><b>Actualización del 1 de octubre de 2026:</b> en Control Posparto Inmediato, la
+                        <b>Línea de Tiempo Clínica MEOWS</b> se abre en una ventana grande y queda disponible también con
+                        el registro cerrado; el control de fetocardia es cada 5 minutos (sección 5).
                         <br>Lo nuevo está marcado a lo largo del manual con la etiqueta <span class="badge-nuevo" style="margin-left:2px;">Nuevo</span>.</span>
                     </div>
 
@@ -1231,11 +1234,13 @@
 
                     <h3 class="step-title">Registrar el control de fetocardia</h3>
                     <ol class="steps">
-                        <li>En la sección <b>"Control de Fetocardia"</b>, indique cada cuántos minutos se toma el
-                            control (por defecto cada 15 minutos).</li>
+                        <li>En la sección <b>"Control de fetocardia"</b> el control se registra durante el
+                            expulsivo, con un intervalo fijo de <b>cada 5 minutos</b> (ya no se puede cambiar). El valor
+                            normal, <b>110 – 160 lpm</b>, se muestra junto al intervalo.</li>
                         <li>Presione <code class="btnname">Agregar control</code> para crear una nueva fila con
-                            fecha y hora sugeridas; solo debe escribir el valor de la frecuencia cardíaca fetal (lpm).</li>
-                        <li>Repita el proceso por cada toma que realice durante el trabajo de parto.</li>
+                            fecha y hora sugeridas; solo debe escribir el valor de la frecuencia cardíaca fetal (lpm).
+                            Cada fila indica al lado si el valor está dentro o fuera del rango normal.</li>
+                        <li>Repita el proceso por cada toma que realice durante el expulsivo.</li>
                         <li>Use el botón <code class="btnname">Vista previa</code> (arriba, siempre visible) para
                             ver la gráfica del comportamiento de la frecuencia fetal en el tiempo, con la franja
                             de valores normales resaltada.</li>
@@ -1245,9 +1250,31 @@
                     <ul class="plain">
                         <li>Seleccione el <b>tipo de parto</b> (Vaginal, Instrumentado o Cesárea), si hubo
                             <b>episiotomía</b> y el <b>tipo de alumbramiento</b>.</li>
-                        <li>Justo debajo puede consultar la <b>Línea de Tiempo Clínica MEOWS</b> de la misma
-                            paciente sin salir de esta pantalla.</li>
                     </ul>
+
+                    <h3 class="step-title">Consultar la Línea de Tiempo Clínica MEOWS <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt">
+                        Entre el control de fetocardia y las características del parto está la tarjeta
+                        <b>"Línea de tiempo clínica MEOWS"</b>, con los signos vitales que se registraron en Dinámica
+                        para esta paciente. Así no tiene que salir de esta pantalla para verlos.
+                    </p>
+                    <ol class="steps">
+                        <li>La tarjeta muestra un resumen: cuántas <b>tomas</b> hay registradas, la fecha y hora de la
+                            <b>última toma</b> y el <b>riesgo actual</b> (BLANCO, VERDE, AMARILLO o ROJO).</li>
+                        <li>Presione <code class="btnname">📊 Ver línea de tiempo clínica</code> para abrir la cuadrícula
+                            completa en una ventana grande: una columna por toma, con el nombre de quien la registró en
+                            Dinámica, el punto (●) en el valor medido y el color del puntaje.</li>
+                        <li>Dentro de esa ventana, <code class="btnname">🔎 Guía Técnica MEOWS</code> muestra la tabla de
+                            puntajes y qué hacer según el riesgo.</li>
+                        <li>Cierre la ventana con la <b>×</b>, la tecla <b>Esc</b> o haciendo clic fuera de ella.</li>
+                    </ol>
+                    <div class="callout tip">
+                        <i data-lucide="info" size="18"></i>
+                        <span>La línea de tiempo es <b>solo de consulta</b>: las tomas vienen de Dinámica y se corrigen allá.
+                        Se puede abrir siempre, también cuando el registro ya está cerrado o se consulta un ingreso
+                        anterior. Si dice <i>"Sin mediciones MEOWS registradas todavía"</i>, aún no hay signos vitales
+                        de la paciente en Dinámica.</span>
+                    </div>
 
                     <h3 class="step-title">Guía de parámetros y semáforo de alerta</h3>
                     <ol class="steps">
@@ -1260,7 +1287,11 @@
                             <b>Vigilar</b> o <b>Alerta</b> (el umbral cambia según si el parto fue vaginal o por
                             cesárea). Presione <code class="btnname">Guardar control</code> para dejar constancia
                             de esa lectura; puede editarla o eliminarla después desde la pestaña
-                            <b>"Registros"</b> del mismo modal.</li>
+                            <b>"Registros"</b> del mismo modal. Los pesos que escriba y todavía no guarde quedan como
+                            <b>borrador en ese computador</b>: si cierra la ventana o la página, al volver a abrir la
+                            calculadora se recuperan. Pero <b>no cuentan en el registro</b> hasta presionar
+                            <code class="btnname">Guardar control</code>; por eso, al cerrar la ventana con pesos sin
+                            guardar, el sistema le pregunta si desea cerrar de todas formas.</li>
                         <li><b>Sutura y heridas</b>: seleccione Normal, Hematoma o Infección; también se colorea
                             automáticamente.</li>
                     </ol>
@@ -1293,7 +1324,12 @@
                             bloqueado con el texto <i>"Se habilita con el control de las 6 h"</i>, y al pasar el mouse indica
                             cuál fue el último control guardado.</li>
                         <li>Al cerrarse, arriba aparece la franja <b>"Registro cerrado el &lt;fecha&gt; por
-                            &lt;nombre&gt; — para corregir, use 'Vista previa'"</b> y el formulario queda de <b>solo lectura</b>.</li>
+                            &lt;nombre&gt; — para corregir, use 'Vista previa'"</b> y el formulario queda de <b>solo lectura</b>.
+                            Siguen disponibles <code class="btnname">Vista previa</code>, <code class="btnname">Descargar PDF</code>,
+                            <code class="btnname">Reenviar a repositorio</code> y la <b>Línea de Tiempo Clínica MEOWS</b>.
+                            En <b>Globo de seguridad</b>, <b>Sangrado cuantificado</b> y <b>Sutura y heridas</b> los botones
+                            pasan a decir <code class="btnname">Ver historial</code> / <code class="btnname">Ver registros</code>:
+                            abren los controles guardados solo para consultarlos.</li>
                         <li>En ese mismo momento, el sistema genera el <b>PDF final (FRSPA-007)</b> y lo guarda
                             <b>automáticamente</b> en el repositorio clínico, en la carpeta de la paciente y de su
                             ingreso. No tiene que presionar nada más.</li>

@@ -428,13 +428,29 @@ página, colapsable con el botón "Ocultar/Mostrar".
 })();
 
 // --- Modo MODAL (Control Posparto Inmediato) ---
+// 2026-09-30: apertura y cierre animados (ver .cerrando en meows-historial.css):
+// al cerrar se deja terminar la animación de salida antes de ocultarla.
+var _cierreTimelineTimer = null;
 window.abrirMeowsTimeline = function() {
     var o = document.getElementById('meows-timeline-overlay');
-    if (o) o.classList.add('show');
+    if (!o) return;
+    // 2026-10-01: en Control Posparto el overlay queda anidado dentro del
+    // formulario (#panel-paciente, main...). Si algún contenedor ancestro crea
+    // un containing block/stacking context (transform, filter, overflow,
+    // z-index), el overlay fixed queda atrapado y no se ve. Se mueve al <body>.
+    if (o.parentNode !== document.body) document.body.appendChild(o);
+    clearTimeout(_cierreTimelineTimer);
+    o.classList.remove('cerrando');
+    o.classList.add('show');
 };
 window.cerrarMeowsTimeline = function() {
     var o = document.getElementById('meows-timeline-overlay');
-    if (o) o.classList.remove('show');
+    if (!o || !o.classList.contains('show') || o.classList.contains('cerrando')) return;
+    var sinAnimacion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    o.classList.add('cerrando');
+    _cierreTimelineTimer = setTimeout(function() {
+        o.classList.remove('show', 'cerrando');
+    }, sinAnimacion ? 0 : 340);
 };
 
 window.abrirMeowsReferencia = function() {

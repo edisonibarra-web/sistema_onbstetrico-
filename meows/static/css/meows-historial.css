@@ -240,6 +240,38 @@
 }
 .meows-timeline-overlay.show { display: flex; }
 
+/* 2026-09-30: apertura/cierre suaves (antes aparecía de golpe). El fondo se
+   oscurece de a poco, la ventana sube y crece levemente y el contenido entra
+   un instante después. IMPORTANTE (ver comentario de arriba): las animaciones
+   con transform terminan en "none" y NO usan fill forwards al abrir, así que
+   una vez abierta la ventana no queda ningún transform que atrape el overlay
+   fixed de la Guía Técnica; el cuerpo solo anima opacidad. */
+.meows-timeline-overlay.show { animation: tlFondoEntra 0.5s ease both; }
+.meows-timeline-overlay.show .meows-timeline-modal { animation: tlVentanaEntra 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+.meows-timeline-overlay.show .meows-timeline-modal-header { animation: tlAparece 0.45s ease 0.12s both; }
+.meows-timeline-overlay.show .meows-timeline-modal-body { animation: tlAparece 0.55s ease 0.22s both; }
+.meows-timeline-overlay.cerrando { animation: tlFondoSale 0.35s ease forwards; }
+.meows-timeline-overlay.cerrando .meows-timeline-modal { animation: tlVentanaSale 0.35s ease forwards; }
+@keyframes tlFondoEntra { from { background-color: rgba(15, 23, 42, 0); } to { background-color: rgba(15, 23, 42, 0.6); } }
+@keyframes tlFondoSale { from { background-color: rgba(15, 23, 42, 0.6); } to { background-color: rgba(15, 23, 42, 0); } }
+@keyframes tlVentanaEntra {
+    from { opacity: 0; transform: translateY(36px) scale(0.95); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes tlVentanaSale {
+    from { opacity: 1; transform: none; }
+    to { opacity: 0; transform: translateY(20px) scale(0.97); }
+}
+@keyframes tlAparece { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+    .meows-timeline-overlay.show,
+    .meows-timeline-overlay.show .meows-timeline-modal,
+    .meows-timeline-overlay.show .meows-timeline-modal-header,
+    .meows-timeline-overlay.show .meows-timeline-modal-body,
+    .meows-timeline-overlay.cerrando,
+    .meows-timeline-overlay.cerrando .meows-timeline-modal { animation: none; }
+}
+
 .meows-timeline-modal {
     background: #ffffff;
     border-radius: 20px;

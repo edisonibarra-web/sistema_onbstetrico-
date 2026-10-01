@@ -84,6 +84,28 @@ class FormularioRegistroView(TemplateView):
 # misma regla, pero esto es lo que de verdad lo impide.
 MINUTO_ULTIMO_CONTROL_POSPARTO = 360
 
+# 2026-09-30: tampoco se cierra sin el Control del recién nacido mínimo y su
+# huella plantar (PDF). Mismos campos que marca con * la card del formulario
+# (RN_OBLIGATORIOS_CIERRE en formulario.html).
+CAMPOS_RN_OBLIGATORIOS_CIERRE = [
+    ('genero', 'género'),
+    ('peso', 'peso'),
+    ('talla', 'talla'),
+    ('apgar_1min', "APGAR al 1'"),
+    ('apgar_5min', "APGAR a los 5'"),
+]
+
+
+def _faltantes_recien_nacido(registro):
+    rn = ControlRecienNacido.objects.filter(registro=registro).first()
+    faltan = [
+        etiqueta for campo, etiqueta in CAMPOS_RN_OBLIGATORIOS_CIERRE
+        if rn is None or getattr(rn, campo) in (None, '')
+    ]
+    if rn is None or not rn.huella_pdf:
+        faltan.append('huella plantar (PDF)')
+    return faltan
+
 
 def _intentar_cerrar_registro(instance, request):
     """
@@ -113,6 +135,17 @@ def _intentar_cerrar_registro(instance, request):
             'posparto, el de las 6 horas después del parto (minuto '
             f'{MINUTO_ULTIMO_CONTROL_POSPARTO}). {detalle}'
         )
+
+    # 2026-09-30: la hora de parto también es obligatoria (es además la hora
+    # de nacimiento que imprime el PDF en "Control del recién nacido").
+    pendientes = []
+    if not instance.hora_parto:
+        pendientes.append('en "Características del parto" falta la hora de parto')
+    faltan_rn = _faltantes_recien_nacido(instance)
+    if faltan_rn:
+        pendientes.append(f'en "Control del recién nacido" falta {", ".join(faltan_rn)}')
+    if pendientes:
+        return f'Aún no se puede cerrar el registro: {"; ".join(pendientes)}.'
 
     # 2026-09-25: cierre ATÓMICO -- solo cierra si nadie lo cerró todavía
     # (antes: leer y luego guardar; dos pestañas cerrando a la vez enviaban
@@ -160,6 +193,45 @@ def _cerrar_y_enviar_a_repositorio(instance, request, data):
     except Exception as exc:  # p. ej. error generando el PDF
         logger.exception('Error enviando FRSPA-007 al repositorio')
         data['repositorio'] = {'ok': False, 'mensaje': f'Error generando el PDF: {exc}'}
+
+# 2026-09-30: huella plantar del recién nacido (PDF escaneado). Un escaneo
+# de una hoja en buena resolución pesa 1-3 MB; 10 MB deja margen sin
+# permitir archivos desproporcionados.
+HUELLA_RN_MAX_BYTES = 10 * 1024 * 1024
+HUELLA_RN_MAX_PAGINAS = 3
+
+
+def _validar_pdf_huella(archivo):
+    """Devuelve un mensaje de error (str) o None si el archivo es un PDF válido.
+    No se confía en la extensión ni en el Content-Type que manda el navegador:
+    se revisa la firma %PDF- y que pypdf pueda abrirlo."""
+    if archivo is None:
+        return 'No se recibió ningún archivo.'
+    if archivo.size == 0:
+        return 'El archivo está vacío.'
+    if archivo.size > HUELLA_RN_MAX_BYTES:
+        return f'El PDF pesa {archivo.size / 1024 / 1024:.1f} MB; el máximo es {HUELLA_RN_MAX_BYTES // 1024 // 1024} MB.'
+    archivo.seek(0)
+    if not archivo.read(1024).lstrip().startswith(b'%PDF-'):
+        archivo.seek(0)
+        return 'El archivo no es un PDF. Escanee la huella y guárdela en formato PDF.'
+    archivo.seek(0)
+    try:
+        from pypdf import PdfReader
+        lector = PdfReader(archivo)
+        if lector.is_encrypted:
+            return 'El PDF está protegido con contraseña; súbalo sin protección.'
+        paginas = len(lector.pages)
+    except Exception:
+        return 'El PDF está dañado o no se puede leer.'
+    finally:
+        archivo.seek(0)
+    if paginas == 0:
+        return 'El PDF no tiene páginas.'
+    if paginas > HUELLA_RN_MAX_PAGINAS:
+        return f'El PDF tiene {paginas} páginas; la huella debe venir en máximo {HUELLA_RN_MAX_PAGINAS}.'
+    return None
+
 
 class BloqueoIngresoCerradoMixin:
     """
@@ -299,16 +371,95 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
             response.data['responsables'] = responsables_para_api(instance)
         return response
 
+    @staticmethod
+    def _foto_registro(registro):
+        # 2026-09-30: el recién nacido viaja dentro del PUT del registro
+        # (autoguardado), así que también cuenta para saber si hubo cambios.
+        rn = ControlRecienNacido.objects.filter(registro_id=registro.pk).first()
+        glucos = list(rn.glucometrias.values_list('hora', 'resultado').order_by('hora', 'id')) if rn else []
+        return valores_modelo(registro), valores_modelo(rn), glucos
+
     def perform_update(self, serializer):
-        antes = valores_modelo(serializer.instance)
+        antes = self._foto_registro(serializer.instance)
         super().perform_update(serializer)
-        self._hubo_cambios = valores_modelo(serializer.instance) != antes
+        self._hubo_cambios = self._foto_registro(serializer.instance) != antes
 
     @action(detail=True, methods=['get'], url_path='responsables')
     def responsables(self, request, pk=None):
         """2026-09-28: quiénes diligenciaron el registro y qué hizo cada uno
         (liviano: la pantalla lo refresca después de cada guardado)."""
         return Response(responsables_para_api(self.get_object()))
+
+    @action(detail=True, methods=['get', 'post', 'delete'], url_path='huella-rn')
+    def huella_rn(self, request, pk=None):
+        """
+        2026-09-30: huella plantar del recién nacido, subida como PDF escaneado.
+          GET    -> el PDF (inline, para verlo embebido en el formulario).
+          POST   -> sube/reemplaza (multipart, campo "archivo").
+          DELETE -> la quita.
+        El archivo nunca se sirve por /media/: solo por aquí, con la misma
+        autenticación del resto de la API. Subir o quitar queda bloqueado en
+        un ingreso de solo consulta (BloqueoIngresoCerradoMixin) y con el
+        registro ya cerrado ("Guardar Registro Completo").
+        """
+        from django.http import FileResponse, Http404
+        from django.utils import timezone
+
+        registro = self.get_object()
+        rn = ControlRecienNacido.objects.filter(registro=registro).first()
+
+        if request.method == 'GET':
+            if rn is None or not rn.huella_pdf:
+                raise Http404('Este registro no tiene huella cargada.')
+            try:
+                archivo = rn.huella_pdf.open('rb')
+            except (FileNotFoundError, OSError):
+                logger.error('Huella del RN registrada pero el archivo no existe en disco (registro %s).', registro.pk)
+                raise Http404('El archivo de la huella no se encontró en el servidor.')
+            response = FileResponse(archivo, content_type='application/pdf')
+            response['Content-Disposition'] = 'inline; filename="huella_recien_nacido.pdf"'
+            response['X-Content-Type-Options'] = 'nosniff'
+            # Se muestra embebida (iframe) en el propio formulario.
+            response['X-Frame-Options'] = 'SAMEORIGIN'
+            response['Cache-Control'] = 'no-store'
+            return response
+
+        if registro.completado_en is not None:
+            return Response(
+                {'error': 'El registro ya está cerrado: no se puede cambiar la huella.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if request.method == 'DELETE':
+            if rn is not None and rn.huella_pdf:
+                rn.huella_pdf.delete(save=False)
+                rn.huella_pdf = None
+                rn.huella_subida_por = ''
+                rn.huella_subida_en = None
+                rn.save(update_fields=['huella_pdf', 'huella_subida_por', 'huella_subida_en'])
+                registrar_participacion(registro, request)
+            return Response({'tiene_huella': False})
+
+        archivo = request.FILES.get('archivo')
+        error = _validar_pdf_huella(archivo)
+        if error:
+            return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+        if rn is None:
+            rn = ControlRecienNacido.objects.create(registro=registro, **firma_sesion(request))
+        anterior = rn.huella_pdf.name if rn.huella_pdf else None
+        rn.huella_pdf.save('huella.pdf', archivo, save=False)
+        rn.huella_subida_por = nombre_profesional_sesion(request)[:255]
+        rn.huella_subida_en = timezone.now()
+        rn.save(update_fields=['huella_pdf', 'huella_subida_por', 'huella_subida_en'])
+        if anterior and anterior != rn.huella_pdf.name:
+            rn.huella_pdf.storage.delete(anterior)
+        registrar_participacion(registro, request)
+        return Response({
+            'tiene_huella': True,
+            'huella_subida_por': rn.huella_subida_por,
+            'huella_subida_en': rn.huella_subida_en,
+        })
 
     @action(detail=True, methods=['get'], url_path='pdf')
     def descargar_pdf(self, request, pk=None):

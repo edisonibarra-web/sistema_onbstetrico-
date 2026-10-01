@@ -55,11 +55,25 @@ class GlucometriaSerializer(serializers.ModelSerializer):
 
 class ControlRecienNacidoSerializer(serializers.ModelSerializer):
     glucometrias = GlucometriaSerializer(many=True, required=False)
+    # 2026-09-30: la huella (PDF) solo se sube/quita por su propio endpoint
+    # (RegistroPartoViewSet.huella_rn) -- el autoguardado nunca la toca, y
+    # la ruta del archivo en disco no se expone.
+    tiene_huella = serializers.SerializerMethodField()
 
     class Meta:
         model = ControlRecienNacido
-        fields = '__all__'
-        read_only_fields = ['registro'] + CAMPOS_FIRMA
+        exclude = ['huella_pdf']
+        read_only_fields = ['registro', 'huella_subida_por', 'huella_subida_en'] + CAMPOS_FIRMA
+
+    def get_tiene_huella(self, obj):
+        return bool(obj.huella_pdf)
+
+    def validate(self, attrs):
+        for campo in ('apgar_1min', 'apgar_5min', 'apgar_10min'):
+            valor = attrs.get(campo)
+            if valor is not None and not 0 <= valor <= 10:
+                raise serializers.ValidationError({campo: 'El APGAR debe estar entre 0 y 10.'})
+        return attrs
 
     def create(self, validated_data):
         glucometrias_data = validated_data.pop('glucometrias', [])
@@ -236,9 +250,18 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
             if creado or not rn.registrado_por:
                 firma = self._firma()
                 ControlRecienNacido.objects.filter(pk=rn.pk).update(**firma)
-            rn.glucometrias.all().delete()
-            for g in glucometrias:
-                GlucometriaRecienNacido.objects.create(control_rn=rn, **g)
+                # rn queda en caché en instance.control_recien_nacido: sin
+                # esto, la respuesta salía sin la firma recién guardada.
+                for campo, valor in firma.items():
+                    setattr(rn, campo, valor)
+            # 2026-09-30: el autoguardado reenvía el recién nacido completo
+            # cada vez -- las glucometrías solo se reescriben si cambiaron.
+            actuales = [(g.hora, g.resultado) for g in rn.glucometrias.order_by('hora', 'id')]
+            nuevas = sorted((g['hora'], g['resultado']) for g in glucometrias)
+            if actuales != nuevas:
+                rn.glucometrias.all().delete()
+                for g in glucometrias:
+                    GlucometriaRecienNacido.objects.create(control_rn=rn, **g)
 
         if postparto_data is not None:
             # El PUT principal del registro nunca reemplaza los controles

@@ -269,6 +269,10 @@
         // importados de Dinámica que proteger -- todos los campos numéricos
         // quedan libres. Ver MEOWS_ORIGEN_DINAMICA en meows-form.js.
         window.MEOWS_ORIGEN_DINAMICA = false;
+        // 2026-10-01: antes, con MEOWS_ORIGEN_DINAMICA=false, meows-form.js
+        // convertía temperatura, TA, FC y FCF en listas (select). En triaje se
+        // digitan como número libre.
+        window.MEOWS_CAMPOS_LIBRES = true;
         window.MEOWS_URLS = {
             apiRangos: "{% url 'api_rangos_meows' %}",
             apiCalcularScore: "{% url 'api_calcular_score' %}",
@@ -282,7 +286,7 @@
         window.MEOWS_HORA_INICIAL = "{{ medicion.fecha_hora|time:'H:i' }}";
         {% endif %}
     </script>
-    <script src="{% static 'js/meows-form.js' %}?v=20260910"></script>
+    <script src="{% static 'js/meows-form.js' %}?v=20261001"></script>
     <script>
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
