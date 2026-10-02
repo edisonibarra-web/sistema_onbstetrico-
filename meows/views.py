@@ -766,13 +766,15 @@ def api_pacientes_triaje(request):
             .first()
         )
 
-    # 2026-10-02: sale de Triaje en cuanto tiene un ingreso en Dinámica (no
-    # anulado, en CUALQUIER área) desde 24 h antes de su última toma de
-    # triaje -- activo o ya egresado -- o un ingreso abierto -- antes solo salía si estaba en la lista de Sala
-    # de Partos, y una paciente ya ingresada en otra área seguía aquí. Una
-    # sola consulta para toda la lista; si Dinámica no responde, se usa el
-    # criterio anterior paciente por paciente.
-    from frecuenciafetal.sala_partos_db import documentos_con_ingreso_desde
+    # 2026-10-02: sale de Triaje cuando ya aparece en la lista de Sala de
+    # Partos (ingreso activo: con o sin cama, en cualquier área -- ver
+    # listar_pacientes_sala_partos, que incluye a toda paciente que pasó por
+    # Triaje) o cuando su ingreso posterior al triaje ya egresó. Así nunca
+    # queda fuera de las dos listas. Dos consultas para toda la lista; si
+    # Dinámica no responde, el criterio anterior paciente por paciente.
+    from frecuenciafetal.sala_partos_db import (
+        documentos_con_ingreso_cerrado_desde, listar_pacientes_sala_partos,
+    )
     desde = {}
     for p in pacientes:
         ultima = ultimas[p.id]
@@ -780,12 +782,21 @@ def api_pacientes_triaje(request):
             limite = (timezone.localtime(ultima.fecha_hora) - timedelta(hours=24)).replace(tzinfo=None)
             previo = desde.get(p.numero_documento)
             desde[p.numero_documento] = limite if previo is None else max(previo, limite)
-    con_ingreso = documentos_con_ingreso_desde(desde)
+    salieron = documentos_con_ingreso_cerrado_desde(desde)
+    if salieron is not None:
+        try:
+            salieron |= {
+                (a.get('identificacion') or '').strip()
+                for a in listar_pacientes_sala_partos(limit=5000) if a.get('origen') == 'sala_partos'
+            }
+        except Exception:
+            logger.exception("No se pudo consultar la lista de Sala de Partos para Triaje")
+            salieron = None
 
     resultado = []
     for p in pacientes:
-        if con_ingreso is not None:
-            if p.numero_documento in con_ingreso:
+        if salieron is not None:
+            if p.numero_documento in salieron:
                 continue
         elif _ya_en_sala_de_partos(p.numero_documento):
             continue

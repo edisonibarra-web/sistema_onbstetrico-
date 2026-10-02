@@ -199,6 +199,34 @@ def _listar_pacientes_activos_fallback_local(query=None, limit=50):
     return out
 
 
+# 2026-10-02: ingresos activos sin cama (urgencias) y pacientes de Triaje.
+AREA_SIN_CAMA = 'SIN CAMA ASIGNADA'
+# Solo urgencias u hospitalización (las consultas externas nunca registran
+# egreso) y de los últimos días: hay urgencias viejas que nunca se cerraron.
+# Una paciente de Triaje cuya urgencia pase de esto sin cama sigue en Triaje.
+DIAS_MAX_INGRESO_SIN_CAMA = 3
+DIAS_TRIAJE_RECIENTE = 30
+MAX_DOCUMENTOS_TRIAJE = 1000
+
+
+def _documentos_con_triaje_reciente():
+    """Documentos con tomas de triaje en esta app en los últimos
+    DIAS_TRIAJE_RECIENTE días (si tienen ingreso activo, se listan
+    aunque Dinámica no los marque como gestantes)."""
+    from datetime import timedelta
+    from django.utils import timezone
+    try:
+        from meows.models import Medicion
+        desde = timezone.now() - timedelta(days=DIAS_TRIAJE_RECIENTE)
+        docs = (
+            Medicion.objects.filter(origen='triaje', fecha_hora__gte=desde)
+            .order_by().values_list('paciente__numero_documento', flat=True).distinct()
+        )
+        return sorted({str(d).strip() for d in docs if str(d or '').strip()})[:MAX_DOCUMENTOS_TRIAJE]
+    except Exception:
+        return []
+
+
 def listar_pacientes_sala_partos(query=None, limit=50):
     """
     Lista las pacientes actualmente internadas (HESFECSAL IS NULL) en áreas
@@ -208,11 +236,25 @@ def listar_pacientes_sala_partos(query=None, limit=50):
     sin importar la sala física en la que esté (cubre, p. ej., una gestante
     aún en observación de urgencias antes de trasladarla a piso gineco).
 
-    query: opcional; filtra por nombre, identificación (documento) o texto de diagnóstico.
+    2026-10-02: para que ninguna paciente se pierda entre Triaje y Sala de
+    Partos, también entran:
+      - ingresos activos SIN cama asignada todavía: urgencias u
+        hospitalización sin egreso, de los últimos DIAS_MAX_INGRESO_SIN_CAMA
+        días y sin ninguna estancia registrada (area = AREA_SIN_CAMA);
+      - cualquier ingreso activo con diagnóstico obstétrico (CIE-10 O00-O99:
+        embarazo, parto, cesárea, puerperio; o Z32-Z39 salvo Z38, que es el
+        del recién nacido), en cualquier área, de pacientes de 10 años o más;
+      - cualquier ingreso activo de una paciente que pasó por Triaje en esta
+        app (tomas de triaje de los últimos DIAS_TRIAJE_RECIENTE días).
+
+    query: opcional; filtra por nombre, identificación (documento), número de
+    ingreso o texto de diagnóstico.
     limit: máximo de filas a devolver (por defecto 50).
     """
     if 'readonly' not in settings.DATABASES:
         return _listar_pacientes_activos_fallback_local(query=query, limit=limit)
+
+    docs_triaje = _documentos_con_triaje_reciente()
 
     sql = """
     SELECT
@@ -239,7 +281,31 @@ def listar_pacientes_sala_partos(query=None, limit=50):
         MW_DATA.ant_gineco,
         MW_DATA.ant_obst,
         ING.AINGESTAN AS gestante,
-        CASE WHEN EXISTS (
+        DXO.tiene_dx_obstetrico,
+        ING.AINCONSEC AS numero_ingreso,
+        CAM.HCACODIGO AS numero_cama
+    FROM (
+        -- Estancias abiertas (paciente en cama)...
+        SELECT E.ADNINGRES AS ingreso_oid, E.HESFECING, E.HPNDEFCAM
+        FROM HPNESTANC AS E
+        WHERE E.HESFECSAL IS NULL
+        UNION ALL
+        -- ...y ingresos activos que todavía no tienen cama (urgencias).
+        SELECT I.OID, I.AINFECING, NULL
+        FROM ADNINGRESO AS I
+        WHERE I.AINFECEGRE IS NULL
+          AND I.AINFECING >= DATEADD(DAY, -%s, GETDATE())
+          AND (I.AINESTADO IS NULL OR I.AINESTADO <> %s)
+          AND (I.AINTIPING = 2 OR I.AINURGCON = 0)
+          AND NOT EXISTS (SELECT 1 FROM HPNESTANC AS E2 WHERE E2.ADNINGRES = I.OID)
+    ) AS EST
+    LEFT JOIN HPNDEFCAM AS CAM ON EST.HPNDEFCAM = CAM.OID
+    LEFT JOIN HPNSUBGRU AS SUB ON CAM.HPNSUBGRU = SUB.OID
+    INNER JOIN ADNINGRESO AS ING ON EST.ingreso_oid = ING.OID
+    INNER JOIN GENPACIEN AS PAC ON ING.GENPACIEN = PAC.OID
+    LEFT JOIN GENDETCON AS PLA ON ING.GENDETCON = PLA.OID
+    OUTER APPLY (
+        SELECT CASE WHEN EXISTS (
             SELECT 1
             FROM HCNFOLIO AS FOL3
             INNER JOIN HCNDIAPAC AS DIAP3 ON DIAP3.HCNFOLIO = FOL3.OID
@@ -248,15 +314,18 @@ def listar_pacientes_sala_partos(query=None, limit=50):
               AND (LEFT(DX3.DIACODIGO, 1) = 'O'
                    OR LEFT(DX3.DIACODIGO, 3) BETWEEN 'Z32' AND 'Z39')
         ) THEN 1 ELSE 0 END AS tiene_dx_obstetrico,
-        ING.AINCONSEC AS numero_ingreso,
-        CAM.HCACODIGO AS numero_cama
-    FROM HPNESTANC AS EST
-    INNER JOIN HPNDEFCAM AS CAM ON EST.HPNDEFCAM = CAM.OID
-    INNER JOIN HPNGRUPOS AS GRP ON CAM.HPNGRUPOS = GRP.OID
-    INNER JOIN HPNSUBGRU AS SUB ON CAM.HPNSUBGRU = SUB.OID
-    INNER JOIN ADNINGRESO AS ING ON EST.ADNINGRES = ING.OID
-    INNER JOIN GENPACIEN AS PAC ON ING.GENPACIEN = PAC.OID
-    INNER JOIN GENDETCON AS PLA ON ING.GENDETCON = PLA.OID
+        -- Para INCLUIR en la lista: sin Z38 ("nacido vivo" es el código del
+        -- recién nacido, no de la madre).
+        CASE WHEN EXISTS (
+            SELECT 1
+            FROM HCNFOLIO AS FOL4
+            INNER JOIN HCNDIAPAC AS DIAP4 ON DIAP4.HCNFOLIO = FOL4.OID
+            INNER JOIN GENDIAGNO AS DX4 ON DIAP4.GENDIAGNO = DX4.OID
+            WHERE FOL4.ADNINGRESO = ING.OID
+              AND (LEFT(DX4.DIACODIGO, 1) = 'O'
+                   OR (LEFT(DX4.DIACODIGO, 3) BETWEEN 'Z32' AND 'Z39' AND LEFT(DX4.DIACODIGO, 3) <> 'Z38'))
+        ) THEN 1 ELSE 0 END AS dx_obstetrico_materno
+    ) AS DXO
     OUTER APPLY (
         SELECT TOP 1
             FOL.OID AS folio,
@@ -294,24 +363,31 @@ def listar_pacientes_sala_partos(query=None, limit=50):
         WHERE FOL2.ADNINGRESO = ING.OID
         ORDER BY FOL2.OID DESC
     ) AS MW_DATA
-    WHERE EST.HESFECSAL IS NULL
-      AND (
+    WHERE (
           SUB.HSUCODIGO IN ('0304', '0305', '0307')
           OR ING.AINGESTAN = 1
+          OR (DXO.dx_obstetrico_materno = 1 AND DATEDIFF(YEAR, PAC.GPAFECNAC, GETDATE()) >= 10)
+          {filtro_triaje}
       )
     """
-    params = []
+    params = [DIAS_MAX_INGRESO_SIN_CAMA, AINESTADO_ANULADO]
+    if docs_triaje:
+        sql = sql.replace('{filtro_triaje}', 'OR PAC.PACNUMDOC IN (' + ', '.join(['%s'] * len(docs_triaje)) + ')')
+        params += docs_triaje
+    else:
+        sql = sql.replace('{filtro_triaje}', '')
     if query and query.strip():
         sql += """
       AND (
           PAC.PACNUMDOC LIKE %s
+          OR CONVERT(varchar(30), ING.AINCONSEC) LIKE %s
           OR ISNULL(PAC.PACPRINOM,'') + ' ' + ISNULL(PAC.PACSEGNOM,'') + ' ' + ISNULL(PAC.PACPRIAPE,'') + ' ' + ISNULL(PAC.PACSEGAPE,'') LIKE %s
           OR ISNULL(PAC.PACPRIAPE,'') + ' ' + ISNULL(PAC.PACSEGAPE,'') LIKE %s
           OR FOL_DATA.diagnostico LIKE %s
       )
         """
         q = '%' + query.strip() + '%'
-        params = [q, q, q, q]
+        params += [q, q, q, q, q]
 
     sql += " ORDER BY EST.HESFECING DESC"
 
@@ -355,7 +431,7 @@ def listar_pacientes_sala_partos(query=None, limit=50):
             'abortos': r.get('A'),
             'fecha_nacimiento': r.get('fecha_nacimiento'),
             'nombre_acompanante': acudiente or None,
-            'area': r.get('area'),
+            'area': r.get('area') or AREA_SIN_CAMA,
             'folio': r.get('folio'),
             'numero_cama': r.get('numero_cama'),
             'numero_ingreso': r.get('numero_ingreso'),
@@ -386,25 +462,52 @@ def paciente_en_sala_partos(cedula):
     de Partos: antes Triaje usaba otro criterio (solo Hospitalización y
     Cuidado Intermedio) y una paciente en cama de Sala de Partos o gestante
     en observación de urgencias aparecía en las DOS listas a la vez.
+    2026-10-02: con los criterios nuevos de la lista (ingreso activo sin cama,
+    diagnóstico obstétrico, o paciente que pasó por Triaje en esta app).
     Devuelve None si Dinámica no respondió (no se sabe).
     """
     cedula = (cedula or '').strip()
     if not cedula or not dinamica_disponible():
         return None
+    viene_de_triaje = 1 if cedula in _documentos_con_triaje_reciente() else 0
     sql = """
     SELECT TOP 1 1
-    FROM HPNESTANC AS EST
-    INNER JOIN HPNDEFCAM AS CAM ON EST.HPNDEFCAM = CAM.OID
-    INNER JOIN HPNSUBGRU AS SUB ON CAM.HPNSUBGRU = SUB.OID
-    INNER JOIN ADNINGRESO AS ING ON EST.ADNINGRES = ING.OID
+    FROM (
+        SELECT E.ADNINGRES AS ingreso_oid, E.HPNDEFCAM
+        FROM HPNESTANC AS E
+        WHERE E.HESFECSAL IS NULL
+        UNION ALL
+        SELECT I.OID, NULL
+        FROM ADNINGRESO AS I
+        WHERE I.AINFECEGRE IS NULL
+          AND I.AINFECING >= DATEADD(DAY, -%s, GETDATE())
+          AND (I.AINESTADO IS NULL OR I.AINESTADO <> %s)
+          AND (I.AINTIPING = 2 OR I.AINURGCON = 0)
+          AND NOT EXISTS (SELECT 1 FROM HPNESTANC AS E2 WHERE E2.ADNINGRES = I.OID)
+    ) AS EST
+    LEFT JOIN HPNDEFCAM AS CAM ON EST.HPNDEFCAM = CAM.OID
+    LEFT JOIN HPNSUBGRU AS SUB ON CAM.HPNSUBGRU = SUB.OID
+    INNER JOIN ADNINGRESO AS ING ON EST.ingreso_oid = ING.OID
     INNER JOIN GENPACIEN AS PAC ON ING.GENPACIEN = PAC.OID
     WHERE PAC.PACNUMDOC = %s
-      AND EST.HESFECSAL IS NULL
-      AND (SUB.HSUCODIGO IN ('0304', '0305', '0307') OR ING.AINGESTAN = 1)
+      AND (
+          SUB.HSUCODIGO IN ('0304', '0305', '0307')
+          OR ING.AINGESTAN = 1
+          OR %s = 1
+          OR (DATEDIFF(YEAR, PAC.GPAFECNAC, GETDATE()) >= 10 AND EXISTS (
+              SELECT 1
+              FROM HCNFOLIO AS FOL3
+              INNER JOIN HCNDIAPAC AS DIAP3 ON DIAP3.HCNFOLIO = FOL3.OID
+              INNER JOIN GENDIAGNO AS DX3 ON DIAP3.GENDIAGNO = DX3.OID
+              WHERE FOL3.ADNINGRESO = ING.OID
+                AND (LEFT(DX3.DIACODIGO, 1) = 'O'
+                     OR (LEFT(DX3.DIACODIGO, 3) BETWEEN 'Z32' AND 'Z39' AND LEFT(DX3.DIACODIGO, 3) <> 'Z38'))
+          ))
+      )
     """
     try:
         with connections['readonly'].cursor() as cursor:
-            cursor.execute(sql, [cedula])
+            cursor.execute(sql, [DIAS_MAX_INGRESO_SIN_CAMA, AINESTADO_ANULADO, cedula, viene_de_triaje])
             return cursor.fetchone() is not None
     except Exception as exc:
         _marcar_dinamica_caida(exc)
@@ -651,29 +754,21 @@ def consultar_ingresos_de_folios(folios):
 
 
 
-# Un ingreso sin egreso cuenta como "abierto" solo si empezó hace menos de
-# esto (mismo criterio que obstetriciaunificador.ingresos).
-DIAS_MAX_INGRESO_ABIERTO = 60
 
-
-def documentos_con_ingreso_desde(desde_por_documento):
+def documentos_con_ingreso_cerrado_desde(desde_por_documento):
     """
     2026-10-02: {documento: fecha (naive, hora de Bogotá)} -> set de los
-    documentos que tienen en Dinámica un ingreso NO anulado (en cualquier
-    área) que empezó en esa fecha o después, o que sigue abierto (sin egreso,
-    de los últimos DIAS_MAX_INGRESO_ABIERTO días). Una sola consulta para
-    toda la lista de Triaje. None si no hay conexión.
+    documentos que tienen en Dinámica un ingreso NO anulado que empezó en esa
+    fecha o después y YA EGRESÓ. Triaje los quita de su lista: el triaje tuvo
+    su ingreso y este terminó. (Los ingresos activos se ven en la lista de
+    Sala de Partos, ver listar_pacientes_sala_partos.) Una sola consulta.
+    None si no hay conexión.
     """
-    from datetime import timedelta
-    from django.utils import timezone
-
     docs = {str(d).strip(): f for d, f in desde_por_documento.items() if str(d or '').strip() and f is not None}
     if not docs:
         return set()
     if not dinamica_disponible():
         return None
-    # Hora de Bogotá sin zona, como las fechas de Dinámica (no la del servidor).
-    abierto_desde = timezone.localtime().replace(tzinfo=None) - timedelta(days=DIAS_MAX_INGRESO_ABIERTO)
     encontrados = set()
     try:
         with connections['readonly'].cursor() as cursor:
@@ -682,18 +777,17 @@ def documentos_con_ingreso_desde(desde_por_documento):
                 lote = lista[i:i + 500]
                 marcas = ', '.join(['%s'] * len(lote))
                 cursor.execute(
-                    f"""SELECT PAC.PACNUMDOC, ING.AINFECING, ING.AINFECEGRE
+                    f"""SELECT PAC.PACNUMDOC, ING.AINFECING
                     FROM ADNINGRESO AS ING
                     INNER JOIN GENPACIEN AS PAC ON ING.GENPACIEN = PAC.OID
                     WHERE PAC.PACNUMDOC IN ({marcas})
+                      AND ING.AINFECEGRE IS NOT NULL
                       AND (ING.AINESTADO IS NULL OR ING.AINESTADO <> %s)""",
                     [*lote, AINESTADO_ANULADO],
                 )
-                for doc, fecha_ingreso, fecha_egreso in cursor.fetchall():
+                for doc, fecha_ingreso in cursor.fetchall():
                     doc = str(doc or '').strip()
-                    if doc not in docs or fecha_ingreso is None:
-                        continue
-                    if fecha_ingreso >= docs[doc] or (fecha_egreso is None and fecha_ingreso >= abierto_desde):
+                    if doc in docs and fecha_ingreso is not None and fecha_ingreso >= docs[doc]:
                         encontrados.add(doc)
     except Exception as exc:
         _marcar_dinamica_caida(exc)

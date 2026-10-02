@@ -1825,7 +1825,7 @@
                         <div class="search-input-wrap">
                             <i data-lucide="badge-check"></i>
                             <span class="sb-lupa" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span>
-                            <input type="text" id="cedula-input" placeholder="Buscar por nombre o documento..." maxlength="50">
+                            <input type="text" id="cedula-input" placeholder="Buscar por nombre, cédula o número de ingreso..." maxlength="50">
                             {# 2026-10-01: limpiar la búsqueda (solo visible si hay texto). #}
                             <button type="button" class="sb-limpiar" title="Limpiar búsqueda" aria-label="Limpiar búsqueda" onclick="limpiarBusquedaActivos()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
                         </div>
@@ -2831,6 +2831,10 @@
             if (!area) {
                 return { etiqueta: 'Área sin identificar', clase: 'otra' };
             }
+            // 2026-10-02: ingreso activo sin cama todavía (p. ej. urgencias).
+            if (area === 'SIN CAMA ASIGNADA') {
+                return { etiqueta: 'Con ingreso, sin cama asignada', clase: 'otra' };
+            }
             return { etiqueta: `Gestante en ${areaRaw.trim()}`, clase: 'otra' };
         }
 
@@ -3264,6 +3268,10 @@
                 window._pacientesActivosSalaPartos = Array.isArray(pacientes) ? pacientes : [];
 
                 if (!Array.isArray(pacientes) || pacientes.length === 0) {
+                    // 2026-10-02: las tarjetas de filtro y el resumen se siguen
+                    // viendo (en 0) aunque la búsqueda no encuentre a nadie.
+                    renderAreaTabs([]);
+                    renderResumenFiltros(0, 0);
                     list.innerHTML = q
                         ? '<div class="active-patients-empty">Ningún paciente activo en Sala de Partos coincide con la búsqueda.</div>'
                         : '<div class="active-patients-empty">No hay pacientes activos en Sala de Partos en este momento.</div>';

@@ -596,12 +596,13 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     def sala_partos(self, request):
         """
         Lista pacientes en Sala de Partos desde DGEMPRES03 (readonly).
-        q: opcional; filtra por nombre o identificación.
+        q: opcional; filtra por nombre, identificación o número de ingreso.
         Devuelve datos para autocompletar el formulario (nombre, identificación, edad gestacional, gestas).
         """
         query = (request.query_params.get('q', '') or '').strip()
         try:
-            data = listar_pacientes_sala_partos(query=query if query else None)
+            # 2026-10-02: sin el tope de 50 (ninguna paciente activa debe quedar fuera).
+            data = listar_pacientes_sala_partos(query=query if query else None, limit=1000)
             return Response(data)
         except Exception as e:
             return Response(
