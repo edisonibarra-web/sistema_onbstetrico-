@@ -167,7 +167,7 @@ def _limpiar_nombre(nombre_texto):
     return limpio or None
 
 
-def obtener_signos_vitales_nuevos(folio: int, desde=None):
+def obtener_signos_vitales_nuevos(folio, desde=None, ingreso_oid=None):
     """
     Trae las lecturas de signos vitales de Dinámica para un folio, agrupadas
     por hora de toma, opcionalmente solo las posteriores a `desde` (un
@@ -198,13 +198,20 @@ def obtener_signos_vitales_nuevos(folio: int, desde=None):
 
     El llamador debe sacar "fecha_hora", "responsable" y "_oids" del dict
     ANTES de tratar el resto de claves como parámetros MEOWS a calcular.
+
+    2026-10-02: ingreso_oid (ADNINGRESO.OID) permite consultar sin folio --
+    una paciente recién ingresada (urgencias, sin cama) puede tener tomas de
+    enfermería antes de que exista un folio de historia clínica.
     """
     with connections['readonly'].cursor() as cur:
-        cur.execute("SELECT ADNINGRESO FROM HCNFOLIO WHERE OID = %s", [folio])
-        fila = cur.fetchone()
-        if not fila or fila[0] is None:
-            return []
-        adningreso = fila[0]
+        if ingreso_oid is not None:
+            adningreso = ingreso_oid
+        else:
+            cur.execute("SELECT ADNINGRESO FROM HCNFOLIO WHERE OID = %s", [folio])
+            fila = cur.fetchone()
+            if not fila or fila[0] is None:
+                return []
+            adningreso = fila[0]
 
         placeholders = ", ".join(["%s"] * len(_OIDS_USADOS))
         sql = f"""

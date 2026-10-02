@@ -283,6 +283,7 @@ def listar_pacientes_sala_partos(query=None, limit=50):
         ING.AINGESTAN AS gestante,
         DXO.tiene_dx_obstetrico,
         ING.AINCONSEC AS numero_ingreso,
+        ING.OID AS ingreso_oid,
         CAM.HCACODIGO AS numero_cama
     FROM (
         -- Estancias abiertas (paciente en cama)...
@@ -435,6 +436,9 @@ def listar_pacientes_sala_partos(query=None, limit=50):
             'folio': r.get('folio'),
             'numero_cama': r.get('numero_cama'),
             'numero_ingreso': r.get('numero_ingreso'),
+            # 2026-10-02: para traer signos vitales aunque el ingreso aún no
+            # tenga folio (urgencias sin cama).
+            'ingreso_oid': r.get('ingreso_oid'),
             'historia_clinica': r.get('historia_clinica'),
             'aseguradora': r.get('aseguradora'),
             'diagnostico': r.get('diagnostico'),

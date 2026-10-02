@@ -108,7 +108,9 @@ class Command(BaseCommand):
         for p in pacientes_activos:
             documento = (p.get('identificacion') or '').strip()
             folio = p.get('folio')
-            if not documento or not folio:
+            # 2026-10-02: también sin folio (urgencias sin cama recién
+            # ingresada): las lecturas se buscan directo por el ingreso.
+            if not documento or (not folio and p.get('ingreso_oid') is None):
                 continue
 
             try:
@@ -191,7 +193,7 @@ class Command(BaseCommand):
             # naive-local antes de usarla como filtro.
             ultima_hora = timezone.localtime(ultima_hora).replace(tzinfo=None)
 
-        lecturas = _obtener_fetocardio_nuevo(folio, desde=ultima_hora)
+        lecturas = _obtener_fetocardio_nuevo(folio, desde=ultima_hora, ingreso_oid=p.get('ingreso_oid'))
         for hora, valor_texto in lecturas:
             if timezone.is_naive(hora):
                 hora = timezone.make_aware(hora, timezone.get_current_timezone())
@@ -219,7 +221,7 @@ class Command(BaseCommand):
                     )
 
 
-def _obtener_fetocardio_nuevo(folio: int, desde=None):
+def _obtener_fetocardio_nuevo(folio, desde=None, ingreso_oid=None):
     """
     Trae las lecturas de FETOCARDIO (OID 20) de Dinámica para un folio,
     opcionalmente solo las posteriores a `desde`. Devuelve una lista de
@@ -228,15 +230,20 @@ def _obtener_fetocardio_nuevo(folio: int, desde=None):
     Reimplementado aparte de meows.services.dinamica_signos_vitales
     (que solo trae los campos que usa MEOWS) para no acoplar este módulo
     a la forma de diccionario que espera el motor MEOWS.
+
+    2026-10-02: con ingreso_oid (ADNINGRESO.OID) no hace falta el folio.
     """
     from django.db import connections
 
     with connections['readonly'].cursor() as cur:
-        cur.execute("SELECT ADNINGRESO FROM HCNFOLIO WHERE OID = %s", [folio])
-        fila = cur.fetchone()
-        if not fila or fila[0] is None:
-            return []
-        adningreso = fila[0]
+        if ingreso_oid is not None:
+            adningreso = ingreso_oid
+        else:
+            cur.execute("SELECT ADNINGRESO FROM HCNFOLIO WHERE OID = %s", [folio])
+            fila = cur.fetchone()
+            if not fila or fila[0] is None:
+                return []
+            adningreso = fila[0]
 
         sql = """
             SELECT sv.HCRHORREG, sv.HCSVALOR

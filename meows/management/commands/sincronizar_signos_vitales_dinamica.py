@@ -115,8 +115,11 @@ class Command(BaseCommand):
 
         for p in pacientes:
             folio = p.get('folio')
+            # 2026-10-02: también sin folio (urgencias sin cama recién
+            # ingresada): sus tomas se buscan directo por el ingreso.
+            ingreso_oid = p.get('ingreso_oid')
             documento = (p.get('identificacion') or '').strip()
-            if not folio or not documento:
+            if not documento or (not folio and ingreso_oid is None):
                 continue
 
             paciente, creado = Paciente.objects.get_or_create(
@@ -173,13 +176,13 @@ class Command(BaseCommand):
                 desde_consulta = None
 
             try:
-                lecturas = obtener_signos_vitales_nuevos(folio, desde=desde_consulta)
+                lecturas = obtener_signos_vitales_nuevos(folio, desde=desde_consulta, ingreso_oid=ingreso_oid)
             except MapeoNoConfigurado as e:
                 self.stderr.write(self.style.ERROR(str(e)))
                 return  # no tiene sentido seguir iterando pacientes, el mapeo falta para todas
             except Exception as e:
                 self.stderr.write(self.style.WARNING(
-                    f'Error consultando signos vitales del folio {folio} ({documento}): {e}'
+                    f'Error consultando signos vitales del ingreso {p.get("numero_ingreso")} / folio {folio} ({documento}): {e}'
                 ))
                 continue
 
