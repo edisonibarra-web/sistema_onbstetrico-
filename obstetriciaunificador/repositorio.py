@@ -22,8 +22,8 @@ Duplicados (2026-09-25):
   <cédula, ingreso, formato> (bloqueo_envio) y la escritura falla si el
   nombre ya existe -- dos envíos simultáneos nunca caen en el mismo nombre.
 - Los envíos AUTOMÁTICOS (triaje, MEOWS al egreso) revisan "¿ya se envió?"
-  DENTRO de un bloqueo: aunque la sincronización y la apertura del tablero
-  coincidan, solo uno envía.
+  DENTRO de un bloqueo: aunque dos procesos de sincronización coincidan,
+  solo uno envía.
 - Los envíos MANUALES (Finalizar / Reenviar) guardan la huella del contenido
   (huella_contenido): si no cambió nada desde el último envío de ese mismo
   registro, no se guarda otra copia idéntica (SinCambiosError) salvo que el
@@ -808,8 +808,9 @@ def resumen_envio(documento):
 # <cédula>/<ingreso> donde guardarlas. En cuanto aparece el ingreso, se genera
 # el PDF con esas tomas y se guarda en la carpeta de ESE ingreso -- una sola
 # vez por ingreso. Lo disparan:
-#   - la sincronización periódica con Dinámica (sincronizar_signos_vitales_dinamica),
-#   - la apertura del tablero de la paciente en Sala de Partos,
+#   - la sincronización periódica con Dinámica (sincronizar_signos_vitales_dinamica,
+#     servicio SalaPartosSync) -- 2026-10-02: ya NO la consulta de la paciente
+#     desde la web (la API de consulta no genera archivos en la NAS),
 #   - a mano: python manage.py enviar_triajes_pendientes
 # ---------------------------------------------------------------------------
 # Una toma de triaje pertenece a un ingreso si cae en esta ventana alrededor
@@ -864,8 +865,8 @@ def enviar_triaje_si_corresponde(doc):
     if _ya_enviado_o_agotado(previos, MAX_INTENTOS_FALLIDOS_TRIAJE):
         return None
 
-    # 2026-09-25: la sincronización y la apertura del tablero pueden llegar
-    # aquí al mismo tiempo: la revisión se repite DENTRO del bloqueo y, si
+    # 2026-09-25: dos procesos de sincronización pueden llegar aquí al
+    # mismo tiempo: la revisión se repite DENTRO del bloqueo y, si
     # otro proceso ya está enviando este triaje, este no espera ni envía.
     with bloqueo_envio(f'auto|triaje|{_limpiar(doc)}|{ingreso}', espera_segundos=0) as obtenido:
         if not obtenido:

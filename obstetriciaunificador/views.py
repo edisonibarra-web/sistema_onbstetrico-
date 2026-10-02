@@ -8,7 +8,7 @@ from django.views.decorators.http import require_http_methods
 from .models import AtencionParto
 from .repositorio import (
     MINUTOS_PARA_CONFIRMAR_ENVIO, RepositorioError, SinCambiosError, enviar_control_posparto, enviar_meows, enviar_trabajo_parto,
-    enviar_triaje_si_corresponde, resolver_atencion_ingreso, resumen_envio,
+    resolver_atencion_ingreso, resumen_envio,
 )
 import logging
 
@@ -470,18 +470,10 @@ def atencion_detalle(request, id):
 
 
 def _atencion_ingreso_actual(doc):
-    """(id, número de ingreso) de la atención del ingreso actual en Dinámica
-    -- una atención por ingreso, ver repositorio.resolver_atencion_ingreso."""
+    """(id, número de ingreso) de la atención del ingreso actual en Dinámica."""
     atencion, _ = resolver_atencion_ingreso(doc)
     if atencion is None:
         return None, ""
-    # Si la paciente venía de Triaje y ya tiene ingreso, su formato de triaje
-    # se envía al repositorio ahora (una sola vez por ingreso) -- no depende
-    # de que esté corriendo la sincronización periódica.
-    try:
-        enviar_triaje_si_corresponde(doc)
-    except Exception:
-        logger.exception("No se pudo revisar el triaje pendiente de la paciente")
     return atencion.id, atencion.numero_ingreso
 
 

@@ -2,8 +2,7 @@
 Envía al repositorio clínico (NAS / carpeta local de pruebas) el formato de
 triaje de las pacientes que ya recibieron ingreso en Dinámica. Normalmente no
 hace falta correrlo a mano: lo hace sola la sincronización periódica
-(sincronizar_signos_vitales_dinamica) y la apertura del tablero de la
-paciente. Ver obstetriciaunificador/repositorio.py (enviar_triaje_si_corresponde).
+(sincronizar_signos_vitales_dinamica, servicio SalaPartosSync). Ver obstetriciaunificador/repositorio.py (enviar_triaje_si_corresponde).
 
     python manage.py enviar_triajes_pendientes [--dias 7]
 """
