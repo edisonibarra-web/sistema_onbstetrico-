@@ -2984,6 +2984,9 @@
     .rn-ta .doc-input { text-align: center; }
     .rn-ta-scroll { overflow-x: auto; }
     .rn-ta-ayuda { margin: 8px 0 0; font-size: 0.74rem; color: #64748b; }
+    /* 2026-10-02: card "Al nacimiento": la FC ocupa las 4 columnas (campo grande). */
+    .rn-ta .rn-fc-ancho { grid-column: span 4; }
+    .rn-ta .rn-fc-ancho .doc-input { font-size: 1.05rem; font-weight: 700; }
     /* Glucometrías: tabla igual a la de fetocardia (las filas son <tr>). */
     #rn-gluco-lista .rn-gluco-fila { display: table-row; }
     #rn-gluco-lista { counter-reset: fcfila; }
@@ -4334,6 +4337,7 @@
                             <option value="">Sin registros</option>
                             <option value="NORMAL">Normal: útero firme y contraído</option>
                             <option value="ALERTA">Alerta: útero blando, relajado, atonía</option>
+                            <option value="NO_APLICA">No aplica</option>
                         </select>
                         <p id="globo-hint" class="semaforo-hint"></p>
                     </div>
@@ -4385,6 +4389,7 @@
                             <option value="NORMAL">Normal: bordes afrontados, dolor tolerable, sin cambios de coloración</option>
                             <option value="HEMATOMA">Alerta: hematoma (masa violácea, tensa, dolor intenso)</option>
                             <option value="INFECCION">Alerta: (eritema, calor local, edema, secreción purulenta)</option>
+                            <option value="NO_APLICA">No aplica</option>
                         </select>
                         <p id="sutura-hint" class="semaforo-hint"></p>
                     </div>
@@ -4455,6 +4460,7 @@
                     <option value="">— Seleccionar —</option>
                     <option value="NORMAL">Normal: útero firme y contraído</option>
                     <option value="ALERTA">Alerta: útero blando, relajado, atonía</option>
+                    <option value="NO_APLICA">No aplica</option>
                   </select>
                   <div id="globo-registros-list" class="sangrado-registros-list"></div>
                   <div id="globo-registros-empty" class="sangrado-registros-empty">Aún no hay controles guardados.</div>
@@ -4492,6 +4498,7 @@
                     <option value="NORMAL">Normal: bordes afrontados, dolor tolerable, sin cambios de coloración</option>
                     <option value="HEMATOMA">Alerta: hematoma (masa violácea, tensa, dolor intenso)</option>
                     <option value="INFECCION">Alerta: (eritema, calor local, edema, secreción purulenta)</option>
+                    <option value="NO_APLICA">No aplica</option>
                   </select>
                   <div id="sutura-registros-list" class="sangrado-registros-list"></div>
                   <div id="sutura-registros-empty" class="sangrado-registros-empty">Aún no hay controles guardados.</div>
@@ -4671,6 +4678,46 @@
                       <label class="rn-campo"><span class="rn-unidad"><input type="number" id="rn_oximetria_12h_preductal" class="doc-input" min="0" max="100" step="1" aria-label="Oximetría a las 12 horas, preductal"><em>%</em></span></label>
                       <label class="rn-campo"><span class="rn-unidad"><input type="number" id="rn_oximetria_12h_posductal" class="doc-input" min="0" max="100" step="1" aria-label="Oximetría a las 12 horas, posductal"><em>%</em></span></label>
                     </div>
+                  </fieldset>
+
+                  {# 2026-10-02: card "Al nacimiento": tensión arterial por miembro al #}
+                  {# nacer, a las 12 h, 24 h y 48 h (campos propios tanac*_, distintos #}
+                  {# de los de la card "Tensión arterial de nacido") y FC al nacer. #}
+                  <fieldset class="rn-grupo rn-grupo-ta rn-grupo-nac">
+                    <legend><i data-lucide="baby"></i> Al nacimiento</legend>
+                    <div class="rn-ta-scroll">
+                    <div class="rn-oxi rn-ta" role="group" aria-label="Al nacimiento: tensión arterial por miembro y frecuencia cardiaca">
+                      <span></span>
+                      <span class="rn-oxi-col" title="Miembro superior derecho">MSD</span>
+                      <span class="rn-oxi-col" title="Miembro superior izquierdo">MSI</span>
+                      <span class="rn-oxi-col" title="Miembro inferior derecho">MID</span>
+                      <span class="rn-oxi-col" title="Miembro inferior izquierdo">MIIZ</span>
+                      <span class="rn-oxi-fila">TA al nacer</span>
+                      <label class="rn-campo"><input type="text" id="rn_tanac_msd" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial al nacimiento, miembro superior derecho"></label>
+                      <label class="rn-campo"><input type="text" id="rn_tanac_msi" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial al nacimiento, miembro superior izquierdo"></label>
+                      <label class="rn-campo"><input type="text" id="rn_tanac_mid" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial al nacimiento, miembro inferior derecho"></label>
+                      <label class="rn-campo"><input type="text" id="rn_tanac_miiz" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial al nacimiento, miembro inferior izquierdo"></label>
+                      <span class="rn-oxi-fila">TA a las 12 h</span>
+                      <label class="rn-campo"><input type="text" id="rn_tanac12_msd" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 12 h (card Al nacimiento), miembro superior derecho"></label>
+                      <label class="rn-campo"><input type="text" id="rn_tanac12_msi" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 12 h (card Al nacimiento), miembro superior izquierdo"></label>
+                      <label class="rn-campo"><input type="text" id="rn_tanac12_mid" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 12 h (card Al nacimiento), miembro inferior derecho"></label>
+                      <label class="rn-campo"><input type="text" id="rn_tanac12_miiz" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 12 h (card Al nacimiento), miembro inferior izquierdo"></label>
+                      <span class="rn-oxi-fila">TA a las 24 h</span>
+                      <label class="rn-campo"><input type="text" id="rn_tanac24_msd" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 24 h (card Al nacimiento), miembro superior derecho"></label>
+                      <label class="rn-campo"><input type="text" id="rn_tanac24_msi" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 24 h (card Al nacimiento), miembro superior izquierdo"></label>
+                      <label class="rn-campo"><input type="text" id="rn_tanac24_mid" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 24 h (card Al nacimiento), miembro inferior derecho"></label>
+                      <label class="rn-campo"><input type="text" id="rn_tanac24_miiz" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 24 h (card Al nacimiento), miembro inferior izquierdo"></label>
+                      <span class="rn-oxi-fila">TA a las 48 h</span>
+                      <label class="rn-campo"><input type="text" id="rn_tanac48_msd" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 48 h (card Al nacimiento), miembro superior derecho"></label>
+                      <label class="rn-campo"><input type="text" id="rn_tanac48_msi" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 48 h (card Al nacimiento), miembro superior izquierdo"></label>
+                      <label class="rn-campo"><input type="text" id="rn_tanac48_mid" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 48 h (card Al nacimiento), miembro inferior derecho"></label>
+                      <label class="rn-campo"><input type="text" id="rn_tanac48_miiz" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 48 h (card Al nacimiento), miembro inferior izquierdo"></label>
+                      {# Frecuencia cardiaca al nacer: un solo campo ancho (las 4 columnas). #}
+                      <span class="rn-oxi-fila">FC al nacer</span>
+                      <label class="rn-campo rn-fc-ancho"><span class="rn-unidad"><input type="number" id="rn_fc_nacimiento" class="doc-input" min="0" max="300" step="1" placeholder="140" aria-label="Frecuencia cardiaca al nacimiento, latidos por minuto"><em>lpm</em></span></label>
+                    </div>
+                    </div>
+                    <p class="rn-ta-ayuda">TA: tensión arterial · FC: frecuencia cardiaca · MSD/MSI: miembro superior derecho/izquierdo · MID/MIIZ: miembro inferior derecho/izquierdo.</p>
                   </fieldset>
 
                   {# 2026-10-01: tensión arterial a las 12 h, 24 h y 48 h de nacido #}
@@ -5462,6 +5509,7 @@
                         <option value="">— Seleccionar —</option>
                         <option value="NORMAL" ${globo === 'NORMAL' ? 'selected' : ''}>Normal: útero firme y contraído</option>
                         <option value="ALERTA" ${globo === 'ALERTA' ? 'selected' : ''}>Alerta: útero blando, relajado, atonía</option>
+                        <option value="NO_APLICA" ${globo === 'NO_APLICA' ? 'selected' : ''}>No aplica</option>
                       </select>
                       <p id="fc-preview-globo-hint" class="semaforo-hint"></p>
                     </div>
@@ -5494,6 +5542,7 @@
                         <option value="NORMAL" ${sutura === 'NORMAL' ? 'selected' : ''}>Normal: bordes afrontados, dolor tolerable, sin cambios de coloración</option>
                         <option value="HEMATOMA" ${sutura === 'HEMATOMA' ? 'selected' : ''}>Alerta: hematoma (masa violácea, tensa, dolor intenso)</option>
                         <option value="INFECCION" ${sutura === 'INFECCION' ? 'selected' : ''}>Alerta: (eritema, calor local, edema, secreción purulenta)</option>
+                        <option value="NO_APLICA" ${sutura === 'NO_APLICA' ? 'selected' : ''}>No aplica</option>
                       </select>
                       <p id="fc-preview-sutura-hint" class="semaforo-hint"></p>
                     </div>
@@ -6738,6 +6787,23 @@
             ['oximetria_nacimiento_posductal', 'rn_oximetria_nacimiento_posductal', 'ent'],
             ['oximetria_12h_preductal', 'rn_oximetria_12h_preductal', 'ent'],
             ['oximetria_12h_posductal', 'rn_oximetria_12h_posductal', 'ent'],
+            ['tanac_msd', 'rn_tanac_msd', 'texto'],
+            ['tanac_msi', 'rn_tanac_msi', 'texto'],
+            ['tanac_mid', 'rn_tanac_mid', 'texto'],
+            ['tanac_miiz', 'rn_tanac_miiz', 'texto'],
+            ['fc_nacimiento', 'rn_fc_nacimiento', 'ent'],
+            ['tanac12_msd', 'rn_tanac12_msd', 'texto'],
+            ['tanac12_msi', 'rn_tanac12_msi', 'texto'],
+            ['tanac12_mid', 'rn_tanac12_mid', 'texto'],
+            ['tanac12_miiz', 'rn_tanac12_miiz', 'texto'],
+            ['tanac24_msd', 'rn_tanac24_msd', 'texto'],
+            ['tanac24_msi', 'rn_tanac24_msi', 'texto'],
+            ['tanac24_mid', 'rn_tanac24_mid', 'texto'],
+            ['tanac24_miiz', 'rn_tanac24_miiz', 'texto'],
+            ['tanac48_msd', 'rn_tanac48_msd', 'texto'],
+            ['tanac48_msi', 'rn_tanac48_msi', 'texto'],
+            ['tanac48_mid', 'rn_tanac48_mid', 'texto'],
+            ['tanac48_miiz', 'rn_tanac48_miiz', 'texto'],
             ['ta_msd', 'rn_ta_msd', 'texto'],
             ['ta_msi', 'rn_ta_msi', 'texto'],
             ['ta_mid', 'rn_ta_mid', 'texto'],

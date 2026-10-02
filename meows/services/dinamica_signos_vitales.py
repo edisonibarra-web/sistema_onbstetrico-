@@ -224,7 +224,11 @@ def obtener_signos_vitales_nuevos(folio, desde=None, ingreso_oid=None):
         """
         params = [adningreso, *_OIDS_USADOS]
         if desde is not None:
-            sql += " AND sv.HCRHORREG > %s"
+            # 2026-10-02: >= (antes >): la toma justo en la hora de corte se
+            # pedía con ">", no volvía, y la detección de eliminaciones (que
+            # revisa desde esa hora INCLUSIVE) la daba por borrada en Dinámica
+            # -- la última toma de cada paciente desaparecía a las 6 h.
+            sql += " AND sv.HCRHORREG >= %s"
             params.append(desde)
         sql += " ORDER BY sv.HCRHORREG ASC"
 

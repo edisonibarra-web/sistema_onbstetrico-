@@ -851,6 +851,7 @@ def _tabla_recien_nacido(registro, rn, es_plantilla, ubicacion):
              f"10': <b>{v('apgar_10min')}</b>")
     oxi = lambda a, b: f"Pre: <b>{v(a, '%')}</b> &nbsp; Pos: <b>{v(b, '%')}</b>"
     # 2026-10-01: tomas de las 12, 24 y 48 h (ta_* = 12 h, ta24_*, ta48_*).
+    # 2026-10-02: + al nacimiento (tanac_*) y FC al nacimiento.
     ta = lambda p: (f"MSD: <b>{v(p + '_msd')}</b> &nbsp; MSI: <b>{v(p + '_msi')}</b> &nbsp; "
                     f"MID: <b>{v(p + '_mid')}</b> &nbsp; MIIZ: <b>{v(p + '_miiz')}</b>")
 
@@ -870,6 +871,11 @@ def _tabla_recien_nacido(registro, rn, es_plantilla, ubicacion):
         ['Meconio', sino('meconio'), 'Valorado por pediatra antes del egreso', sino('valorado_pediatra')],
         ['Oximetría al nacer', oxi('oximetria_nacimiento_preductal', 'oximetria_nacimiento_posductal'),
          'Oximetría a las 12 h', oxi('oximetria_12h_preductal', 'oximetria_12h_posductal')],
+        ['TA neonato al nacer', ta('tanac'), None, None],
+        ['FC al nacer', v('fc_nacimiento', ' lpm'), None, None],
+        ['Al nacimiento: TA 12 h', ta('tanac12'), None, None],
+        ['Al nacimiento: TA 24 h', ta('tanac24'), None, None],
+        ['Al nacimiento: TA 48 h', ta('tanac48'), None, None],
         ['TA neonato 12 h', ta('ta'), None, None],
         ['TA neonato 24 h', ta('ta24'), None, None],
         ['TA neonato 48 h', ta('ta48'), None, None],

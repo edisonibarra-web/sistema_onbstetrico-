@@ -29,11 +29,14 @@ class RegistroParto(models.Model):
     GLOBO_SEGURIDAD_CHOICES = [
         ('NORMAL', 'Normal: útero firme y contraído'),
         ('ALERTA', 'Alerta: útero blando, relajado, atonía'),
+        # 2026-10-02: p. ej. cesárea / no se valora. Sin semáforo (gris).
+        ('NO_APLICA', 'No aplica'),
     ]
     SUTURA_HERIDAS_CHOICES = [
         ('NORMAL', 'Normal: bordes afrontados, dolor tolerable, sin cambios de coloración'),
         ('HEMATOMA', 'Alerta: hematoma (masa violácea, tensa, dolor intenso)'),
         ('INFECCION', 'Alerta: (eritema, calor local, edema, secreción purulenta)'),
+        ('NO_APLICA', 'No aplica'),
     ]
     DESGARRO_CHOICES = [
         ('GRADO_I', 'Grado I'),
@@ -432,6 +435,30 @@ class ControlRecienNacido(models.Model):
     ta48_msi = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA 48 h MSI")
     ta48_mid = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA 48 h MID")
     ta48_miiz = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA 48 h MIIZ")
+    # 2026-10-02: toma al nacimiento (mismos cuatro miembros) y frecuencia
+    # cardiaca al nacimiento.
+    tanac_msd = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA al nacimiento MSD")
+    tanac_msi = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA al nacimiento MSI")
+    tanac_mid = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA al nacimiento MID")
+    tanac_miiz = models.CharField(max_length=20, blank=True, null=True, verbose_name="TA al nacimiento MIIZ")
+    # Card "Al nacimiento": sus propias tomas de 12, 24 y 48 h (distintas de
+    # las de la card "Tensión arterial de nacido", ta_* / ta24_* / ta48_*).
+    tanac12_msd = models.CharField(max_length=20, blank=True, null=True, verbose_name="Al nacimiento: TA 12 h MSD")
+    tanac12_msi = models.CharField(max_length=20, blank=True, null=True, verbose_name="Al nacimiento: TA 12 h MSI")
+    tanac12_mid = models.CharField(max_length=20, blank=True, null=True, verbose_name="Al nacimiento: TA 12 h MID")
+    tanac12_miiz = models.CharField(max_length=20, blank=True, null=True, verbose_name="Al nacimiento: TA 12 h MIIZ")
+    tanac24_msd = models.CharField(max_length=20, blank=True, null=True, verbose_name="Al nacimiento: TA 24 h MSD")
+    tanac24_msi = models.CharField(max_length=20, blank=True, null=True, verbose_name="Al nacimiento: TA 24 h MSI")
+    tanac24_mid = models.CharField(max_length=20, blank=True, null=True, verbose_name="Al nacimiento: TA 24 h MID")
+    tanac24_miiz = models.CharField(max_length=20, blank=True, null=True, verbose_name="Al nacimiento: TA 24 h MIIZ")
+    tanac48_msd = models.CharField(max_length=20, blank=True, null=True, verbose_name="Al nacimiento: TA 48 h MSD")
+    tanac48_msi = models.CharField(max_length=20, blank=True, null=True, verbose_name="Al nacimiento: TA 48 h MSI")
+    tanac48_mid = models.CharField(max_length=20, blank=True, null=True, verbose_name="Al nacimiento: TA 48 h MID")
+    tanac48_miiz = models.CharField(max_length=20, blank=True, null=True, verbose_name="Al nacimiento: TA 48 h MIIZ")
+    fc_nacimiento = models.SmallIntegerField(
+        blank=True, null=True,
+        verbose_name="Frecuencia cardiaca al nacimiento (lpm)"
+    )
 
     neonato_atendido_por = models.CharField(max_length=200, blank=True, null=True)
     valorado_pediatra = models.BooleanField(blank=True, null=True, default=None, verbose_name="Valorado por Pediatra antes del Egreso")

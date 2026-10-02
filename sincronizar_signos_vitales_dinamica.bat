@@ -19,8 +19,12 @@ cd /d "%~dp0"
 
 if not exist "logs" mkdir "logs"
 
+REM 2026-10-02: en produccion el entorno se llama .venv (con punto); aqui, venv.
+set PYTHON=venv\Scripts\python.exe
+if exist ".venv\Scripts\python.exe" set PYTHON=.venv\Scripts\python.exe
+
 set LOGFILE=logs\sync_dinamica_%date:~-4,4%%date:~-7,2%%date:~-10,2%.log
 
 echo [%date% %time%] Iniciando sincronizacion >> "%LOGFILE%"
-venv\Scripts\python.exe manage.py sincronizar_signos_vitales_dinamica >> "%LOGFILE%" 2>&1
+"%PYTHON%" manage.py sincronizar_signos_vitales_dinamica >> "%LOGFILE%" 2>&1
 echo [%date% %time%] Fin (codigo salida %errorlevel%) >> "%LOGFILE%"

@@ -348,7 +348,8 @@ class Command(BaseCommand):
                 valores_a_revisar = MedicionValor.objects.filter(
                     medicion__paciente=paciente,
                     medicion__origen='dinamica',
-                    medicion__fecha_hora__gte=desde_consulta,
+                    # desde_consulta es naive en hora de Bogotá (así lo pide Dinámica).
+                    medicion__fecha_hora__gte=timezone.make_aware(desde_consulta, timezone.get_current_timezone()),
                     dinamica_oid__isnull=False,
                 ).select_related('medicion', 'parametro')
                 for mv in valores_a_revisar:
@@ -398,6 +399,7 @@ class Command(BaseCommand):
                         mv.puntaje = nuevo_puntaje
                         mv.save(update_fields=['puntaje'])
 
+                riesgo_anterior = medicion.meows_riesgo
                 medicion.meows_total = resultado["meows_total"]
                 medicion.meows_riesgo = resultado["meows_riesgo"]
                 medicion.meows_mensaje = resultado["meows_mensaje"]
@@ -417,7 +419,10 @@ class Command(BaseCommand):
                         f'  ~ Medición #{medicion.id} recalculada tras corrección '
                         f'(riesgo: {resultado["meows_riesgo"]})'
                     )
-                if resultado["meows_riesgo"] in ("AMARILLO", "ROJO"):
+                # 2026-10-02: solo si la corrección CAMBIÓ el riesgo a Amarillo/
+                # Rojo (como dice el docstring del módulo). Antes sonaba en
+                # cualquier recálculo -- p. ej. al restaurar una toma vieja.
+                if resultado["meows_riesgo"] in ("AMARILLO", "ROJO") and resultado["meows_riesgo"] != riesgo_anterior:
                     disparar_alerta(medicion, resultado)
                     total_alertas += 1
 
