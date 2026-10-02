@@ -636,7 +636,7 @@ def generar_pdf_formulario_clinico(formulario, response=None):
     # Por ahora, solo al final.
     c.setFont("Helvetica", 8)
     c.setFillColor(colors.grey)
-    fecha_gen = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+    fecha_gen = localtime().strftime('%d/%m/%Y %H:%M:%S')  # 2026-10-02: hora de Bogotá, no la del servidor
     txt_footer = f"ID Formulario: {formulario.id} - Generado: {fecha_gen}"
     c.drawCentredString(ancho/2, 1.5*cm, txt_footer)
     

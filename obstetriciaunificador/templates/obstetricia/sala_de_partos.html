@@ -868,6 +868,7 @@
         .vt-obstetrica { --vt-c: #db2777; --vt-f: #fdeef6; --vt-borde: #f6c6dd; }
         .vt-ginecologica { --vt-c: #7c3aed; --vt-f: #f3eefe; --vt-borde: #dccdfa; }
         .vt-sin_clasificar { --vt-c: #475569; --vt-f: #f1f5f9; --vt-borde: #d5dde8; }
+        .vt-partos { --vt-c: #6d28d9; --vt-f: #f1ecfe; --vt-borde: #d9cdf8; }
         .vt-icono {
             flex: none; width: 64px; height: 64px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
@@ -2953,18 +2954,34 @@
                 const tipo = tipoDe(p);
                 conteo[tipo] = (conteo[tipo] || 0) + 1;
             });
+            const enPartos = pacientes.filter((p) => areaInfo(p.area).clase === 'partos').length;
 
-            // Filtro por área (vista anterior) o tipo sin pacientes: volver a "Todas".
+            // 2026-10-02: además de los tipos, una tarjeta por ÁREA "Sala de
+            // Partos" (_areaTabActiva = 'partos'). Otra área (vista anterior)
+            // o una opción sin pacientes: volver a "Todas".
+            const a = window._areaTabActiva;
             const t = window._tipoTabActivo;
-            if (window._areaTabActiva !== 'todas' || (t !== 'todos' && !conteo[t])) {
+            if ((a !== 'todas' && a !== 'partos') || (a === 'partos' && !enPartos)
+                || (a === 'partos' && t !== 'todos') || (t !== 'todos' && !conteo[t])) {
                 window._areaTabActiva = 'todas';
                 window._tipoTabActivo = 'todos';
             }
+            const vistaPartos = window._areaTabActiva === 'partos';
+
+            const tarjetaPartos = `
+                        <button type="button" role="tab" aria-selected="${vistaPartos}" class="vt vt-partos${vistaPartos ? ' vt-activa' : ''}" onclick="seleccionarVista('partos', 'todos')">
+                            <span class="vt-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8v9"/></svg></span>
+                            <span class="vt-texto">
+                                <span class="vt-fila"><span class="vt-titulo">Sala de Partos</span><span class="vt-conteo">${enPartos}</span></span>
+                                <span class="vt-desc">Pacientes ubicadas en Sala de Partos</span>
+                            </span>
+                            ${CHECK_VISTA}
+                        </button>`;
 
             tabsEl.innerHTML = ORDEN_TIPOS
                 .filter((tipo) => tipo !== 'sin_clasificar' || conteo[tipo] > 0)
                 .map((tipo) => {
-                    const activa = tipo === window._tipoTabActivo;
+                    const activa = !vistaPartos && tipo === window._tipoTabActivo;
                     return `
                         <button type="button" role="tab" aria-selected="${activa}" class="vt vt-${tipo}${activa ? ' vt-activa' : ''}" onclick="seleccionarVista('todas', '${tipo}')">
                             <span class="vt-icono">${ICONOS_VISTA_TIPO[tipo]}</span>
@@ -2974,7 +2991,7 @@
                             </span>
                             ${CHECK_VISTA}
                         </button>`;
-                }).join('');
+                }).join('') + tarjetaPartos;
         }
 
         // 2026-10-01: botones del buscador (lupa "Buscar" y la X de limpiar).

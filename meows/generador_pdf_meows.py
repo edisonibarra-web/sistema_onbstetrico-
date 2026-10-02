@@ -793,8 +793,11 @@ def generar_pdf_meows(paciente, mediciones, responsable=None):
     # Dinámica. El "responsable" del PDF es el profesional en sesión que
     # generó/consultó el reporte (mismo criterio que el campo RESPONSABLE de
     # Trabajo de Parto y Control Posparto). Sin firma: solo el nombre.
-    fecha_actual = datetime.now().strftime("%d/%m/%Y")
-    hora_actual = datetime.now().strftime("%I:%M %p")
+    # 2026-10-02: hora de Bogotá (TIME_ZONE), no la del sistema operativo del
+    # servidor -- en producción datetime.now() salía con horas de diferencia.
+    ahora_local = timezone.localtime()
+    fecha_actual = ahora_local.strftime("%d/%m/%Y")
+    hora_actual = ahora_local.strftime("%I:%M %p")
     responsable = (
         (responsable or '').strip()
         or (getattr(paciente, 'responsable', '') or '').strip()
@@ -868,7 +871,7 @@ def generar_pdf_meows(paciente, mediciones, responsable=None):
     # Preparar respuesta
     buffer.seek(0)
     response = HttpResponse(buffer.read(), content_type='application/pdf')
-    nombre_archivo = f"MEOWS_{paciente.numero_documento}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    nombre_archivo = f"MEOWS_{paciente.numero_documento}_{timezone.localtime().strftime('%Y%m%d_%H%M%S')}.pdf"
     response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
     
     return response

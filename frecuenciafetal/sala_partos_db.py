@@ -648,3 +648,54 @@ def consultar_ingresos_de_folios(folios):
         _marcar_dinamica_caida(exc)
         return {}
     return resultado
+
+
+
+# Un ingreso sin egreso cuenta como "abierto" solo si empezó hace menos de
+# esto (mismo criterio que obstetriciaunificador.ingresos).
+DIAS_MAX_INGRESO_ABIERTO = 60
+
+
+def documentos_con_ingreso_desde(desde_por_documento):
+    """
+    2026-10-02: {documento: fecha (naive, hora de Bogotá)} -> set de los
+    documentos que tienen en Dinámica un ingreso NO anulado (en cualquier
+    área) que empezó en esa fecha o después, o que sigue abierto (sin egreso,
+    de los últimos DIAS_MAX_INGRESO_ABIERTO días). Una sola consulta para
+    toda la lista de Triaje. None si no hay conexión.
+    """
+    from datetime import timedelta
+    from django.utils import timezone
+
+    docs = {str(d).strip(): f for d, f in desde_por_documento.items() if str(d or '').strip() and f is not None}
+    if not docs:
+        return set()
+    if not dinamica_disponible():
+        return None
+    # Hora de Bogotá sin zona, como las fechas de Dinámica (no la del servidor).
+    abierto_desde = timezone.localtime().replace(tzinfo=None) - timedelta(days=DIAS_MAX_INGRESO_ABIERTO)
+    encontrados = set()
+    try:
+        with connections['readonly'].cursor() as cursor:
+            lista = sorted(docs)
+            for i in range(0, len(lista), 500):
+                lote = lista[i:i + 500]
+                marcas = ', '.join(['%s'] * len(lote))
+                cursor.execute(
+                    f"""SELECT PAC.PACNUMDOC, ING.AINFECING, ING.AINFECEGRE
+                    FROM ADNINGRESO AS ING
+                    INNER JOIN GENPACIEN AS PAC ON ING.GENPACIEN = PAC.OID
+                    WHERE PAC.PACNUMDOC IN ({marcas})
+                      AND (ING.AINESTADO IS NULL OR ING.AINESTADO <> %s)""",
+                    [*lote, AINESTADO_ANULADO],
+                )
+                for doc, fecha_ingreso, fecha_egreso in cursor.fetchall():
+                    doc = str(doc or '').strip()
+                    if doc not in docs or fecha_ingreso is None:
+                        continue
+                    if fecha_ingreso >= docs[doc] or (fecha_egreso is None and fecha_ingreso >= abierto_desde):
+                        encontrados.add(doc)
+    except Exception as exc:
+        _marcar_dinamica_caida(exc)
+        return None
+    return encontrados

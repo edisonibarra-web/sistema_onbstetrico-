@@ -13,6 +13,9 @@ Se incluye en MEOWS (historial), Trabajo de Parto y Control Posparto:
 - Publica window.SELECTOR_INGRESO (el resumen) y el evento
   "selector-ingreso:cargado" en document, para que cada módulo aplique el
   modo solo consulta.
+- 2026-10-02: también en Triaje (modulo='triaje', solo tomas de triaje) con
+  destino=<url>: elegir un ingreso abre esa página (Historial MEOWS) con
+  ?ingreso=<número> en vez de recargar el formulario de captura.
 - "Documentos en el repositorio": lista los archivos de <cédula>/<ingreso>
   en la NAS (de esta app y de otros aplicativos) y los abre pasando por la app.
 {% endcomment %}
@@ -100,7 +103,8 @@ Se incluye en MEOWS (historial), Trabajo de Parto y Control Posparto:
 <section class="sel-ing" id="sel-ing" hidden
          data-doc="{{ documento|default:'' }}"
          data-modulo="{{ modulo }}"
-         data-ingreso="{{ ingreso|default:'' }}">
+         data-ingreso="{{ ingreso|default:'' }}"
+         data-destino="{{ destino|default:'' }}">
     <div class="sel-ing__fila">
         <span class="sel-ing__titulo"><span class="sel-ing__titulo-icono" aria-hidden="true">🗂️</span>Ingreso</span>
         <select class="sel-ing__select" id="sel-ing-select" aria-label="Ingreso de la paciente"></select>
@@ -233,7 +237,11 @@ window.activarSoloConsulta = function (opciones) {
         var ocultos = resumen.opciones.length - resumen.opciones.filter(function (o) { return o.relevante || o.numero === resumen.elegido; }).length;
         document.getElementById('sel-ing-ocultos').textContent = ocultos ? '(' + ocultos + ' más)' : '';
         chkTodos.parentElement.style.display = ocultos ? '' : 'none';
-        select.innerHTML = visibles.map(function (o) {
+        // Con data-destino y sin ingreso elegido (Triaje): opción inicial para
+        // que cualquier ingreso, también el primero, se pueda abrir.
+        var inicial = raiz.dataset.destino && !resumen.elegido
+            ? '<option value="" selected disabled>Elegir un ingreso para consultar sus tomas…</option>' : '';
+        select.innerHTML = inicial + visibles.map(function (o) {
             return '<option value="' + esc(o.numero) + '"' + (o.numero === resumen.elegido ? ' selected' : '') + '>' + esc(textoOpcion(o)) + '</option>';
         }).join('');
     }
@@ -302,7 +310,17 @@ window.activarSoloConsulta = function (opciones) {
             .catch(function () { panelDocs.innerHTML = '<p class="sel-ing__vacio">⚠️ No se pudo contactar el servidor.</p>'; });
     }
 
-    select.addEventListener('change', function () { window.location.href = urlConIngreso(select.value); });
+    select.addEventListener('change', function () {
+        // 2026-10-02: con data-destino (Triaje) el ingreso elegido se consulta
+        // en esa página (Historial MEOWS); esta pantalla no cambia.
+        if (raiz.dataset.destino) {
+            var destino = new URL(raiz.dataset.destino, window.location.origin);
+            if (select.value) destino.searchParams.set('ingreso', select.value);
+            window.location.href = destino.toString();
+            return;
+        }
+        window.location.href = urlConIngreso(select.value);
+    });
     chkTodos.addEventListener('change', pintarSelect);
     btnDocs.addEventListener('click', function () {
         if (!panelDocs.hidden) { panelDocs.hidden = true; return; }

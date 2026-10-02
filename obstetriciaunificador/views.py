@@ -1044,7 +1044,7 @@ def sala_de_partos(request):
 @require_http_methods(["GET"])
 @login_required_if_enabled
 def api_ingresos_paciente(request):
-    """GET /atencion/api/ingresos/?doc=...&modulo=meows|trabajo_parto|control_posparto&ingreso=..."""
+    """GET /atencion/api/ingresos/?doc=...&modulo=meows|trabajo_parto|control_posparto|triaje&ingreso=..."""
     from .ingresos import MODULOS, resumen_ingresos
 
     doc = (request.GET.get("doc") or "").strip()

@@ -207,20 +207,20 @@
         }
         .mh-v2 .info-item::after { content: none; }
         .mh-v2 .mh-icono {
-            width: 70px; height: 70px;
+            width: 48px; height: 48px;
             background: linear-gradient(145deg, color-mix(in srgb, var(--mh-c) 75%, #ffffff) 0%, var(--mh-c) 100%);
             color: #ffffff;
             box-shadow: 0 8px 16px color-mix(in srgb, var(--mh-c) 35%, transparent);
         }
-        .mh-v2 .mh-icono svg { width: 32px; height: 32px; }
-        .mh-v2 .mh-datos { padding-top: 10px; }
+        .mh-v2 .mh-icono svg { width: 22px; height: 22px; }
+        .mh-v2 .mh-datos { padding-top: 2px; }
         .mh-v2 .info-label { color: #334155; }
         .mh-v2 .info-value { font-size: 1.45rem; color: #0b1035; }
         .mh-v2 .info-item > .mh-marca {
             position: absolute; right: 10px; bottom: 8px; z-index: 0;
             color: var(--mh-c); opacity: 0.18; pointer-events: none;
         }
-        .mh-marca svg { width: 50px; height: 50px; stroke-width: 1.6; }
+        .mh-marca svg { width: 36px; height: 36px; stroke-width: 1.6; }
 
 
         /* 2026-10-01: versión morada intensa (encabezado y barra Ingreso
@@ -261,13 +261,22 @@
         }
         .mh-v2 .info-item::after {
             content: ''; position: absolute; left: 18px; bottom: 14px; right: auto; top: auto;
-            width: 70px; height: 4px; border-radius: 4px;
+            width: 48px; height: 4px; border-radius: 4px;
             background: linear-gradient(90deg, var(--mh-c) 0%, color-mix(in srgb, var(--mh-c) 40%, #ffffff) 100%);
         }
         .mh-v2 .mh-icono {
-            border-radius: 18px;
+            border-radius: 13px;
             background: linear-gradient(145deg, color-mix(in srgb, var(--mh-c) 70%, #ffffff) 0%, var(--mh-c) 60%, color-mix(in srgb, var(--mh-c) 80%, #000000) 100%);
         }
+
+        /* 2026-10-02: los datos cortos (Documento, Ingreso, Edad, Cama) miden
+           lo que ocupa su valor y nunca parten el número; Nombre y Aseguradora
+           se reparten el resto. Si no caben, las tarjetas bajan de renglón. */
+        .patient-section.mh-v2 .patient-info-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+        .patient-section.mh-v2 .patient-info-grid .info-item { min-width: 0; }
+        .patient-section.mh-v2 .patient-info-grid .info-item.mh-corto { flex: 0 0 auto; padding-right: 22px; }
+        .patient-section.mh-v2 .patient-info-grid .info-item.mh-corto .info-value { white-space: nowrap; word-break: normal; }
+        .patient-section.mh-v2 .patient-info-grid .info-item.mh-largo { flex: 1 1 280px; }
 
         /* 2026-10-02: barra "Ingreso" arriba de todo, con el mismo diseño
            que en Trabajo de Parto (desarrollo_frontend.html). */
@@ -336,37 +345,37 @@
                     </span>
                 </h3>
                 <div class="patient-info-grid">
-                    <div class="info-item mh-rosa">
+                    <div class="info-item mh-rosa mh-largo">
                         <span class="mh-icono"><i data-lucide="user"></i></span>
                         <div class="mh-datos"><label class="info-label">Nombre Completo</label>
                         <div class="info-value">{{ paciente.nombres }} {{ paciente.apellidos }}</div></div><span class="mh-marca" aria-hidden="true"><i data-lucide="user"></i></span>
                     </div>
-                    <div class="info-item">
+                    <div class="info-item mh-corto">
                         <span class="mh-icono"><i data-lucide="file-text"></i></span>
                         <div class="mh-datos"><label class="info-label">Documento</label>
                         <div class="info-value">{{ paciente.numero_documento }}</div></div><span class="mh-marca" aria-hidden="true"><i data-lucide="file-text"></i></span>
                     </div>
-                    <div class="info-item mh-morado">
+                    <div class="info-item mh-morado mh-corto">
                         <span class="mh-icono"><i data-lucide="calendar-check"></i></span>
                         <div class="mh-datos"><label class="info-label">Ingreso</label>
                         <div class="info-value" title="Número de ingreso en Dinámica (carpeta del repositorio clínico)">{% if numero_ingreso %}{{ numero_ingreso }}{% elif todo_origen_triaje %}Sin ingreso (triaje){% else %}-{% endif %}</div></div><span class="mh-marca" aria-hidden="true"><i data-lucide="calendar-check"></i></span>
                     </div>
                     {% if paciente.edad %}
-                    <div class="info-item mh-verde">
+                    <div class="info-item mh-verde mh-corto">
                         <span class="mh-icono"><i data-lucide="cake"></i></span>
                         <div class="mh-datos"><label class="info-label">Edad</label>
                         <div class="info-value">{{ paciente.edad }} años</div></div><span class="mh-marca" aria-hidden="true"><i data-lucide="cake"></i></span>
                     </div>
                     {% endif %}
                     {% if paciente.aseguradora %}
-                    <div class="info-item mh-naranja">
+                    <div class="info-item mh-naranja mh-largo">
                         <span class="mh-icono"><i data-lucide="shield-check"></i></span>
                         <div class="mh-datos"><label class="info-label">Aseguradora</label>
                         <div class="info-value">{{ paciente.aseguradora }}</div></div><span class="mh-marca" aria-hidden="true"><i data-lucide="shield-check"></i></span>
                     </div>
                     {% endif %}
                     {% if paciente.cama %}
-                    <div class="info-item mh-indigo">
+                    <div class="info-item mh-indigo mh-corto">
                         <span class="mh-icono"><i data-lucide="bed-double"></i></span>
                         <div class="mh-datos"><label class="info-label">Cama</label>
                         <div class="info-value">{{ paciente.cama }}</div></div><span class="mh-marca" aria-hidden="true"><i data-lucide="bed-double"></i></span>

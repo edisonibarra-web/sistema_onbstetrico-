@@ -37,7 +37,8 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-MODULOS = ('meows', 'trabajo_parto', 'control_posparto')
+# 2026-10-02: 'triaje' = solo las tomas MEOWS de origen triaje (pantalla de Triaje).
+MODULOS = ('meows', 'trabajo_parto', 'control_posparto', 'triaje')
 CLAVE_TRIAJE_SIN_INGRESO = 'triaje-sin-ingreso'
 CLAVE_SIN_INGRESO = 'sin-ingreso'
 CLAVES_ESPECIALES = (CLAVE_TRIAJE_SIN_INGRESO, CLAVE_SIN_INGRESO)
@@ -245,12 +246,16 @@ def _folios_a_ingreso(doc, folios):
     return guardado
 
 
-def asignar_mediciones_meows(doc, ingresos):
-    """{clave de ingreso: [id de Medicion MEOWS, ...]}"""
+def asignar_mediciones_meows(doc, ingresos, solo_triaje=False):
+    """{clave de ingreso: [id de Medicion MEOWS, ...]} -- solo_triaje: solo
+    las tomas registradas en Triaje (origen='triaje')."""
     from meows.models import Medicion
 
+    tomas = Medicion.objects.filter(paciente__numero_documento=doc)
+    if solo_triaje:
+        tomas = tomas.filter(origen='triaje')
     filas = list(
-        Medicion.objects.filter(paciente__numero_documento=doc)
+        tomas
         .order_by('fecha_hora')
         .values('id', 'fecha_hora', 'origen', 'dinamica_folio', 'atencion__numero_ingreso')
     )
@@ -315,6 +320,8 @@ def asignar_controles_trabajo_parto(doc, ingresos):
 def asignar_registros(doc, modulo, ingresos):
     if modulo == 'meows':
         return asignar_mediciones_meows(doc, ingresos)
+    if modulo == 'triaje':
+        return asignar_mediciones_meows(doc, ingresos, solo_triaje=True)
     if modulo == 'control_posparto':
         return asignar_registros_posparto(doc, ingresos)
     if modulo == 'trabajo_parto':
@@ -431,6 +438,7 @@ FORMATOS_DEL_MODULO = {
     'meows': ('meows', 'triaje'),
     'trabajo_parto': ('trabajo_parto',),
     'control_posparto': ('control_posparto',),
+    'triaje': ('triaje',),
 }
 
 
@@ -438,6 +446,9 @@ def _detalle_registros(modulo, datos):
     if modulo == 'meows':
         n = len(datos)
         return n, f'{n} toma{"s" if n != 1 else ""} MEOWS'
+    if modulo == 'triaje':
+        n = len(datos)
+        return n, f'{n} toma{"s" if n != 1 else ""} de triaje'
     if modulo == 'control_posparto':
         n = len(datos)
         return n, f'{n} registro{"s" if n != 1 else ""} posparto'

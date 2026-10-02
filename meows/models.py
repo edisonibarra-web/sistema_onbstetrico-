@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from datetime import date
+from datetime import date, datetime
 
 
 # ============================================================================
@@ -129,8 +129,14 @@ class Paciente(models.Model):
 
     @property
     def edad(self):
-        """Calcula edad desde el campo local fecha_nacimiento."""
+        """Calcula edad desde el campo local fecha_nacimiento o, si no está
+        (p. ej. Triaje registrado sin ella), desde Dinámica (GPAFECNAC)."""
         fn = self.fecha_nacimiento
+        if not fn:
+            ext = self.info_externa
+            fn = getattr(ext, 'GPAFECNAC', None) if ext else None
+            if isinstance(fn, datetime):
+                fn = fn.date()
         if fn:
             today = date.today()
             return today.year - fn.year - ((today.month, today.day) < (fn.month, fn.day))

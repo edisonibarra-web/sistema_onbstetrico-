@@ -43,6 +43,29 @@
             color: #fff; font-weight: 700; padding: 10px 16px; border-radius: 10px;
             margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
         }
+
+        /* 2026-10-02: barra "Ingreso" arriba de todo, mismo diseño que en
+           Historial MEOWS y Trabajo de Parto. */
+        .container > .sel-ing {
+            background: linear-gradient(135deg, #f8fbff 0%, #eef4fd 100%);
+            border: 1px solid #d6e3f5; border-radius: 16px; padding: 14px 16px;
+            box-shadow: 0 6px 18px rgba(15, 42, 92, 0.08);
+        }
+        .container > .sel-ing .sel-ing__titulo {
+            padding: 8px 14px; border-radius: 12px; background: #ffffff; border: 1px solid #d6e3f5;
+            font-size: 1rem; letter-spacing: 0.02em; color: #0f2a5c;
+        }
+        .container > .sel-ing .sel-ing__titulo-icono { background: linear-gradient(135deg, #2f86ea 0%, #0b4fb3 100%); box-shadow: 0 3px 8px rgba(11, 79, 179, 0.35); }
+        .container > .sel-ing .sel-ing__select {
+            padding: 12px 16px; font-size: 0.95rem; border: 1.5px solid #9fbfe8; border-radius: 12px;
+        }
+        .container > .sel-ing .sel-ing__btn {
+            padding: 11px 18px; border-radius: 12px; border: 1px solid #d6e3f5; background: #ffffff;
+            color: #0f2a5c; box-shadow: 0 3px 10px rgba(15, 42, 92, 0.08);
+        }
+        .container > .sel-ing .sel-ing__aviso--info { background: #fff7e6; border-color: #fcd9a0; color: #7c2d12; }
+        .container > .sel-ing .sel-ing__aviso { text-align: left; align-items: center; }
+        .container > .sel-ing .sel-ing__aviso > span:first-child { flex: none; }
     </style>
 </head>
 
@@ -52,6 +75,9 @@
     {% include 'obstetricia/sidebar.html' with is_panel=False documento=documento|default:paciente.numero_documento|default:'' current_module='meows' %}
     <div class="sidebar-main-content">
     <div class="container">
+        {# 2026-10-02: selector de ingresos con las tomas de TRIAJE de cada ingreso. #}
+        {# El formulario sigue siendo para registrar; el ingreso elegido se consulta en el Historial MEOWS. #}
+        {% if paciente.id %}{% url 'historial_meows' paciente_id=paciente.id as url_historial_triaje %}{% include 'obstetricia/_selector_ingreso.html' with documento=documento|default:paciente.numero_documento modulo='triaje' destino=url_historial_triaje %}{% endif %}
         {% include 'meows/_mensajes.html' %}
 
         <div class="triaje-banner">

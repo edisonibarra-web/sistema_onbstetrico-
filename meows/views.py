@@ -757,17 +757,39 @@ def api_pacientes_triaje(request):
         .values_list('paciente_id', flat=True)
         .distinct()
     )
-    pacientes = Paciente.objects.filter(id__in=pacientes_ids)
-
-    resultado = []
+    pacientes = list(Paciente.objects.filter(id__in=pacientes_ids))
+    ultimas = {}
     for p in pacientes:
-        if _ya_en_sala_de_partos(p.numero_documento):
-            continue
-        ultima = (
+        ultimas[p.id] = (
             Medicion.objects.filter(paciente=p, origen='triaje')
             .order_by('-fecha_hora')
             .first()
         )
+
+    # 2026-10-02: sale de Triaje en cuanto tiene un ingreso en Dinámica (no
+    # anulado, en CUALQUIER área) desde 24 h antes de su última toma de
+    # triaje -- activo o ya egresado -- o un ingreso abierto -- antes solo salía si estaba en la lista de Sala
+    # de Partos, y una paciente ya ingresada en otra área seguía aquí. Una
+    # sola consulta para toda la lista; si Dinámica no responde, se usa el
+    # criterio anterior paciente por paciente.
+    from frecuenciafetal.sala_partos_db import documentos_con_ingreso_desde
+    desde = {}
+    for p in pacientes:
+        ultima = ultimas[p.id]
+        if ultima is not None and p.numero_documento:
+            limite = (timezone.localtime(ultima.fecha_hora) - timedelta(hours=24)).replace(tzinfo=None)
+            previo = desde.get(p.numero_documento)
+            desde[p.numero_documento] = limite if previo is None else max(previo, limite)
+    con_ingreso = documentos_con_ingreso_desde(desde)
+
+    resultado = []
+    for p in pacientes:
+        if con_ingreso is not None:
+            if p.numero_documento in con_ingreso:
+                continue
+        elif _ya_en_sala_de_partos(p.numero_documento):
+            continue
+        ultima = ultimas[p.id]
         resultado.append({
             'paciente_id': p.id,
             'numero_documento': p.numero_documento,
