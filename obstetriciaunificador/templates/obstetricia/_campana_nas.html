@@ -46,6 +46,7 @@ Se incluye desde obstetricia/header_formatos.html.
 .nas-panel__item { display: flex; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.84rem; line-height: 1.35; }
 .nas-panel__item--nuevo { background: #f0fdf4; }
 .nas-panel__item--error { background: #fef2f2; }
+.nas-panel__item--curso { background: #f8fafc; color: #475569; }
 .nas-panel__icono { font-size: 1.1rem; flex-shrink: 0; }
 .nas-panel__texto strong { display: block; font-weight: 800; }
 .nas-panel__meta { color: #64748b; font-size: 0.78rem; word-break: break-all; }
@@ -62,7 +63,7 @@ Se incluye desde obstetricia/header_formatos.html.
 </style>
 <div class="meows-campana-grupo">
     <button type="button" class="meows-campana-btn" id="nas-campana-btn" title="Registros guardados en la NAS" aria-haspopup="true" aria-controls="nas-panel" data-usuario="{{ request.user.username|default:'' }}">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 6h.01"/><path d="M6 18h.01"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M6 12h14"/><path d="M4 18h16"/></svg>
         <span class="meows-campana-badge" id="nas-campana-badge" hidden>0</span>
     </button>
     <span class="meows-campana-etiqueta meows-campana-etiqueta-nas">NAS</span>
@@ -97,9 +98,13 @@ Se incluye desde obstetricia/header_formatos.html.
         ultimoVisto = items.reduce(function (m, i) { return Math.max(m, i.id); }, ultimoVisto);
         try { localStorage.setItem(CLAVE, String(ultimoVisto)); } catch (e) { /* solo en memoria */ }
     }
+    // 2026-10-01: estado de cada envío -- "ok", "error", "en_curso" (subiendo
+    // ahora mismo) o "sin_confirmar" (no se pudo verificar en la NAS).
+    function estadoDe(i) { return i.estado || (i.ok ? 'ok' : 'error'); }
+    var ICONOS = { ok: '✔️', error: '✖️', en_curso: '⏳', sin_confirmar: '⚠️' };
     function pintar() {
         var nuevos = items.filter(function (i) { return i.id > ultimoVisto; });
-        var errores = nuevos.filter(function (i) { return !i.ok; });
+        var errores = nuevos.filter(function (i) { var e = estadoDe(i); return e === 'error' || e === 'sin_confirmar'; });
         badge.hidden = !nuevos.length;
         badge.textContent = nuevos.length > 99 ? '99+' : String(nuevos.length);
         btn.classList.toggle('tiene-nuevos', nuevos.length > 0);
@@ -116,8 +121,10 @@ Se incluye desde obstetricia/header_formatos.html.
             return;
         }
         lista.innerHTML = items.map(function (i) {
-            var clase = !i.ok ? ' nas-panel__item--error' : (i.id > ultimoVisto ? ' nas-panel__item--nuevo' : '');
-            return '<li class="nas-panel__item' + clase + '"><span class="nas-panel__icono">' + (i.ok ? '✔️' : '✖️') + '</span>'
+            var e = estadoDe(i);
+            var clase = e === 'en_curso' ? ' nas-panel__item--curso'
+                : (e !== 'ok' ? ' nas-panel__item--error' : (i.id > ultimoVisto ? ' nas-panel__item--nuevo' : ''));
+            return '<li class="nas-panel__item' + clase + '"><span class="nas-panel__icono">' + ICONOS[e] + '</span>'
                 + '<span class="nas-panel__texto"><strong>' + esc(i.mensaje) + '</strong>'
                 + esc(i.paciente) + ' · Ingreso ' + esc(i.numero_ingreso || '—')
                 + '<br><span class="nas-panel__meta">' + esc(i.fecha) + (i.automatico ? ' · automático' : '')
@@ -128,7 +135,7 @@ Se incluye desde obstetricia/header_formatos.html.
         var t = document.createElement('div');
         t.className = 'nas-toast ' + (i.ok ? 'nas-toast--ok' : 'nas-toast--error');
         t.setAttribute('role', 'status');
-        t.innerHTML = '<span style="font-size:1.3rem">' + (i.ok ? '✔️' : '✖️') + '</span><span><strong>' + esc(i.mensaje) + '</strong>'
+        t.innerHTML = '<span style="font-size:1.3rem">' + ICONOS[estadoDe(i)] + '</span><span><strong>' + esc(i.mensaje) + '</strong>'
             + esc(i.paciente) + ' · Ingreso ' + esc(i.numero_ingreso || '—') + '</span>';
         document.body.appendChild(t);
         setTimeout(function () { t.remove(); }, 7000);
@@ -144,10 +151,13 @@ Se incluye desde obstetricia/header_formatos.html.
                 items = data.items || [];
                 alcance = data.alcance || 'mis_pacientes';
                 if (idsConocidos !== null) {
-                    items.filter(function (i) { return !idsConocidos[i.id]; }).slice(0, 3).forEach(avisar);
+                    items.filter(function (i) { return !idsConocidos[i.id] && estadoDe(i) !== 'en_curso'; })
+                        .slice(0, 3).forEach(avisar);
                 }
+                // Un envío "en curso" no cuenta como conocido: cuando termine
+                // (mismo id, ya guardado o con error) se avisa normalmente.
                 idsConocidos = {};
-                items.forEach(function (i) { idsConocidos[i.id] = true; });
+                items.forEach(function (i) { if (estadoDe(i) !== 'en_curso') idsConocidos[i.id] = true; });
                 pintar();
             })
             .catch(function () { /* red caída o sesión expirada: se reintenta en el próximo ciclo */ });

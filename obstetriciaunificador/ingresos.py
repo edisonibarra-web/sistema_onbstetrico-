@@ -471,6 +471,8 @@ def resumen_ingresos(doc, modulo, ingreso_elegido='', fresco=False):
             if d['estado'] == DocumentoRepositorio.ESTADO_ENVIADO:
                 info['enviados'] += 1
                 info['ultimo'] = d['creado_en']
+            elif d['estado'] == DocumentoRepositorio.ESTADO_ENVIANDO:
+                continue  # 2026-10-01: envío en curso / sin confirmar -- ni éxito ni error
             else:
                 info['errores'] += 1
                 info['ultimo_error'] = d['creado_en']

@@ -647,91 +647,303 @@
             max-width: 100%;
             margin-top: 48px;
         }
+        /* 2026-10-01: cards de módulos rediseñadas -- fondo degradado con ondas
+           claras, ilustración tenue a la derecha, ícono en baldosa blanca,
+           título grande con subrayado de color, descripción y flecha. */
         .module-card {
-            background: linear-gradient(145deg, #ffffff 0%, #f8fbff 65%, #f1f5ff 100%);
-            padding: 24px;
-            border-radius: 16px;
-            text-decoration: none;
-            color: inherit;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-            border: 1px solid #dbeafe;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
+            --mc-fuerte: #6d28d9; --mc-medio: #ede4ff; --mc-claro: #d9c8fd; --mc-titulo: #2b1a7a;
+            --mc-borde: #c4b5fd; --mc-sombra: rgba(109, 40, 217, 0.22);
+            position: relative; overflow: hidden; isolation: isolate;
+            display: flex; flex-direction: column; align-items: flex-start; text-align: left;
+            min-height: 300px; padding: 30px 30px 28px;
+            border-radius: 22px; border: 1.5px solid var(--mc-borde);
+            text-decoration: none; color: inherit;
+            background:
+                radial-gradient(120% 70% at 0% 100%, rgba(255, 255, 255, 0.55) 0 45%, transparent 46%),
+                radial-gradient(90% 60% at 100% 0%, rgba(255, 255, 255, 0.35) 0 40%, transparent 41%),
+                linear-gradient(135deg, var(--mc-fuerte) -25%, var(--mc-medio) 42%, #ffffff 62%, var(--mc-claro) 120%);
+            box-shadow: 0 14px 30px var(--mc-sombra);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
         }
-        /* Marca de agua decorativa: antes un círculo genérico translúcido igual en
-           las tres cards. Ahora cada módulo tiene su propio ícono (el mismo que ya
-           usa su .card-icon: activity/baby/clipboard-list) como watermark grande y
-           translúcido, para que se distingan entre sí en vez de repetir la misma
-           figura. */
-        .module-card::before {
-            content: "";
-            position: absolute;
-            top: -18px;
-            right: -18px;
-            width: 140px;
-            height: 140px;
-            background-repeat: no-repeat;
-            background-size: contain;
-            opacity: 0.55;
-            pointer-events: none;
+        .module-card::before { content: none; }
+        /* Onda clara que cruza la card (como en la referencia). */
+        .module-card::after {
+            content: ""; position: absolute; z-index: -1; pointer-events: none;
+            left: -20%; right: -20%; top: 44%; height: 70%;
+            border-radius: 50% 50% 0 0 / 38% 38% 0 0;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.15) 100%);
+            transform: rotate(-6deg);
         }
-        .card-meows::before {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2'/%3E%3C/svg%3E");
-        }
-        .card-fetal::before {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5'/%3E%3Cpath d='M15 12h.01'/%3E%3Cpath d='M19.38 6.813A9 9 0 0 1 20.8 10.2a2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1'/%3E%3Cpath d='M9 12h.01'/%3E%3C/svg%3E");
-        }
-        .card-parto::before {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='8' height='4' x='8' y='2' rx='1' ry='1'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/%3E%3Cpath d='M12 11h4'/%3E%3Cpath d='M12 16h4'/%3E%3Cpath d='M8 11h.01'/%3E%3Cpath d='M8 16h.01'/%3E%3C/svg%3E");
-        }
-        .module-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 18px 32px rgba(15, 23, 42, 0.18);
-            border-color: currentColor;
-        }
+        .module-card:hover { transform: translateY(-6px); box-shadow: 0 22px 40px var(--mc-sombra); }
+        .card-meows { --mc-fuerte: #7c3aed; --mc-medio: #e6dbff; --mc-claro: #c7b0fb; --mc-titulo: #2b1a7a; --mc-borde: #c4b5fd; --mc-sombra: rgba(124, 58, 237, 0.22); color: #6d28d9; }
+        .card-fetal { --mc-fuerte: #10b981; --mc-medio: #cdf5e7; --mc-claro: #8fe3c6; --mc-titulo: #064e3b; --mc-borde: #8fe3c6; --mc-sombra: rgba(16, 185, 129, 0.22); color: #0f9f74; }
+        .card-parto { --mc-fuerte: #1d8cf0; --mc-medio: #d3effd; --mc-claro: #8fd8fb; --mc-titulo: #0c3a7a; --mc-borde: #8fd0f8; --mc-sombra: rgba(29, 140, 240, 0.22); color: #1d6fe0; }
         .module-card .card-icon {
-            width: 64px;
-            height: 64px;
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
+            width: 96px; height: 96px; margin-bottom: 26px; border-radius: 26px;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(160deg, #ffffff 0%, #f6f2ff 100%);
+            color: currentColor;
+            box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.4), 0 10px 22px var(--mc-sombra);
         }
-        .module-card h3 { margin: 0 0 10px; font-size: 18px; font-weight: 800; }
-        .module-card p { margin: 0; font-size: 14px; color: #64748b; line-height: 1.4; }
+        .module-card .card-icon svg { width: 46px; height: 46px; stroke-width: 2.4; }
+        .module-card h3 {
+            margin: 0; max-width: 78%;
+            font-size: 1.6rem; font-weight: 900; line-height: 1.12; letter-spacing: 0.01em;
+            color: var(--mc-titulo);
+        }
+        .mc-linea { display: block; width: 52px; height: 5px; margin: 14px 0 16px; border-radius: 999px; background: currentColor; }
+        .module-card p { margin: 0; max-width: 64%; font-size: 1.02rem; line-height: 1.5; color: #3b4a63; }
+        .mc-flecha {
+            position: absolute; right: 22px; bottom: 22px;
+            width: 56px; height: 56px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: #ffffff; color: currentColor;
+            box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.45), 0 8px 18px var(--mc-sombra);
+            transition: transform 0.25s ease;
+        }
+        .mc-flecha svg { width: 26px; height: 26px; }
+        .module-card:hover .mc-flecha { transform: translateX(4px); }
+        /* Ilustración tenue a la derecha. */
+        .mc-deco { position: absolute; z-index: -1; right: 0; top: 0; bottom: 0; width: 62%; pointer-events: none; color: currentColor; }
+        .mc-deco svg { position: absolute; right: -4%; top: 6%; width: 100%; height: 88%; opacity: 0.2; }
+        @media (max-width: 760px) {
+            .module-card { min-height: 240px; padding: 24px; }
+            .module-card h3 { font-size: 1.3rem; max-width: 100%; }
+            .module-card p { max-width: 80%; }
+        }
 
-        .card-meows {
-            color: #5b21b6;
-            border-top: 6px solid #6d28d9;
-            background: linear-gradient(145deg, #ede9fe 0%, #c4b5fd 100%);
+        /* =====================================================================
+           2026-10-01: rediseño de "Pacientes activos en Sala de Partos" --
+           encabezado azul noche con silueta, ECG, corazones y ondas; buscador
+           con lupa, limpiar y botón Buscar; filtros como tarjetas por tipo de
+           paciente; resumen con ícono y decoración.
+           ===================================================================== */
+        #search-section {
+            padding: 0 0 18px;
+            background: linear-gradient(180deg, #f2f7ff 0%, #f7faff 100%);
+            border: 1px solid #cfe0f7;
+            border-radius: 22px;
+            box-shadow: 0 18px 40px rgba(13, 60, 150, 0.14);
         }
-        .card-meows .card-icon {
-            background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%);
-            box-shadow: 0 8px 18px rgba(109, 40, 217, 0.32);
+        #search-section::before, #search-section::after { content: none; }
+        #search-section:hover { transform: none; }
+        #search-section > #nexus-section { padding: 0 18px; }
+        #search-section > #triaje-tab-actions,
+        #search-section > #triaje-patients-list { margin-left: 18px; margin-right: 18px; }
+        #search-section .search-header {
+            margin: 0 0 18px;
+            padding: 26px 26px 30px 40px;
+            gap: 22px;
+            border-radius: 22px 22px 0 0;
+            background:
+                radial-gradient(70% 160% at 70% 120%, rgba(37, 99, 235, 0.55) 0 40%, transparent 41%),
+                radial-gradient(50% 120% at 55% -40%, rgba(56, 189, 248, 0.25) 0 40%, transparent 41%),
+                linear-gradient(110deg, #08132e 0%, #0b1f4d 45%, #0b3a8f 80%, #0e56c4 100%);
+            box-shadow: 0 10px 24px rgba(8, 19, 46, 0.35);
         }
-        .card-fetal {
-            color: #115e59;
-            border-top: 6px solid #0d9488;
-            background: linear-gradient(145deg, #ccfbf1 0%, #5eead4 100%);
+        #search-section .search-header::before {
+            width: 4px; left: 18px; top: 22px; bottom: 26px; border-radius: 4px;
+            background: linear-gradient(180deg, #7dd3fc 0%, #0ea5e9 100%);
+            box-shadow: 0 0 12px #38bdf8;
         }
-        .card-fetal .card-icon {
-            background: linear-gradient(135deg, #5eead4 0%, #2dd4bf 100%);
-            box-shadow: 0 8px 18px rgba(13, 148, 136, 0.32);
+        .sp-deco { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+        .sp-deco .sp-silueta { position: absolute; right: 23%; bottom: -6px; width: 190px; height: 104%; color: #3b82f6; opacity: 0.55; }
+        .sp-deco .sp-ecg { position: absolute; right: 13%; top: 26%; width: 120px; height: 70px; }
+        .sp-deco .sp-corazon { position: absolute; color: #3b82f6; opacity: 0.6; }
+        .sp-deco .sp-corazon--a { right: 37%; top: 22%; width: 30px; height: 30px; }
+        .sp-deco .sp-corazon--b { right: 19%; top: 16%; width: 22px; height: 22px; opacity: 0.4; }
+        .sp-deco .sp-puntos {
+            position: absolute; left: 47%; top: 14px; width: 130px; height: 80px; opacity: 0.35;
+            background: radial-gradient(circle, #7dd3fc 1.3px, transparent 1.6px) 0 0 / 14px 14px;
         }
-        .card-parto {
-            color: #0e7490;
-            border-top: 6px solid #0891b2;
-            background: linear-gradient(145deg, #cffafe 0%, #67e8f9 100%);
+        .sp-deco .sp-onda {
+            position: absolute; left: 40%; right: -5%; bottom: -60%; height: 120%;
+            border-radius: 50% 50% 0 0 / 55% 55% 0 0;
+            border-top: 2px solid rgba(56, 189, 248, 0.5);
+            background: linear-gradient(180deg, rgba(37, 99, 235, 0.35) 0%, transparent 60%);
         }
-        .card-parto .card-icon {
-            background: linear-gradient(135deg, #67e8f9 0%, #22d3ee 100%);
-            box-shadow: 0 8px 18px rgba(8, 145, 178, 0.32);
+        #search-section .search-header > *:not(.sp-deco) { position: relative; z-index: 1; }
+        #search-section .search-header .icon-container {
+            width: 96px; height: 96px; min-width: 96px; border-radius: 22px;
+            background: linear-gradient(145deg, #3ee0ff 0%, #0ea5e9 55%, #0369d6 100%);
+            color: #ffffff;
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 10px 26px rgba(14, 165, 233, 0.55);
+            animation: none;
+        }
+        #search-section .search-header .icon-container svg { width: 50px !important; height: 50px !important; stroke-width: 2; }
+        #search-section .search-header .subtitle { font-size: 0.9rem; letter-spacing: 0.18em; color: #38d6f5; }
+        #search-section .search-header .main-title { font-size: 2.1rem; font-weight: 800; color: #ffffff; }
+        #search-section .search-header .ayuda { font-size: 1rem; color: #e2ecff; }
+        #search-section .active-patients-refresh {
+            padding: 16px 26px; gap: 14px; border-radius: 14px;
+            background: linear-gradient(135deg, #2b8cff 0%, #1463e6 100%);
+            border: 1px solid #7fb6ff; color: #ffffff;
+            font-size: 1.1rem; font-weight: 800;
+            box-shadow: 0 0 18px rgba(43, 140, 255, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        #search-section .active-patients-refresh svg { width: 26px !important; height: 26px !important; stroke-width: 2.4; }
+        #search-section .active-patients-refresh:hover { background: linear-gradient(135deg, #3b97ff 0%, #1d6ff0 100%); }
+
+        /* Buscador. */
+        #search-section .search-helper { display: none; }
+        #search-section .search-form { gap: 12px; }
+        #search-section .search-input-wrap {
+            display: flex; align-items: stretch;
+            border: 2px solid #8fbaf3; border-radius: 16px; overflow: hidden;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08), 0 6px 16px rgba(13, 60, 150, 0.08);
+        }
+        #search-section .search-input-wrap:focus-within { border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18); }
+        #search-section .search-input-wrap > svg,
+        #search-section .search-input-wrap > i { display: none; }
+        .sb-lupa {
+            flex: none; width: 92px;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(180deg, #eaf2ff 0%, #dde9fb 100%);
+            color: #12357a;
+        }
+        .sb-lupa svg { width: 30px; height: 30px; stroke-width: 2.4; }
+        #search-section .search-form input#cedula-input {
+            flex: 1; min-width: 0;
+            padding: 18px 20px; border: none; border-radius: 0;
+            background: #ffffff; font-size: 1.1rem; box-shadow: none;
+        }
+        #search-section .search-form input#cedula-input:focus { box-shadow: none; }
+        .sb-limpiar {
+            flex: none; width: 56px; border: none; background: transparent; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; color: #475569;
+        }
+        .sb-limpiar svg { width: 24px; height: 24px; stroke-width: 2.4; }
+        .sb-limpiar:hover { color: #b91c1c; }
+        #cedula-input:placeholder-shown + .sb-limpiar { visibility: hidden; }
+        .sb-buscar {
+            flex: none; display: inline-flex; align-items: center; gap: 30px;
+            padding: 0 34px; min-height: 66px; border-radius: 16px; cursor: pointer;
+            border: 1px solid #7fb6ff; color: #ffffff; font: inherit; font-size: 1.15rem; font-weight: 800;
+            background: linear-gradient(135deg, #1d7bff 0%, #0b4fd8 100%);
+            box-shadow: 0 0 18px rgba(29, 123, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        .sb-buscar svg { width: 30px; height: 30px; stroke-width: 2.4; }
+        .sb-buscar:hover { background: linear-gradient(135deg, #2b86ff 0%, #1659e6 100%); }
+
+        /* Panel de filtros. */
+        #search-section .filtros-panel {
+            margin-top: 18px; padding: 20px 20px 16px; gap: 16px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(240, 246, 255, 0.85) 100%);
+            border: 1px solid #d3e3f8; border-radius: 20px;
+            box-shadow: 0 8px 22px rgba(13, 60, 150, 0.08);
+        }
+        #search-section .filtros-panel::before { content: none; }
+        #search-section .filtro-fila { flex-wrap: nowrap; gap: 18px; align-items: stretch; }
+        #search-section .filtro-etiqueta.filtro-titulo {
+            flex: none; min-width: 0; padding-right: 24px; gap: 18px;
+            border-right: 1px solid #cdd9ea;
+        }
+        #search-section .filtro-titulo-badge {
+            width: 74px; height: 74px; border-radius: 18px;
+            background: linear-gradient(145deg, #2a63d6 0%, #12357a 100%);
+            box-shadow: 0 8px 18px rgba(18, 53, 122, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        }
+        #search-section .filtro-titulo-badge svg { width: 34px; height: 34px; }
+        #search-section .filtro-titulo-kicker { font-size: 0.78rem; letter-spacing: 0.14em; color: #475569; text-shadow: none; }
+        #search-section .filtro-titulo-principal { font-size: 1.75rem; font-weight: 800; color: #0b1f4d; }
+        #search-section .filtro-titulo-ayuda { font-size: 1rem; font-weight: 500; color: #475569; }
+        #search-section .vista-grupos { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 16px; }
+        #search-section .vista-grupos .vt { flex: 1 1 230px; min-width: 0; }
+        #search-section .vista-grupos .vt-todos { flex: 1.45 1 320px; }
+
+        .vt {
+            --vt-c: #1d4ed8; --vt-f: #eef4ff; --vt-borde: #c7d8f3;
+            position: relative; overflow: hidden;
+            display: flex; align-items: center; gap: 14px;
+            padding: 14px 16px; border-radius: 18px; cursor: pointer; text-align: left;
+            border: 1px solid var(--vt-borde);
+            background: linear-gradient(135deg, var(--vt-f) 0%, #ffffff 100%);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+            font: inherit; color: #0f172a;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        .vt:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1); }
+        .vt:focus-visible { outline: 3px solid #60a5fa; outline-offset: 2px; }
+        .vt-obstetrica { --vt-c: #db2777; --vt-f: #fdeef6; --vt-borde: #f6c6dd; }
+        .vt-ginecologica { --vt-c: #7c3aed; --vt-f: #f3eefe; --vt-borde: #dccdfa; }
+        .vt-sin_clasificar { --vt-c: #475569; --vt-f: #f1f5f9; --vt-borde: #d5dde8; }
+        .vt-icono {
+            flex: none; width: 64px; height: 64px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: color-mix(in srgb, var(--vt-c) 10%, #ffffff); color: var(--vt-c);
+            box-shadow: 0 0 0 5px color-mix(in srgb, var(--vt-c) 6%, transparent);
+        }
+        .vt-icono svg { width: 34px; height: 34px; stroke-width: 2; }
+        .vt-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+        .vt-fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .vt-titulo { font-size: 1.2rem; font-weight: 800; color: #0f172a; line-height: 1.15; min-width: 0; }
+        .vt-conteo { flex: none; }
+        .vt-conteo {
+            min-width: 46px; padding: 4px 10px; border-radius: 999px; text-align: center;
+            background: color-mix(in srgb, var(--vt-c) 14%, #ffffff); color: var(--vt-c);
+            font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums;
+        }
+        .vt-desc { font-size: 0.95rem; color: #64748b; }
+        .vt-check { display: none; }
+        /* Opción seleccionada: azul profundo, texto blanco, check y brillo. */
+        .vt.vt-activa {
+            border: 2px solid #3b82f6;
+            background:
+                radial-gradient(90% 60% at 70% 130%, rgba(59, 130, 246, 0.5) 0 45%, transparent 46%),
+                linear-gradient(120deg, #0b2a6b 0%, #0d47b8 100%);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18), 0 12px 26px rgba(13, 71, 184, 0.35);
+            color: #ffffff;
+        }
+        .vt.vt-activa .vt-icono { background: linear-gradient(145deg, #3ee0ff 0%, #0ea5e9 100%); color: #ffffff; box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.15); }
+        .vt.vt-activa .vt-titulo { color: #ffffff; }
+        .vt.vt-activa .vt-desc { color: #dbeafe; }
+        .vt.vt-activa .vt-conteo { background: rgba(255, 255, 255, 0.2); color: #ffffff; }
+        .vt.vt-activa .vt-check {
+            display: flex; align-items: center; justify-content: center; flex: none;
+            width: 40px; height: 40px; border-radius: 50%; background: #ffffff; color: #1d4ed8;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+        }
+        .vt-check svg { width: 22px; height: 22px; stroke-width: 3; }
+
+        /* Resumen de lo que se muestra. */
+        #search-section .filtros-resumen {
+            position: relative; overflow: hidden;
+            gap: 16px; padding: 14px 18px;
+            border: 1px solid #d3e3f8; border-top: 1px solid #d3e3f8; border-radius: 16px;
+            background: linear-gradient(90deg, #ffffff 0%, #f5f9ff 60%, #e6f0fd 100%);
+            font-size: 1.15rem; color: #334155;
+        }
+        #search-section .filtros-resumen b { color: #0f172a; font-weight: 800; }
+        .fr-info {
+            flex: none; width: 42px; height: 42px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(145deg, #2b86ff 0%, #1050d8 100%); color: #ffffff;
+            font: italic 900 1.2rem/1 Georgia, 'Times New Roman', serif;
+            box-shadow: 0 4px 10px rgba(16, 80, 216, 0.35);
+        }
+        .fr-sep { align-self: stretch; width: 1px; background: #cdd9ea; }
+        .fr-total { color: #1d4ed8; font-weight: 800; }
+        .fr-deco { margin-left: auto; display: flex; align-items: center; gap: 18px; color: #1d6fe0; position: relative; z-index: 1; }
+        .fr-deco svg { width: 40px; height: 40px; stroke-width: 1.8; }
+        .fr-deco .fr-bebe { width: 48px; height: 48px; }
+        #search-section .filtros-quitar { margin-left: 0; }
+        #search-section .filtros-resumen::after {
+            content: ''; position: absolute; right: 0; bottom: -30px; width: 55%; height: 80px; pointer-events: none;
+            border-radius: 50% 0 0 0 / 70% 0 0 0;
+            background: linear-gradient(90deg, rgba(147, 197, 253, 0) 0%, rgba(147, 197, 253, 0.35) 100%);
+        }
+        @media (max-width: 1100px) {
+            #search-section .filtro-fila { flex-wrap: wrap; }
+            #search-section .filtro-etiqueta.filtro-titulo { border-right: none; min-width: 0; }
+            .sp-deco .sp-silueta, .sp-deco .sp-ecg { display: none; }
+        }
+        @media (max-width: 700px) {
+            #search-section .search-header .icon-container { width: 60px; height: 60px; min-width: 60px; }
+            #search-section .search-header .main-title { font-size: 1.3rem; }
+            .sb-lupa { width: 56px; }
+            .sb-buscar { padding: 0 18px; gap: 10px; min-height: 56px; }
+            .fr-deco { display: none; }
         }
 
         /* Compact Clinical Card (Colorful & Organized) */
@@ -991,101 +1203,245 @@
             box-shadow: inset 0 0 0 1px rgba(255,255,255,0.42);
         }
 
-        /* Card informativa de paciente */
+        /* =====================================================================
+           2026-10-01: rediseño de la card "Paciente en atención" -- azul
+           noche con ondas, silueta y puntos; avatar en baldosa blanca, nombre
+           grande, ID en píldora; estado con brillo, PDF blanco y Salir
+           morado. Abajo, una tarjeta de color por módulo (ícono, título,
+           descripción, conteo y flecha) que abre ese módulo.
+           ===================================================================== */
+        #card-clinico-unificado {
+            padding: 14px;
+            border-radius: 22px;
+            border: 1px solid #22305a;
+            border-left: 1px solid #22305a;
+            background:
+                radial-gradient(60% 120% at 46% -30%, rgba(59, 91, 219, 0.35) 0 45%, transparent 46%),
+                linear-gradient(120deg, #0b1430 0%, #111d45 45%, #142559 75%, #18295f 100%);
+            box-shadow: 0 22px 44px rgba(11, 20, 48, 0.45);
+        }
+        #card-clinico-unificado::before { content: none; }
+        #card-clinico-unificado .card-clinico-header {
+            margin-bottom: 0; padding: 22px 26px 22px 30px;
+            border: 1px solid rgba(148, 163, 255, 0.14); border-radius: 18px;
+            background: linear-gradient(120deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+        }
+        #card-clinico-unificado .card-clinico-header::before {
+            width: 6px; background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%);
+            box-shadow: 0 0 14px rgba(167, 139, 250, 0.8);
+        }
+        .cc-deco { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+        .cc-deco .cc-silueta { position: absolute; left: 40%; top: -4px; width: 150px; height: 120%; color: #6d8cff; opacity: 0.28; }
+        .cc-deco .cc-puntos {
+            position: absolute; width: 120px; height: 70px; opacity: 0.35;
+            background: radial-gradient(circle, #8ea2ff 1.4px, transparent 1.7px) 0 0 / 14px 14px;
+        }
+        .cc-deco .cc-puntos--a { left: 33%; top: 10px; }
+        .cc-deco .cc-puntos--b { left: 50%; bottom: 8px; width: 90px; height: 30px; }
+        .cc-deco .cc-onda {
+            position: absolute; left: 30%; right: 0; bottom: -40%; height: 120%;
+            border-radius: 50% 50% 0 0 / 60% 60% 0 0;
+            background: linear-gradient(180deg, rgba(79, 110, 247, 0.18) 0%, rgba(79, 110, 247, 0) 70%);
+        }
+        #card-clinico-unificado .card-clinico-identidad,
+        #card-clinico-unificado .card-clinico-actions { position: relative; z-index: 1; }
+        #card-clinico-unificado .card-clinico-identidad { gap: 22px; }
+        #card-clinico-unificado .card-clinico-avatar-wrap {
+            width: 92px; height: 92px; border-radius: 24px; padding: 3px;
+            background: rgba(255, 255, 255, 0.18); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 10px 22px rgba(0, 0, 0, 0.35);
+        }
+        #card-clinico-unificado .card-clinico-avatar { border-radius: 21px; color: #1e293b; background: linear-gradient(160deg, #ffffff 0%, #e8edf6 100%); }
+        #card-clinico-unificado .card-clinico-avatar svg { width: 42px; height: 42px; stroke-width: 1.9; }
+        #card-clinico-unificado .card-clinico-title { padding-left: 22px; border-left: 1px solid rgba(255, 255, 255, 0.18); }
+        #card-clinico-unificado .card-clinico-eyebrow { font-size: 0.86rem; letter-spacing: 0.12em; color: #c7d2fe; }
+        #card-clinico-unificado .card-clinico-title h2 { font-size: 2.2rem; font-weight: 900; letter-spacing: 0.01em; }
+        #card-clinico-unificado .card-clinico-meta-item {
+            padding: 6px 14px; font-size: 0.86rem; font-weight: 800;
+            background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.16);
+        }
+        #card-clinico-unificado .card-clinico-meta-item svg { width: 18px; height: 18px; }
+        #card-clinico-unificado .card-clinico-actions { gap: 16px; }
+        #card-clinico-unificado .card-clinico-status {
+            padding: 12px 24px; font-size: 1rem; letter-spacing: 0.06em; gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+        }
+        #card-clinico-unificado .card-clinico-status::before { width: 12px; height: 12px; }
+        #card-clinico-unificado .status-critico { background: linear-gradient(180deg, #ff3b3b 0%, #d40f1f 100%); box-shadow: 0 0 22px rgba(255, 45, 45, 0.6), 0 6px 14px rgba(0, 0, 0, 0.3); }
+        #card-clinico-unificado .status-alerta { background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%); box-shadow: 0 0 22px rgba(251, 191, 36, 0.5), 0 6px 14px rgba(0, 0, 0, 0.3); }
+        #card-clinico-unificado .status-estable { background: linear-gradient(180deg, #22c55e 0%, #15803d 100%); box-shadow: 0 0 22px rgba(34, 197, 94, 0.45), 0 6px 14px rgba(0, 0, 0, 0.3); }
+        #card-clinico-unificado .card-clinico-actions-divider { height: 44px; background: rgba(255, 255, 255, 0.22); }
+        #card-clinico-unificado .card-clinico-btn-pdf {
+            padding: 13px 22px; border-radius: 12px; font-size: 1rem; font-weight: 800; gap: 10px; color: #1e293b !important;
+        }
+        #card-clinico-unificado .card-clinico-btn-pdf svg { width: 22px; height: 22px; }
+        #card-clinico-unificado .btn-change-patient {
+            padding: 13px 22px; border-radius: 12px; font-size: 1rem; font-weight: 800; gap: 12px;
+            background: linear-gradient(135deg, #7c4dff 0%, #5b21f0 100%); border: 1px solid #9f7aea;
+            box-shadow: 0 0 18px rgba(124, 77, 255, 0.55), 0 6px 14px rgba(0, 0, 0, 0.3);
+        }
+        #card-clinico-unificado .btn-change-patient svg { width: 22px; height: 22px; }
+
+        /* Tarjetas de módulos con su conteo. */
+        #card-clinico-unificado .clinico-stats-row {
+            gap: 18px; margin-top: 14px; padding-top: 14px;
+            border-top: 1px dashed rgba(148, 163, 255, 0.35);
+        }
+        #card-clinico-unificado .stat-pill {
+            --sp-c1: #6d3fe0; --sp-c2: #8b5cf6; --sp-texto: #5b21b6; --sp-brillo: rgba(124, 77, 255, 0.55);
+            flex: 1; justify-content: flex-start; gap: 16px;
+            padding: 16px 18px; border-radius: 18px; cursor: pointer;
+            color: #ffffff; font-size: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background:
+                radial-gradient(120% 70% at 70% 130%, rgba(255, 255, 255, 0.22) 0 40%, transparent 41%),
+                linear-gradient(120deg, var(--sp-c1) 0%, var(--sp-c2) 100%);
+            box-shadow: 0 0 18px var(--sp-brillo), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        #card-clinico-unificado .stat-pill::after { content: none; }
+        #card-clinico-unificado .stat-pill:hover { transform: translateY(-3px); box-shadow: 0 0 26px var(--sp-brillo), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+        #card-clinico-unificado .stat-meows { --sp-c1: #5b2bd6; --sp-c2: #7c5cf0; --sp-texto: #4c1d95; --sp-brillo: rgba(124, 77, 255, 0.5); }
+        #card-clinico-unificado .stat-fetal { --sp-c1: #0e9f73; --sp-c2: #2cc79b; --sp-texto: #065f46; --sp-brillo: rgba(16, 185, 129, 0.55); }
+        #card-clinico-unificado .stat-parto { --sp-c1: #1460e6; --sp-c2: #3b8df5; --sp-texto: #1e40af; --sp-brillo: rgba(37, 99, 235, 0.55); }
+        .sp-icono {
+            width: 74px; height: 74px; min-width: 74px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: #ffffff; color: var(--sp-texto);
+            box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.25), 0 6px 14px rgba(0, 0, 0, 0.2);
+        }
+        .sp-icono svg { width: 36px; height: 36px; stroke-width: 2.2; }
+        .sp-sep { align-self: stretch; width: 1px; margin: 4px 2px; background: rgba(255, 255, 255, 0.35); }
+        .sp-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; text-align: left; }
+        .sp-titulo { font-size: 1.4rem; font-weight: 900; letter-spacing: 0.02em; }
+        .sp-desc { font-size: 0.95rem; font-weight: 500; line-height: 1.3; color: rgba(255, 255, 255, 0.9); }
+        #card-clinico-unificado .stat-pill strong {
+            min-width: 62px; height: 62px; padding: 0 12px; border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(255, 255, 255, 0.9); color: var(--sp-texto);
+            font-size: 1.8rem; font-weight: 900;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+        }
+        .sp-flecha {
+            width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0, 0, 0, 0.18); color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+        }
+        .sp-flecha svg { width: 24px; height: 24px; }
+        @media (max-width: 1100px) {
+            #card-clinico-unificado .clinico-stats-row { flex-direction: column; }
+            .cc-deco .cc-silueta { display: none; }
+        }
+        @media (max-width: 700px) {
+            #card-clinico-unificado .card-clinico-title h2 { font-size: 1.5rem; }
+            #card-clinico-unificado .card-clinico-avatar-wrap { width: 64px; height: 64px; }
+            .sp-icono { width: 54px; height: 54px; min-width: 54px; }
+            .sp-desc { display: none; }
+        }
+
+        /* Card informativa de paciente.
+           2026-10-01: rediseño -- encabezado azul con ondas, ícono en círculo
+           blanco y decoración tenue; cada dato con su ícono en baldosa de
+           color, separador y etiqueta azul en mayúsculas. */
         .patient-info-card {
             display: none;
             width: 100%;
             max-width: 100%;
             margin-top: 48px;
-            background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 55%, #ecfeff 100%);
-            border: 1px solid #99f6e4;
-            border-radius: 16px;
-            box-shadow: 0 14px 30px rgba(8, 145, 178, 0.12);
-            padding: 0 0 20px;
             margin-bottom: 20px;
+            padding: 0 0 18px;
             position: relative;
             overflow: hidden;
+            background: linear-gradient(180deg, #f3fbff 0%, #ffffff 100%);
+            border: 2px solid #9ee3f3;
+            border-radius: 20px;
+            box-shadow: 0 16px 34px rgba(13, 107, 224, 0.14);
         }
-        .patient-info-card::before {
-            content: "";
-            position: absolute;
-            top: -50px;
-            right: -60px;
-            width: 160px;
-            height: 160px;
-            background: radial-gradient(circle, rgba(8, 145, 178, 0.16) 0%, rgba(8, 145, 178, 0) 72%);
-            pointer-events: none;
-        }
-        .patient-info-header {
-            display: flex;
-            align-items: center;
-            gap: 9px;
+        .pi-cab {
+            position: relative; overflow: hidden;
+            display: flex; align-items: center; gap: 18px;
+            padding: 20px 26px 22px;
+            background:
+                radial-gradient(70% 140% at 62% -40%, rgba(125, 211, 252, 0.55) 0 45%, transparent 46%),
+                radial-gradient(60% 120% at 100% 120%, rgba(34, 193, 238, 0.45) 0 45%, transparent 46%),
+                linear-gradient(110deg, #0a2f78 0%, #0b56c6 45%, #129fe2 80%, #3cc6ee 100%);
             color: #ffffff;
-            font-weight: 800;
-            margin-bottom: 16px;
-            padding: 13px 22px;
-            font-size: 0.92rem;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            background: linear-gradient(135deg, #111827 0%, #374151 45%, #4b5563 75%, #6b7280 100%);
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
         }
-        /* 2026-09-24: la placa va con margen dentro de la card (antes el
-           encabezado oscuro ocupaba todo el ancho). */
-        .patient-info-card .patient-info-placa { margin: 18px 22px 16px; }
+        .pi-cab-icono {
+            position: relative; z-index: 1;
+            width: 76px; height: 76px; min-width: 76px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: #ffffff; color: #0b56c6;
+            box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.25), 0 8px 18px rgba(4, 22, 64, 0.35);
+        }
+        .pi-cab-icono svg { width: 38px; height: 38px; stroke-width: 2.2; }
+        .pi-cab-texto { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 4px; }
+        .pi-cab-titulo { font-size: 1.7rem; font-weight: 800; line-height: 1.15; }
+        .pi-cab-ayuda { font-size: 0.98rem; color: #e0f2fe; }
+        .pi-cab-chip {
+            position: relative; z-index: 1; margin-left: auto;
+            padding: 6px 12px; border-radius: 999px;
+            background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.4);
+            font-size: 0.74rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+        }
+        .pi-cab-deco { position: absolute; inset: 0; pointer-events: none; }
+        .pi-cab-deco .pi-silueta { position: absolute; right: 120px; top: -6px; width: 170px; height: 150px; color: #7dd3fc; opacity: 0.35; }
+        .pi-cab-deco .pi-portapapeles { position: absolute; right: 26px; top: 50%; transform: translateY(-50%); width: 58px; height: 58px; color: #bae6fd; opacity: 0.8; }
         .patient-info-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 11px;
-            padding: 0 22px;
+            gap: 12px 18px;
+            padding: 18px 20px 0;
         }
         .patient-info-item {
-            border: 1px solid #ccfbf1;
-            border-radius: 10px;
-            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-            padding: 11px 12px;
-            box-shadow: 0 6px 14px rgba(8, 145, 178, 0.06);
+            display: flex; align-items: center; gap: 14px;
+            padding: 10px 14px;
+            border: 1px solid #d6ecf6;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
+            box-shadow: 0 4px 12px rgba(13, 107, 224, 0.05);
             transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
         }
-        .patient-info-item:hover {
-            transform: translateY(-2px);
-            border-color: #5eead4;
-            box-shadow: 0 12px 22px rgba(8, 145, 178, 0.14);
+        .patient-info-item:hover { transform: translateY(-2px); border-color: #93d4ef; box-shadow: 0 10px 20px rgba(13, 107, 224, 0.12); }
+        .pi-icono {
+            --pi-c: #1d6fe0; --pi-f: #e3efff;
+            width: 52px; height: 52px; min-width: 52px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--pi-f); color: var(--pi-c);
         }
-        .patient-info-item:nth-child(3n + 1) { border-left: 4px solid #0891b2; }
-        .patient-info-item:nth-child(3n + 2) { border-left: 4px solid #2dd4bf; }
-        .patient-info-item:nth-child(3n + 3) { border-left: 4px solid #5eead4; }
-        .patient-info-item:nth-child(3n + 1) .patient-info-label { color: #0e7490; }
-        .patient-info-item:nth-child(3n + 2) .patient-info-label { color: #0f766e; }
-        .patient-info-item:nth-child(3n + 3) .patient-info-label { color: #0d9488; }
-        .patient-info-item:nth-child(3n + 1) .patient-info-value { color: #155e75; }
-        .patient-info-item:nth-child(3n + 2) .patient-info-value { color: #115e59; }
-        .patient-info-item:nth-child(3n + 3) .patient-info-value { color: #134e4a; }
+        .pi-icono svg { width: 26px; height: 26px; stroke-width: 2.2; }
+        .pi-icono--rosa { --pi-c: #e11d74; --pi-f: #fde7f1; }
+        .pi-icono--verde { --pi-c: #0f9f6e; --pi-f: #dcf7ea; }
+        .pi-icono--morado { --pi-c: #8b3fe6; --pi-f: #efe4fd; }
+        .pi-icono--naranja { --pi-c: #f07a12; --pi-f: #ffeedd; }
+        .pi-icono--turquesa { --pi-c: #0d9488; --pi-f: #d8f6f2; }
+        .pi-sep { align-self: stretch; width: 1px; margin: 6px 0; background: #cfe3f1; }
+        .pi-datos { min-width: 0; }
         .patient-info-label {
-            font-size: 0.72rem;
+            font-size: 0.74rem;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: #475569;
-            font-weight: 700;
-            margin-bottom: 4px;
+            letter-spacing: 0.03em;
+            color: #1d5fbf;
+            font-weight: 800;
+            margin-bottom: 3px;
         }
         .patient-info-value {
-            font-size: 0.92rem;
+            font-size: 1.12rem;
             color: #0f172a;
-            font-weight: 700;
+            font-weight: 800;
             word-break: break-word;
         }
         .patient-info-item-full { grid-column: 1 / -1; }
 
         @media (max-width: 920px) {
-            .patient-info-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
+            .patient-info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .pi-cab-deco .pi-silueta { display: none; }
         }
         @media (max-width: 620px) {
-            .patient-info-grid {
-                grid-template-columns: 1fr;
-            }
+            .patient-info-grid { grid-template-columns: 1fr; }
+            .pi-cab { flex-wrap: wrap; }
+            .pi-cab-titulo { font-size: 1.3rem; }
+            .pi-cab-deco { display: none; }
         }
 
         /* Loader */
@@ -1430,6 +1786,15 @@
             <!-- Identificar Paciente = Pacientes activos en Sala de Partos (DGEMPRES_NEXUS, solo lectura) -->
             <div class="search-container" id="search-section">
                 <div class="search-header">
+                    {# 2026-10-01: decoración de fondo (ver .sp-deco). #}
+                    <span class="sp-deco" aria-hidden="true">
+                        <span class="sp-onda"></span>
+                        <span class="sp-puntos"></span>
+                        <svg class="sp-corazon sp-corazon--a" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg>
+                        <svg class="sp-corazon sp-corazon--b" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg>
+                        <svg class="sp-silueta" viewBox="0 0 120 160" fill="currentColor"><path d="M70 6c-12 0-20 9-20 20 0 8 4 14 10 18-6 6-8 16-6 24-14 8-22 24-20 42 2 22 20 38 44 38h30l-4-20c10-12 12-30 2-44-6-8-14-12-22-12 4-10 2-22-6-30 8-4 12-12 12-20 0-9-8-16-20-16z"/><path d="M76 120c3-6 12-5 12 2 0 5-7 9-12 13-5-4-12-8-12-13 0-7 9-8 12-2z" fill="#0b1f4d"/></svg>
+                        <svg class="sp-ecg" viewBox="0 0 120 70" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="spEcgGrad" x1="0" x2="1"><stop offset="0" stop-color="#7c5cff" stop-opacity="0"/><stop offset=".5" stop-color="#d946ef"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></linearGradient></defs><path d="M0 40h34l8-26 10 50 10-56 8 32h50" stroke="url(#spEcgGrad)"/></svg>
+                    </span>
                     <div class="icon-container" id="search-header-icon">
                         <i data-lucide="bed-double" size="24"></i>
                     </div>
@@ -1458,8 +1823,14 @@
                     <div class="search-form">
                         <div class="search-input-wrap">
                             <i data-lucide="badge-check"></i>
+                            <span class="sb-lupa" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span>
                             <input type="text" id="cedula-input" placeholder="Buscar por nombre o documento..." maxlength="50">
+                            {# 2026-10-01: limpiar la búsqueda (solo visible si hay texto). #}
+                            <button type="button" class="sb-limpiar" title="Limpiar búsqueda" aria-label="Limpiar búsqueda" onclick="limpiarBusquedaActivos()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
                         </div>
+                        <button type="button" class="sb-buscar" onclick="buscarPacientesActivos()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg> Buscar
+                        </button>
                     </div>
 
                     <div class="filtros-panel" role="group" aria-label="Filtros de pacientes">
@@ -1517,6 +1888,13 @@
             <!-- 🏥 CARD CLÍNICA COMPACTA (Colorful & Organized) -->
             <div class="card-clinico-unificado" id="card-clinico-unificado">
                 <div class="card-clinico-header">
+                    {# 2026-10-01: decoración de fondo (ver .cc-deco). #}
+                    <span class="cc-deco" aria-hidden="true">
+                        <span class="cc-onda"></span>
+                        <span class="cc-puntos cc-puntos--a"></span>
+                        <span class="cc-puntos cc-puntos--b"></span>
+                        <svg class="cc-silueta" viewBox="0 0 120 160" fill="currentColor"><circle cx="66" cy="22" r="13"/><path d="M58 38c-10 7-12 20-8 31-14 7-22 23-20 40 3 22 22 36 44 34 18-2 30-16 30-34 0-16-10-28-24-32 4-16-2-32-14-39z"/><path d="M78 108c3-6 12-5 12 2 0 5-7 9-12 13-5-4-12-8-12-13 0-7 9-8 12-2z" fill="#0b1430"/></svg>
+                    </span>
                     <div class="card-clinico-identidad">
                         <div class="card-clinico-avatar-wrap">
                             <div class="card-clinico-avatar"><i data-lucide="user-round"></i></div>
@@ -1547,17 +1925,32 @@
                 </div>
 
                 <div class="clinico-stats-row">
-                    <div class="stat-pill stat-meows">
-                        <span>MEOWS</span>
+                    <div class="stat-pill stat-meows" role="link" tabindex="0" title="Abrir MEOWS"
+                         onclick="document.getElementById('link-meows').click()"
+                         onkeydown="if(event.key==='Enter'){document.getElementById('link-meows').click()}">
+                        <span class="sp-icono"><i data-lucide="activity"></i></span>
+                        <span class="sp-sep" aria-hidden="true"></span>
+                        <span class="sp-texto"><span class="sp-titulo">MEOWS</span><span class="sp-desc">Monitoreo de signos vitales y alerta temprana.</span></span>
                         <strong id="stat-meows">0</strong>
+                        <span class="sp-flecha" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
                     </div>
-                    <div class="stat-pill stat-fetal">
-                        <span>FETAL</span>
+                    <div class="stat-pill stat-fetal" role="link" tabindex="0" title="Abrir FETAL"
+                         onclick="document.getElementById('link-fetal').click()"
+                         onkeydown="if(event.key==='Enter'){document.getElementById('link-fetal').click()}">
+                        <span class="sp-icono"><i data-lucide="heart-handshake"></i></span>
+                        <span class="sp-sep" aria-hidden="true"></span>
+                        <span class="sp-texto"><span class="sp-titulo">FETAL</span><span class="sp-desc">Control y bienestar fetal.</span></span>
                         <strong id="stat-fetal">0</strong>
+                        <span class="sp-flecha" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
                     </div>
-                    <div class="stat-pill stat-parto">
-                        <span>PARTO</span>
+                    <div class="stat-pill stat-parto" role="link" tabindex="0" title="Abrir PARTO"
+                         onclick="document.getElementById('link-parto').click()"
+                         onkeydown="if(event.key==='Enter'){document.getElementById('link-parto').click()}">
+                        <span class="sp-icono"><i data-lucide="baby"></i></span>
+                        <span class="sp-sep" aria-hidden="true"></span>
+                        <span class="sp-texto"><span class="sp-titulo">PARTO</span><span class="sp-desc">Formulario clínico y partograma de evolución.</span></span>
                         <strong id="stat-parto">0</strong>
+                        <span class="sp-flecha" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
                     </div>
                 </div>
             </div>
@@ -1566,91 +1959,131 @@
             <div class="modules-grid" id="modules-grid">
                 <a href="#" id="link-meows" class="module-card card-meows">
                     <div class="card-icon"><i data-lucide="activity" size="32"></i></div>
-                    <h3>MODULO MEOWS</h3>
+                    <span class="mc-deco" aria-hidden="true"><svg viewBox="0 0 200 160" fill="currentColor"><path d="M10 92h44l10-30 14 58 16-78 12 50h34" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="150" cy="22" r="12"/><path d="M142 36c-9 6-11 18-7 28-12 6-20 20-18 36 2 16 14 26 30 26l2 34h22l-3-38c8-10 8-26 0-38 4-14 0-30-12-40z"/></svg></span>
+                    <h3>MÓDULO MEOWS</h3>
+                    <span class="mc-linea" aria-hidden="true"></span>
                     <p>Monitoreo de signos vitales y alerta temprana obstétrica.</p>
+                    <span class="mc-flecha" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
                 </a>
                 
                 <a href="#" id="link-fetal" class="module-card card-fetal">
                     <div class="card-icon"><i data-lucide="baby" size="32"></i></div>
+                    <span class="mc-deco" aria-hidden="true"><svg viewBox="0 0 200 160" fill="currentColor"><circle cx="112" cy="30" r="15"/><path d="M98 44c-22 10-34 36-30 62 4 26 26 44 52 46 18 1 34-6 44-18l-12-10c-8 9-20 13-32 12-18-2-32-16-34-34-2-16 6-32 18-40z"/><circle cx="138" cy="82" r="13"/><path d="M118 100c8 10 22 14 34 10l6 14c-18 6-38 0-48-14z"/><path d="M172 40c3-6 13-5 13 3 0 6-8 11-13 15-5-4-13-9-13-15 0-8 10-9 13-3z"/></svg></span>
                     <h3>CONTROL POSPARTO INMEDIATO</h3>
+                    <span class="mc-linea" aria-hidden="true"></span>
                     <p>Registro y seguimiento del control posparto inmediato.</p>
+                    <span class="mc-flecha" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
                 </a>
                 
                 <a href="#" id="link-parto" class="module-card card-parto">
                     <div class="card-icon"><i data-lucide="clipboard-list" size="32"></i></div>
+                    <span class="mc-deco" aria-hidden="true"><svg viewBox="0 0 200 160" fill="none" stroke="currentColor" stroke-width="5"><ellipse cx="128" cy="82" rx="58" ry="72"/><g fill="currentColor" stroke="none"><circle cx="138" cy="52" r="20"/><path d="M120 66c-14 10-20 30-12 48 8 16 26 24 44 18 12-4 18-16 16-28-6 6-14 8-22 6 6-8 6-20-2-28-6 6-14 6-20 0 4-6 2-12-4-16z"/></g></svg></span>
                     <h3>TRABAJO DE PARTO</h3>
+                    <span class="mc-linea" aria-hidden="true"></span>
                     <p>Formulario clínico y partograma de evolución.</p>
+                    <span class="mc-flecha" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
                 </a>
             </div>
 
             <!-- Card informativa (solo lectura) -->
             <div class="patient-info-card" id="patient-info-card">
                 {# 2026-09-24: "título en placa" (obstetriciaunificador/css/titulo_placa.css). #}
-                <div class="section-title titulo-placa titulo-placa--sala patient-info-placa">
-                    <span class="section-icon-badge"><i data-lucide="clipboard-list"></i></span>
-                    <span class="titulo-placa-texto">
-                        <span class="titulo-placa-kicker">Tablero de la paciente · Sala de Partos</span>
-                        <span class="titulo-placa-principal">Datos registrados del paciente</span>
-                        <span class="titulo-placa-ayuda">Información de su ingreso en Dinámica.</span>
+                {# 2026-10-01: encabezado rediseñado (ver .pi-cab). #}
+                <div class="pi-cab">
+                    <span class="pi-cab-deco" aria-hidden="true">
+                        <svg class="pi-silueta" viewBox="0 0 200 160" fill="currentColor"><circle cx="150" cy="30" r="16"/><path d="M140 48c-12 8-14 22-9 34-16 8-26 26-23 46 2 12 8 22 18 28h52c6-10 8-22 4-34-4-12-12-20-22-24 5-18 0-38-20-50z"/><circle cx="118" cy="116" r="10" opacity="0.7"/></svg>
+                        <svg class="pi-portapapeles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M8 11h8M8 16h5"/></svg>
                     </span>
-                    <span class="titulo-placa-chip">Solo lectura</span>
+                    <span class="pi-cab-icono"><i data-lucide="user-round"></i></span>
+                    <span class="pi-cab-texto">
+                        <span class="pi-cab-titulo">Datos generales de la paciente</span>
+                        <span class="pi-cab-ayuda">Información de identificación, ingreso y características generales.</span>
+                    </span>
                 </div>
                 <div class="patient-info-grid">
                     <div class="patient-info-item">
-                        <div class="patient-info-label">Identificación</div>
-                        <div class="patient-info-value" id="info-identificacion">-</div>
+                        <span class="pi-icono"><i data-lucide="id-card"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Identificación</div>
+                        <div class="patient-info-value" id="info-identificacion">-</div></div>
                     </div>
                     <div class="patient-info-item">
-                        <div class="patient-info-label">Fecha nacimiento</div>
-                        <div class="patient-info-value" id="info-fecha-nacimiento">-</div>
+                        <span class="pi-icono"><i data-lucide="calendar-days"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Fecha nacimiento</div>
+                        <div class="patient-info-value" id="info-fecha-nacimiento">-</div></div>
                     </div>
                     <div class="patient-info-item">
-                        <div class="patient-info-label">Edad</div>
-                        <div class="patient-info-value" id="info-edad">-</div>
+                        <span class="pi-icono"><i data-lucide="users"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Edad</div>
+                        <div class="patient-info-value" id="info-edad">-</div></div>
                     </div>
                     <div class="patient-info-item">
-                        <div class="patient-info-label">Tipo de sangre</div>
-                        <div class="patient-info-value" id="info-tipo-sangre">-</div>
+                        <span class="pi-icono pi-icono--rosa"><i data-lucide="droplet"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Tipo de sangre</div>
+                        <div class="patient-info-value" id="info-tipo-sangre">-</div></div>
                     </div>
                     <div class="patient-info-item">
-                        <div class="patient-info-label">Aseguradora</div>
-                        <div class="patient-info-value" id="info-aseguradora">-</div>
+                        <span class="pi-icono pi-icono--verde"><i data-lucide="shield-check"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Aseguradora</div>
+                        <div class="patient-info-value" id="info-aseguradora">-</div></div>
                     </div>
                     <div class="patient-info-item">
-                        <div class="patient-info-label">Cama</div>
-                        <div class="patient-info-value" id="info-cama">-</div>
+                        <span class="pi-icono pi-icono--morado"><i data-lucide="bed-double"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Cama</div>
+                        <div class="patient-info-value" id="info-cama">-</div></div>
                     </div>
                     <div class="patient-info-item">
-                        <div class="patient-info-label">Fecha de ingreso</div>
-                        <div class="patient-info-value" id="info-fecha-ingreso">-</div>
+                        <span class="pi-icono"><i data-lucide="calendar-plus"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Fecha de ingreso</div>
+                        <div class="patient-info-value" id="info-fecha-ingreso">-</div></div>
                     </div>
                     <div class="patient-info-item">
-                        <div class="patient-info-label">Ingreso</div>
-                        <div class="patient-info-value" id="info-numero-ingreso" title="Número de ingreso activo en Dinámica (carpeta del repositorio clínico)">-</div>
+                        <span class="pi-icono pi-icono--naranja"><i data-lucide="door-open"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Ingreso</div>
+                        <div class="patient-info-value" id="info-numero-ingreso" title="Número de ingreso activo en Dinámica (carpeta del repositorio clínico)">-</div></div>
                     </div>
                     <div class="patient-info-item">
-                        <div class="patient-info-label">Responsable</div>
-                        <div class="patient-info-value" id="info-responsable">-</div>
+                        <span class="pi-icono"><i data-lucide="user"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Responsable</div>
+                        <div class="patient-info-value" id="info-responsable">-</div></div>
                     </div>
                     <div class="patient-info-item">
-                        <div class="patient-info-label">Acompañante</div>
-                        <div class="patient-info-value" id="info-acompanante">-</div>
+                        <span class="pi-icono pi-icono--morado"><i data-lucide="user-round"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Acompañante</div>
+                        <div class="patient-info-value" id="info-acompanante">-</div></div>
                     </div>
                     <div class="patient-info-item">
-                        <div class="patient-info-label">Edad gestacional</div>
-                        <div class="patient-info-value" id="info-edad-gestacional">-</div>
+                        <span class="pi-icono pi-icono--turquesa"><i data-lucide="baby"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Edad gestacional</div>
+                        <div class="patient-info-value" id="info-edad-gestacional">-</div></div>
                     </div>
                     <div class="patient-info-item">
-                        <div class="patient-info-label">Gestas</div>
-                        <div class="patient-info-value" id="info-gestas">-</div>
-                    </div>
-                    <div class="patient-info-item">
-                        <div class="patient-info-label">Controles prenatales</div>
-                        <div class="patient-info-value" id="info-controles-prenatales">-</div>
+                        <span class="pi-icono pi-icono--rosa"><i data-lucide="hand"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Gestas</div>
+                        <div class="patient-info-value" id="info-gestas">-</div></div>
                     </div>
                     <div class="patient-info-item patient-info-item-full">
-                        <div class="patient-info-label">Diagnóstico</div>
-                        <div class="patient-info-value" id="info-diagnostico">-</div>
+                        <span class="pi-icono"><i data-lucide="clipboard-check"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Controles prenatales</div>
+                        <div class="patient-info-value" id="info-controles-prenatales">-</div></div>
+                    </div>
+                    <div class="patient-info-item patient-info-item-full">
+                        <span class="pi-icono pi-icono--verde"><i data-lucide="file-pen-line"></i></span>
+                        <span class="pi-sep" aria-hidden="true"></span>
+                        <div class="pi-datos"><div class="patient-info-label">Diagnóstico</div>
+                        <div class="patient-info-value" id="info-diagnostico">-</div></div>
                     </div>
                 </div>
             </div>
@@ -2489,54 +2922,74 @@
             renderListaPacientesActivos(pacientes);
         }
 
+        // 2026-10-01: filtros como tarjetas por TIPO de paciente (Todas /
+        // Obstétricas / Ginecológicas), como el diseño pedido. Cuentan todas
+        // las áreas juntas (el área se sigue viendo en la etiqueta de cada
+        // paciente). Por dentro: _areaTabActiva = 'todas' + _tipoTabActivo.
+        const ICONOS_VISTA_TIPO = {
+            todos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+            obstetrica: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4.5" r="2.5"/><path d="M9 21v-5H8a1 1 0 0 1-1-1v-4a4 4 0 0 1 4-4c2 0 3 1.3 3 3 2.5.8 4 3 4 5.5S16 20 13 20v1"/></svg>',
+            ginecologica: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4c-2.5 0-4 2-4 4.5S6 13 9 13l1 3v3h4v-3l1-3c3 0 5-2 5-4.5S18.5 4 16 4c-1.6 0-2.4 1.2-2.4 2.6 0 1.6-.8 2.4-1.6 2.4s-1.6-.8-1.6-2.4C10.4 5.2 9.6 4 8 4z"/></svg>',
+            sin_clasificar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.3-2.4 3.8M12 17h.01"/></svg>',
+        };
+        const DESCRIPCION_VISTA_TIPO = {
+            todos: 'Pacientes activas en el sistema',
+            obstetrica: 'Gestantes, parto y puerperio',
+            ginecologica: 'Otras consultas ginecológicas',
+            sin_clasificar: 'Sin tipo registrado en Dinámica',
+        };
+        const TITULO_VISTA_TIPO = {
+            todos: 'Todas las pacientes', obstetrica: 'Obstétricas',
+            ginecologica: 'Ginecológicas', sin_clasificar: 'Sin clasificar',
+        };
+        const CHECK_VISTA = '<span class="vt-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>';
+
         function renderAreaTabs(pacientes) {
             const tabsEl = document.getElementById('area-tabs');
             if (!tabsEl) return;
 
-            // conteo[area][tipo]
-            const conteo = {};
+            const conteo = { todos: pacientes.length };
             pacientes.forEach((p) => {
-                const area = areaInfo(p.area).clase;
                 const tipo = tipoDe(p);
-                conteo[area] = conteo[area] || {};
-                conteo[area][tipo] = (conteo[area][tipo] || 0) + 1;
+                conteo[tipo] = (conteo[tipo] || 0) + 1;
             });
 
-            // Si la opción elegida ya no tiene pacientes (ej. tras una búsqueda), volver a "Todas".
-            const a = window._areaTabActiva, t = window._tipoTabActivo;
-            const sigueExistiendo = (a === 'todas' && t === 'todos')
-                || (conteo[a] && (t === 'todos' || conteo[a][t]));
-            if (!sigueExistiendo) {
+            // Filtro por área (vista anterior) o tipo sin pacientes: volver a "Todas".
+            const t = window._tipoTabActivo;
+            if (window._areaTabActiva !== 'todas' || (t !== 'todos' && !conteo[t])) {
                 window._areaTabActiva = 'todas';
                 window._tipoTabActivo = 'todos';
             }
 
-            const marca = (activa) => activa ? '<span class="filtro-check">✓</span>' : '<span class="filtro-dot"></span>';
-            const todasActiva = window._areaTabActiva === 'todas' && window._tipoTabActivo === 'todos';
-            let html = `
-                <button type="button" role="tab" aria-selected="${todasActiva}" class="area-tab area-tab-todas vista-todas${todasActiva ? ' area-tab-activa' : ''}" onclick="seleccionarVista('todas', 'todos')">
-                    ${marca(todasActiva)}Todas las pacientes
-                    <span class="area-tab-count">${pacientes.length}</span>
-                </button>`;
-
-            ORDEN_TABS.filter((area) => area !== 'todas' && conteo[area]).forEach((area) => {
-                const totalArea = Object.values(conteo[area]).reduce((x, y) => x + y, 0);
-                const opciones = ORDEN_TIPOS.filter((tipo) => tipo !== 'todos' && conteo[area][tipo]).map((tipo) => {
-                    const activa = window._areaTabActiva === area && window._tipoTabActivo === tipo;
+            tabsEl.innerHTML = ORDEN_TIPOS
+                .filter((tipo) => tipo !== 'sin_clasificar' || conteo[tipo] > 0)
+                .map((tipo) => {
+                    const activa = tipo === window._tipoTabActivo;
                     return `
-                        <button type="button" role="tab" aria-selected="${activa}" class="tipo-tab tipo-tab-${tipo}${activa ? ' tipo-tab-activa' : ''}" onclick="seleccionarVista('${area}', '${tipo}')"
-                                title="${escapeHtml(TITULOS_TABS[area])}: ${escapeHtml(TITULOS_TIPOS[tipo])}">
-                            ${marca(activa)}${escapeHtml(TITULOS_TIPOS[tipo])}
-                            <span class="area-tab-count">${conteo[area][tipo]}</span>
+                        <button type="button" role="tab" aria-selected="${activa}" class="vt vt-${tipo}${activa ? ' vt-activa' : ''}" onclick="seleccionarVista('todas', '${tipo}')">
+                            <span class="vt-icono">${ICONOS_VISTA_TIPO[tipo]}</span>
+                            <span class="vt-texto">
+                                <span class="vt-fila"><span class="vt-titulo">${escapeHtml(TITULO_VISTA_TIPO[tipo])}</span><span class="vt-conteo">${conteo[tipo] || 0}</span></span>
+                                <span class="vt-desc">${escapeHtml(DESCRIPCION_VISTA_TIPO[tipo])}</span>
+                            </span>
+                            ${CHECK_VISTA}
                         </button>`;
                 }).join('');
-                html += `
-                    <div class="vista-grupo vista-grupo-${area}" role="group" aria-label="${escapeHtml(TITULOS_TABS[area])}">
-                        <div class="vista-grupo-titulo">${escapeHtml(TITULOS_TABS[area])}<span class="vista-grupo-total">${totalArea} en total</span></div>
-                        <div class="vista-grupo-opciones">${opciones}</div>
-                    </div>`;
-            });
-            tabsEl.innerHTML = html;
+        }
+
+        // 2026-10-01: botones del buscador (lupa "Buscar" y la X de limpiar).
+        function buscarPacientesActivos() {
+            const input = document.getElementById('cedula-input');
+            clearTimeout(_filtroActivosTimer);
+            cargarPacientesActivosSalaPartos(input ? input.value : '');
+        }
+        function limpiarBusquedaActivos() {
+            const input = document.getElementById('cedula-input');
+            if (!input) return;
+            input.value = '';
+            clearTimeout(_filtroActivosTimer);
+            cargarPacientesActivosSalaPartos('');
+            input.focus();
         }
 
         // 2026-09-23: resumen en palabras de lo que se está mostrando, para no
@@ -2550,12 +3003,17 @@
             if (hayArea) chips.push(`<span class="filtros-resumen-chip">${escapeHtml(TITULOS_TABS[window._areaTabActiva])}</span>`);
             if (hayTipo) chips.push(`<span class="filtros-resumen-chip">${escapeHtml(TITULOS_TIPOS[window._tipoTabActivo])}</span>`);
             const texto = (hayArea || hayTipo)
-                ? `Mostrando <b>${mostrados}</b> de ${total} pacientes: ${chips.join(' › ')}`
-                : `Mostrando <b>todas</b> las pacientes activas (<b>${total}</b>)`;
+                ? `Mostrando <b>${mostrados}</b> de <span class="fr-total">${total}</span> pacientes: ${chips.join(' › ')}`
+                : `Mostrando <b>todas</b> las pacientes activas <span class="fr-total">(${total})</span>`;
             const quitar = (hayArea || hayTipo)
                 ? '<button type="button" class="filtros-quitar" onclick="quitarFiltrosPacientes()">✕ Quitar filtros</button>'
                 : '';
-            el.innerHTML = `<span>${texto}</span>${quitar}`;
+            // 2026-10-01: ícono "i", separador y decoración (ECG + bebé) a la derecha.
+            const deco = '<span class="fr-deco" aria-hidden="true">'
+                + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2-6 4 12 3-9 2 3h5"/></svg>'
+                + '<svg class="fr-bebe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h.01M15 12h.01M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/></svg>'
+                + '</span>';
+            el.innerHTML = `<span class="fr-info" aria-hidden="true">i</span><span class="fr-sep" aria-hidden="true"></span><span>${texto}</span>${quitar}${deco}`;
         }
 
         function quitarFiltrosPacientes() {

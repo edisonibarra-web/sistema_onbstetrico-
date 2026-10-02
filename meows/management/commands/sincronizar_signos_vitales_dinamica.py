@@ -428,7 +428,17 @@ class Command(BaseCommand):
         # formato va al repositorio clínico (NAS), carpeta de ese ingreso.
         # Recorre las pacientes con triaje, no solo las activas de arriba: la
         # paciente pudo quedar ingresada en un área que no es gineco.
-        from obstetriciaunificador.repositorio import enviar_meows_egresos_pendientes, enviar_triajes_pendientes
+        from obstetriciaunificador.repositorio import (
+            confirmar_envios_pendientes, enviar_meows_egresos_pendientes, enviar_triajes_pendientes,
+        )
+        # 2026-10-01: primero se cierran los envíos que quedaron "enviando"
+        # (sin confirmar en la bitácora): se mira la NAS y pasan a enviado o
+        # a error. Así la campana no se queda con avisos "sin confirmar".
+        confirmados = confirmar_envios_pendientes()
+        if confirmados:
+            self.stdout.write(self.style.WARNING(
+                f'[REPOSITORIO] {confirmados} envío(s) sin confirmar resuelto(s) contra la NAS.'
+            ))
         for documento, envio in enviar_triajes_pendientes():
             estilo = self.style.SUCCESS if envio.estado == envio.ESTADO_ENVIADO else self.style.ERROR
             self.stdout.write(estilo(

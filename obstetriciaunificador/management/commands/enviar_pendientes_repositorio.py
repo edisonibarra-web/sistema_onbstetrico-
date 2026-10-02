@@ -11,7 +11,7 @@ periódica con Dinámica (sincronizar_signos_vitales_dinamica).
 from django.core.management.base import BaseCommand
 
 from obstetriciaunificador.repositorio import (
-    DIAS_REVISION_EGRESO, enviar_meows_egresos_pendientes, enviar_triajes_pendientes,
+    DIAS_REVISION_EGRESO, confirmar_envios_pendientes, enviar_meows_egresos_pendientes, enviar_triajes_pendientes,
 )
 
 
@@ -23,6 +23,10 @@ class Command(BaseCommand):
                             help=f'Revisar los últimos N días (por defecto: triajes 7, MEOWS de egreso {DIAS_REVISION_EGRESO}).')
 
     def handle(self, *args, **opts):
+        # 2026-10-01: primero, los envíos que quedaron sin confirmar ("enviando").
+        confirmados = confirmar_envios_pendientes()
+        if confirmados:
+            self.stdout.write(self.style.WARNING(f'{confirmados} envío(s) sin confirmar resuelto(s) contra la NAS.'))
         enviados = (
             [('TRIAJE', d, e) for d, e in enviar_triajes_pendientes(dias=opts['dias'] or 7)]
             + [('MEOWS EGRESO', d, e) for d, e in enviar_meows_egresos_pendientes(dias=opts['dias'] or DIAS_REVISION_EGRESO)]

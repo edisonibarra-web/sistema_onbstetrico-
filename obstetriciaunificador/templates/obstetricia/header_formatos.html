@@ -101,23 +101,23 @@
     align-items: center;
     gap: 8px;
     padding: 9px 18px;
-    background: #1e293b;
+    background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
     color: white !important;
     text-decoration: none !important;
     border-radius: 999px;
     font-weight: 700;
     font-size: 0.8rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 0 14px rgba(34, 197, 94, 0.4), 0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    border: 1px solid #4ade80;
     cursor: pointer;
     font-family: inherit;
 }
 .btn-back-modules:hover {
     transform: translateY(-2px);
-    background: #334155;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: linear-gradient(180deg, #16a34a 0%, #166534 100%);
+    box-shadow: 0 0 18px rgba(34, 197, 94, 0.55), 0 8px 16px rgba(0, 0, 0, 0.3);
+    border-color: #86efac;
 }
 .btn-back-modules svg {
     width: 16px;
@@ -268,9 +268,117 @@
 }
 .meows-campana-etiqueta-triaje { color: #d8b4fe; }
 .meows-campana-etiqueta-dinamica { color: #7dd3fc; }
+
+/* ==========================================================================
+   2026-10-02: encabezado en azul profundo (silueta de gestante, ondas de luz,
+   electrocardiograma con corazón), bloque central de vidrio con los dos
+   logos, y botones con brillo (NAS cuadrado, campanas y salir redondos).
+   ========================================================================== */
+.header-formatos-institucionales {
+    /* Mismos tonos que la barra lateral (ver .sidebar en sidebar.css). */
+    background:
+        radial-gradient(40% 140% at 50% 0%, rgba(59, 130, 246, 0.12) 0%, transparent 60%),
+        linear-gradient(180deg, #0f1a33 0%, #0e1f44 100%) !important;
+    box-shadow: 0 10px 28px rgba(8, 22, 60, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    border-bottom: 1px solid rgba(120, 165, 255, 0.35) !important;
+    border-image: none !important;
+    padding: 16px 30px !important;
+}
+.header-formatos-institucionales::before { background: none !important; }
+.hf-deco { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.hf-ondas { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 0 6px rgba(150, 190, 255, 0.5)); }
+
+/* Bloque central de vidrio */
+.header-formatos-institucional {
+    gap: 22px !important;
+    padding: 10px 34px;
+    /* Más ancho a los lados (a pedido): logos en los extremos, título al centro. */
+    width: clamp(560px, 46vw, 900px);
+    justify-content: space-between !important;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.03) 100%);
+    border: 1px solid rgba(150, 185, 255, 0.28);
+    box-shadow: 0 8px 22px rgba(4, 14, 40, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 0 rgba(140, 180, 255, 0.35);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.header-formatos-institucional img {
+    height: 68px;
+    padding: 6px 8px;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+.header-formatos-institucional-texto { align-items: center; text-align: center; }
+.header-formatos-institucional-texto .nombre-hospital {
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+.header-formatos-institucional-texto .lema-hospital {
+    font-size: 1rem;
+    color: #d5e0f7;
+    letter-spacing: 0.01em;
+    margin-top: 6px;
+}
+
+/* Botones */
+.meows-campana-btn, .header-logout-btn {
+    width: 60px; height: 60px;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+}
+.meows-campana-btn svg { width: 28px; height: 28px; }
+.meows-campana-etiqueta { color: #ffffff !important; font-size: 0.82rem; letter-spacing: 0.04em; }
+.meows-campana-grupo { gap: 6px; }
+.header-formatos-logo-right { gap: 30px !important; }
+.header-logout-btn { margin-left: 4px; }
+
+#meows-campana-triaje-btn:not(.tiene-rojo):not(.tiene-amarillo) {
+    background: radial-gradient(circle at 35% 30%, #c084fc 0%, #9333ea 55%, #6b21a8 100%);
+    box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.22), 0 0 22px rgba(168, 85, 247, 0.65), inset 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+#meows-campana-btn:not(.tiene-rojo):not(.tiene-amarillo) {
+    background: radial-gradient(circle at 35% 30%, #67e8f9 0%, #0ea5e9 50%, #0369a1 100%);
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.22), 0 0 22px rgba(14, 165, 233, 0.65), inset 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+.header-logout-btn {
+    background: radial-gradient(circle at 35% 30%, #fca5a5 0%, #ef4444 50%, #b91c1c 100%);
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.22), 0 0 22px rgba(239, 68, 68, 0.65), inset 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* NAS: botón cuadrado redondeado de vidrio (verde/rojo siguen mandando
+   cuando hay guardados nuevos o un error). */
+#nas-campana-btn {
+    width: 62px; height: 62px;
+    border-radius: 16px;
+    border: 1.5px solid rgba(190, 210, 255, 0.55);
+}
+#nas-campana-btn:not(.tiene-error):not(.tiene-nuevos) {
+    background: linear-gradient(180deg, #5a6f9c 0%, #34466f 55%, #26365a 100%);
+    box-shadow: 0 6px 16px rgba(4, 12, 40, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 6px rgba(0, 0, 0, 0.25);
+}
+#nas-campana-btn svg { width: 30px; height: 30px; }
+
+@media (max-width: 900px) {
+    .header-formatos-institucional { padding: 6px 10px; width: auto; }
+    .header-formatos-institucional img { height: 48px; }
+    .header-formatos-logo-right { gap: 12px !important; }
+}
 </style>
 {% comment %}Encabezado institucional unificado para formatos{% endcomment %}
 <header class="header-formatos-institucionales">
+    {# 2026-10-02: decoración de fondo (ondas de luz). Solo adorno, no recibe clics. #}
+    <span class="hf-deco" aria-hidden="true">
+        <svg class="hf-ondas" viewBox="0 0 1600 140" preserveAspectRatio="none">
+            <defs>
+                <linearGradient id="hfOnda" x1="0" x2="1"><stop offset="0" stop-color="#9cc2ff" stop-opacity="0"/><stop offset=".25" stop-color="#cfe0ff" stop-opacity=".75"/><stop offset=".6" stop-color="#7aa8ff" stop-opacity=".25"/><stop offset="1" stop-color="#9cc2ff" stop-opacity="0"/></linearGradient>
+                <linearGradient id="hfOnda2" x1="0" x2="1"><stop offset="0" stop-color="#7aa8ff" stop-opacity="0"/><stop offset=".6" stop-color="#8fb6ff" stop-opacity=".25"/><stop offset=".9" stop-color="#b7cfff" stop-opacity=".6"/><stop offset="1" stop-color="#9cc2ff" stop-opacity="0"/></linearGradient>
+            </defs>
+            <path d="M180 0C300 10 360 40 420 90s120 60 260 50" stroke="url(#hfOnda)" stroke-width="2.5" fill="none"/>
+            <path d="M200 0C320 18 380 52 440 104s140 50 300 36" stroke="url(#hfOnda)" stroke-width="1.2" fill="none" opacity=".6"/>
+            <path d="M1180 140c160-10 260-60 320-110 30-25 60-30 100-30" stroke="url(#hfOnda2)" stroke-width="2.5" fill="none"/>
+            <path d="M1160 140c170-4 280-50 350-100" stroke="url(#hfOnda2)" stroke-width="1.2" fill="none" opacity=".6"/>
+        </svg>
+    </span>
     {# 2026-09-28: campana "NAS" (confirma cada registro guardado en el repositorio #}
     {# clínico) -- sola en el extremo IZQUIERDO del encabezado, a pedido. #}
     <div class="header-formatos-izquierda">

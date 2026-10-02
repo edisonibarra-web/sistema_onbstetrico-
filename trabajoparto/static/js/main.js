@@ -684,7 +684,8 @@ function mostrarEstadoAutoguardadoParto(tipo, texto) {
     const el = document.getElementById('autosave-parto-status');
     if (!el) return;
     el.dataset.estado = tipo;
-    el.textContent = texto;
+    // 2026-10-01: en "ok" el check va como círculo verde (CSS ::before).
+    el.textContent = tipo === 'ok' ? String(texto || '').replace(/^✓\s*/, '') : texto;
     el.style.display = texto ? 'inline-flex' : 'none';
 }
 
@@ -1120,17 +1121,85 @@ function calcularHorasColumnaVistaPrevia(mediciones) {
  * parámetros realmente disponibles en el formulario.
  */
 // --- Alertas clínicas de Trabajo de Parto (2026-10-01) -------------------
-// Cada regla evalúa el valor numérico guardado de un parámetro. Para agregar
-// otra alerta basta con sumar una regla aquí: la Vista previa la marca sola
-// (aviso arriba de la tabla + celda resaltada).
+// Cada regla evalúa el valor guardado de un parámetro: `cumple(n)` sobre el
+// valor numérico, o `cumpleTexto(t)` sobre el texto elegido en una lista.
+// Para agregar otra alerta basta con sumar una regla aquí: la Vista previa la
+// marca sola (celda resaltada).
+// Campos de cada regla:
+//   titulo       -> nombre clínico del hallazgo (tooltip de la celda)
+//   icono        -> ícono del panel izquierdo (clave de ICONOS_ALERTA_TP)
+//   iconoMotivo  -> ícono junto al motivo (clave de ICONOS_ALERTA_TP)
+//   tono         -> 'rojo' (por defecto) o 'ambar' (borde naranja, fondo crema)
+//   valor        -> valor legible (ej. el código 0 -> "Ausentes")
+//   motivo       -> [texto normal, texto resaltado] del criterio incumplido
 const REGLAS_ALERTA_TRABAJO_PARTO = [
     {
         parametroId: 6,  // DURACIÓN (PARAM_DURACION_CONTRACCIONES, declarado más abajo)
         nivel: 'roja',
+        titulo: 'Contracción prolongada',
+        icono: 'reloj',
+        iconoMotivo: 'flechaArriba',
         cumple: n => n > 60,
-        mensaje: n => `Duración de la contracción de ${n} seg (mayor a 60 seg)`,
+        valor: n => `${n} seg`,
+        motivo: () => ['Mayor a', '60 seg'],
+    },
+    {
+        // MOVIMIENTOS FETALES: "0 - Ausentes" (se guarda el código 0).
+        parametroId: 9,
+        nivel: 'roja',
+        tono: 'ambar',
+        titulo: 'Movimientos fetales ausentes',
+        icono: 'bebe',
+        iconoMotivo: 'prohibido',
+        cumple: n => n === 0,
+        valor: () => 'Ausentes',
+        motivo: () => ['Sin movimientos', 'fetales'],
+    },
+    {
+        // LÍQUIDO AMNIÓTICO: "Meconio grado I", "II" o "III" (no "Claro").
+        parametroId: 13,
+        nivel: 'roja',
+        titulo: 'Líquido amniótico meconiado',
+        icono: 'gota',
+        iconoMotivo: 'advertencia',
+        cumpleTexto: t => /meconio/i.test(t),
+        valor: t => t,
+        motivo: () => ['Presencia de', 'meconio'],
+    },
+    {
+        // MONITOREO · CATEGORÍA: "Categoría II (Indeterminada)" o "Categoría III (Patológica)".
+        parametroId: 18,
+        nivel: 'roja',
+        titulo: 'Monitoreo fetal alterado',
+        icono: 'monitor',
+        iconoMotivo: 'advertencia',
+        cumpleTexto: t => /categor[ií]a\s+(II|III)\b/i.test(t),
+        valor: t => t.replace(/\s*\(.*\)\s*$/, ''),
+        motivo: t => ['Monitoreo', ((t.match(/\(([^)]+)\)/) || [])[1]) || 'alterado'],
     },
 ];
+
+// Íconos de las alertas (trazos estilo Lucide, heredan el color con currentColor).
+const ICONOS_ALERTA_TP = {
+    reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    bebe: '<path d="M9 12h.01M15 12h.01M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/>',
+    gota: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+    monitor: '<rect x="2" y="4" width="20" height="14" rx="2"/><path d="M5 11h3l2-4 3 8 2-4h4M8 22h8M12 18v4"/>',
+    flechaArriba: '<path d="M12 19V5M5 12l7-7 7 7"/>',
+    prohibido: '<circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/>',
+    advertencia: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+};
+
+function iconoAlertaTP(clave, clase) {
+    const trazo = ICONOS_ALERTA_TP[clave] || ICONOS_ALERTA_TP.advertencia;
+    return `<svg class="${clase}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${trazo}</svg>`;
+}
+
+function textosMedicion(m) {
+    return (m.valores || [])
+        .map(v => (v.valor_text !== null && v.valor_text !== undefined) ? String(v.valor_text).trim() : '')
+        .filter(t => t !== '');
+}
 
 function valorNumericoMedicion(m) {
     for (const v of (m.valores || [])) {
@@ -1145,7 +1214,8 @@ function valorNumericoMedicion(m) {
     return null;
 }
 
-/** Alertas presentes en las mediciones: [{clave: "pid|hora", hora, nivel, texto}]. */
+/** Alertas presentes en las mediciones:
+ *  [{clave: "pid|hora", hora, nivel, titulo, icono, valor, motivo}]. */
 function detectarAlertasTrabajoParto(mediciones) {
     const alertas = [];
     (mediciones || []).forEach(m => {
@@ -1153,37 +1223,111 @@ function detectarAlertasTrabajoParto(mediciones) {
         const reglas = REGLAS_ALERTA_TRABAJO_PARTO.filter(r => r.parametroId === pid);
         if (!reglas.length) return;
         const n = valorNumericoMedicion(m);
-        if (n === null) return;
+        const textos = textosMedicion(m);
         reglas.forEach(r => {
-            if (r.cumple(n)) alertas.push({ clave: `${pid}|${m.tomada_en}`, hora: m.tomada_en, nivel: r.nivel, texto: r.mensaje(n) });
+            const agregar = dato => alertas.push({
+                clave: `${pid}|${m.tomada_en}`, hora: m.tomada_en, nivel: r.nivel, tono: r.tono || 'rojo',
+                titulo: r.titulo, icono: r.icono, iconoMotivo: r.iconoMotivo,
+                valor: r.valor(dato), motivo: r.motivo(dato),
+            });
+            if (r.cumple && n !== null && r.cumple(n)) agregar(n);
+            if (r.cumpleTexto) {
+                const t = textos.find(x => r.cumpleTexto(x));
+                if (t) agregar(t);
+            }
         });
     });
     return alertas.sort((a, b) => new Date(a.hora) - new Date(b.hora));
 }
 
-function renderAlertasVistaPrevia(alertas) {
-    const cont = document.getElementById('preview-alertas');
-    if (!cont) return;
-    if (!alertas || !alertas.length) {
-        cont.hidden = true;
-        cont.innerHTML = '';
-        return;
-    }
-    const items = alertas.map(a => {
-        const d = new Date(a.hora);
-        const cuando = `${d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} · `
-            + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
-        return `<li><strong>${cuando}</strong> — ${a.texto}</li>`;
-    }).join('');
-    cont.innerHTML = `
-        <div class="preview-alerta-roja" role="alert">
-            <span class="preview-alerta-icono" aria-hidden="true">🚨</span>
-            <div>
-                <div class="preview-alerta-titulo">Alerta roja · ${alertas.length === 1 ? '1 hallazgo' : alertas.length + ' hallazgos'}</div>
-                <ul class="preview-alerta-lista">${items}</ul>
+function escaparHtmlAlerta(t) {
+    return String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// --- Tabla de la Vista previa (2026-10-01): color e ícono por ítem ---------
+// El color de cada ítem se elige por su nombre (Item.nombre en la BD).
+const CATEGORIAS_TABLA_TP = [
+    { clave: 'contracciones', patron: /contracc|uterin/i, icono: 'utero', kicker: 'Obstetricia' },
+    { clave: 'fetal', patron: /fetal/i, excluir: /monitoreo/i, icono: 'corazon', kicker: 'Control fetal' },
+    { clave: 'tacto', patron: /tacto|vaginal/i, icono: 'gota', kicker: 'Parto' },
+    { clave: 'monitoreo', patron: /monitoreo/i, icono: 'monitor', kicker: 'Seguimiento' },
+    { clave: 'oxitocina', patron: /oxitocin/i, icono: 'jeringa', kicker: 'Medicación' },
+    { clave: 'maternos', patron: /matern/i, icono: 'pulso', kicker: 'Materno' },
+];
+
+function categoriaItemTP(nombre) {
+    const n = String(nombre || '');
+    return CATEGORIAS_TABLA_TP.find(c => c.patron.test(n) && !(c.excluir && c.excluir.test(n)))
+        || { clave: 'otro', icono: 'documento', kicker: 'Registro' };
+}
+
+/** Nombre corto del parámetro para la lista de la tarjeta del ítem
+ *  ("Frecuencia Cardíaca Fetal" -> "FCF", "Oxitocina 3 Unidades en 500cc"
+ *  -> "3 Unidades en 500cc"). */
+function nombreCortoParametroTP(nombre) {
+    const n = String(nombre || '').trim();
+    if (/frecuencia\s+card[ií]aca\s+fetal/i.test(n)) return 'FCF';
+    return n.replace(/^oxitocina\s+/i, '');
+}
+
+const ICONOS_TABLA_TP = {
+    documento: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+    reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    capas: '<path d="m12 3 9 5-9 5-9-5 9-5z"/><path d="m3 13 9 5 9-5"/><path d="m3 17.5 9 5 9-5" opacity=".6"/>',
+    engranaje: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+    calendario: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
+    usuario: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    utero: '<path d="M8 4c-2.5 0-4 2-4 4.5S6 13 9 13l1 3v3h4v-3l1-3c3 0 5-2 5-4.5S18.5 4 16 4c-1.6 0-2.4 1.2-2.4 2.6 0 1.6-.8 2.4-1.6 2.4s-1.6-.8-1.6-2.4C10.4 5.2 9.6 4 8 4z"/>',
+    corazon: '<path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/><path d="M9 11.5c1 .8 2 1.2 3 1.2s2-.4 3-1.2"/>',
+    gota: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+    monitor: '<rect x="2" y="4" width="20" height="14" rx="2"/><path d="M5 11h3l2-4 3 8 2-4h4M8 22h8M12 18v4"/>',
+    jeringa: '<path d="m18 2 4 4M17 7l3-3M19 9 8.7 19.3a2.4 2.4 0 0 1-3.4 0l-.6-.6a2.4 2.4 0 0 1 0-3.4L15 5M9 11l4 4M5 19l-3 3M14 4l6 6"/>',
+    pulso: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+};
+
+function iconoTablaTP(clave) {
+    const trazo = ICONOS_TABLA_TP[clave] || ICONOS_TABLA_TP.documento;
+    return `<svg class="pg-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${trazo}</svg>`;
+}
+
+/** Tarjeta de medición normal (sin alerta), 2026-10-01: panel verde con
+ *  check, valor al centro e ícono de barras a la derecha. */
+function celdaNormalVistaPrevia(valor) {
+    const texto = String(valor ?? '');
+    const tamano = texto.length > 14 ? ' tp-normal-valor--largo' : (texto.length > 7 ? ' tp-normal-valor--medio' : '');
+    return `
+        <div class="tp-normal">
+            <div class="tp-normal-lado">
+                <span class="tp-normal-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+            </div>
+            <div class="tp-normal-valor${tamano}">${escaparHtmlAlerta(texto)}</div>
+            <span class="tp-normal-barras" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="13" width="4" height="7" rx="2"/><rect x="10" y="9" width="4" height="11" rx="2"/><rect x="16" y="4" width="4" height="16" rx="2"/></svg></span>
+        </div>`;
+}
+
+/** Tarjeta de alerta (2026-10-01): panel con ícono a la izquierda, insignia
+ *  "! ALERTA", trazo de ECG, valor grande y motivo; late como un corazón. */
+function celdaAlertaVistaPrevia(alerta) {
+    const [motivoNormal, motivoResaltado] = Array.isArray(alerta.motivo) ? alerta.motivo : [alerta.motivo, ''];
+    const valor = String(alerta.valor ?? '');
+    const tamano = valor.length > 12 ? ' tp-alerta-valor--largo' : (valor.length > 8 ? ' tp-alerta-valor--medio' : '');
+    return `
+        <div class="tp-alerta tp-alerta--${alerta.tono || 'rojo'}">
+            <div class="tp-alerta-lado">
+                <span class="tp-alerta-icono">${iconoAlertaTP(alerta.icono, 'tp-alerta-icono-svg')}</span>
+            </div>
+            <div class="tp-alerta-cuerpo">
+                <div class="tp-alerta-arriba">
+                    <span class="tp-alerta-insignia"><span class="tp-alerta-exclama">!</span>Alerta</span>
+                    <svg class="tp-alerta-ecg" viewBox="0 0 64 24" aria-hidden="true"><path d="M0 14h18l4-8 5 14 5-16 4 10h28"/></svg>
+                </div>
+                <div class="tp-alerta-valor${tamano}">${escaparHtmlAlerta(valor)}</div>
+                <div class="tp-alerta-motivo">
+                    ${iconoAlertaTP(alerta.iconoMotivo, 'tp-alerta-motivo-icono')}
+                    <span class="tp-alerta-motivo-texto">${escaparHtmlAlerta(motivoNormal)} <strong>${escaparHtmlAlerta(motivoResaltado)}</strong></span>
+                </div>
             </div>
         </div>`;
-    cont.hidden = false;
 }
 
 function construirGrillaVistaPrevia(mediciones, horasUnicas, responsableFormulario) {
@@ -1265,32 +1409,55 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas, responsableFormular
     const alertasPorClave = {};
     detectarAlertasTrabajoParto(mediciones).forEach(a => { alertasPorClave[a.clave] = a; });
 
-    let html = '<table class="preview-grid-table"><thead><tr>';
-    html += '<th class="preview-grid-th-item" rowspan="2">Ítem</th>';
-    html += '<th class="preview-grid-th-param" rowspan="2">Parámetro</th>';
-    html += `<th class="preview-grid-th-hora" colspan="${horasUnicas.length}">Hora</th>`;
+    // 2026-10-01: encabezado en azul marino -- esquina "Mediciones por fecha
+    // y hora" + "Ítem"/"Parámetro", franja "Hora" y una tarjeta por columna
+    // (fecha, hora grande y responsable). Ver .pg-* en desarrollo_frontend.html.
+    let html = '<table class="preview-grid-table pg-tabla"><thead><tr>';
+    html += `<th class="pg-esquina" colspan="2">${iconoTablaTP('documento')}<span>Mediciones por fecha y hora</span></th>`;
+    html += `<th class="pg-th-hora-titulo" colspan="${horasUnicas.length}">${iconoTablaTP('reloj')}<span>Hora</span></th>`;
     html += '</tr><tr>';
+    html += `<th class="preview-grid-th-item pg-th-sub">${iconoTablaTP('capas')}<span>Ítem</span></th>`;
+    html += `<th class="preview-grid-th-param pg-th-sub">${iconoTablaTP('engranaje')}<span>Parámetro</span></th>`;
     horasUnicas.forEach(hora => {
         const d = new Date(hora);
         const fecha = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
         const horaTxt = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
         const nombreResp = responsablePorHora[hora] || responsableRespaldo;
         const spanResp = nombreResp
-            ? `<span class="preview-grid-col-responsable" title="Registrado por ${nombreResp}">👤 ${nombreResp}</span>`
+            ? `<span class="pg-col-resp" title="Registrado por ${escaparHtmlAlerta(nombreResp)}">${iconoTablaTP('usuario')}${escaparHtmlAlerta(nombreResp)}</span>`
             : '';
-        html += `<th class="preview-grid-th-hora"><span class="preview-grid-col-fecha">${fecha}</span><span class="preview-grid-col-hora">${horaTxt}</span>${spanResp}</th>`;
+        html += `<th class="preview-grid-th-hora pg-th-col"><span class="pg-col-tarjeta">`
+            + `<span class="pg-col-fecha">${iconoTablaTP('calendario')}${fecha}</span>`
+            + `<span class="pg-col-hora">${horaTxt}</span>${spanResp}</span></th>`;
     });
     html += '</tr></thead><tbody>';
 
     // Filas: un ítem (con rowspan) por cada uno de sus parámetros activos
     estructura.forEach(item => {
+        const cat = categoriaItemTP(item.nombre);
         item.parametros.forEach((param, idx) => {
-            html += '<tr>';
+            html += `<tr class="pg-fila pg-cat-${cat.clave}${idx === item.parametros.length - 1 ? ' pg-fila-ultima' : ''}">`;
             if (idx === 0) {
-                html += `<td class="preview-grid-td-item" rowspan="${item.parametros.length}">${item.nombre}</td>`;
+                // 2026-10-01: tarjeta del ítem -- bloque de color con ícono,
+                // etiqueta subrayada, título, parámetros "a | b | c", marca de
+                // agua y flecha (ver .pg-item-* en desarrollo_frontend.html).
+                const lista = item.parametros.map(p => `<span class="pg-item-param">${escaparHtmlAlerta(nombreCortoParametroTP(p.nombre))}</span>`)
+                    .join(' <span class="pg-item-sep">|</span> ');
+                const compacta = item.parametros.length <= 2 ? ' pg-item--compacta' : '';
+                html += `<td class="preview-grid-td-item pg-td-item" rowspan="${item.parametros.length}">`
+                    + `<div class="pg-item${compacta}">`
+                    + `<div class="pg-item-lado"><span class="pg-item-icono">${iconoTablaTP(cat.icono)}</span></div>`
+                    + `<div class="pg-item-cuerpo">`
+                    + `<span class="pg-item-kicker">${escaparHtmlAlerta(cat.kicker || 'Registro')}</span>`
+                    + `<span class="pg-item-nombre">${escaparHtmlAlerta(item.nombre)}</span>`
+                    + `<span class="pg-item-params">${lista}</span>`
+                    + `</div>`
+                    + `<span class="pg-item-marca" aria-hidden="true">${iconoTablaTP(cat.icono)}</span>`
+                    + `<span class="pg-item-flecha" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>`
+                    + `</div></td>`;
             }
-            const unidad = param.unidad ? ` <span style="opacity:.6;font-weight:600;">(${param.unidad})</span>` : '';
-            html += `<td class="preview-grid-td-param">${param.nombre}${unidad}</td>`;
+            const unidad = param.unidad ? ` <span class="pg-param-unidad">(${escaparHtmlAlerta(param.unidad)})</span>` : '';
+            html += `<td class="preview-grid-td-param pg-td-param">${escaparHtmlAlerta(param.nombre)}${unidad}</td>`;
 
             horasUnicas.forEach(hora => {
                 let valor = valoresPorParamHora[`${param.id}|${hora}`];
@@ -1307,10 +1474,10 @@ function construirGrillaVistaPrevia(mediciones, horasUnicas, responsableFormular
                 const alerta = !heredado && valor ? alertasPorClave[`${param.id}|${hora}`] : null;
                 const clase = heredado ? ' valor-heredado' : (alerta ? ` valor-alerta-${alerta.nivel}` : (valor ? ' tiene-valor' : ''));
                 const titulo = heredado ? ` title="Frecuencia Cardiaca Fetal tomada de Dinámica a las ${horaCarryTxt}"`
-                    : (alerta ? ` title="Alerta ${alerta.nivel}: ${alerta.texto}"` : '');
+                    : (alerta ? ` title="Alerta ${alerta.nivel}: ${escaparHtmlAlerta(alerta.titulo)}"` : '');
                 const contenido = heredado
                     ? `${valor}<span class="valor-heredado-hora">🔗 ${horaCarryTxt}</span>`
-                    : (alerta ? `🚨 ${valor}` : (valor || '—'));
+                    : (alerta ? celdaAlertaVistaPrevia(alerta) : (valor ? celdaNormalVistaPrevia(valor) : '—'));
                 html += `<td class="preview-grid-td-valor${clase}"${titulo}>${contenido}</td>`;
             });
 
@@ -1342,7 +1509,6 @@ function limpiarFormularioInformativo() {
     if (medicionesScroll) {
         medicionesScroll.innerHTML = '';
     }
-    renderAlertasVistaPrevia([]);
 }
 
 
@@ -1453,7 +1619,6 @@ async function actualizarFormularioInformativo(formularioId, datosCompletos = nu
                 
                 // Construir la grilla Item -> Parámetro x Hora (misma estructura que el PDF)
                 medicionesScroll.innerHTML = construirGrillaVistaPrevia(mediciones, horasUnicas, formulario.responsable);
-                renderAlertasVistaPrevia(detectarAlertasTrabajoParto(mediciones));
 
                 // Sincronizar también con el grid principal (hidden columns/inputs) si es necesario
                 const mainTimeInputs = document.querySelectorAll('.time-input');
@@ -1970,8 +2135,8 @@ function marcarControlEnEdicion(hora) {
     const hoy = new Date();
     const mismoDia = d.toDateString() === hoy.toDateString();
     const fechaTexto = mismoDia ? '' : ` del ${d.toLocaleDateString('es-CO')}`;
-    aviso.innerHTML = `✏️ <b>Estás editando el control de las ${horaTexto}${fechaTexto}</b> (ya guardado). ` +
-        'Lo que registres se guarda en ese control. Para registrar uno nuevo presiona <b>Nuevo control</b>.';
+    aviso.innerHTML = `<b>Estás editando el control de las ${horaTexto}${fechaTexto}</b> (ya guardado).<br>` +
+        'Lo que registres se guarda en ese control. Para registrar uno nuevo presiona <b>Nuevo control.</b>';
     aviso.style.display = 'block';
 }
 
@@ -2134,6 +2299,9 @@ function formatearValorContraccion(parametroId, texto) {
     return texto;
 }
 
+// Unidad que se muestra junto al valor numérico en el botón del parámetro.
+const UNIDAD_VALOR_BOTON_TP = { 8: 'lpm', 15: 'cm', 16: '%' };
+
 function actualizarBotonUI(parametroId) {
     // 2026-09-23: la FCF (parámetro 8) llega sola de Dinámica y su botón lo
     // pinta actualizarPreviewFrecuenciaCardiacaFetal (último valor + su hora
@@ -2175,11 +2343,25 @@ function actualizarBotonUI(parametroId) {
         const valStr = partes.join(' / ');
 
         if (valPreview) {
-            valPreview.textContent = valStr;
+            // 2026-10-01: unidad pequeña junto a un valor numérico ("344 lpm").
+            const unidad = UNIDAD_VALOR_BOTON_TP[parseInt(parametroId, 10)];
+            if (unidad && /^\d+([.,]\d+)?$/.test(valStr)) {
+                valPreview.innerHTML = `${escaparHtmlAlerta(valStr)}<small>${unidad}</small>`;
+            } else {
+                valPreview.textContent = valStr;
+            }
             valPreview.style.color = '#047857';
+            valPreview.classList.toggle('bp-valor-largo', valStr.length > 9);
         }
+        // 2026-10-01: misma regla de alerta que la Vista previa -> tarjeta naranja con ⚠.
+        const alertaBoton = detectarAlertasTrabajoParto([{
+            parametro_id: parametroId,
+            tomada_en: horaRegistro,
+            valores: mediciones.map(m => ({ valor_text: String(m.valor ?? '') })),
+        }]);
+        btn.classList.toggle('bp-alerta', alertaBoton.length > 0);
     } else {
-        btn.classList.remove('tiene-datos');
+        btn.classList.remove('tiene-datos', 'bp-alerta');
         if (valPreview) {
             valPreview.textContent = '-';
             valPreview.style.color = '#94a3b8';

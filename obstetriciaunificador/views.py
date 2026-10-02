@@ -7,7 +7,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
 from .models import AtencionParto
 from .repositorio import (
-    RepositorioError, SinCambiosError, enviar_control_posparto, enviar_meows, enviar_trabajo_parto,
+    MINUTOS_PARA_CONFIRMAR_ENVIO, RepositorioError, SinCambiosError, enviar_control_posparto, enviar_meows, enviar_trabajo_parto,
     enviar_triaje_si_corresponde, resolver_atencion_ingreso, resumen_envio,
 )
 import logging
@@ -1175,6 +1175,11 @@ def api_notificaciones_repositorio(request):
     items = []
     for d in documentos:
         ok = d.estado == DocumentoRepositorio.ESTADO_ENVIADO
+        # 2026-10-01: "enviando" reciente = envío en curso; pasado el plazo de
+        # confirmación (la sincronización lo resuelve contra la NAS) = sin confirmar.
+        enviando = d.estado == DocumentoRepositorio.ESTADO_ENVIANDO
+        en_curso = enviando and d.creado_en >= timezone.now() - timedelta(minutes=MINUTOS_PARA_CONFIRMAR_ENVIO)
+        sin_confirmar = enviando and not en_curso
         formato = NOMBRES_FORMATO_NOTIFICACION.get(d.formato, d.formato)
         automatico = (d.enviado_por or "").startswith("automático")
         items.append({
@@ -1187,8 +1192,14 @@ def api_notificaciones_repositorio(request):
             "archivo": d.nombre_archivo,
             "fecha": timezone.localtime(d.creado_en).strftime("%d/%m/%Y %I:%M %p"),
             "automatico": automatico,
+            "estado": "ok" if ok else ("en_curso" if en_curso else ("sin_confirmar" if sin_confirmar else "error")),
             "mensaje": (
                 f"Registro {formato} guardado en {destino}" if ok
+                else f"Enviando el registro {formato} a {destino}…" if en_curso
+                # Constancia "enviando" que la sincronización aún no pudo
+                # resolver (p. ej. la NAS no respondía): raro, vale la pena mirar.
+                else f"Envío del registro {formato} a {destino} sin confirmar: revise la carpeta del ingreso"
+                if sin_confirmar
                 else f"No se pudo guardar el registro {formato} en {destino}"
                 + (" (se reintentará automáticamente)" if automatico else "")
             ),

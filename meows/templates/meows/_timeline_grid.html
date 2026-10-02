@@ -23,11 +23,11 @@ página, colapsable con el botón "Ocultar/Mostrar".
     {# 2026-09-24: en el Historial MEOWS, "título en placa" (meows-form.css) con los #}
     {# botones agrupados a la derecha. En Control Posparto (modal) queda como antes. #}
     {% if mostrar_link_volver and not abrir_en_modal %}
-    <h3 class="section-title titulo-placa timeline-placa {% if todo_origen_triaje %}titulo-placa--triaje{% else %}titulo-placa--meows{% endif %}">
+    <h3 class="section-title titulo-placa timeline-placa tl-v2 {% if todo_origen_triaje %}titulo-placa--triaje{% else %}titulo-placa--meows{% endif %}">
         <span class="section-icon-badge"><i data-lucide="line-chart"></i></span>
         <span class="titulo-placa-texto">
             <span class="titulo-placa-kicker">Historial clínico MEOWS · {% if todo_origen_triaje %}Triaje{% else %}Dinámica{% endif %}</span>
-            <span class="titulo-placa-principal">{% if todo_origen_triaje %}Línea de tiempo triaje{% else %}Línea de tiempo clínica{% endif %}</span>
+            <span class="titulo-placa-principal">Línea de tiempo <em class="tl-acento">{% if todo_origen_triaje %}triaje{% else %}clínica{% endif %}</em></span>
             <span class="titulo-placa-ayuda">{% if todo_origen_triaje %}Signos vitales registrados en Triaje, antes del ingreso.{% else %}Signos vitales registrados en Dinámica, con el puntaje MEOWS de cada toma.{% endif %}</span>
         </span>
         <span class="timeline-placa-acciones">
@@ -47,13 +47,6 @@ página, colapsable con el botón "Ocultar/Mostrar".
         {% if mostrar_link_volver %}{% if todo_origen_triaje %}Línea de Tiempo Triaje{% else %}Línea de Tiempo Clínica (Dinámica){% endif %}{% else %}Control Posparto Inmediato{% endif %}
     {% endif %}
         {% if mostrar_link_volver %}
-        {% if not todo_origen_triaje %}
-        {# 2026-09-22: oculto en Triaje -- una paciente sin ingreso todavía no #}
-        {# tiene ninguna atención de Trabajo de Parto a la que volver. #}
-        <a href="{% url 'parto_home' %}?atencion={{ atencion_id|default:'' }}&doc={{ documento|default:meows_paciente.numero_documento|urlencode }}" class="btn-volver-parto">
-            <span>↩️</span> Regresar a Trabajo de Parto
-        </a>
-        {% endif %}
         {% if not abrir_en_modal %}
         {# En modo inline la Guía Técnica va aquí, en el <h3>. En modo modal se #}
         {# mueve al encabezado del modal (ahí queda accesible mientras se lee #}
@@ -120,7 +113,7 @@ página, colapsable con el botón "Ocultar/Mostrar".
     <div class="meows-timeline-modal-body">
     {% else %}
     <div id="meows-grid-body" class="meows-grid-body">
-    <div class="meows-grid-body-inner">
+    <div class="meows-grid-body-inner mg-v2">
     {% endif %}
     {% if columnas %}
     <div class="grid-legend">
@@ -300,18 +293,19 @@ página, colapsable con el botón "Ocultar/Mostrar".
         <table class="meows-grid-table">
             <thead>
                 <tr>
-                    <th class="grid-th-parametro" rowspan="2">Parámetro</th>
-                    <th class="grid-th-fila" rowspan="2">Valor</th>
-                    <th class="grid-th-tiempo" colspan="{{ columnas|length }}">Fecha / Hora de la toma</th>
-                    <th class="grid-th-puntaje" rowspan="2">Puntaje</th>
+                    <th class="grid-th-parametro" rowspan="2"><span class="th-ico"><i data-lucide="calendar-heart"></i></span>Parámetro</th>
+                    <th class="grid-th-fila" rowspan="2"><span class="th-ico"><i data-lucide="bar-chart-3"></i></span>Valor</th>
+                    <th class="grid-th-tiempo" colspan="{{ columnas|length }}"><span class="th-ico th-ico--linea"><i data-lucide="calendar-days"></i></span>Fecha / Hora de la toma</th>
+                    <th class="grid-th-puntaje" rowspan="2"><span class="th-ico"><i data-lucide="trophy"></i></span>Puntaje<span class="th-ico th-ico--flecha"><i data-lucide="chevron-down"></i></span></th>
                 </tr>
                 <tr>
                     {% for columna in columnas %}
                     <th class="grid-th-columna">
+                        <span class="col-reloj" aria-hidden="true"><i data-lucide="clock"></i></span>
                         <span class="col-fecha">{{ columna.hora|date:"d/m/y" }}</span>
                         <span class="col-hora">{{ columna.hora|date:"h:i A" }}</span>
                         {% if columna.origen == 'dinamica' %}
-                        <span class="col-origen-dinamica" title="Importado automáticamente desde Dinámica">🔗 Dinámica</span>
+                        <span class="col-origen-dinamica" title="Importado automáticamente desde Dinámica"><span class="col-origen-emoji">🔗</span> Dinámica</span>
                         {% if columna.responsable %}
                         {# 2026-09-14: a pedido explícito -- el responsable real de una #}
                         {# toma de Dinámica es quien la digitó ALLÁ, no quien tiene la #}
@@ -342,18 +336,19 @@ página, colapsable con el botón "Ocultar/Mostrar".
                 {% for fila in parametro.filas %}
                 <tr>
                     {% if forloop.first %}
-                    <td class="grid-td-parametro" rowspan="{{ parametro.filas|length }}">
-                        {{ parametro.nombre }}
+                    <td class="grid-td-parametro grid-param-{{ parametro.codigo }}" rowspan="{{ parametro.filas|length }}">
+                        <span class="param-ico" aria-hidden="true"><i data-lucide="{% if parametro.codigo == 'temp' %}thermometer{% elif parametro.codigo == 'ta_sys' or parametro.codigo == 'ta_dia' %}gauge{% elif parametro.codigo == 'fc' %}heart-pulse{% elif parametro.codigo == 'fcf' %}baby{% elif parametro.codigo == 'fr' %}wind{% elif parametro.codigo == 'o2_req' %}droplets{% elif parametro.codigo == 'glasgow' %}brain{% elif parametro.codigo == 'spo2' %}activity{% else %}stethoscope{% endif %}"></i></span>
+                        <span class="param-nombre">{{ parametro.nombre }}</span>
                         <span class="grid-unidad">({{ parametro.unidad }})</span>
                     </td>
                     {% endif %}
-                    <td class="grid-td-fila">{{ fila.label }}</td>
+                    <td class="grid-td-fila"><span class="fila-pill">{{ fila.label }}</span></td>
                     {% for celda in fila.celdas %}
                     <td class="grid-td-celda score-{{ fila.score }}{% if celda.marcado %} celda-marcada{% endif %}">
                         {% if celda.marcado %}<span class="grid-marca">●</span>{% endif %}
                     </td>
                     {% endfor %}
-                    <td class="grid-td-puntaje score-{{ fila.score }}">{{ fila.score }}</td>
+                    <td class="grid-td-puntaje score-{{ fila.score }}"><span class="puntaje-pill">{{ fila.score }}</span></td>
                 </tr>
                 {% endfor %}
                 {% endfor %}
@@ -414,6 +409,8 @@ página, colapsable con el botón "Ocultar/Mostrar".
         }
         if (icon) icon.textContent = collapsed ? '➕' : '➖';
         if (label) label.textContent = collapsed ? 'Mostrar' : 'Ocultar';
+        var btn = document.getElementById('meows-toggle-btn');
+        if (btn) btn.classList.toggle('is-collapsed', collapsed);
     }
 
     window.toggleMeowsGrid = function() {

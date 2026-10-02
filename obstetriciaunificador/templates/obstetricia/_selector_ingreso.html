@@ -108,7 +108,7 @@ Se incluye en MEOWS (historial), Trabajo de Parto y Control Posparto:
             <input type="checkbox" id="sel-ing-todos"> Ver todos los ingresos <span id="sel-ing-ocultos"></span>
         </label>
         <button type="button" class="sel-ing__btn" id="sel-ing-docs-btn" title="Archivos guardados en la carpeta de este ingreso en el repositorio clínico">
-            📁 Documentos en el repositorio
+            <span class="sel-ing__btn-ico" aria-hidden="true">📁</span> Documentos en el repositorio
         </button>
     </div>
     <div class="sel-ing__avisos" id="sel-ing-avisos" aria-live="polite"></div>
@@ -241,7 +241,7 @@ window.activarSoloConsulta = function (opciones) {
         var html = [];
         var s = resumen.seleccion;
         if (!resumen.dinamica_ok) {
-            html.push('<div class="sel-ing__aviso sel-ing__aviso--info">⚠️ <span>Dinámica no responde en este momento: se muestran los ingresos que ya conoce la app.</span></div>');
+            html.push('<div class="sel-ing__aviso sel-ing__aviso--info">⚠️ <span><strong>Dinámica no responde en este momento:</strong> se muestran los ingresos que ya conoce la app.</span></div>');
         }
         if (s && resumen.solo_consulta) {
             var volver = resumen.actual && resumen.elegido !== resumen.actual

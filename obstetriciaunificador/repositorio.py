@@ -527,7 +527,14 @@ def enviar_formato(pdf_bytes, *, cedula, numero_ingreso, formato,
         modo=settings.REPOSITORIO_MODO[:10],
         enviado_por=(usuario or '')[:255],
         huella_contenido=(huella if huella is not None else huella_contenido(pdf_bytes or b''))[:64],
+        estado=DocumentoRepositorio.ESTADO_ENVIANDO,
     )
+    # 2026-10-01: la constancia se guarda ANTES de subir el PDF. Antes se
+    # guardaba después: si ese guardado fallaba, el archivo quedaba en la NAS
+    # sin rastro en la bitácora y el envío automático (triaje, cada ciclo de
+    # sincronización) lo volvía a subir una y otra vez. Si esta primera
+    # escritura falla, la excepción sale aquí, sin haber tocado la NAS.
+    registro.save()
     try:
         resultado = guardar_en_repositorio(pdf_bytes, cedula, numero_ingreso, formato)
         registro.estado = DocumentoRepositorio.ESTADO_ENVIADO
@@ -542,7 +549,18 @@ def enviar_formato(pdf_bytes, *, cedula, numero_ingreso, formato,
         registro.detalle_error = f'{type(exc).__name__}: {exc}'[:2000]
         logger.error('No se pudo enviar el formato %s al repositorio (%s): %s',
                      formato, settings.REPOSITORIO_MODO, registro.detalle_error)
-    registro.save()
+    try:
+        registro.save()
+    except Exception:
+        # El PDF pudo haber quedado en la NAS; la fila sigue en "enviando".
+        # El envío automático de triaje revisa la NAS antes de reenviar
+        # (ver _triaje_ya_en_repositorio), así que no se duplica.
+        logger.critical(
+            'Formato %s de %s/%s: resultado "%s" (%s) sin confirmar en la bitácora (fila %s quedó en "enviando").',
+            formato, registro.cedula, registro.numero_ingreso, registro.estado,
+            registro.nombre_archivo or registro.detalle_error, registro.pk, exc_info=True,
+        )
+        raise
     return registro
 
 
@@ -850,9 +868,129 @@ def enviar_triaje_si_corresponde(doc):
     # aquí al mismo tiempo: la revisión se repite DENTRO del bloqueo y, si
     # otro proceso ya está enviando este triaje, este no espera ni envía.
     with bloqueo_envio(f'auto|triaje|{_limpiar(doc)}|{ingreso}', espera_segundos=0) as obtenido:
-        if not obtenido or _ya_enviado_o_agotado(previos, MAX_INTENTOS_FALLIDOS_TRIAJE):
+        if not obtenido:
             return None
+        # 2026-10-01: los envíos de triaje solo ocurren bajo este bloqueo, así
+        # que una constancia "enviando" no es un envío en curso: se resuelve
+        # ya contra la NAS (pasa a enviado o a error) antes de decidir.
+        confirmar_envios_grupo(doc, ingreso, 'triaje')
+        if _ya_enviado_o_agotado(previos, MAX_INTENTOS_FALLIDOS_TRIAJE):
+            return None
+        # 2026-10-01: segunda barrera, en el destino. Si en la carpeta de este
+        # ingreso ya hay un PDF de triaje de la paciente (p. ej. uno que se
+        # subió pero no quedó confirmado en la bitácora), no se sube otro: se
+        # deja constancia de ese archivo y los próximos ciclos ya no lo
+        # intentan. Antes, un fallo así generaba un PDF nuevo en cada ciclo.
+        existentes = _triaje_ya_en_repositorio(doc, ingreso)
+        if existentes:
+            logger.warning(
+                'Triaje de %s/%s ya estaba en el repositorio (%s) sin constancia en la bitácora: no se reenvía.',
+                doc, ingreso, ', '.join(existentes[:3]),
+            )
+            return DocumentoRepositorio.objects.create(
+                atencion=atencion, cedula=_limpiar(doc)[:50], numero_ingreso=_limpiar(ingreso)[:30],
+                formato='triaje', modo=settings.REPOSITORIO_MODO[:10],
+                estado=DocumentoRepositorio.ESTADO_ENVIADO, nombre_archivo=existentes[0][:255],
+                enviado_por='automático (ya estaba en el repositorio)',
+            )
         return _enviar_triaje(doc, atencion, ingreso, fecha_ingreso, triajes)
+
+
+# ---------------------------------------------------------------------------
+# Confirmación automática de envíos "enviando" (2026-10-01)
+#
+# enviar_formato deja la constancia en "enviando" ANTES de subir el PDF y la
+# cierra después. Si ese cierre falla (BD caída justo en ese momento), la
+# fila se queda en "enviando" y no se sabe si el PDF llegó. Aquí se resuelve
+# mirando la NAS: si en la carpeta del ingreso hay un PDF de ese formato que
+# ninguna otra constancia reclama, la fila pasa a "enviado" con ese archivo;
+# si no hay, pasa a "error" (los envíos automáticos lo reintentan y en la
+# campana queda como no guardado). Corre en cada ciclo de la sincronización.
+# ---------------------------------------------------------------------------
+MINUTOS_PARA_CONFIRMAR_ENVIO = 10
+
+
+def _archivos_del_formato(archivos, formato, cedula_l):
+    """{consecutivo: nombre} de los PDF de `formato` de la paciente."""
+    patron = re.compile(
+        rf'^{re.escape(PREFIJO_CATEGORIA)}_{re.escape(FORMATOS[formato])}_{re.escape(cedula_l)}_(\d+)\.pdf$',
+        re.IGNORECASE,
+    )
+    return {int(m.group(1)): m.group(0) for m in map(patron.match, archivos) if m}
+
+
+def confirmar_envios_grupo(cedula, numero_ingreso, formato, antes_de=None):
+    """Resuelve las constancias "enviando" de <cédula, ingreso, formato>
+    creadas antes de `antes_de` (todas si es None). Devuelve cuántas resolvió.
+    Lanza excepción si la NAS no responde (se reintenta en el próximo ciclo)."""
+    from .models import DocumentoRepositorio
+
+    if formato not in FORMATOS:
+        return 0
+    cedula_l, ingreso_l = _limpiar(cedula), _limpiar(numero_ingreso)
+    pendientes = DocumentoRepositorio.objects.filter(
+        cedula=cedula_l, numero_ingreso=ingreso_l, formato=formato,
+        estado=DocumentoRepositorio.ESTADO_ENVIANDO,
+    ).order_by('creado_en', 'id')
+    if antes_de is not None:
+        pendientes = pendientes.filter(creado_en__lt=antes_de)
+    pendientes = list(pendientes)
+    if not pendientes:
+        return 0
+    en_nas = _archivos_del_formato(listar_documentos_ingreso(cedula_l, ingreso_l), formato, cedula_l)
+    reclamados = set(
+        DocumentoRepositorio.objects.filter(cedula=cedula_l, numero_ingreso=ingreso_l, formato=formato)
+        .exclude(nombre_archivo='').values_list('nombre_archivo', flat=True)
+    )
+    libres = [en_nas[n] for n in sorted(en_nas) if en_nas[n] not in reclamados]
+    for fila in pendientes:
+        if libres:
+            fila.estado = DocumentoRepositorio.ESTADO_ENVIADO
+            fila.nombre_archivo = libres.pop(0)[:255]
+            fila.detalle_error = 'Confirmado automáticamente: el PDF estaba en el repositorio.'
+            logger.warning('Envío %s de %s/%s confirmado en el repositorio: %s',
+                           formato, cedula_l, ingreso_l, fila.nombre_archivo)
+        else:
+            fila.estado = DocumentoRepositorio.ESTADO_ERROR
+            fila.detalle_error = ('Envío sin confirmar: el PDF no está en la carpeta del ingreso '
+                                  '(no alcanzó a guardarse).')
+            logger.error('Envío %s de %s/%s sin confirmar: el PDF no llegó al repositorio.',
+                         formato, cedula_l, ingreso_l)
+        fila.save(update_fields=['estado', 'nombre_archivo', 'detalle_error'])
+    return len(pendientes)
+
+
+def confirmar_envios_pendientes(minutos=MINUTOS_PARA_CONFIRMAR_ENVIO):
+    """Resuelve todas las constancias "enviando" con más de `minutos` (las
+    más recientes pueden ser envíos todavía en curso). Devuelve cuántas."""
+    from .models import DocumentoRepositorio
+
+    limite = timezone.now() - timedelta(minutes=minutos)
+    grupos = (
+        DocumentoRepositorio.objects.filter(estado=DocumentoRepositorio.ESTADO_ENVIANDO, creado_en__lt=limite)
+        .order_by().values_list('cedula', 'numero_ingreso', 'formato').distinct()
+    )
+    total = 0
+    for cedula, ingreso, formato in grupos:
+        try:
+            total += confirmar_envios_grupo(cedula, ingreso, formato, antes_de=limite)
+        except Exception as exc:  # NAS sin respuesta: queda para el próximo ciclo
+            logger.error('No se pudo confirmar el envío %s de %s/%s: %s', formato, cedula, ingreso, exc)
+    return total
+
+
+def _triaje_ya_en_repositorio(doc, ingreso):
+    """PDF de triaje de esta paciente que ya están en <cédula>/<ingreso> del
+    repositorio (los nombra esta app: otros_triaje_obstetrico_<cédula>_<n>.pdf),
+    ordenados por consecutivo. Lanza excepción si el repositorio no responde
+    (el llamador lo reintenta en el siguiente ciclo, sin subir nada)."""
+    cedula_l = _limpiar(doc)
+    patron = re.compile(
+        rf'^{re.escape(PREFIJO_CATEGORIA)}_{re.escape(FORMATOS["triaje"])}_{re.escape(cedula_l)}_(\d+)\.pdf$',
+        re.IGNORECASE,
+    )
+    encontrados = [(int(m.group(1)), m.group(0)) for m in map(patron.match, listar_documentos_ingreso(doc, ingreso)) if m]
+    return [nombre for _, nombre in sorted(encontrados)]
 
 
 def _ya_enviado_o_agotado(previos, max_errores):
@@ -912,7 +1050,9 @@ def enviar_triajes_pendientes(dias=7):
         try:
             resultado = enviar_triaje_si_corresponde(doc)
         except Exception as exc:  # p. ej. Dinámica no responde: se reintenta en la próxima pasada
-            logger.warning('Triaje de %s no revisado: %s', doc, exc)
+            # 2026-10-01: ERROR con traza (antes un WARNING de una línea):
+            # aquí terminaba en silencio el fallo que duplicaba los PDF.
+            logger.error('Triaje de %s no revisado: %s', doc, exc, exc_info=True)
             continue
         if resultado is not None:
             enviados.append((doc, resultado))

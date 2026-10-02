@@ -23,6 +23,10 @@ class DocumentoRepositorio(models.Model):
     """
     ESTADO_ENVIADO = 'enviado'
     ESTADO_ERROR = 'error'
+    # 2026-10-01: constancia creada ANTES de subir el PDF (ver
+    # repositorio.enviar_formato). Si se queda así, el archivo pudo haber
+    # llegado a la NAS sin que se confirmara en la bitácora.
+    ESTADO_ENVIANDO = 'enviando'
 
     atencion = models.ForeignKey(
         AtencionParto, on_delete=models.SET_NULL, null=True, blank=True,

@@ -5,331 +5,555 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ingreso - Sistema Obstétrico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
     <style>
-        /* 2026-09-09: se agregó aquí la tarjeta de bienvenida ("Sistema
-           Obstétrico Unificado" + las 3 features) que antes vivía en
-           obstetricia/dashboard.html y era lo primero que se veía DESPUÉS de
-           iniciar sesión -- ya no tiene sentido repetirla ahí, así que se
-           movió al login (se ve ANTES de entrar) y /atencion/ ahora entra
-           directo a Sala de Partos (ver obstetriciaunificador/views.py:
-           dashboard). Los colores de las 3 tarjetas (azul MEOWS, rosa Fetal,
-           morado Parto) son los mismos que tenía dashboard.html, solo se
-           trasladaron tal cual. */
+        /* 2026-10-01: rediseño del login (fondo azul noche/morado, encabezado
+           con fotos del hospital y de madre con bebé, tarjeta de bienvenida
+           con ilustración de gestante y panel de ingreso lila). Las fotos e
+           ilustraciones 3D están en static/obstetriciaunificador/img/login/.
+           Si las fuentes de Google no cargan (red sin Internet), se usa
+           Segoe UI. */
+        :root {
+            --azul-noche: #0b0e3a;
+            --tinta: #15174d;
+            --tinta-suave: #3c4072;
+            --morado: #5b2fd6;
+            --morado-2: #7c4dff;
+            --lila: #efeaff;
+            --titulo: 'Outfit', 'Segoe UI', Arial, sans-serif;
+            --texto: 'Nunito Sans', 'Segoe UI', Arial, sans-serif;
+        }
         * { box-sizing: border-box; }
+        html, body { margin: 0; }
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            margin: 0;
+            font-family: var(--texto);
+            color: var(--tinta);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 32px 24px;
-            background: linear-gradient(135deg, #0b1220 0%, #0f1f38 55%, #123a5e 100%);
-            position: relative;
+            background:
+                radial-gradient(45% 35% at 50% 18%, rgba(88, 80, 236, 0.35) 0%, transparent 70%),
+                radial-gradient(40% 40% at 100% 100%, rgba(139, 92, 246, 0.35) 0%, transparent 70%),
+                radial-gradient(35% 40% at 0% 90%, rgba(99, 102, 241, 0.35) 0%, transparent 70%),
+                linear-gradient(180deg, #0d1145 0%, #10124a 40%, #1a1158 75%, #22136a 100%);
+            background-color: var(--azul-noche);
             overflow-x: hidden;
+            position: relative;
         }
-        body::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.18) 0%, transparent 55%);
-            pointer-events: none;
-        }
+        /* Ondas de luz en el fondo (abajo a la izquierda y a la derecha). */
+        .fondo-ondas { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+        .fondo-ondas svg { position: absolute; width: 100%; height: 100%; }
+
         .pagina {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 1360px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .marca {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 32px;
-            text-align: center;
-        }
-        .marca img {
-            height: 96px;
-            width: auto;
-            object-fit: contain;
-            padding: 12px 14px;
-            border-radius: 16px;
-            background: #f8fafc;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-            margin-bottom: 18px;
-        }
-        .marca .nombre-hospital {
-            font-size: 1.55rem;
-            font-weight: 900;
-            color: #ffffff;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-        .marca .lema-hospital {
-            font-size: 1.02rem;
-            color: #94a3b8;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-            margin-top: 5px;
+            position: relative; z-index: 1;
+            width: 100%; max-width: 1536px; margin: 0 auto;
+            padding: 0 44px 26px;
         }
 
-        /* Layout: una sola tarjeta blanca, dividida en dos paneles internos
-           (bienvenida a la izquierda + login a la derecha) separados por una
-           línea vertical -- antes eran dos tarjetas independientes con
-           espacio entre ellas, se unificaron a pedido del usuario. */
-        .contenido {
-            width: 100%;
-            max-width: 1320px;
-            display: flex;
-            align-items: stretch;
-            justify-content: center;
-            flex-wrap: wrap;
-            background: #ffffff;
-            border-radius: 20px;
-            box-shadow: 0 24px 60px rgba(3, 20, 40, 0.45);
-            border-top: 4px solid #38bdf8;
-            overflow: hidden;
-        }
-
-        /* ---- Panel de bienvenida (traído de dashboard.html) ---- */
-        .welcome-card {
-            flex: 1.4 1 760px;
-            padding: 56px 56px 48px;
+        /* ------------------------------------------------ encabezado */
+        .encabezado {
             position: relative;
-            overflow: hidden;
-            border-right: 1px solid #e7edf3;
+            height: 268px;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            padding-top: 26px;
         }
-        .welcome-card::before {
-            content: "";
-            position: absolute;
-            top: -120px; right: -100px;
-            width: 280px; height: 280px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(37, 99, 235, 0.10) 0%, rgba(37, 99, 235, 0) 70%);
+        /* Fotos del encabezado: van desde el borde de la ventana hasta cerca
+           del título y crecen con pantallas anchas (o con zoom reducido), en
+           vez de quedar fijas en 445 px dentro del contenedor central. */
+        .foto {
+            position: absolute; top: 0; z-index: 0;
+            width: max(445px, calc(50% - 330px));
+            height: clamp(268px, calc((50vw - 330px) * 0.56), 470px);
+            background: center / cover no-repeat;
             pointer-events: none;
         }
-        .welcome-header { position: relative; text-align: center; margin: 0 0 40px; }
-        .welcome-icon {
-            width: 80px; height: 80px;
-            background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%);
-            color: #1e3a5f;
-            border-radius: 22px;
+        .foto--edificio {
+            left: 0;
+            background-position: center 75%;
+            background-image: url("{% static 'obstetriciaunificador/img/login/edificio.jpg' %}");
+            -webkit-mask-image: linear-gradient(90deg, #000 72%, transparent 100%), linear-gradient(180deg, #000 70%, transparent 100%);
+            -webkit-mask-composite: source-in; mask-composite: intersect;
+            mask-image: linear-gradient(90deg, #000 72%, transparent 100%), linear-gradient(180deg, #000 70%, transparent 100%);
+        }
+        .foto--madre {
+            right: 0;
+            background-position: center 30%;
+            background-image: url("{% static 'obstetriciaunificador/img/login/madre.jpg' %}");
+            -webkit-mask-image: linear-gradient(270deg, #000 72%, transparent 100%), linear-gradient(180deg, #000 70%, transparent 100%);
+            -webkit-mask-composite: source-in; mask-composite: intersect;
+            mask-image: linear-gradient(270deg, #000 72%, transparent 100%), linear-gradient(180deg, #000 70%, transparent 100%);
+        }
+        .logo {
+            position: relative;
+            width: 134px; height: 124px;
             display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 20px;
-            box-shadow: inset 0 0 0 1px #bfdbfe, 0 8px 18px rgba(37, 99, 235, 0.18);
+            background: #f7f7f7;
+            border-radius: 18px;
+            box-shadow: 0 10px 28px rgba(5, 8, 40, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.6);
         }
-        .welcome-eyebrow {
-            font-size: 13px; font-weight: 800; letter-spacing: 0.12em;
-            text-transform: uppercase; color: #2563eb; margin-bottom: 12px;
+        .logo img { width: 104px; height: 104px; object-fit: contain; }
+        .nombre-hospital {
+            position: relative;
+            margin-top: 22px;
+            font-family: var(--titulo);
+            font-size: 1.82rem; font-weight: 700;
+            letter-spacing: 0.02em; text-transform: uppercase;
+            color: #ffffff;
+            text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
         }
-        .welcome-header h1 {
-            font-size: 2.3rem; font-weight: 800; margin: 0 0 16px;
-            color: #1e3a5f; line-height: 1.15; letter-spacing: -0.01em;
+        .lema-hospital {
+            position: relative;
+            margin-top: 8px;
+            display: flex; align-items: center; gap: 14px;
+            font-size: 0.98rem; font-weight: 700;
+            letter-spacing: 0.34em; text-transform: uppercase;
+            color: #e4e6ff;
         }
-        .welcome-header p {
-            font-size: 1.02rem; color: #64748b; line-height: 1.65; margin: 0;
+        .lema-hospital::before, .lema-hospital::after {
+            content: ''; width: 82px; height: 2px; border-radius: 2px;
+            background: linear-gradient(90deg, transparent 0%, #8b6cff 100%);
         }
-        .features-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
-        }
-        .feature-item {
-            padding: 26px 18px; border-radius: 16px; text-align: center;
-        }
-        .feature-icon {
-            width: 56px; height: 56px; border-radius: 14px;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 14px;
-        }
-        .feature-item h3 { margin: 0 0 8px; font-size: 1.02rem; font-weight: 800; }
-        .feature-item p { margin: 0; font-size: 0.83rem; color: #64748b; line-height: 1.5; }
-        .feature-meows {
-            background: linear-gradient(160deg, #eff6ff 0%, #dbeafe 100%);
-            border: 1px solid #bfdbfe; border-top: 4px solid #2563eb; color: #1d4ed8;
-        }
-        .feature-meows .feature-icon { background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%); color: #1d4ed8; }
-        .feature-fetal {
-            background: linear-gradient(160deg, #fdf2f8 0%, #fce7f3 100%);
-            border: 1px solid #fbcfe8; border-top: 4px solid #ec4899; color: #be185d;
-        }
-        .feature-fetal .feature-icon { background: linear-gradient(135deg, #fbcfe8 0%, #f9a8d4 100%); color: #be185d; }
-        .feature-parto {
-            background: linear-gradient(160deg, #f5f3ff 0%, #ede9fe 100%);
-            border: 1px solid #ddd6fe; border-top: 4px solid #8b5cf6; color: #6d28d9;
-        }
-        .feature-parto .feature-icon { background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%); color: #6d28d9; }
+        .lema-hospital::after { background: linear-gradient(90deg, #8b6cff 0%, transparent 100%); }
 
-        /* ---- Formulario de login ---- */
-        .login-box {
-            flex: 1 1 460px;
-            width: 100%;
-            max-width: 460px;
-            background: #f8fafc;
-            padding: 48px 52px;
-            align-self: stretch;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+        /* ------------------------------------------------ tarjeta principal */
+        .contenido {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 468px;
+            border-radius: 26px;
+            background: linear-gradient(115deg, #ffffff 0%, #f6f4ff 45%, #ece6ff 70%, #f5f2ff 100%);
+            border: 2px solid rgba(190, 200, 255, 0.95);
+            box-shadow:
+                0 0 0 1px rgba(120, 110, 255, 0.35),
+                0 0 26px rgba(120, 140, 255, 0.55),
+                0 30px 70px rgba(3, 5, 40, 0.55);
         }
-        .login-box h2 {
-            margin: 0 0 6px;
-            font-size: 1.75rem;
-            font-weight: 800;
-            color: #0f1f38;
+
+        /* ---- bienvenida ---- */
+        .bienvenida {
+            position: relative;
+            padding: 48px 30px 34px 44px;
+            min-width: 0;
         }
-        .subtitulo {
-            margin: 0 0 26px;
-            font-size: 0.95rem;
-            color: #64748b;
+        .ilustracion {
+            position: absolute; top: 0; right: -6px;
+            width: 312px; height: 276px;
+            background: url("{% static 'obstetriciaunificador/img/login/gestante.jpg' %}") center / cover no-repeat;
+            border-top-right-radius: 6px;
+            -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 22%), linear-gradient(180deg, #000 80%, transparent 100%);
+            -webkit-mask-composite: source-in; mask-composite: intersect;
+            mask-image: linear-gradient(90deg, transparent 0%, #000 22%), linear-gradient(180deg, #000 80%, transparent 100%);
+            pointer-events: none;
         }
-        label {
+        .bienvenida-texto { position: relative; max-width: 640px; }
+        .kicker {
+            margin: 0 0 14px 30px;
+            font-size: 0.86rem; font-weight: 800;
+            letter-spacing: 0.22em; text-transform: uppercase;
+            color: #2c2f6b;
+        }
+        .titulo {
+            position: relative;
+            margin: 0;
+            padding-left: 30px;
+            font-family: var(--titulo);
+            font-size: 2.95rem; font-weight: 800; line-height: 1.02;
+            letter-spacing: -0.015em;
+            color: var(--tinta);
+        }
+        .titulo::before {
+            content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 5px; border-radius: 5px;
+            background: linear-gradient(180deg, #3b5bfd 0%, #6d3bf0 100%);
+        }
+        .titulo span {
             display: block;
-            margin-top: 18px;
-            margin-bottom: 7px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #334155;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
+            background: linear-gradient(90deg, #5a22d6 0%, #6d35f0 60%, #7b48ff 100%);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
         }
-        input {
-            width: 100%;
-            padding: 14px 15px;
-            border: 1.5px solid #dbe3ec;
-            border-radius: 9px;
-            font-size: 1.05rem;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        .descripcion {
+            margin: 14px 0 0 30px;
+            font-size: 1.04rem; line-height: 1.45;
+            color: var(--tinta-suave);
         }
-        input:focus {
-            outline: none;
-            border-color: #38bdf8;
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+        .descripcion b { color: var(--tinta); font-weight: 600; }
+        .subrayado {
+            width: 86px; height: 4px; margin: 14px 0 0 30px; border-radius: 4px;
+            background: linear-gradient(90deg, #5b2fd6 0%, #8b6cff 100%);
         }
-        button {
-            margin-top: 26px;
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
-            color: #fff;
-            font-weight: 700;
-            font-size: 1.05rem;
-            letter-spacing: 0.02em;
-            border: none;
-            border-radius: 9px;
-            cursor: pointer;
-            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);
-            transition: transform 0.15s ease, box-shadow 0.2s ease;
+
+        /* ---- 3 módulos ---- */
+        .modulos {
+            position: relative;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+            margin-top: 28px;
         }
-        button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 18px rgba(14, 165, 233, 0.5);
+        .modulo {
+            --c1: #2f6bff; --c2: #1d4ed8; --fondo1: #e8f1ff; --fondo2: #c9dcff; --borde: #9cc0ff;
+            position: relative; overflow: hidden;
+            min-height: 306px;
+            padding: 24px 16px 22px 24px;
+            border-radius: 16px;
+            border: 2px solid var(--borde);
+            background:
+                radial-gradient(90% 60% at 50% 0%, rgba(255, 255, 255, 0.9) 0%, transparent 70%),
+                linear-gradient(180deg, var(--fondo1) 0%, var(--fondo2) 100%);
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8) inset, 0 10px 24px color-mix(in srgb, var(--c1) 22%, transparent), 0 0 14px color-mix(in srgb, var(--c1) 25%, transparent);
+            text-align: left;
         }
+        .modulo--fetal { --c1: #ec2f8e; --c2: #c2187a; --fondo1: #ffe9f5; --fondo2: #ffc6e3; --borde: #f9a3d0; }
+        .modulo--parto { --c1: #6d3bf0; --c2: #5122c9; --fondo1: #f1ecff; --fondo2: #ddd1ff; --borde: #c4b2ff; }
+        .modulo-ico {
+            display: block; width: 132px; height: 118px; margin: -6px auto 0;
+            background: center / cover no-repeat;
+            -webkit-mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
+            mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
+        }
+        .modulo--meows .modulo-ico { background-image: url("{% static 'obstetriciaunificador/img/login/ico_meows.jpg' %}"); }
+        .modulo--fetal .modulo-ico { background-image: url("{% static 'obstetriciaunificador/img/login/ico_fetal.jpg' %}"); }
+        .modulo--parto .modulo-ico { background-image: url("{% static 'obstetriciaunificador/img/login/ico_parto.jpg' %}"); }
+        .modulo-corazon {
+            position: absolute; top: 14px; right: 16px;
+            width: 30px; height: 30px; color: var(--c1);
+            filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--c1) 45%, transparent));
+        }
+        .modulo-corazon svg { width: 30px; height: 30px; fill: currentColor; stroke: #ffffff; stroke-width: 1.6; }
+        .modulo h3 {
+            margin: 0 0 10px; text-align: center;
+            font-family: var(--titulo); font-size: 1.42rem; font-weight: 700;
+            color: var(--tinta);
+        }
+        .modulo p {
+            position: relative; z-index: 1;
+            margin: 0; font-size: 0.97rem; line-height: 1.45; color: #2a2e5e;
+        }
+        .modulo-deco { position: absolute; left: 0; right: 0; bottom: 0; height: 90px; pointer-events: none; }
+        .modulo-deco svg { position: absolute; left: 0; bottom: 0; width: 100%; height: 100%; }
+        .modulo-flecha {
+            position: absolute; right: 22px; bottom: 22px;
+            width: 52px; height: 52px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #ffffff;
+            background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c1) 70%, #ffffff) 0%, var(--c1) 45%, var(--c2) 100%);
+            border: 3px solid #ffffff;
+            box-shadow: 0 8px 18px color-mix(in srgb, var(--c1) 45%, transparent);
+        }
+        .modulo-flecha svg { width: 24px; height: 24px; stroke-width: 2.6; }
+
+        /* ---- panel de ingreso ---- */
+        .ingreso {
+            position: relative;
+            margin: -2px -2px -2px 0;
+            padding: 34px 36px 26px 44px;
+            border-radius: 26px;
+            background: linear-gradient(180deg, #f7f6ff 0%, #f0eeff 55%, #ece9ff 100%);
+            border: 2px solid rgba(205, 212, 255, 0.95);
+            box-shadow: -8px 0 30px rgba(80, 70, 200, 0.12), 0 0 0 1px rgba(140, 130, 255, 0.25);
+        }
+        .ingreso-cabecera { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+        .candado {
+            flex: none; width: 88px; height: 88px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(circle at 35% 30%, #ffffff 0%, #ece8ff 55%, #d9d1ff 100%);
+            border: 2px solid #d4ccff;
+            box-shadow: 0 0 0 6px rgba(124, 77, 255, 0.08), 0 10px 22px rgba(91, 47, 214, 0.25);
+        }
+        .candado span {
+            width: 46px; height: 46px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .candado svg { width: 46px; height: 46px; filter: drop-shadow(0 4px 6px rgba(74, 31, 200, 0.35)); }
+        .ingreso h2 {
+            margin: 0 0 8px;
+            font-family: var(--titulo); font-size: 1.75rem; font-weight: 700;
+            color: var(--tinta);
+        }
+        .ingreso .subtitulo { margin: 0; font-size: 0.9rem; color: #4b4f7a; white-space: nowrap; }
+
+        .campo-etiqueta {
+            display: flex; align-items: center; gap: 9px;
+            margin: 16px 0 9px;
+            font-size: 0.9rem; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase;
+            color: var(--tinta);
+        }
+        .campo-etiqueta svg { width: 18px; height: 18px; color: #3d4170; }
+        .campo-etiqueta svg.lucide, .campo-ico.lucide { fill: currentColor; }
+        .campo { position: relative; }
+        .campo-ico {
+            position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+            width: 22px; height: 22px; color: #2c2f5e; fill: #2c2f5e; pointer-events: none;
+        }
+        .campo input {
+            width: 100%; height: 50px;
+            padding: 0 54px 0 60px;
+            font-family: var(--texto); font-size: 1.05rem; font-weight: 600; color: var(--tinta);
+            background: #eef0fb;
+            border: 1.5px solid #c9cdf0;
+            border-radius: 10px;
+            box-shadow: inset 0 1px 2px rgba(40, 40, 120, 0.06);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+        .campo input[type="password"] { letter-spacing: 0.25em; }
+        .campo input:focus {
+            outline: none; background: #ffffff;
+            border-color: #7c4dff;
+            box-shadow: 0 0 0 4px rgba(124, 77, 255, 0.15);
+        }
+        .ver-clave {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            width: 36px; height: 36px; border: 0; border-radius: 8px; padding: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: transparent; color: #2c2f5e; cursor: pointer;
+        }
+        .ver-clave:hover { background: rgba(91, 47, 214, 0.08); }
+        .ver-clave svg { width: 22px; height: 22px; }
+
+        .btn-ingresar {
+            width: 100%; height: 58px; margin-top: 26px;
+            display: flex; align-items: center; justify-content: center; gap: 16px;
+            font-family: var(--titulo); font-size: 1.32rem; font-weight: 600; color: #ffffff;
+            border: 1px solid #8f6bff; border-radius: 12px; cursor: pointer;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 50%),
+                linear-gradient(90deg, #6b3ff0 0%, #5a2fe0 50%, #4a1fc8 100%);
+            box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.2), 0 12px 26px rgba(76, 31, 214, 0.45);
+            transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        }
+        .btn-ingresar:hover { transform: translateY(-1px); filter: brightness(1.06); }
+        .btn-ingresar svg { width: 28px; height: 28px; stroke-width: 2.4; }
+
         .error {
-            margin-top: 14px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #b91c1c;
-            font-size: 0.85rem;
-            font-weight: 600;
+            margin-top: 14px; padding: 11px 14px; border-radius: 10px;
+            background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+            font-size: 0.88rem; font-weight: 700;
         }
         .info-acceso {
-            margin-top: 22px;
-            padding: 14px 16px;
-            border-radius: 9px;
-            background: #eff8ff;
-            border: 1px solid #bfe4fb;
-            color: #0c4a6e;
-            font-size: 0.85rem;
-            line-height: 1.6;
+            display: flex; gap: 16px;
+            margin: 16px -14px 0 -22px;
+            padding: 18px 20px 16px 18px;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #f1f2ff 0%, #eceeff 100%);
+            border: 1.5px solid #d9dcfb;
+            color: #2a2e5e; font-size: 0.84rem; line-height: 1.55;
+            transition: box-shadow 0.3s ease, border-color 0.3s ease;
         }
-        .info-acceso a { color: #0284c7; font-weight: 700; text-decoration: none; }
-        .info-acceso a:hover { text-decoration: underline; }
+        .info-acceso b { color: var(--tinta); font-weight: 800; }
+        .info-ico {
+            flex: none; width: 34px; height: 34px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #ffffff; font-family: Georgia, serif; font-weight: 700; font-size: 1.05rem;
+            background: radial-gradient(circle at 35% 30%, #4f8bff 0%, #1d4ed8 100%);
+            border: 2.5px solid #ffffff;
+            box-shadow: 0 0 0 1.5px #b8c8fb, 0 4px 10px rgba(29, 78, 216, 0.35);
+        }
 
-        @media (max-width: 1200px) {
-            .contenido { flex-direction: column; align-items: stretch; max-width: 680px; }
-            .welcome-card { border-right: none; border-bottom: 1px solid #e7edf3; }
-            .login-box { max-width: none; }
+        /* ------------------------------------------------ pie */
+        .pie {
+            position: relative;
+            display: flex; align-items: center;
+            padding: 26px 60px 4px;
         }
-        @media (max-width: 640px) {
-            .features-grid { grid-template-columns: 1fr; }
-            .welcome-card { padding: 34px 26px; }
-            .login-box { padding: 34px 26px; }
+        .pie-item {
+            display: flex; align-items: center; gap: 20px;
+            padding: 0 26px;
+            color: #e3e5ff; font-size: 0.96rem; line-height: 1.45;
+        }
+        .pie-item:first-child { padding-left: 0; }
+        .pie-item + .pie-item { border-left: 1.5px solid rgba(180, 180, 255, 0.4); }
+        .pie-item svg { width: 46px; height: 46px; color: #ffffff; stroke-width: 1.7; flex: none; }
+        .pie-corazon { position: absolute; right: 0; bottom: -6px; width: 110px; height: 60px; }
+
+        /* ------------------------------------------------ responsive */
+        @media (max-width: 1360px) {
+            .contenido { grid-template-columns: minmax(0, 1fr) 420px; }
+            .ingreso { padding: 30px 26px 24px 30px; }
+            .ingreso .subtitulo { white-space: normal; }
+            .modulos { gap: 16px; }
+            .modulo h3 { font-size: 1.22rem; }
+            .modulo p { font-size: 0.9rem; }
+            .modulo p br { display: none; }
+            .ilustracion { width: 250px; height: 222px; }
+            .bienvenida-texto { max-width: calc(100% - 200px); }
+        }
+        @media (max-width: 1180px) {
+            .contenido { grid-template-columns: minmax(0, 1fr); max-width: 980px; margin: 0 auto; }
+            .ingreso { margin: 0; }
+            .bienvenida-texto { max-width: 640px; }
+        }
+        @media (max-width: 1100px) {
+            .foto { width: 300px; height: 268px; opacity: 0.55; }
+        }
+        @media (max-width: 900px) {
+            .pagina { padding: 0 16px 20px; }
+            .foto { display: none; }
+            .nombre-hospital { font-size: 1.25rem; text-align: center; }
+            .lema-hospital { font-size: 0.72rem; letter-spacing: 0.2em; }
+            .lema-hospital::before, .lema-hospital::after { width: 30px; }
+            .encabezado { height: auto; padding-bottom: 26px; }
+            .ilustracion { display: none; }
+            .modulos { grid-template-columns: 1fr; }
+            .modulo { min-height: 0; padding-bottom: 90px; }
+            .titulo { font-size: 2.2rem; }
+            .bienvenida { padding: 30px 20px; }
+            .ingreso { padding: 28px 20px; }
+            .info-acceso { margin: 16px 0 0; }
+            .pie { flex-wrap: wrap; gap: 16px; padding: 24px 0 70px; }
+            .pie-item { padding: 0; border: 0 !important; width: calc(50% - 8px); gap: 12px; font-size: 0.86rem; }
+            .pie-item svg { width: 34px; height: 34px; }
+            .lema-hospital { flex-wrap: wrap; justify-content: center; text-align: center; }
+            .kicker { letter-spacing: 0.12em; }
+            .bienvenida-texto { max-width: none; }
+            .descripcion br { display: none; }
+            .ingreso-cabecera { gap: 14px; }
+            .candado { width: 64px; height: 64px; }
+            .candado svg { width: 34px; height: 34px; }
+            .ingreso h2 { font-size: 1.4rem; }
         }
     </style>
 </head>
 <body>
+    <div class="fondo-ondas" aria-hidden="true">
+        <svg viewBox="0 0 1536 1024" preserveAspectRatio="none">
+            <defs>
+                <linearGradient id="ondaA" x1="0" x2="1"><stop offset="0" stop-color="#8b6cff" stop-opacity="0"/><stop offset=".4" stop-color="#a78bfa" stop-opacity=".55"/><stop offset="1" stop-color="#c4b5fd" stop-opacity="0"/></linearGradient>
+                <linearGradient id="ondaB" x1="0" x2="1"><stop offset="0" stop-color="#6366f1" stop-opacity=".0"/><stop offset=".5" stop-color="#818cf8" stop-opacity=".35"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></linearGradient>
+            </defs>
+            <path d="M0 880C180 820 300 900 420 960s260 40 360 64" fill="none" stroke="url(#ondaA)" stroke-width="2"/>
+            <path d="M0 910C200 860 320 930 440 980" fill="none" stroke="url(#ondaB)" stroke-width="1.5"/>
+            <path d="M0 950C160 900 260 960 380 1024" fill="none" stroke="url(#ondaB)" stroke-width="1"/>
+            <path d="M1100 1024C1240 960 1380 900 1536 880" fill="none" stroke="url(#ondaA)" stroke-width="2"/>
+            <path d="M1180 1024C1300 980 1420 940 1536 930" fill="none" stroke="url(#ondaB)" stroke-width="1.5"/>
+            <path d="M560 250C760 200 980 260 1080 160s300-140 456-120" fill="none" stroke="url(#ondaA)" stroke-width="1.5" opacity=".6"/>
+        </svg>
+    </div>
+
+    <div class="foto foto--edificio" aria-hidden="true"></div>
+    <div class="foto foto--madre" aria-hidden="true"></div>
+
     <div class="pagina">
-        <div class="marca">
-            <img src="{% static 'img/logo_hospital.png' %}" alt="Logo Hospital">
+        <header class="encabezado">
+            <div class="logo"><img src="{% static 'img/logo_hospital.png' %}" alt="Logo Hospital Universitario Departamental"></div>
             <div class="nombre-hospital">Hospital Universitario Departamental</div>
             <div class="lema-hospital">Sistema Unificado de Obstetricia</div>
-        </div>
+        </header>
 
-        <div class="contenido">
-            <div class="welcome-card">
-                <div class="welcome-header">
-                    <div class="welcome-icon"><i data-lucide="hospital" size="38"></i></div>
-                    <div class="welcome-eyebrow">Hospital Universitario Departamental</div>
-                    <h1>Sistema Obstétrico Unificado</h1>
-                    <p>Plataforma integral para el monitoreo y gestión de la atención materna y fetal.<br>
-                        Inicie sesión para identificar a la paciente y activar los módulos clínicos.</p>
+        <main class="contenido">
+            <section class="bienvenida">
+                <div class="ilustracion" aria-hidden="true"></div>
+                <div class="bienvenida-texto">
+                    <div class="kicker">Hospital Universitario Departamental</div>
+                    <h1 class="titulo">Sistema Obstétrico <span>Unificado</span></h1>
+                    <p class="descripcion">Plataforma integral para el monitoreo y gestión de la atención materna y fetal. <br>
+                        Inicie sesión para identificar a la paciente y activar <b>los módulos clínicos.</b></p>
+                    <div class="subrayado"></div>
                 </div>
-                <div class="features-grid">
-                    <div class="feature-item feature-meows">
-                        <div class="feature-icon"><i data-lucide="activity" size="26"></i></div>
+
+                <div class="modulos">
+                    <div class="modulo modulo--meows">
+                        <span class="modulo-corazon"><i data-lucide="heart"></i></span>
+                        <span class="modulo-ico" aria-hidden="true"></span>
                         <h3>Monitoreo MEOWS</h3>
-                        <p>Alerta temprana obstétrica y signos vitales en tiempo real.</p>
+                        <p>Alerta temprana obstétrica <br>y signos vitales en tiempo real.</p>
+                        <span class="modulo-deco" aria-hidden="true">
+                            <svg viewBox="0 0 280 90" preserveAspectRatio="none"><path d="M0 70c40-10 80 6 120 0s80-20 160-6v26H0z" fill="#ffffff" fill-opacity=".35"/><path d="M26 58h40l8-6 7 12 9-34 10 46 9-24 7 6h40" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
+                        <span class="modulo-flecha"><i data-lucide="arrow-right"></i></span>
                     </div>
-                    <div class="feature-item feature-fetal">
-                        <div class="feature-icon"><i data-lucide="baby" size="26"></i></div>
+                    <div class="modulo modulo--fetal">
+                        <span class="modulo-corazon"><i data-lucide="heart"></i></span>
+                        <span class="modulo-ico" aria-hidden="true"></span>
                         <h3>Control Fetal</h3>
-                        <p>Frecuencia cardíaca fetal y bienestar durante el expulsivo.</p>
+                        <p>Frecuencia cardíaca fetal <br>y bienestar durante el expulsivo.</p>
+                        <span class="modulo-deco" aria-hidden="true">
+                            <svg viewBox="0 0 280 90" preserveAspectRatio="none"><path d="M0 72c50-12 90 4 140-2s90-18 140-8v28H0z" fill="#ffffff" fill-opacity=".3"/><path d="M50 74c-4 0-26-14-26-30 0-9 7-15 15-15 5 0 9 3 11 7 2-4 6-7 11-7 8 0 15 6 15 15 0 16-22 30-26 30z" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linejoin="round"/><path d="M76 56h36l7-8 7 14 8-30 9 40 8-24 6 8h36" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/><path d="M146 38c-2-6 2-10 5-10 2 0 4 2 4 4 0-2 2-4 4-4 3 0 7 4 5 10l-9 8z" fill="#ffffff" fill-opacity=".8"/></svg>
+                        </span>
+                        <span class="modulo-flecha"><i data-lucide="arrow-right"></i></span>
                     </div>
-                    <div class="feature-item feature-parto">
-                        <div class="feature-icon"><i data-lucide="clipboard-check" size="26"></i></div>
+                    <div class="modulo modulo--parto">
+                        <span class="modulo-corazon"><i data-lucide="heart"></i></span>
+                        <span class="modulo-ico" aria-hidden="true"></span>
                         <h3>Trabajo de Parto</h3>
-                        <p>Partograma y evolución clínica del trabajo de parto.</p>
+                        <p>Partograma y evolución clínica <br>del trabajo de parto.</p>
+                        <span class="modulo-deco" aria-hidden="true">
+                            <svg viewBox="0 0 280 90" preserveAspectRatio="none"><g fill="none" stroke="#8b7be0" stroke-opacity=".55" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="46" cy="56" r="18"/><path d="M46 46v10l7 5"/><path d="M80 88h150M90 88v-6M110 88v-6M130 88v-6M150 88v-6M170 88v-6M190 88v-6"/><path d="M96 80l26-12 22 4 24-22 22-30"/></g><g fill="#8b7be0" fill-opacity=".6"><circle cx="122" cy="68" r="3.5"/><circle cx="144" cy="72" r="3.5"/><circle cx="168" cy="50" r="3.5"/><circle cx="190" cy="20" r="3.5"/></g></svg>
+                        </span>
+                        <span class="modulo-flecha"><i data-lucide="arrow-right"></i></span>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="login-box">
-                <h2>Ingreso al sistema</h2>
-                <p class="subtitulo">Ingrese sus credenciales para continuar</p>
-                <form method="post">
+            <section class="ingreso">
+                <div class="ingreso-cabecera">
+                    <div class="candado"><span><svg viewBox="0 0 48 48" width="46" height="46" aria-hidden="true"><defs><linearGradient id="lgCandado" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7c4dff"/><stop offset="1" stop-color="#4a1fc8"/></linearGradient></defs><path d="M15 21v-6a9 9 0 0 1 18 0v6" fill="none" stroke="#4a1fc8" stroke-width="4.5" stroke-linecap="round"/><rect x="9" y="20" width="30" height="24" rx="6" fill="url(#lgCandado)"/><circle cx="24" cy="30" r="3.4" fill="#ffffff"/><path d="M24 32v5" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/></svg></span></div>
+                    <div>
+                        <h2>Ingreso al sistema</h2>
+                        <p class="subtitulo">Ingrese sus credenciales para continuar</p>
+                    </div>
+                </div>
+
+                <form method="post" id="form-login">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ next }}">
 
-                    <label for="username">Usuario</label>
-                    <input id="username" name="username" type="text" required autocomplete="username">
+                    <label class="campo-etiqueta" for="username"><i data-lucide="user"></i> Usuario</label>
+                    <div class="campo">
+                        <i data-lucide="user" class="campo-ico"></i>
+                        <input id="username" name="username" type="text" required autocomplete="username">
+                    </div>
 
-                    <label for="password">Contraseña</label>
-                    <input id="password" name="password" type="password" required autocomplete="current-password">
+                    <label class="campo-etiqueta" for="password"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M7.5 11V8a4.5 4.5 0 0 1 9 0v3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><rect x="4.5" y="10.5" width="15" height="11.5" rx="3" fill="currentColor"/></svg> Contraseña</label>
+                    <div class="campo">
+                        <svg viewBox="0 0 24 24" class="campo-ico" aria-hidden="true"><path d="M7.5 11V8a4.5 4.5 0 0 1 9 0v3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><rect x="4.5" y="10.5" width="15" height="11.5" rx="3" fill="currentColor"/></svg>
+                        <input id="password" name="password" type="password" required autocomplete="current-password">
+                        <button type="button" class="ver-clave" id="ver-clave" aria-label="Mostrar contraseña" title="Mostrar contraseña"><i data-lucide="eye"></i></button>
+                    </div>
 
-                    <button type="submit">Ingresar</button>
+                    <button type="submit" class="btn-ingresar"><i data-lucide="arrow-right"></i> Ingresar</button>
                 </form>
 
                 {% if error %}
                     <div class="error">{{ error }}</div>
                 {% endif %}
 
-                <div class="info-acceso">
-                    <strong>¿No puede ingresar?</strong> Use el mismo usuario y contraseña
-                    que ya tiene para <strong>Dinámica Gerencial</strong>. Si aún no tiene
-                    usuario en Dinámica, o no recuerda su contraseña, acérquese al
-                    <strong>área de Sistemas</strong> del hospital para que le creen o
-                    restablezcan su usuario de Dinámica.
+                <div class="info-acceso" id="info-acceso">
+                    <span class="info-ico" aria-hidden="true">i</span>
+                    <div>
+                        ¿No puede ingresar? Use el mismo usuario y contraseña que ya tiene
+                        para <b>Dinámica Gerencial</b>. Si aún no tiene usuario en Dinámica,
+                        o no recuerda su contraseña, acérquese al <b>área de Sistemas</b> del
+                        hospital para que le creen o restablezcan su usuario de Dinámica.
+                    </div>
                 </div>
-            </div>
-        </div>
+            </section>
+        </main>
+
+        <footer class="pie">
+            <div class="pie-item"><i data-lucide="shield-check"></i><span>Atención segura<br>para madre y bebé</span></div>
+            <div class="pie-item"><i data-lucide="users"></i><span>Gestión clínica<br>eficiente</span></div>
+            <div class="pie-item"><i data-lucide="bar-chart-3"></i><span>Información en<br>tiempo real</span></div>
+            <div class="pie-item"><i data-lucide="hand-heart"></i><span>Cuidado con<br>calidad humana</span></div>
+            <svg class="pie-corazon" viewBox="0 0 110 60" aria-hidden="true"><path d="M2 52c20 4 34-2 40-12M42 40c-6-6-16-18-8-26 6-6 14-2 16 4 2-6 10-10 16-4 8 8-2 20-24 26zM66 40c10 8 26 12 42 4" fill="none" stroke="#b9a6ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </footer>
     </div>
 
-    <script>lucide.createIcons();</script>
+    <script>
+        lucide.createIcons();
+
+        document.getElementById('username').focus();
+
+        // Mostrar / ocultar contraseña.
+        (function () {
+            var btn = document.getElementById('ver-clave');
+            var clave = document.getElementById('password');
+            btn.addEventListener('click', function () {
+                var ver = clave.type === 'password';
+                clave.type = ver ? 'text' : 'password';
+                btn.setAttribute('aria-label', ver ? 'Ocultar contraseña' : 'Mostrar contraseña');
+                btn.title = btn.getAttribute('aria-label');
+                btn.innerHTML = '<i data-lucide="' + (ver ? 'eye-off' : 'eye') + '"></i>';
+                lucide.createIcons();
+            });
+        })();
+    </script>
 </body>
 </html>

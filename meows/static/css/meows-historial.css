@@ -1598,3 +1598,347 @@
 @media (max-width: 900px) {
     .timeline-placa-acciones { width: 100%; justify-content: flex-start; margin-left: 0; }
 }
+
+/* ==========================================================================
+   2026-10-01: encabezado de la Línea de Tiempo (Historial MEOWS) en placa
+   oscura con marco plateado, cinta plateada/morada y botones con ícono.
+   Solo aplica a .tl-v2 (no a la versión compacta de Control Posparto).
+   ========================================================================== */
+.timeline-section .section-title.titulo-placa.tl-v2 {
+    padding: 18px 22px;
+    gap: 18px;
+    flex-wrap: nowrap;
+    border-radius: 18px;
+    border: 3px solid #d1d5db;
+    background:
+        radial-gradient(40% 120% at 100% 100%, rgba(124, 58, 237, 0.16) 0%, transparent 70%),
+        linear-gradient(105deg, #0d0d12 0%, #16161d 45%, #19172a 100%);
+    box-shadow:
+        0 0 0 1px #9ca3af,
+        0 0 0 5px #f3f4f6,
+        0 0 0 6px #c4c8d0,
+        0 14px 30px rgba(15, 15, 25, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    margin: 6px 6px 1.5rem;
+}
+.tl-v2::after { display: none; }
+.tl-v2 > * { position: relative; z-index: 1; }
+.timeline-section .tl-v2 .section-icon-badge {
+    width: 58px; height: 58px; border-radius: 14px;
+    background: #ffffff;
+    color: #6d28d9;
+    border: 1.5px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12), 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+.timeline-section .tl-v2 .section-icon-badge svg { width: 28px; height: 28px; }
+.tl-v2 .titulo-placa-kicker { color: #e5e7eb; letter-spacing: 0.12em; }
+.tl-v2 .titulo-placa-principal { color: #ffffff; font-size: 1.7rem; }
+.tl-v2 .tl-acento {
+    font-style: normal;
+    background: linear-gradient(90deg, #d0b4fe 0%, #b794f6 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.tl-v2 .titulo-placa-ayuda { color: #e5e7eb; font-size: 0.92rem; }
+
+.tl-v2 .timeline-placa-acciones { gap: 14px; flex-wrap: nowrap; }
+.tl-v2 .timeline-placa-acciones > * > span:first-child:not(#meows-toggle-label) { display: none; }
+.tl-v2 .btn-meows-referencia,
+.tl-v2 .btn-volver-parto,
+.tl-v2 .btn-toggle-timeline {
+    gap: 12px;
+    padding: 12px 24px;
+    border-radius: 14px;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+.tl-v2 .btn-meows-referencia::before,
+.tl-v2 .btn-volver-parto::before,
+.tl-v2 .btn-toggle-timeline::before {
+    content: ''; width: 22px; height: 22px; flex: none;
+    background: center / contain no-repeat;
+}
+.tl-v2 .btn-meows-referencia {
+    background: linear-gradient(180deg, #1f1f27 0%, #111116 100%);
+    border: 1.5px solid #6b7280;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.tl-v2 .btn-meows-referencia::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-4-4'/%3E%3C/svg%3E");
+}
+.tl-v2 .btn-volver-parto {
+    background: linear-gradient(180deg, #a78bfa 0%, #8566e8 100%);
+    border: 1.5px solid #c4b5fd;
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.tl-v2 .btn-volver-parto::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z' fill='white'/%3E%3Cpath d='M14 2v6h6' fill='%23ddd6fe'/%3E%3Cpath d='M8 13h8M8 17h6' stroke='%236d28d9' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+.tl-v2 .btn-toggle-timeline {
+    color: #111827;
+    background: linear-gradient(180deg, #f3f4f6 0%, #9ca3af 100%);
+    border: 1.5px solid #e5e7eb;
+    box-shadow: inset 0 1px 0 #ffffff, 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.tl-v2 .btn-toggle-timeline::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111827' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.5-7 10-7c2 0 3.7.6 5.1 1.5M22 12s-3.5 7-10 7c-2 0-3.7-.6-5.1-1.5'/%3E%3Cpath d='M9.9 9.9a3 3 0 0 0 4.2 4.2'/%3E%3Cpath d='m3 3 18 18'/%3E%3C/svg%3E");
+}
+.tl-v2 .btn-toggle-timeline.is-collapsed::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111827' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+}
+.tl-v2 .btn-meows-referencia:hover,
+.tl-v2 .btn-volver-parto:hover,
+.tl-v2 .btn-toggle-timeline:hover { transform: translateY(-1px); filter: brightness(1.08); }
+@media (max-width: 1100px) {
+    .timeline-section .section-title.titulo-placa.tl-v2 { flex-wrap: wrap; }
+    .tl-v2 .timeline-placa-acciones { flex-wrap: wrap; width: 100%; justify-content: flex-start; margin-left: 0; }
+}
+@media (max-width: 700px) {
+    .tl-v2 .titulo-placa-principal { font-size: 1.2rem; }
+    .tl-v2 .btn-meows-referencia, .tl-v2 .btn-volver-parto, .tl-v2 .btn-toggle-timeline { padding: 10px 16px; font-size: 0.9rem; }
+}
+
+/* ==========================================================================
+   2026-10-02: cuadrícula clínica del Historial MEOWS rediseñada (leyenda en
+   barra blanca con círculos, encabezado oscuro con íconos, parámetro en
+   tarjeta con ícono, valores y puntajes en píldoras, celda marcada como
+   ficha con punto). Solo aplica dentro de .mg-v2 (no a la ventana grande de
+   Control Posparto, que sigue con el estilo anterior).
+   ========================================================================== */
+.th-ico, .col-reloj, .param-ico { display: none; }
+
+/* ---- leyenda ---- */
+.mg-v2 .grid-legend {
+    gap: 0;
+    padding: 14px 30px;
+    margin-bottom: 18px;
+    background: linear-gradient(180deg, #ffffff 0%, #f6f7fb 100%);
+    border: 1px solid #e6e8f0;
+    border-radius: 16px;
+    box-shadow: 0 8px 22px rgba(30, 35, 70, 0.10), inset 0 1px 0 #ffffff;
+    font-size: 0.98rem;
+    color: #1f2437;
+}
+.mg-v2 .grid-legend-item { gap: 12px; padding: 0 26px; }
+.mg-v2 .grid-legend-item:first-child { padding-left: 0; }
+.mg-v2 .grid-legend-item + .grid-legend-item { border-left: 1.5px solid #d9dce6; }
+.mg-v2 .grid-legend-item strong { color: #10142a; font-weight: 800; }
+.mg-v2 .grid-legend-swatch {
+    width: 22px; height: 22px; border-radius: 50%; border: 0;
+    box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.18), 0 2px 5px rgba(0, 0, 0, 0.18);
+}
+.mg-v2 .grid-legend-swatch.score-0 { background: radial-gradient(circle at 35% 30%, #c3c8d4 0%, #8e95a6 70%); }
+.mg-v2 .grid-legend-swatch.score-1 { background: radial-gradient(circle at 35% 30%, #4ade80 0%, #16a34a 70%); }
+.mg-v2 .grid-legend-swatch.score-2 { background: radial-gradient(circle at 35% 30%, #fde047 0%, #eab308 70%); }
+.mg-v2 .grid-legend-swatch.score-3 { background: radial-gradient(circle at 35% 30%, #f87171 0%, #dc2626 70%); }
+.mg-v2 .grid-legend-marca {
+    width: 44px; height: 20px; border-radius: 5px;
+    font-size: 0; color: transparent;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 9h7l2-4 3 9 3-13 3 11 2-3h6'/%3E%3C/svg%3E") center / 22px 13px no-repeat, linear-gradient(180deg, #e3262b 0%, #c81b20 100%);
+    box-shadow: 0 2px 5px rgba(200, 27, 32, 0.35);
+}
+
+/* ---- contenedor y tabla ---- */
+.mg-v2 .meows-grid-scroll {
+    border: 1px solid #dfe2ec;
+    border-radius: 20px;
+    background: #f1f2f7;
+    box-shadow: 0 14px 34px rgba(25, 30, 60, 0.14);
+}
+.mg-v2 .meows-grid-table { font-size: 0.8rem; }
+.mg-v2 .meows-grid-table th,
+.mg-v2 .meows-grid-table td {
+    border-right: 1px solid rgba(255, 255, 255, 0.75);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.75);
+}
+
+/* ---- encabezado oscuro ---- */
+.mg-v2 .grid-th-parametro,
+.mg-v2 .grid-th-fila,
+.mg-v2 .grid-th-tiempo,
+.mg-v2 .grid-th-columna,
+.mg-v2 .grid-th-puntaje {
+    background: linear-gradient(180deg, #232838 0%, #171b28 100%);
+    color: #ffffff;
+    font-size: 1.02rem;
+    font-weight: 800;
+}
+.mg-v2 .meows-grid-table thead th {
+    border-right-color: rgba(255, 255, 255, 0.10);
+    border-bottom-color: rgba(255, 255, 255, 0.10);
+}
+.mg-v2 .grid-th-parametro { text-align: center; padding: 16px 10px; width: 210px; min-width: 210px; max-width: 210px; }
+.mg-v2 .grid-th-fila { left: 210px; width: 112px; min-width: 112px; max-width: 112px; font-size: 1.02rem; }
+.mg-v2 .grid-th-parametro,
+.mg-v2 .grid-th-fila { box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.12); }
+.mg-v2 .th-ico { display: block; margin: 0 auto 8px; width: 30px; height: 30px; }
+.mg-v2 .th-ico svg { width: 30px; height: 30px; stroke-width: 2; }
+.mg-v2 .grid-th-tiempo { padding: 14px; font-size: 1.02rem; }
+.mg-v2 .th-ico--linea { display: inline-block; vertical-align: middle; margin: -4px 16px 0 0; width: 28px; height: 28px; }
+.mg-v2 .th-ico--linea svg { width: 28px; height: 28px; }
+.mg-v2 .th-ico--flecha { margin: 8px auto 0; width: 20px; height: 20px; opacity: 0.85; }
+.mg-v2 .th-ico--flecha svg { width: 20px; height: 20px; }
+.mg-v2 .grid-th-puntaje {
+    width: 112px; min-width: 112px; max-width: 112px;
+    border-left: 0;
+    box-shadow: -10px 0 18px -8px rgba(0, 0, 0, 0.45);
+    background: linear-gradient(180deg, #2a3042 0%, #1b1f2d 100%);
+}
+
+/* columnas de fecha: reloj en círculo + fecha + hora */
+.mg-v2 .grid-th-columna {
+    display: table-cell;
+    min-width: 170px;
+    padding: 12px 14px;
+    text-align: left;
+    white-space: nowrap;
+    background: linear-gradient(180deg, #262b3c 0%, #1b1f2d 100%);
+}
+.mg-v2 .grid-th-columna > * { vertical-align: middle; }
+.mg-v2 .col-reloj {
+    display: inline-flex; align-items: center; justify-content: center;
+    float: left;
+    width: 42px; height: 42px; margin: 2px 14px 0 calc(50% - 72px);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #3b4157 0%, #23283a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.mg-v2 .col-reloj svg { width: 24px; height: 24px; stroke-width: 2; }
+.mg-v2 .col-fecha { font-size: 0.86rem; font-weight: 600; opacity: 0.9; }
+.mg-v2 .col-hora { font-size: 1.02rem; font-weight: 800; }
+.mg-v2 .col-origen-dinamica {
+    margin: 4px 0 0 0;
+    padding: 3px 12px;
+    background: #ede7ff;
+    color: #4c1d95;
+    border: 1px solid #c4b5fd;
+    font-size: 0.8rem;
+}
+.mg-v2 .col-origen-emoji { display: none; }
+.mg-v2 .col-origen-dinamica::before {
+    content: ''; display: inline-block; vertical-align: -2px;
+    width: 13px; height: 13px; margin-right: 5px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236d28d9' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* ---- parámetro (tarjeta con ícono) ---- */
+.mg-v2 .grid-td-parametro {
+    width: 210px; min-width: 210px; max-width: 210px;
+    text-align: center;
+    padding: 16px 14px 16px 22px;
+    background: linear-gradient(180deg, #ffffff 0%, #f7f7fb 100%);
+    color: #10142a;
+    box-shadow: inset 6px 0 0 #4f46e5, inset -1px 0 0 #e6e8f0;
+    vertical-align: middle;
+}
+.mg-v2 .param-ico {
+    display: flex; align-items: center; justify-content: center;
+    width: 78px; height: 78px; margin: 0 auto 12px;
+    border-radius: 50%;
+    color: #6d28d9;
+    background: radial-gradient(circle at 40% 35%, #ffffff 0%, #ece8fb 55%, #dcd6f6 100%);
+    box-shadow: 0 6px 14px rgba(91, 70, 200, 0.18), inset 0 -3px 6px rgba(120, 100, 220, 0.15);
+}
+.mg-v2 .param-ico svg { width: 40px; height: 40px; stroke-width: 2.1; }
+.mg-v2 .param-nombre { display: block; font-size: 1.12rem; font-weight: 800; line-height: 1.2; }
+.mg-v2 .grid-unidad { margin-top: 6px; font-size: 0.98rem; font-weight: 500; color: #747a8f; }
+
+/* ---- columna Valor (píldoras) ---- */
+.mg-v2 .grid-td-fila {
+    left: 210px;
+    width: 112px; min-width: 112px; max-width: 112px;
+    padding: 2px 10px;
+    background: #f1f2f7;
+    box-shadow: inset -1px 0 0 #e1e3ec;
+    border-right: 0;
+    border-bottom: 0;
+}
+.mg-v2 .fila-pill {
+    display: block;
+    padding: 6px 4px;
+    border-radius: 7px;
+    background: linear-gradient(180deg, #ffffff 0%, #eef0f6 100%);
+    border: 1px solid #e0e3ec;
+    box-shadow: 0 1px 2px rgba(20, 25, 50, 0.08);
+    color: #1b2035;
+    font-size: 0.86rem; font-weight: 800;
+}
+
+/* ---- bandas y celda marcada ---- */
+.mg-v2 .grid-td-celda { min-width: 170px; height: 32px; padding: 2px 3px; }
+.mg-v2 .grid-td-celda.score-0 { background: #eceef4; }
+.mg-v2 .grid-td-celda.score-1 { background: #93e9b3; }
+.mg-v2 .grid-td-celda.score-2 { background: #fcd968; }
+.mg-v2 .grid-td-celda.score-3 { background: #f9a9ab; }
+.mg-v2 .grid-td-celda.celda-marcada,
+.mg-v2 .grid-td-celda.score-0.celda-marcada,
+.mg-v2 .grid-td-celda.score-1.celda-marcada,
+.mg-v2 .grid-td-celda.score-2.celda-marcada,
+.mg-v2 .grid-td-celda.score-3.celda-marcada {
+    border-radius: 0;
+    box-shadow: none;
+}
+.mg-v2 .grid-td-celda.score-0.celda-marcada { background: #eceef4; }
+.mg-v2 .grid-td-celda.score-1.celda-marcada { background: #93e9b3; }
+.mg-v2 .grid-td-celda.score-2.celda-marcada { background: #fcd968; }
+.mg-v2 .grid-td-celda.score-3.celda-marcada { background: #f9a9ab; }
+.mg-v2 .grid-marca {
+    display: flex; align-items: center; justify-content: center;
+    height: 27px;
+    border-radius: 6px;
+    font-size: 0; color: transparent; text-shadow: none;
+}
+/* 2026-10-02: el punto de la toma se reemplazó por un trazo de pulso (ECG). */
+.mg-v2 .grid-marca::before {
+    content: ''; width: 36px; height: 20px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 9h7l2-4 3 9 3-13 3 11 2-3h6'/%3E%3C/svg%3E") center / contain no-repeat;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+.mg-v2 .score-1 .grid-marca { background: linear-gradient(180deg, #19b14f 0%, #0d9940 100%); box-shadow: 0 3px 8px rgba(13, 153, 64, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.mg-v2 .score-2 .grid-marca { background: linear-gradient(180deg, #e4a50e 0%, #c98a05 100%); box-shadow: 0 3px 8px rgba(201, 138, 5, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.mg-v2 .score-3 .grid-marca { background: linear-gradient(180deg, #e3262b 0%, #c81b20 100%); box-shadow: 0 3px 8px rgba(200, 27, 32, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.mg-v2 .score-0 .grid-marca {
+    background: linear-gradient(180deg, #f3f4f8 0%, #e3e6ee 100%);
+    border: 1.5px solid #8d93a6;
+    box-shadow: 0 2px 5px rgba(20, 25, 50, 0.12);
+}
+.mg-v2 .score-0 .grid-marca::before { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 16' fill='none' stroke='%236b7185' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 9h7l2-4 3 9 3-13 3 11 2-3h6'/%3E%3C/svg%3E") center / contain no-repeat; filter: none; }
+
+/* ---- columna Puntaje (píldoras) ---- */
+.mg-v2 .grid-td-puntaje {
+    width: 112px; min-width: 112px; max-width: 112px;
+    padding: 2px 16px;
+    border-left: 0;
+    border-bottom: 0;
+    box-shadow: -10px 0 16px -10px rgba(20, 25, 50, 0.35);
+}
+.mg-v2 .grid-td-puntaje.score-0,
+.mg-v2 .grid-td-puntaje.score-1,
+.mg-v2 .grid-td-puntaje.score-2,
+.mg-v2 .grid-td-puntaje.score-3 { background: #f6f7fb; color: inherit; }
+.mg-v2 .puntaje-pill {
+    display: block;
+    padding: 5px 0;
+    border-radius: 5px;
+    font-size: 0.9rem; font-weight: 900;
+    color: #ffffff;
+}
+.mg-v2 .score-0 .puntaje-pill { background: #eceef4; color: #1b2035; }
+.mg-v2 .score-1 .puntaje-pill { background: linear-gradient(180deg, #17b04e 0%, #0e9741 100%); }
+.mg-v2 .score-2 .puntaje-pill { background: linear-gradient(180deg, #d9a40d 0%, #c18f06 100%); }
+.mg-v2 .score-3 .puntaje-pill { background: linear-gradient(180deg, #e3262b 0%, #c81b20 100%); }
+
+/* ---- separación entre bloques de parámetros ---- */
+.mg-v2 .meows-grid-table tbody tr:has(> .grid-td-parametro) td { border-top: 10px solid #f1f2f7; }
+.mg-v2 .meows-grid-table tbody tr:hover .grid-td-celda:not(.celda-marcada) { filter: brightness(0.97); }
+
+/* ---- fila de total ---- */
+.mg-v2 .grid-row-total td { background: #f6f7fb; border-top: 10px solid #f1f2f7; }
+.mg-v2 .grid-td-total-label {
+    background: linear-gradient(180deg, #232838 0%, #171b28 100%) !important;
+    color: #ffffff;
+    font-size: 0.98rem;
+    font-weight: 800;
+    text-align: center;
+}
