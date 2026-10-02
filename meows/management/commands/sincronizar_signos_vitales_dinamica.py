@@ -176,7 +176,19 @@ class Command(BaseCommand):
                 desde_consulta = None
 
             try:
-                lecturas = obtener_signos_vitales_nuevos(folio, desde=desde_consulta, ingreso_oid=ingreso_oid)
+                # 2026-10-02: TODOS los ingresos activos de la paciente (ver
+                # sala_partos_db._una_fila_por_paciente): con uno solo, las
+                # tomas del otro se daban por borradas en cada ciclo.
+                oids = p.get('ingresos_oid_activos') or [ingreso_oid]
+                lecturas = []
+                for oid in oids:
+                    folio_oid = folio if oid == ingreso_oid else None
+                    for lectura in obtener_signos_vitales_nuevos(folio_oid, desde=desde_consulta, ingreso_oid=oid):
+                        # Las tomas de otro ingreso no llevan el folio de este
+                        # (el selector de ingresos las ubica por su fecha).
+                        lectura['_folio'] = folio_oid
+                        lecturas.append(lectura)
+                lecturas.sort(key=lambda lectura: lectura['fecha_hora'])
             except MapeoNoConfigurado as e:
                 self.stderr.write(self.style.ERROR(str(e)))
                 return  # no tiene sentido seguir iterando pacientes, el mapeo falta para todas
@@ -202,6 +214,7 @@ class Command(BaseCommand):
                 # armar valores_dict, igual que fecha_hora, para que no se
                 # trate como si fuera un parámetro MEOWS más.
                 responsable_dinamica = lectura.pop('responsable', None)
+                folio_lectura = lectura.pop('_folio', folio)
                 oids_por_campo = lectura.pop('_oids', {}) or {}
                 oids_frescos.update(oid for oid in oids_por_campo.values() if oid is not None)
 
@@ -306,7 +319,7 @@ class Command(BaseCommand):
                     formulario=formulario,
                     fecha_hora=fecha_hora,
                     origen='dinamica',
-                    dinamica_folio=folio,
+                    dinamica_folio=folio_lectura,
                     responsable_dinamica=responsable_dinamica,
                 )
                 for codigo, valor in valores_dict.items():

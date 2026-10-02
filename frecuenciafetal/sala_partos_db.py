@@ -452,7 +452,39 @@ def listar_pacientes_sala_partos(query=None, limit=50):
             ),
             'origen': 'sala_partos',
         })
-    return out[:limit]
+    return _una_fila_por_paciente(out)[:limit]
+
+
+def _una_fila_por_paciente(filas):
+    """
+    2026-10-02: una paciente puede tener dos ingresos activos a la vez (p. ej.
+    volvió a urgencias sin que se cerrara la consulta anterior) o dos camas
+    abiertas: antes salía repetida en la lista, y la sincronización MEOWS la
+    procesaba dos veces -- con cada ingreso daba por "borradas" las tomas del
+    otro, y en cada ciclo las eliminaba y restauraba. Queda UNA fila por
+    paciente: la que tiene cama (la más reciente) o, si ninguna tiene, la del
+    ingreso más reciente. 'ingresos_oid_activos' lleva TODOS sus ingresos
+    activos (el elegido primero) para que la sincronización lea las tomas de
+    todos juntos. `filas` viene ordenada de la más reciente a la más antigua.
+    """
+    por_doc = {}
+    orden = []
+    for f in filas:
+        doc = (f.get('identificacion') or '').strip() or id(f)
+        if doc not in por_doc:
+            por_doc[doc] = []
+            orden.append(doc)
+        por_doc[doc].append(f)
+    resultado = []
+    for doc in orden:
+        grupo = por_doc[doc]
+        elegida = next((f for f in grupo if f.get('area') != AREA_SIN_CAMA), grupo[0])
+        oids = []
+        for f in [elegida] + grupo:
+            if f.get('ingreso_oid') is not None and f['ingreso_oid'] not in oids:
+                oids.append(f['ingreso_oid'])
+        resultado.append({**elegida, 'ingresos_oid_activos': oids})
+    return resultado
 
 
 def paciente_en_sala_partos(cedula):
