@@ -494,6 +494,14 @@ def api_datos_paciente_unificado(request):
     # 1. Buscar en meows.Paciente
     meows_p = MeowsPaciente.objects.filter(numero_documento=doc).first()
     if meows_p:
+        # 2026-10-05: ficha vacía ("N/A N/A", creada al abrir un módulo con
+        # una cédula nueva): se completa con el nombre de Dinámica.
+        if meows_p.es_ficha_vacia:
+            from frecuenciafetal.sala_partos_db import consultar_nombre_paciente
+            nombre_dinamica = consultar_nombre_paciente(doc)
+            if nombre_dinamica:
+                meows_p.nombres, meows_p.apellidos = nombre_dinamica
+                meows_p.save(update_fields=['nombres', 'apellidos'])
         atencion_id, numero_ingreso = _atencion_ingreso_actual(doc)
         edad = None
         if meows_p.fecha_nacimiento:
@@ -525,10 +533,8 @@ def api_datos_paciente_unificado(request):
             "n_controles_prenatales": meows_p.n_controles_prenatales,
             "atencion_id": atencion_id,
             "numero_ingreso": numero_ingreso,
-            "mediciones_count": Medicion.objects.filter(paciente__numero_documento=doc).count(),
-            "fetal_count": RegistroParto.objects.filter(identificacion=doc).count(),
-            "parto_count": Formulario.objects.filter(paciente__num_identificacion=doc).count(),
-            "estado_global": "CRÍTICO" if Medicion.objects.filter(paciente__numero_documento=doc, meows_riesgo="ROJO").exists() else "ALERTA" if Medicion.objects.filter(paciente__numero_documento=doc, meows_riesgo="AMARILLO").exists() else "ESTABLE",
+            # 2026-10-05: solo el ingreso actual (ver ingresos.conteos_ingreso_actual).
+            **_conteos_tarjeta(doc),
             "timeline": get_patient_timeline(doc),
             "meows_trazabilidad": get_meows_trazabilidad(doc),
             "parto_trazabilidad": get_parto_trazabilidad(doc),
@@ -573,10 +579,8 @@ def api_datos_paciente_unificado(request):
             "n_controles_prenatales": None,
             "atencion_id": atencion_id,
             "numero_ingreso": numero_ingreso,
-            "mediciones_count": Medicion.objects.filter(paciente__numero_documento=doc).count(),
-            "fetal_count": RegistroParto.objects.filter(identificacion=doc).count(),
-            "parto_count": Formulario.objects.filter(paciente__num_identificacion=doc).count(),
-            "estado_global": "CRÍTICO" if Medicion.objects.filter(paciente__numero_documento=doc, meows_riesgo="ROJO").exists() else "ALERTA" if Medicion.objects.filter(paciente__numero_documento=doc, meows_riesgo="AMARILLO").exists() else "ESTABLE",
+            # 2026-10-05: solo el ingreso actual (ver ingresos.conteos_ingreso_actual).
+            **_conteos_tarjeta(doc),
             "timeline": get_patient_timeline(doc),
             "meows_trazabilidad": get_meows_trazabilidad(doc),
             "parto_trazabilidad": get_parto_trazabilidad(doc),
@@ -592,6 +596,24 @@ def api_datos_paciente_unificado(request):
     response["Pragma"] = "no-cache"
     response["Expires"] = "0"
     return response
+
+
+def _conteos_tarjeta(doc):
+    """Contadores MEOWS/FETAL/PARTO y estado de la tarjeta, del ingreso actual.
+    Si algo falla, se cuenta todo el historial (como antes): la tarjeta nunca
+    debe quedar sin cargar por esto."""
+    try:
+        from .ingresos import conteos_ingreso_actual
+        return conteos_ingreso_actual(doc)
+    except Exception:
+        logger.exception("No se pudieron calcular los contadores del ingreso actual")
+    riesgos = set(Medicion.objects.filter(paciente__numero_documento=doc).values_list("meows_riesgo", flat=True))
+    return {
+        "mediciones_count": Medicion.objects.filter(paciente__numero_documento=doc).count(),
+        "fetal_count": RegistroParto.objects.filter(identificacion=doc).count(),
+        "parto_count": Formulario.objects.filter(paciente__num_identificacion=doc).count(),
+        "estado_global": "CRÍTICO" if "ROJO" in riesgos else "ALERTA" if "AMARILLO" in riesgos else "ESTABLE",
+    }
 
 
 @require_http_methods(["POST"])

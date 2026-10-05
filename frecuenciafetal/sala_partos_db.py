@@ -625,6 +625,38 @@ def consultar_aseguradora_paciente(cedula):
     return nombre or None
 
 
+def consultar_nombre_paciente(cedula):
+    """
+    2026-10-05: (nombres, apellidos) de la paciente en Dinámica (GENPACIEN),
+    o None si no está / no hay conexión. Para completar las fichas locales
+    que quedaron como "N/A N/A" (ver meows.Paciente.es_ficha_vacia).
+    """
+    cedula = (cedula or '').strip()
+    if not cedula or not dinamica_disponible():
+        return None
+    sql = """
+    SELECT TOP 1
+        RTRIM(LTRIM(ISNULL(PACPRINOM,'') + ' ' + ISNULL(PACSEGNOM,''))),
+        RTRIM(LTRIM(ISNULL(PACPRIAPE,'') + ' ' + ISNULL(PACSEGAPE,'')))
+    FROM GENPACIEN
+    WHERE PACNUMDOC = %s
+    ORDER BY OID DESC
+    """
+    try:
+        with connections['readonly'].cursor() as cursor:
+            cursor.execute(sql, [cedula])
+            row = cursor.fetchone()
+    except Exception as exc:
+        _marcar_dinamica_caida(exc)
+        return None
+    if not row:
+        return None
+    nombres, apellidos = (' '.join((v or '').split()) for v in row)
+    if not nombres and not apellidos:
+        return None
+    return nombres, apellidos
+
+
 # 2026-09-24: "cortocircuito" para las consultas de ingresos. Si Dinámica no
 # responde, cada intento espera el timeout de conexión del driver (~15 s); sin
 # esto, el selector de ingresos o un guardado quedarían esperando en cada

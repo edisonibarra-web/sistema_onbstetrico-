@@ -3063,6 +3063,10 @@
     .rn-huella-btn-cargar:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(8, 145, 178, 0.4); }
     .rn-huella-btn-cargar:focus-visible { outline: 3px solid #67e8f9; outline-offset: 2px; }
     .rn-huella-btn-cargar[hidden] { display: none; }
+    .aviso-reenviar-repositorio {
+      margin: 10px auto 0; max-width: 760px; padding: 10px 14px; border-radius: 10px;
+      background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; font-size: 0.88rem; line-height: 1.45;
+    }
     .rn-huella-btn-cargar svg { width: 17px; height: 17px; }
     .rn-huella-bloqueada .rn-huella-vacio { cursor: default; }
     .rn-huella-bloqueada .rn-huella-vacio:hover { background: transparent; }
@@ -4883,10 +4887,18 @@
                  correcciones hechas desde "Vista previa" (queda como archivo
                  nuevo, _2, _3...; nunca reemplaza el anterior). -->
             <button type="button" class="btn btn-secondary btn-large" onclick="reenviarRepositorio()" id="btn-reenviar-repositorio" style="display:none"
-              title="Vuelve a generar el PDF final y lo guarda en el repositorio clínico como un archivo nuevo">
+              title="Úselo SOLO si corrigió el registro desde &quot;Vista previa&quot; o si el envío automático falló. Al cerrar, el formato ya se envió solo.">
               <i data-lucide="hard-drive-upload" style="width:18px;height:18px;vertical-align:middle"></i> Reenviar a repositorio
             </button>
           </div>
+          {# 2026-10-05: el formato ya se envía solo al cerrar; reenviar sin #}
+          {# haber corregido nada solo deja una copia repetida en la NAS. #}
+          <p id="aviso-reenviar-repositorio" class="aviso-reenviar-repositorio" style="display:none">
+            <i data-lucide="alert-triangle" style="width:16px;height:16px;vertical-align:-3px"></i>
+            <strong>Importante:</strong> al cerrar el registro, el formato ya se envió automáticamente al repositorio.
+            Use <strong>"Reenviar a repositorio"</strong> únicamente si <strong>corrigió el registro desde "Vista previa"</strong>
+            o si el envío automático falló. Cada reenvío guarda una copia nueva.
+          </p>
 
         </main>
 
@@ -5395,10 +5407,165 @@
             }
             fcPreviewRegistros = recolectarFetocardiaCronologica();
             const body = document.getElementById('fc-trace-modal-body');
-            body.innerHTML = renderTrazoFetocardia(fcPreviewRegistros) + renderResumenPospartoMeows()
-              + renderPreviewCaracteristicasParto() + renderPreviewVigilanciaPosparto();
+            // 2026-10-05: + datos de la paciente, desgarro y Control del recién
+            // nacido (con glucometrías): antes no se podían corregir aquí.
+            body.innerHTML = renderPreviewDatosPaciente()
+              + renderTrazoFetocardia(fcPreviewRegistros) + renderResumenPospartoMeows()
+              + renderPreviewCaracteristicasParto() + renderPreviewVigilanciaPosparto()
+              + renderPreviewRecienNacido();
+            llenarPreviewRecienNacido();
             document.getElementById('fc-trace-modal-overlay').classList.add('show');
             if (typeof lucide !== 'undefined') lucide.createIcons();
+          }
+
+          // 2026-10-05: escapa texto para meterlo en atributos/HTML de la vista previa.
+          function escPreview(v) {
+            return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+          }
+
+          // Vista previa editable de "Datos de la paciente". Nombre e
+          // identificación son de solo lectura (vienen de Dinámica y el
+          // servidor no los acepta con el registro cerrado).
+          function renderPreviewDatosPaciente() {
+            const v = id => document.getElementById(id)?.value || '';
+            return `
+              <div class="pp-resumen-section">
+                <div class="pp-resumen-header">
+                  <span class="pp-resumen-title">Datos de la paciente</span>
+                </div>
+                <table class="pp-resumen-table">
+                  <tbody>
+                    <tr>
+                      <td style="width:20%;font-weight:700;">Nombre</td>
+                      <td style="width:30%">${escPreview(v('nombre_paciente')) || '—'}</td>
+                      <td style="width:20%;font-weight:700;">Identificación</td>
+                      <td style="width:30%">${escPreview(v('identificacion')) || '—'}</td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:700;">Edad gestacional (semanas)</td>
+                      <td><input type="number" id="fc-preview-edad_gestacional" class="doc-input" min="0" max="45" style="max-width:120px" value="${escPreview(v('edad_gestacional'))}"></td>
+                      <td style="font-weight:700;">Gestas</td>
+                      <td><input type="number" id="fc-preview-gestas" class="doc-input" min="1" max="20" style="max-width:120px" value="${escPreview(v('gestas'))}"></td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:700;">Acompañante en el parto</td>
+                      <td colspan="3"><input type="text" id="fc-preview-nombre_acompanante" class="doc-input" style="width:100%" value="${escPreview(v('nombre_acompanante'))}"></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;" onclick="guardarEdicionDatosPaciente()"><i data-lucide="check" style="width:14px;height:14px;vertical-align:-2px;"></i> Guardar cambios</button>
+              </div>`;
+          }
+
+          function guardarEdicionDatosPaciente() {
+            const acompanante = document.getElementById('fc-preview-nombre_acompanante').value.trim();
+            if (!acompanante) {
+              showToast('El nombre del acompañante en el parto es requerido.', 'error');
+              return;
+            }
+            document.getElementById('edad_gestacional').value = document.getElementById('fc-preview-edad_gestacional').value;
+            document.getElementById('gestas').value = document.getElementById('fc-preview-gestas').value;
+            document.getElementById('nombre_acompanante').value = acompanante;
+            if (savedRegistroId) {
+              submitForm();
+            } else {
+              showToast('Cambios aplicados. Guarde el registro para persistirlos.', 'success');
+            }
+          }
+
+          // Vista previa editable del "Control del recién nacido": se copia
+          // la misma tarjeta del formulario (.rn-datos, sin la huella) con
+          // ids/names prefijados fc-preview-, así salen todos los campos con
+          // su diseño sin duplicarlos a mano. Los valores los pone
+          // llenarPreviewRecienNacido() (outerHTML no lleva lo digitado).
+          function renderPreviewRecienNacido() {
+            const fuente = document.querySelector('.rn-card-body .rn-datos');
+            if (!fuente) return '';
+            const copia = fuente.cloneNode(true);
+            copia.querySelectorAll('[id]').forEach(el => { el.id = 'fc-preview-' + el.id; });
+            copia.querySelectorAll('input[name]').forEach(el => { el.name = 'fc-preview-' + el.name; });
+            copia.querySelectorAll('label[for]').forEach(el => { el.htmlFor = 'fc-preview-' + el.htmlFor; });
+            copia.querySelectorAll('input, select, textarea').forEach(el => {
+              el.removeAttribute('disabled');
+              el.removeAttribute('aria-invalid');
+              el.classList.remove('campo-con-error');
+            });
+            // "Parto atendido por" es del registro (no del RN): solo lectura.
+            copia.querySelector('#fc-preview-rn_parto_atendido_por')?.setAttribute('readonly', '');
+            return `
+              <div class="pp-resumen-section">
+                <div class="pp-resumen-header">
+                  <span class="pp-resumen-title">Control del recién nacido</span>
+                  <span class="pp-resumen-meta">Los campos con * no se pueden dejar vacíos.</span>
+                </div>
+                <div class="fc-card-body rn-card-body rn-preview">${copia.outerHTML}</div>
+                <div class="pp-resumen-header" style="margin-top:0.75rem;">
+                  <span class="pp-resumen-title">Glucometrías</span>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="agregarGlucoPreview()"><i data-lucide="plus" style="width:14px;height:14px;vertical-align:-2px;"></i> Agregar</button>
+                </div>
+                <table class="pp-resumen-table">
+                  <thead><tr><th>Hora</th><th>Resultado (mg/dL)</th><th></th></tr></thead>
+                  <tbody id="fc-preview-gluco-lista"></tbody>
+                </table>
+                <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;" onclick="guardarEdicionRecienNacido()"><i data-lucide="check" style="width:14px;height:14px;vertical-align:-2px;"></i> Guardar cambios</button>
+              </div>`;
+          }
+
+          function llenarPreviewRecienNacido() {
+            if (!document.getElementById('fc-preview-gluco-lista')) return;
+            RN_CAMPOS.forEach(([, id, tipo]) => escribirCampoRN('fc-preview-' + id, tipo, leerCampoRN(id, tipo)));
+            escribirCampoRN('fc-preview-rn_parto_atendido_por', 'texto', leerCampoRN('rn_parto_atendido_por', 'texto'));
+            leerGlucometriasRN({ incluirIncompletas: true }).forEach(g => agregarGlucoPreview(g.hora, g.resultado));
+          }
+
+          function agregarGlucoPreview(hora = '', resultado = '') {
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+              <td><input type="time" class="doc-input" data-g="hora" style="max-width:150px"></td>
+              <td><input type="number" class="doc-input" data-g="resultado" min="0" max="999" step="1" style="max-width:120px"></td>
+              <td><button type="button" class="fc-trace-save-btn" title="Quitar glucometría" aria-label="Quitar glucometría">&times;</button></td>`;
+            fila.querySelector('[data-g="hora"]').value = String(hora || '').substring(0, 5);
+            fila.querySelector('[data-g="resultado"]').value = resultado !== null && resultado !== '' ? String(parseFloat(resultado)) : '';
+            fila.querySelector('button').addEventListener('click', () => fila.remove());
+            document.getElementById('fc-preview-gluco-lista').appendChild(fila);
+          }
+
+          function guardarEdicionRecienNacido() {
+            const lee = (id, tipo) => leerCampoRN('fc-preview-' + id, tipo);
+            const faltan = RN_OBLIGATORIOS_CIERRE.filter(([id, tipo]) => lee(id, tipo) === null).map(([, , etq]) => etq);
+            if (faltan.length) {
+              showToast('Recién nacido: no se pueden dejar vacíos: ' + faltan.join(', ') + '.', 'error');
+              return;
+            }
+            for (const id of ['rn_apgar_1min', 'rn_apgar_5min', 'rn_apgar_10min']) {
+              const v = lee(id, 'ent');
+              if (v !== null && (v < 0 || v > 10)) {
+                showToast('Recién nacido: el APGAR debe estar entre 0 y 10.', 'error');
+                return;
+              }
+            }
+            const glucos = Array.from(document.querySelectorAll('#fc-preview-gluco-lista tr')).map(fila => ({
+              hora: fila.querySelector('[data-g="hora"]').value,
+              resultado: fila.querySelector('[data-g="resultado"]').value,
+            })).filter(g => g.hora || g.resultado);
+            if (glucos.some(g => !g.hora || !g.resultado)) {
+              showToast('Recién nacido: complete hora y resultado de cada glucometría, o quite la fila.', 'error');
+              return;
+            }
+
+            RN_CAMPOS.forEach(([, id, tipo]) => escribirCampoRN(id, tipo, lee(id, tipo)));
+            document.getElementById('rn-gluco-lista').innerHTML = '';
+            glucos.forEach(g => agregarGlucometriaRN(g.hora, g.resultado));
+            actualizarVacioGlucoRN();
+            if (registroCerrado) {
+              document.querySelectorAll('#rn-gluco-lista input, #rn-gluco-lista button').forEach(el => { el.disabled = true; });
+            }
+
+            if (savedRegistroId) {
+              submitForm();
+            } else {
+              showToast('Cambios aplicados. Guarde el registro para persistirlos.', 'success');
+            }
           }
 
           // Vista previa editable de "Características del Parto": refleja los
@@ -5412,6 +5579,10 @@
             const episiotomia = getRadio('episiotomia');
             const alumbramiento = document.getElementById('tipo_alumbramiento')?.value || '';
             const horaParto = document.getElementById('hora_parto')?.value || '';
+            const desgarro = document.getElementById('desgarro')?.value || '';
+            const subgrado = document.querySelector('input[name="desgarro_subgrado"]:checked')?.value || '';
+            const opcionDesgarro = (v, t) => `<option value="${v}" ${desgarro === v ? 'selected' : ''}>${t}</option>`;
+            const radioSubgrado = v => `<label><input type="radio" name="fc-preview-desgarro_subgrado" value="${v}" ${subgrado === v ? 'checked' : ''}> III ${v}</label>`;
             return `
               <div class="pp-resumen-section">
                 <div class="pp-resumen-header">
@@ -5454,6 +5625,20 @@
                         <input type="time" id="fc-preview-hora_parto" class="doc-input" style="max-width:160px;display:inline-block" value="${horaParto}">
                       </td>
                     </tr>
+                    <tr>
+                      <td style="font-weight:700;">Desgarro</td>
+                      <td colspan="3">
+                        <select id="fc-preview-desgarro" class="doc-input" style="max-width:220px;display:inline-block"
+                          onchange="document.getElementById('fc-preview-subgrado').style.display = this.value === 'GRADO_III' ? '' : 'none'">
+                          <option value="">— Seleccionar —</option>
+                          ${opcionDesgarro('GRADO_I', 'Grado I')}${opcionDesgarro('GRADO_II', 'Grado II')}
+                          ${opcionDesgarro('GRADO_III', 'Grado III')}${opcionDesgarro('GRADO_IV', 'Grado IV')}
+                        </select>
+                        <span id="fc-preview-subgrado" class="doc-radio-inline" style="margin-left:12px;${desgarro === 'GRADO_III' ? '' : 'display:none'}">
+                          ${radioSubgrado('A')}${radioSubgrado('B')}${radioSubgrado('C')}
+                        </span>
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
                 <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;" onclick="guardarEdicionCaracteristicasParto()"><i data-lucide="check" style="width:14px;height:14px;vertical-align:-2px;"></i> Guardar cambios</button>
@@ -5471,6 +5656,15 @@
             if (radioReal) radioReal.checked = true;
             document.getElementById('tipo_alumbramiento').value = alumbramiento;
             document.getElementById('hora_parto').value = horaParto;
+
+            // 2026-10-05: desgarro y su subclasificación (solo en grado III).
+            const desgarroReal = document.getElementById('desgarro');
+            desgarroReal.value = document.getElementById('fc-preview-desgarro').value;
+            toggleDesgarroSubgrado(desgarroReal);  // fuera de grado III limpia el subgrado
+            if (desgarroReal.value === 'GRADO_III') {
+              const sub = document.querySelector('input[name="fc-preview-desgarro_subgrado"]:checked')?.value;
+              document.querySelectorAll('input[name="desgarro_subgrado"]').forEach(r => { r.checked = r.value === sub; });
+            }
 
             actualizarSemaforoSangrado();
 
@@ -7753,6 +7947,8 @@
             if (btnCompletar) btnCompletar.style.display = 'none';
             const btnReenviar = document.getElementById('btn-reenviar-repositorio');
             if (btnReenviar) btnReenviar.style.display = '';
+            const avisoReenviar = document.getElementById('aviso-reenviar-repositorio');
+            if (avisoReenviar) avisoReenviar.style.display = '';
             pintarHuellaRN();  // la huella se sigue viendo, pero sin subir/quitar
 
             const el = document.getElementById('autosave-status');
@@ -8003,7 +8199,9 @@
           // repositorio clínico -- ver el botón btn-reenviar-repositorio.
           async function reenviarRepositorio() {
             if (!savedRegistroId) return;
-            if (!confirm('¿Enviar de nuevo el formato FRSPA-007 al repositorio clínico? Se guardará como un archivo nuevo; el anterior no se reemplaza.')) return;
+            if (!confirm('⚠️ Use esta opción SOLO si corrigió el registro desde "Vista previa" o si el envío automático falló.\n\n'
+              + 'Al cerrar el registro, el formato ya se envió solo al repositorio.\n\n'
+              + '¿Enviar de nuevo el formato FRSPA-007? Se guardará como un archivo nuevo; el anterior no se reemplaza.')) return;
             const btn = document.getElementById('btn-reenviar-repositorio');
             const textoOriginal = btn ? btn.innerHTML : '';
             if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }

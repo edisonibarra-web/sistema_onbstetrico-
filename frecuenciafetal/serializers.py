@@ -136,7 +136,15 @@ class ControlSuturaSerializer(serializers.ModelSerializer):
 CAMPOS_EDITABLES_POST_CIERRE = {
     'tipo_parto', 'episiotomia', 'tipo_alumbramiento', 'hora_parto',
     'globo_seguridad', 'sutura_heridas', 'sangrado_cuantificado_cc',
+    # 2026-10-05: la Vista Previa ahora también corrige estos (datos de la
+    # paciente y desgarro). Nombre e identificación NO: vienen de Dinámica.
+    'desgarro', 'desgarro_subgrado', 'edad_gestacional', 'gestas', 'nombre_acompanante',
 }
+# 2026-10-05: el Control del recién nacido también se corrige desde la Vista
+# Previa con el registro cerrado, pero estos campos (obligatorios para cerrar,
+# ver CAMPOS_RN_OBLIGATORIOS_CIERRE en views.py) no se pueden dejar vacíos:
+# un vacío en la corrección conserva el valor que ya tenía.
+CAMPOS_RN_NO_VACIAR_POST_CIERRE = ('genero', 'peso', 'talla', 'apgar_1min', 'apgar_5min')
 
 
 class RegistroPartoSerializer(serializers.ModelSerializer):
@@ -215,15 +223,46 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
 
         return registro
 
+    def _guardar_recien_nacido(self, instance, rn_data):
+        glucometrias = rn_data.pop('glucometrias', None)
+        rn, creado = ControlRecienNacido.objects.update_or_create(
+            registro=instance, defaults=rn_data
+        )
+        if creado or not rn.registrado_por:
+            firma = self._firma()
+            ControlRecienNacido.objects.filter(pk=rn.pk).update(**firma)
+            # rn queda en caché en instance.control_recien_nacido: sin
+            # esto, la respuesta salía sin la firma recién guardada.
+            for campo, valor in firma.items():
+                setattr(rn, campo, valor)
+        if glucometrias is None:
+            return  # no vinieron: se conservan las que hay
+        # 2026-09-30: el autoguardado reenvía el recién nacido completo
+        # cada vez -- las glucometrías solo se reescriben si cambiaron.
+        actuales = [(g.hora, g.resultado) for g in rn.glucometrias.order_by('hora', 'id')]
+        nuevas = sorted((g['hora'], g['resultado']) for g in glucometrias)
+        if actuales != nuevas:
+            rn.glucometrias.all().delete()
+            for g in glucometrias:
+                GlucometriaRecienNacido.objects.create(control_rn=rn, **g)
+
     def update(self, instance, validated_data):
         if instance.completado_en is not None:
             # Registro cerrado -- ver CAMPOS_EDITABLES_POST_CIERRE arriba.
             # No se tocan controles anidados (fetocardia/postparto/
-            # sangrado/globo/sutura/recién nacido) desde aquí en este caso.
+            # sangrado/globo/sutura) desde aquí; el recién nacido sí
+            # (2026-10-05), sin vaciar sus obligatorios de cierre.
+            rn_data = validated_data.pop('control_recien_nacido', None)
             for attr, value in validated_data.items():
                 if attr in CAMPOS_EDITABLES_POST_CIERRE:
                     setattr(instance, attr, value)
             instance.save()
+            if rn_data is not None:
+                rn_data = {
+                    k: v for k, v in rn_data.items()
+                    if not (k in CAMPOS_RN_NO_VACIAR_POST_CIERRE and v in (None, ''))
+                }
+                self._guardar_recien_nacido(instance, rn_data)
             return instance
 
         fetocardia_data = validated_data.pop('controles_fetocardia', None)
@@ -243,25 +282,7 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
             # del endpoint anidado dedicado (ControlFetocardiaViewSet).
             pass
         if rn_data is not None:
-            glucometrias = rn_data.pop('glucometrias', [])
-            rn, creado = ControlRecienNacido.objects.update_or_create(
-                registro=instance, defaults=rn_data
-            )
-            if creado or not rn.registrado_por:
-                firma = self._firma()
-                ControlRecienNacido.objects.filter(pk=rn.pk).update(**firma)
-                # rn queda en caché en instance.control_recien_nacido: sin
-                # esto, la respuesta salía sin la firma recién guardada.
-                for campo, valor in firma.items():
-                    setattr(rn, campo, valor)
-            # 2026-09-30: el autoguardado reenvía el recién nacido completo
-            # cada vez -- las glucometrías solo se reescriben si cambiaron.
-            actuales = [(g.hora, g.resultado) for g in rn.glucometrias.order_by('hora', 'id')]
-            nuevas = sorted((g['hora'], g['resultado']) for g in glucometrias)
-            if actuales != nuevas:
-                rn.glucometrias.all().delete()
-                for g in glucometrias:
-                    GlucometriaRecienNacido.objects.create(control_rn=rn, **g)
+            self._guardar_recien_nacido(instance, rn_data)
 
         if postparto_data is not None:
             # El PUT principal del registro nunca reemplaza los controles

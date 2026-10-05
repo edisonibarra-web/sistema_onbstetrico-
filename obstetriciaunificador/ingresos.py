@@ -41,7 +41,16 @@ logger = logging.getLogger(__name__)
 MODULOS = ('meows', 'trabajo_parto', 'control_posparto', 'triaje')
 CLAVE_TRIAJE_SIN_INGRESO = 'triaje-sin-ingreso'
 CLAVE_SIN_INGRESO = 'sin-ingreso'
-CLAVES_ESPECIALES = (CLAVE_TRIAJE_SIN_INGRESO, CLAVE_SIN_INGRESO)
+# 2026-10-05: la visita a triaje EN CURSO (paciente que volvió y aún no tiene
+# ingreso). Antes, sin ingreso actual se mostraban TODAS las tomas: una
+# paciente que egresó el 02/10 y volvió a triaje el 05/10 veía las dos
+# visitas mezcladas.
+CLAVE_TRIAJE_ACTUAL = 'triaje-actual'
+CLAVES_ESPECIALES = (CLAVE_TRIAJE_ACTUAL, CLAVE_TRIAJE_SIN_INGRESO, CLAVE_SIN_INGRESO)
+# Tomas de triaje sin ingreso separadas por más que esto = visitas distintas.
+HUECO_ENTRE_VISITAS_TRIAJE = timedelta(hours=24)
+# La última visita sin ingreso es "Triaje actual" si tiene tomas así de recientes.
+VIGENCIA_TRIAJE_ACTUAL = timedelta(hours=24)
 
 # Las tomas de triaje se registran ANTES del ingreso formal.
 MARGEN_TRIAJE_ANTES = timedelta(hours=24)
@@ -272,7 +281,26 @@ def asignar_mediciones_meows(doc, ingresos, solo_triaje=False):
             es_triaje=f['origen'] == 'triaje',
         )
         grupos.setdefault(clave, []).append(f['id'])
+    _separar_triaje_actual(grupos, {f['id']: f['fecha_hora'] for f in filas})
     return grupos
+
+
+def _separar_triaje_actual(grupos, fecha_por_id):
+    """2026-10-05: de las tomas de triaje sin ingreso, la última visita
+    (tomas a menos de HUECO_ENTRE_VISITAS_TRIAJE entre sí) pasa a
+    CLAVE_TRIAJE_ACTUAL si sigue vigente; las visitas anteriores se quedan en
+    "Triajes sin ingreso"."""
+    ids = sorted(grupos.get(CLAVE_TRIAJE_SIN_INGRESO, []), key=lambda i: fecha_por_id[i])
+    if not ids or timezone.now() - fecha_por_id[ids[-1]] > VIGENCIA_TRIAJE_ACTUAL:
+        return
+    inicio = len(ids) - 1
+    while inicio > 0 and fecha_por_id[ids[inicio]] - fecha_por_id[ids[inicio - 1]] <= HUECO_ENTRE_VISITAS_TRIAJE:
+        inicio -= 1
+    grupos[CLAVE_TRIAJE_ACTUAL] = ids[inicio:]
+    if inicio:
+        grupos[CLAVE_TRIAJE_SIN_INGRESO] = ids[:inicio]
+    else:
+        del grupos[CLAVE_TRIAJE_SIN_INGRESO]
 
 
 def asignar_registros_posparto(doc, ingresos):
@@ -315,6 +343,45 @@ def asignar_controles_trabajo_parto(doc, ingresos):
             clave = asignar_ingreso(hoja['created_at'], ingresos, numero_guardado=hoja['atencion__numero_ingreso'] or '')
             grupos.setdefault(clave, {}).setdefault(hoja_id, [])
     return grupos
+
+
+def conteos_ingreso_actual(doc):
+    """
+    2026-10-05: contadores y estado de la tarjeta de Sala de Partos, SOLO del
+    ingreso actual -- lo mismo que muestra cada módulo al abrirlo (selector de
+    ingresos). Antes se contaba todo el historial: una paciente con tomas en
+    ingresos anteriores salía con "MEOWS 2" y al abrir el formato no había
+    nada, y un ROJO de hace meses la dejaba en CRÍTICO para siempre.
+    Sin ingreso actual (triaje sin ingreso, Dinámica caída) se cuenta todo,
+    como antes.
+    """
+    from frecuenciafetal.models import RegistroParto
+    from meows.models import Medicion
+    from trabajoparto.models import Formulario
+
+    ingresos, _, actual = ingresos_de_paciente(doc)
+    grupos_meows = asignar_mediciones_meows(doc, ingresos)
+    if actual:
+        mediciones = Medicion.objects.filter(id__in=grupos_meows.get(actual, []))
+        fetal = len(asignar_registros_posparto(doc, ingresos).get(actual, []))
+        parto = len(asignar_controles_trabajo_parto(doc, ingresos).get(actual, {}))
+    elif CLAVE_TRIAJE_ACTUAL in grupos_meows:
+        # Volvió a triaje sin ingreso: solo esta visita (lo de ingresos
+        # anteriores ya no cuenta, ver CLAVE_TRIAJE_ACTUAL).
+        mediciones = Medicion.objects.filter(id__in=grupos_meows[CLAVE_TRIAJE_ACTUAL])
+        fetal = parto = 0
+    else:
+        mediciones = Medicion.objects.filter(paciente__numero_documento=doc)
+        fetal = RegistroParto.objects.filter(identificacion=doc).count()
+        parto = Formulario.objects.filter(paciente__num_identificacion=doc).count()
+    riesgos = set(mediciones.values_list('meows_riesgo', flat=True))
+    estado = 'CRÍTICO' if 'ROJO' in riesgos else 'ALERTA' if 'AMARILLO' in riesgos else 'ESTABLE'
+    return {
+        'mediciones_count': mediciones.count(),
+        'fetal_count': fetal,
+        'parto_count': parto,
+        'estado_global': estado,
+    }
 
 
 def asignar_registros(doc, modulo, ingresos):
@@ -531,15 +598,18 @@ def resumen_ingresos(doc, modulo, ingreso_elegido='', fresco=False):
             'relevante': bool(n or info_nas['enviados'] or info_nas['errores']
                               or (i['clinico'] and not i['anulado']) or i['numero'] == actual),
         })
-    for clave, titulo in ((CLAVE_TRIAJE_SIN_INGRESO, 'Triajes sin ingreso'),
+    for clave, titulo in ((CLAVE_TRIAJE_ACTUAL, 'Triaje actual (sin ingreso)'),
+                          (CLAVE_TRIAJE_SIN_INGRESO, 'Triajes sin ingreso'),
                           (CLAVE_SIN_INGRESO, 'Registros sin ingreso asociado')):
         datos = grupos.get(clave)
         if datos:
             n, detalle = _detalle_registros(modulo, datos)
+            # El triaje en curso se sigue pudiendo corregir (los otros no).
+            triaje_actual = clave == CLAVE_TRIAJE_ACTUAL and not actual
             opciones.append({
                 'numero': clave, 'especial': True, 'titulo': titulo, 'registros': n,
-                'detalle': detalle, 'vacio': False, 'relevante': True, 'editable': False,
-                'en_curso': False, 'es_actual': False, 'anulado': False,
+                'detalle': detalle, 'vacio': False, 'relevante': True, 'editable': triaje_actual,
+                'en_curso': triaje_actual, 'es_actual': triaje_actual, 'anulado': False,
                 'fecha_ingreso': '', 'fecha_egreso': '', 'tipo': '', 'tipo_texto': '',
                 'nas_enviados': 0, 'nas_errores': 0, 'nas_modulo_enviados': 0,
                 'nas_modulo_ultimo': '', 'nas_modulo_error': False, 'editable_hasta': '',
@@ -548,8 +618,15 @@ def resumen_ingresos(doc, modulo, ingreso_elegido='', fresco=False):
     elegido = limpiar_numero_ingreso(ingreso_elegido)
     numeros = {o['numero'] for o in opciones}
     if elegido not in numeros:
-        elegido = actual if actual in numeros else ''
+        # Sin ingreso actual: la visita a triaje en curso (no todo el historial).
+        if actual in numeros:
+            elegido = actual
+        elif not actual and CLAVE_TRIAJE_ACTUAL in numeros:
+            elegido = CLAVE_TRIAJE_ACTUAL
+        else:
+            elegido = ''
     seleccion = next((o for o in opciones if o['numero'] == elegido), None)
+    triaje_en_curso = elegido == CLAVE_TRIAJE_ACTUAL and not actual
     return {
         'documento': doc,
         'modulo': modulo,
@@ -557,7 +634,7 @@ def resumen_ingresos(doc, modulo, ingreso_elegido='', fresco=False):
         'actual': actual,
         'elegido': elegido,
         'es_actual': bool(elegido) and elegido == actual,
-        'solo_consulta': bool(seleccion) and (elegido != actual or not seleccion['editable']),
+        'solo_consulta': bool(seleccion) and not triaje_en_curso and (elegido != actual or not seleccion['editable']),
         'seleccion': seleccion,
         'opciones': opciones,
         'inicio_app': _fmt(inicio_app),

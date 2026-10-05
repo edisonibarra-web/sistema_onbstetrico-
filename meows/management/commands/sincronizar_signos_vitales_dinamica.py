@@ -523,6 +523,15 @@ class Command(BaseCommand):
             'n_controles_prenatales': _a_entero(p.get('controles_prenatales')) or paciente.n_controles_prenatales,
         }
 
+        # 2026-10-05: el nombre solo se tomaba al CREAR la ficha; si ya existía
+        # la ficha vacía "N/A N/A" (se crea al abrir un módulo con una cédula
+        # nueva), se quedaba así para siempre. Solo se reemplaza una ficha
+        # vacía: un nombre ya digitado (triaje) no se toca.
+        if paciente.es_ficha_vacia and (p.get('nombre_paciente') or '').strip():
+            datos = Command._datos_basicos_paciente(p)
+            cambios['nombres'] = datos['nombres']
+            cambios['apellidos'] = datos['apellidos']
+
         hubo_cambio = False
         for campo, valor_nuevo in cambios.items():
             if getattr(paciente, campo) != valor_nuevo:
