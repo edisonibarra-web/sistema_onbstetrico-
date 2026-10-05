@@ -92,8 +92,20 @@ CSRF_TRUSTED_ORIGINS = [
 _local_ip = _get_local_ip()
 if _local_ip:
     CSRF_TRUSTED_ORIGINS += [f'http://{_local_ip}:{port}' for port in _DEV_PORTS]
+# 2026-10-05: CSRF_TRUSTED_ORIGIN acepta varios orígenes separados por comas
+# (ej. "https://saladepartos.hosdenar.gov.co,http://172.20.100.50:8000").
 if _CSRF_EXTRA:
-    CSRF_TRUSTED_ORIGINS.append(_CSRF_EXTRA)
+    CSRF_TRUSTED_ORIGINS += [o.strip().rstrip('/') for o in _CSRF_EXTRA.split(',') if o.strip()]
+# 2026-10-05: cada dominio de DJANGO_ALLOWED_HOSTS también queda como origen
+# CSRF confiable (http y https). Detrás del proxy de IIS, Django ve el Host
+# interno (127.0.0.1:8000) mientras el navegador manda Origin
+# https://saladepartos.hosdenar.gov.co -- sin esto, todo POST (login,
+# guardar, subir huella) fallaba con 403 CSRF desde el dominio.
+if _ALLOWED:
+    CSRF_TRUSTED_ORIGINS += [
+        f'{esquema}://{h}' for h in ALLOWED_HOSTS
+        if h != '*' and not h.startswith('.') for esquema in ('https', 'http')
+    ]
 
 
 # ---------------------------------------------------------------------------

@@ -83,10 +83,14 @@
         // Base SOLO hasta /api (sin rutas). Ej.: fetch(`${API_BASE}/pacientes/listar-embarazadas/?...`)
         // Si cambia la IP del servidor, usar el host actual mantiene la conectividad.
         const inferida = inferirURLBackendPorHostActual();
+        // 2026-10-05: staging/production usaban URLs de ejemplo
+        // (api.ejemplo.com) que no existen: un dominio que contuviera "prod",
+        // "test" o "qa" dejaba Trabajo de Parto sin API. El backend siempre
+        // es el mismo servidor de la página, en cualquier entorno.
         const configuracionesPorEntorno = {
             development: inferida,
-            staging: 'http://staging-api.ejemplo.com/api',
-            production: 'https://api.ejemplo.com/api'
+            staging: inferida,
+            production: inferida
         };
 
         const urlBase = configuracionesPorEntorno[entorno] || configuracionesPorEntorno.development;

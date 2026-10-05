@@ -55,35 +55,27 @@ Mapeo DE PRUEBA — % de O2 requerido y Nivel de Conciencia (2026-09-08, ajustad
     tabla física FRSPA-026, en vez de un solo número libre:
 
         OID  Nombre en Dinámica (DGEMPRES01)   Rango declarado
-        27   AIRE AMBIENTE                     0 - 1     (era el "% de O2
-                                                          requerido" original,
-                                                          solo le cambiaron
-                                                          el nombre)
-        29   24-39%                            24 - 39
-        30   >=40%                             40 - (sin tope)
-        28   ALERTA=GLASGOW 15                 0 - 1     (era "NIVEL DE
-                                                          CONCIENCIA" original,
-                                                          solo le cambiaron
-                                                          el nombre)
-        31   NO ALERTA=GLASGOW<15              sin rango
+        27   AIRE AMBIENTE                     hasta 21
+        28   24-39%                            24 - 39
+        29   >=40%                             40 - (sin tope)
+        30   ALERTA=GLASGOW 15                 hasta 15
+        31   NO ALERTA=GLASGOW<15              hasta 15
+
+        (Renumerado: hasta el 2026-10-05 el código tenía 28=Alerta y
+        29/30=O2, ver constantes _OID_* más abajo.)
 
     La enfermera diligencia UNA sola de las 3 opciones de O2 y UNA sola de
     las 2 de conciencia por toma (confirmado con el usuario 2026-09-09),
     dejando las demás en blanco — como un grupo de radio-buttons.
 
-    ⚠️ OID 27 y 28 son los MISMOS que ya usábamos desde el 2026-09-08 (antes
-    numéricos libres) — a pesar del rango declarado "0-1" en el catálogo, en
-    la práctica TODAVÍA aceptan y guardan un número libre igual que antes
-    (confirmado con datos reales: hay tomas con HCSVALOR="23","41","45" en
-    OID 27 y "21" en OID 28 — ninguno es 0 ni 1). Por eso, para O2 se toma el
-    NÚMERO REAL que traiga cualquiera de los 3 OID (27/29/30, el que la
+    ⚠️ Los 5 campos aceptan y guardan un número libre (confirmado con datos
+    reales: OID 27 trae "21", OID 28 "24"-"32", OID 29 "40"/"50"). Por eso,
+    para O2 se toma el
+    NÚMERO REAL que traiga cualquiera de los 3 OID (27/28/29, el que la
     enfermera haya diligenciado) como `o2_req` tal cual — igual que antes,
-    solo que ahora puede venir de 3 sitios en vez de uno. Para conciencia, en
-    cambio, NO se usa el número que traiga OID 28/31 (no es confiable como
-    puntaje de Glasgow real, ver hallazgo previo del valor "21"): alcanza con
-    saber CUÁL de los dos EXISTE para esa toma — 28 presente -> Alerta
-    (Glasgow 15, se fuerza el valor a 15); 31 presente -> No Alerta (se fuerza
-    a 0, cualquier valor 0-14 dispara el mismo puntaje 3 en RangoParametro).
+    solo que ahora puede venir de 3 sitios en vez de uno. Para conciencia
+    (OID 30/31) también manda el número digitado (2026-10-05): 15 -> 0
+    puntos, <15 -> 3 puntos; la casilla solo decide si no trae número.
 
     ⚠️ IMPORTANTE: estos números de OID son específicos de DGEMPRES01 — cada
     base de datos numera su propio catálogo HCNTIPSVIT de forma independiente,
@@ -114,10 +106,15 @@ _OID_FETOCARDIO = 20
 # confirmados todavía en Nexus/producción. El formulario de enfermería usa
 # uno de estos 3 para O2 y uno de estos 2 para conciencia, nunca ambos del
 # mismo grupo a la vez (ver docstring).
+# 2026-10-05: el catálogo HCNTIPSVIT de DGEMPRES01 se renumeró (verificado
+# contra la BD): 27 AIRE AMBIENTE, 28 24-39%, 29 >=40%, 30 ALERTA=GLASGOW 15,
+# 31 NO ALERTA=GLASGOW<15. Con el mapeo anterior (28=Alerta, 30=>=40%) la
+# toma "Alerta" (OID 30, valor 15) se leía como o2_req=15 -- pisando el 21
+# de aire ambiente -- y Glasgow quedaba vacío en el formato MEOWS.
 _OID_O2_AIRE_AMBIENTE = 27  # numérico libre pese al nombre, ver docstring
-_OID_O2_24_39 = 29
-_OID_O2_MAYOR_40 = 30
-_OID_GLASGOW_ALERTA = 28  # numérico libre pese al nombre, pero se ignora su valor
+_OID_O2_24_39 = 28
+_OID_O2_MAYOR_40 = 29
+_OID_GLASGOW_ALERTA = 30  # numérico libre pese al nombre, pero se ignora su valor
 _OID_GLASGOW_NO_ALERTA = 31
 
 _OIDS_USADOS = (
@@ -283,17 +280,17 @@ def obtener_signos_vitales_nuevos(folio, desde=None, ingreso_oid=None):
             # sea, su número real es el % de O2 requerido.
             lectura["o2_req"] = _a_numero(valor)
             lectura["_oids"]["o2_req"] = fila_oid
-        elif tipo_oid == _OID_GLASGOW_ALERTA:
-            # No se usa el número que traiga (no es un Glasgow real, ver
-            # docstring) — que este OID exista para la toma YA significa
-            # "Alerta", se fuerza a 15 (única franja de RangoParametro que
-            # da puntaje 0).
-            lectura["glasgow"] = 15
-            lectura["_oids"]["glasgow"] = fila_oid
-        elif tipo_oid == _OID_GLASGOW_NO_ALERTA:
-            # Mismo criterio: "No Alerta" se fuerza a un valor dentro de la
-            # franja 0-14 (puntaje 3), sin importar qué número traiga.
-            lectura["glasgow"] = 0
+        elif tipo_oid in (_OID_GLASGOW_ALERTA, _OID_GLASGOW_NO_ALERTA):
+            # 2026-10-05 (definido por el usuario): manda el NÚMERO digitado,
+            # no la casilla -- 15 -> 0 puntos BLANCO, <15 -> 3 puntos ROJO
+            # (franjas de RangoParametro). Pasa porque en la casilla "Alerta"
+            # también se digitan 14, 13, 3... Solo si no trae un número
+            # válido (vacío o >15) se usa la casilla: Alerta -> 15,
+            # No Alerta -> 0.
+            glasgow = _a_numero(valor)
+            if glasgow is None or not 0 <= glasgow <= 15:
+                glasgow = 15 if tipo_oid == _OID_GLASGOW_ALERTA else 0
+            lectura["glasgow"] = glasgow
             lectura["_oids"]["glasgow"] = fila_oid
 
     for hora, valor_pulso in pulso_por_hora.items():

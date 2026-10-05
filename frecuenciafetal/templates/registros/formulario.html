@@ -4544,7 +4544,7 @@
               <span class="titulo-placa-texto">
                 <span class="titulo-placa-kicker">Control posparto · Neonato</span>
                 <span class="titulo-placa-principal">Control del recién nacido</span>
-                <span class="titulo-placa-ayuda">Los campos con * y la huella plantar (PDF) son obligatorios para cerrar el registro.</span>
+                <span class="titulo-placa-ayuda">Los campos con * y la foto de la huella plantar son obligatorios para cerrar el registro.</span>
               </span>
             </div>
             {# 2026-09-30: rediseño -- datos en dos columnas (bloques emparejados por #}
@@ -4774,28 +4774,28 @@
                     <span class="rn-huella-icono"><i data-lucide="footprints"></i></span>
                     <span class="rn-huella-tit">
                       <span class="rn-huella-titulo">Huella plantar <b class="rn-obl">*</b></span>
-                      <span class="rn-huella-sub">PDF escaneado · obligatoria para cerrar</span>
+                      <span class="rn-huella-sub">Foto con la cámara · obligatoria para cerrar</span>
                     </span>
                     <span class="rn-huella-estado" id="rn-huella-estado">Sin cargar</span>
                   </div>
                   <div class="rn-huella-visor" id="rn-huella-visor">
-                    {# 2026-10-01: botón explícito "Cargar huella PDF" además del arrastre #}
-                    {# (antes solo se podía hacer clic en la zona o arrastrar el archivo). #}
                     <div class="rn-huella-vacio" id="rn-huella-vacio">
                       <span class="rn-huella-vacio-icono"><i data-lucide="file-up"></i></span>
                       <strong>Suba la huella plantar</strong>
-                      <span id="rn-huella-vacio-ayuda">Use el botón o arrastre el PDF escaneado a este recuadro.</span>
-                      <button type="button" class="rn-huella-btn-cargar" id="rn-huella-btn-cargar">
-                        <i data-lucide="upload"></i> Cargar huella PDF
+                      <span id="rn-huella-vacio-ayuda">Tome la foto de la huella con la cámara.</span>
+                      {# 2026-10-05: la huella se toma SOLO con la cámara (tablet/celular); #}
+                      {# se quitaron la carga de PDF y el arrastre. El servidor convierte #}
+                      {# la foto a PDF (ver _foto_a_pdf_huella). #}
+                      <button type="button" class="rn-huella-btn-cargar" id="rn-huella-btn-foto">
+                        <i data-lucide="camera"></i> Tomar foto
                       </button>
-                      <small>PDF · máximo 10 MB · hasta 3 páginas</small>
                     </div>
                   </div>
                   <div class="rn-huella-meta" id="rn-huella-meta"></div>
                   <div class="rn-huella-acciones">
-                    <input type="file" id="rn-huella-input" accept="application/pdf,.pdf" hidden>
-                    <button type="button" class="btn-pp-quick rn-huella-btn-principal" id="rn-huella-btn-subir" onclick="document.getElementById('rn-huella-input').click()">
-                      <i data-lucide="upload"></i> <span id="rn-huella-btn-texto">Subir PDF</span>
+                    <input type="file" id="rn-huella-camara" accept="image/*" capture="environment" hidden>
+                    <button type="button" class="btn-pp-quick rn-huella-btn-principal" id="rn-huella-btn-subir" onclick="document.getElementById('rn-huella-camara').click()">
+                      <i data-lucide="camera"></i> <span id="rn-huella-btn-texto">Tomar otra foto</span>
                     </button>
                     <a id="rn-huella-abrir" class="rn-huella-accion" target="_blank" rel="noopener" hidden><i data-lucide="maximize-2"></i> Ver en grande</a>
                     <button type="button" class="rn-huella-accion rn-huella-quitar" id="rn-huella-btn-quitar" onclick="quitarHuellaRN()" hidden><i data-lucide="trash-2"></i> Quitar</button>
@@ -6833,7 +6833,7 @@
             const faltan = RN_OBLIGATORIOS_CIERRE
               .filter(([id, tipo]) => leerCampoRN(id, tipo) === null)
               .map(([, , etiqueta]) => etiqueta);
-            if (!rnHuella.tiene) faltan.push('huella plantar (PDF)');
+            if (!rnHuella.tiene) faltan.push('foto de la huella plantar');
             return faltan;
           }
 
@@ -6998,7 +6998,7 @@
             pintarHuellaRN();
           }
 
-          // Huella plantar: PDF escaneado, se sube aparte del autoguardado.
+          // Huella plantar: foto con la cámara (el servidor la guarda como PDF), se sube aparte del autoguardado.
           const HUELLA_RN_MAX_MB = 10;
 
           function huellaRNBloqueada() {
@@ -7033,7 +7033,7 @@
               abrir.href = url;
               abrir.hidden = false;
               btnQuitar.hidden = bloqueada;
-              document.getElementById('rn-huella-btn-texto').textContent = 'Reemplazar PDF';
+              document.getElementById('rn-huella-btn-texto').textContent = 'Tomar otra foto';
             } else {
               visor.classList.remove('con-huella');
               vacio.hidden = false;
@@ -7044,33 +7044,55 @@
               abrir.hidden = true;
               abrir.removeAttribute('href');
               btnQuitar.hidden = true;
-              document.getElementById('rn-huella-btn-texto').textContent = 'Subir PDF';
+              document.getElementById('rn-huella-btn-texto').textContent = 'Tomar foto';
             }
-            // Sin huella, la carga se hace con "Cargar huella PDF" (dentro del
-            // recuadro); el botón de abajo queda solo para "Reemplazar PDF".
+            // Sin huella, la foto se toma con "Tomar foto" (dentro del
+            // recuadro); el botón de abajo queda solo para "Tomar otra foto".
             btnSubir.hidden = bloqueada || !(rnHuella.tiene && savedRegistroId);
+            const btnFoto = document.getElementById('rn-huella-btn-foto');
+            if (btnFoto) btnFoto.hidden = bloqueada;
             // Cerrado / solo consulta: la zona vacía deja de invitar a subir.
             document.getElementById('rn-huella')?.classList.toggle('rn-huella-bloqueada', bloqueada);
             const vacioTitulo = vacio.querySelector('strong');
             if (vacioTitulo) vacioTitulo.textContent = bloqueada ? 'Sin huella cargada' : 'Suba la huella plantar';
-            const btnCargar = document.getElementById('rn-huella-btn-cargar');
-            if (btnCargar) btnCargar.hidden = bloqueada;
             const ayuda = document.getElementById('rn-huella-vacio-ayuda');
             if (ayuda) ayuda.textContent = bloqueada
               ? (registroCerrado ? 'El registro está cerrado: ya no se puede cargar la huella.'
                                  : 'Solo consulta: en este ingreso no se puede cargar la huella.')
-              : 'Use el botón o arrastre el PDF escaneado a este recuadro.';
+              : 'Tome la foto de la huella con la cámara.';
+          }
+
+          // 2026-10-05: la foto de la cámara se reduce aquí (lado mayor 2400 px,
+          // JPEG) antes de subirla: una foto de celular puede pesar 5-15 MB y
+          // en la wifi de la sala tarda. El servidor la convierte a PDF.
+          // Si el navegador no logra reducirla, se sube tal cual.
+          async function reducirFotoHuellaRN(archivo) {
+            const LADO_MAX = 2400;
+            try {
+              const bitmap = await createImageBitmap(archivo, { imageOrientation: 'from-image' });
+              const escala = Math.min(1, LADO_MAX / Math.max(bitmap.width, bitmap.height));
+              const canvas = document.createElement('canvas');
+              canvas.width = Math.round(bitmap.width * escala);
+              canvas.height = Math.round(bitmap.height * escala);
+              canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+              bitmap.close?.();
+              const blob = await new Promise(ok => canvas.toBlob(ok, 'image/jpeg', 0.85));
+              return blob ? new File([blob], 'huella.jpg', { type: 'image/jpeg' }) : archivo;
+            } catch (e) {
+              return archivo;
+            }
           }
 
           async function subirHuellaRN(archivo) {
             if (!archivo || huellaRNBloqueada()) return;
-            const esPdf = archivo.type === 'application/pdf' || /\.pdf$/i.test(archivo.name || '');
-            if (!esPdf) { showToast('La huella debe subirse en formato PDF.', 'error'); return; }
+            const esFoto = /^image\//.test(archivo.type || '') || /\.(jpe?g|png|webp|heic|heif)$/i.test(archivo.name || '');
+            if (!esFoto) { showToast('La huella debe ser una foto tomada con la cámara.', 'error'); return; }
+            archivo = await reducirFotoHuellaRN(archivo);
             if (archivo.size > HUELLA_RN_MAX_MB * 1024 * 1024) {
-              showToast(`El PDF pesa ${(archivo.size / 1048576).toFixed(1)} MB; el máximo es ${HUELLA_RN_MAX_MB} MB.`, 'error');
+              showToast(`El archivo pesa ${(archivo.size / 1048576).toFixed(1)} MB; el máximo es ${HUELLA_RN_MAX_MB} MB.`, 'error');
               return;
             }
-            if (rnHuella.tiene && !confirm('Ya hay una huella cargada. ¿Reemplazarla por este archivo?')) return;
+            if (rnHuella.tiene && !confirm('Ya hay una huella cargada. ¿Reemplazarla por esta foto?')) return;
 
             // La huella cuelga del registro: si aún no existe, se guarda primero.
             if (!savedRegistroId) {
@@ -7126,33 +7148,21 @@
           }
 
           function iniciarHuellaRN() {
-            const input = document.getElementById('rn-huella-input');
-            const visor = document.getElementById('rn-huella-visor');
-            if (!input || !visor) return;
-            input.addEventListener('change', () => {
-              const archivo = input.files && input.files[0];
-              input.value = '';  // permite volver a elegir el mismo archivo
+            // 2026-10-05: solo cámara (se quitaron el selector de PDF y el
+            // arrastre). Toda la zona vacía abre la cámara; el botón
+            // "Tomar foto" da el acceso con teclado.
+            const camara = document.getElementById('rn-huella-camara');
+            if (!camara) return;
+            camara.addEventListener('change', () => {
+              const archivo = camara.files && camara.files[0];
+              camara.value = '';  // permite volver a tomar la foto
               subirHuellaRN(archivo);
             });
-            ['dragenter', 'dragover'].forEach(ev => visor.addEventListener(ev, e => {
-              if (huellaRNBloqueada()) return;
-              e.preventDefault();
-              visor.classList.add('arrastrando');
-            }));
-            ['dragleave', 'drop'].forEach(ev => visor.addEventListener(ev, () => visor.classList.remove('arrastrando')));
-            visor.addEventListener('drop', e => {
-              if (huellaRNBloqueada()) return;
-              e.preventDefault();
-              subirHuellaRN(e.dataTransfer.files && e.dataTransfer.files[0]);
-            });
-            // Toda la zona vacía abre el selector de archivo; el botón
-            // "Cargar huella PDF" da el acceso con teclado.
-            const vacio = document.getElementById('rn-huella-vacio');
-            const abrirSelector = () => { if (!huellaRNBloqueada()) input.click(); };
-            vacio?.addEventListener('click', abrirSelector);
-            document.getElementById('rn-huella-btn-cargar')?.addEventListener('click', e => {
-              e.stopPropagation();  // si no, el clic llega también a la zona y abre el selector dos veces
-              abrirSelector();
+            const abrirCamara = () => { if (!huellaRNBloqueada()) camara.click(); };
+            document.getElementById('rn-huella-vacio')?.addEventListener('click', abrirCamara);
+            document.getElementById('rn-huella-btn-foto')?.addEventListener('click', e => {
+              e.stopPropagation();  // si no, el clic llega también a la zona y abre la cámara dos veces
+              abrirCamara();
             });
             // Los Sí/No del recién nacido se pueden desmarcar (volver a "sin
             // dato") con un segundo clic sobre la opción ya marcada.

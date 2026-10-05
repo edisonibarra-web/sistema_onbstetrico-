@@ -199,6 +199,43 @@ def _cerrar_y_enviar_a_repositorio(instance, request, data):
 # permitir archivos desproporcionados.
 HUELLA_RN_MAX_BYTES = 10 * 1024 * 1024
 HUELLA_RN_MAX_PAGINAS = 3
+# 2026-10-05: la huella también se puede tomar como foto con la cámara de la
+# tablet/celular. La foto se convierte aquí a un PDF de una página, así todo
+# lo demás (visor, PDF del registro, repositorio) sigue recibiendo un PDF.
+HUELLA_RN_FOTO_LADO_MAX = 2400  # px del lado mayor; legible y liviana
+
+
+def _foto_a_pdf_huella(archivo):
+    """Si `archivo` es una imagen (JPEG/PNG/WebP), devuelve (ContentFile PDF,
+    None); si no es imagen, (archivo, None) sin tocarlo; si es una imagen
+    que no se puede leer, (None, mensaje de error)."""
+    import io
+    from django.core.files.base import ContentFile
+    from PIL import Image, ImageOps, UnidentifiedImageError
+
+    if archivo is None or archivo.size == 0 or archivo.size > HUELLA_RN_MAX_BYTES:
+        return archivo, None  # _validar_pdf_huella da el mensaje
+    archivo.seek(0)
+    if archivo.read(1024).lstrip().startswith(b'%PDF-'):
+        archivo.seek(0)
+        return archivo, None
+    archivo.seek(0)
+    try:
+        imagen = Image.open(archivo)
+        if imagen.format not in ('JPEG', 'PNG', 'WEBP', 'MPO'):
+            archivo.seek(0)
+            return archivo, None
+        imagen = ImageOps.exif_transpose(imagen)  # foto de celular: respeta la orientación
+        imagen.thumbnail((HUELLA_RN_FOTO_LADO_MAX, HUELLA_RN_FOTO_LADO_MAX))
+        imagen = imagen.convert('RGB')
+        salida = io.BytesIO()
+        imagen.save(salida, format='PDF', resolution=200.0, quality=85)
+    except (UnidentifiedImageError, Image.DecompressionBombError):
+        archivo.seek(0)
+        return archivo, None
+    except Exception:
+        return None, 'La foto está dañada o no se puede leer. Tómela de nuevo.'
+    return ContentFile(salida.getvalue(), name='huella.pdf'), None
 
 
 def _validar_pdf_huella(archivo):
@@ -214,7 +251,7 @@ def _validar_pdf_huella(archivo):
     archivo.seek(0)
     if not archivo.read(1024).lstrip().startswith(b'%PDF-'):
         archivo.seek(0)
-        return 'El archivo no es un PDF. Escanee la huella y guárdela en formato PDF.'
+        return 'El archivo no es una foto válida. Tome la foto de la huella con la cámara.'
     archivo.seek(0)
     try:
         from pypdf import PdfReader
@@ -440,8 +477,8 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
                 registrar_participacion(registro, request)
             return Response({'tiene_huella': False})
 
-        archivo = request.FILES.get('archivo')
-        error = _validar_pdf_huella(archivo)
+        archivo, error = _foto_a_pdf_huella(request.FILES.get('archivo'))
+        error = error or _validar_pdf_huella(archivo)
         if error:
             return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
 
