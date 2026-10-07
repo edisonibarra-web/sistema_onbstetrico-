@@ -3361,13 +3361,21 @@
     .ppw-estado.abierto { background: #cffafe; color: #0e7490; border-color: #67e8f9; }
     .ppw-estado.cerrado { background: #dcfce7; color: #166534; border-color: #86efac; }
     .ppw-estado.consulta { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+    /* 2026-10-07: más grande y llamativo (antes una etiqueta verde pequeña). */
     .ppw-readonly {
-      margin-left: auto; display: inline-flex; align-items: center; gap: .35rem;
-      background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #065f46; border: 1.5px solid #4ade80;
-      border-radius: .5rem; padding: .25rem .7rem; font-size: .72rem; font-weight: 800; letter-spacing: .03em;
+      margin-left: auto; display: inline-flex; align-items: center; gap: .55rem;
+      background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color: #fff; border: 2px solid #fde68a;
+      border-radius: 999px; padding: .55rem 1.2rem; font-size: 1rem; font-weight: 900; letter-spacing: .08em;
+      box-shadow: 0 6px 18px rgba(234, 88, 12, .45); text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+      animation: ppw-readonly-latido 2s ease-in-out infinite;
     }
     .ppw-readonly[hidden] { display: none; }
-    .ppw-readonly svg { width: 14px; height: 14px; }
+    .ppw-readonly svg { width: 22px; height: 22px; stroke-width: 2.5; }
+    @keyframes ppw-readonly-latido {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, .55), 0 6px 18px rgba(234, 88, 12, .45); }
+      50% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0), 0 6px 18px rgba(234, 88, 12, .45); }
+    }
+    @media (prefers-reduced-motion: reduce) { .ppw-readonly { animation: none; } }
 
     /* Indicador de guardado automático dentro del encabezado (ver pintarEstadoGuardado). */
     .ppw-hdr .autosave-status {
@@ -3512,7 +3520,21 @@
       margin-left: auto; flex-shrink: 0; border: none; border-radius: 10px; padding: .5rem .8rem;
       background: #fff; color: #166534; font-weight: 800; font-size: .82rem; cursor: pointer;
     }
-    @media (prefers-reduced-motion: reduce) { .ppw-step.listo-guardar, .ppw-alerta-listo { animation: none; } }
+    /* 2026-10-07: aviso "Falta el nombre del acompañante" (ámbar). */
+    .ppw-alerta-acomp {
+      max-width: 420px; flex-wrap: wrap; background: linear-gradient(135deg, #f59e0b, #d97706);
+      box-shadow: 0 12px 30px rgba(217, 119, 6, .38); animation: ppw-latido-ambar 1.4s ease-in-out infinite;
+    }
+    .ppw-alerta-acomp > div:first-of-type { flex: 1 1 220px; }
+    .ppw-alerta-acomp-btns { display: flex; gap: 8px; margin-left: auto; }
+    .ppw-alerta-acomp button { margin-left: 0; color: #92400e; }
+    .ppw-alerta-acomp #ppw-sin-acomp { background: #78350f; color: #fff; }
+    @keyframes ppw-latido-ambar {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, .6), 0 12px 30px rgba(217, 119, 6, .38); }
+      50% { box-shadow: 0 0 0 9px rgba(245, 158, 11, 0), 0 12px 30px rgba(217, 119, 6, .38); }
+    }
+    .pcard-field.acomp-falta { outline: 3px solid #f59e0b; outline-offset: 2px; border-radius: 12px; animation: ppw-latido-ambar 1.4s ease-in-out infinite; }
+    @media (prefers-reduced-motion: reduce) { .ppw-step.listo-guardar, .ppw-alerta-listo, .pcard-field.acomp-falta { animation: none; } }
 
     /* 2026-10-06: pasos y campos con datos faltantes (en rojo, en vivo). */
     .ppw-step.falta { --c: #dc2626; --c-fondo: #fef2f2; --c-borde: #f87171; --c-sombra: rgba(220, 38, 38, .28); }
@@ -10251,6 +10273,14 @@
                 <i data-lucide="check-circle-2"></i>
                 <div><strong>Ya puede guardar el registro</strong><span>Use "Guardar Registro Completo" en el paso Finalización.</span></div>
                 <button type="button" class="ppw-ctrl" id="ppw-ir-guardar">Ir a guardar</button>
+              </div>
+              <div class="ppw-alerta-listo ppw-alerta-acomp" id="ppw-alerta-acomp" role="alert" hidden>
+                <i data-lucide="user-x"></i>
+                <div><strong>Falta el nombre del acompañante</strong><span>Es lo único que falta para guardar el registro. Si no tuvo acompañante, escriba "SIN ACOMPAÑANTE".</span></div>
+                <div class="ppw-alerta-acomp-btns">
+                  <button type="button" class="ppw-ctrl" id="ppw-ir-acomp">Escribir nombre</button>
+                  <button type="button" class="ppw-ctrl" id="ppw-sin-acomp">Sin acompañante</button>
+                </div>
               </div>`;
             cont.parentNode.insertBefore(shell, cont);
             shell.querySelector('.ppw-body').appendChild(cont);
@@ -10284,6 +10314,22 @@
             };
             moverVistaPrevia();
             document.addEventListener('selector-ingreso:cargado', () => setTimeout(moverVistaPrevia, 0));
+            // 2026-10-07: aviso "Falta el nombre del acompañante".
+            document.getElementById('ppw-ir-acomp').addEventListener('click', () => {
+              const campo = document.getElementById('nombre_acompanante');
+              if (!campo) return;
+              campo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              campo.focus({ preventScroll: true });
+            });
+            document.getElementById('ppw-sin-acomp').addEventListener('click', () => {
+              const campo = document.getElementById('nombre_acompanante');
+              if (!campo || registroCerrado || window.MODO_SOLO_CONSULTA) return;
+              campo.value = 'SIN ACOMPAÑANTE';
+              // Mismos eventos que al escribir: autoguardado y botón de cierre al día.
+              campo.dispatchEvent(new Event('input', { bubbles: true }));
+              campo.dispatchEvent(new Event('change', { bubbles: true }));
+              showToast('Se registró "SIN ACOMPAÑANTE".', 'success');
+            });
             document.getElementById('ppw-ir-guardar').addEventListener('click', () => {
               const iFin = ppwPasos.findIndex(p => p.id === 'finalizacion');
               if (iFin >= 0) ppwIrA(iFin, false);
@@ -10365,9 +10411,8 @@
             ['rn_oximetria_nacimiento_preductal', 'ent', 'Oximetría al nacer (preductal)'],
             ['rn_oximetria_nacimiento_posductal', 'ent', 'Oximetría al nacer (posductal)'],
             ['rn_tanac_msd', 'texto', 'TA al nacer MSD'],
-            ['rn_tanac_msi', 'texto', 'TA al nacer MSI'],
-            ['rn_tanac_mid', 'texto', 'TA al nacer MID'],
-            ['rn_tanac_miiz', 'texto', 'TA al nacer MIIZ'],
+            // 2026-10-07: TA al nacer MSI / MID / MIIZ ya no se marcan como
+            // faltantes (por lo general no se toman); se siguen guardando si se llenan.
             ['rn_fc_nacimiento', 'ent', 'FC al nacer'],
             ['rn_parto_atendido_por', 'texto', 'Parto atendido por'],
             ['rn_neonato_atendido_por', 'texto', 'Neonato atendido por'],
@@ -10529,6 +10574,11 @@
             }
             const alertaListo = document.getElementById('ppw-alerta-listo');
             if (alertaListo) alertaListo.hidden = !listo;
+            // 2026-10-07: todo listo menos el acompañante -> aviso y campo resaltado.
+            const soloAcomp = !!(cierreSoloFaltaAcompanante && !listo && !registroCerrado && !window.MODO_SOLO_CONSULTA);
+            const alertaAcomp = document.getElementById('ppw-alerta-acomp');
+            if (alertaAcomp) alertaAcomp.hidden = !soloAcomp;
+            document.getElementById('nombre_acompanante')?.closest('.pcard-field')?.classList.toggle('acomp-falta', soloAcomp);
 
             const pon = (id, texto) => { const el = document.getElementById(id); if (el) el.textContent = texto || '—'; };
             pon('ppw-res-nombre', v('nombre_paciente'));
@@ -11072,6 +11122,9 @@
           // minuto 360 (misma regla que _faltantes_control_6h en views.py).
           // Los registros antiguos con signos vitales al 360 siguen valiendo.
           let cierrePospartoAntiguo360 = false;
+          // 2026-10-07: true cuando el acompañante es lo único que impide cerrar
+          // (ver actualizarDisponibilidadCierre / aviso #ppw-alerta-acomp).
+          let cierreSoloFaltaAcompanante = false;
 
           function faltantesControl6h() {
             if (cierrePospartoAntiguo360) return [];
@@ -11105,6 +11158,7 @@
 
           function actualizarDisponibilidadCierre(data) {
             const btn = document.getElementById('submit-btn');
+            cierreSoloFaltaAcompanante = false;
             if (!btn || registroCerrado) { pintarMotivoCierre(''); return; } // ya bloqueado por otro motivo (cerrado)
             const hayRegistro = savedRegistroId || (data && data.id);
             if (data && Array.isArray(data.controles_postparto)) {
@@ -11126,6 +11180,7 @@
               if (faltaHora) pendientes.push('hora de parto ("Características del parto")');
               const faltanRN = faltantesRecienNacido();
               if (faltanRN.length) pendientes.push('en "Control del recién nacido": ' + faltanRN.join(', '));
+              cierreSoloFaltaAcompanante = faltaAcompanante && pendientes.length === 1;
               if (pendientes.length) {
                 btn.disabled = true;
                 btn.title = 'Para cerrar el registro falta: ' + pendientes.join('; ') + '.';
