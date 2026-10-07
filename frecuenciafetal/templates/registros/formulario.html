@@ -10070,10 +10070,23 @@
             pintar(nativo.get.call(real));
           }
 
+          // 2026-10-07: con el registro ya creado, estos datos vacíos NO frenan
+          // el autoguardado (antes se detenía todo, incluso las tomas de
+          // fetocardia nuevas, y al recargar se perdían): ese campo no se
+          // envía y se conserva el valor que ya estaba guardado.
+          const OBLIGATORIOS_PACIENTE = [
+            ['nombre_paciente', 'El nombre de la paciente es requerido.', 'el nombre de la paciente'],
+            ['identificacion', 'La identificación es requerida.', 'la identificación'],
+            ['edad_gestacional', 'La edad gestacional es requerida.', 'la edad gestacional'],
+          ];
+
           function validate(payload, silencioso = false) {
-            if (!payload.nombre_paciente) { if (!silencioso) marcarCampoError('nombre_paciente'); return 'El nombre de la paciente es requerido.'; }
-            if (!payload.identificacion) { if (!silencioso) marcarCampoError('identificacion'); return 'La identificación es requerida.'; }
-            if (!payload.edad_gestacional) { if (!silencioso) marcarCampoError('edad_gestacional'); return 'La edad gestacional es requerida.'; }
+            const yaCreado = silencioso && !!savedRegistroId;
+            if (!yaCreado) {
+              for (const [campo, mensaje] of OBLIGATORIOS_PACIENTE) {
+                if (!payload[campo]) { if (!silencioso) marcarCampoError(campo); return mensaje; }
+              }
+            }
             // 2026-09-28: el acompañante NO frena el autoguardado (antes, si
             // faltaba, no se guardaba nada en silencio y al recargar se perdía
             // todo lo digitado). Sigue siendo obligatorio al guardar a mano /
@@ -10570,6 +10583,7 @@
               // pantalla (ver cambiosDesdeBase); antes PUT con todo.
               const method = isUpdate ? 'PATCH' : 'POST';
               const foto = fotoPantalla();
+              const obligatoriosVacios = [];
               let cuerpo = payload;
               if (isUpdate) {
                 if (!baseServidor) {
@@ -10578,6 +10592,13 @@
                 }
                 cuerpo = cambiosDesdeBase(foto);
                 cuerpo.completar = payload.completar;
+                // Obligatorios vacíos: no se envían (se conserva lo guardado).
+                OBLIGATORIOS_PACIENTE.forEach(([campo, , etq]) => {
+                  if (campo in cuerpo && (cuerpo[campo] === null || cuerpo[campo] === '')) {
+                    delete cuerpo[campo];
+                    obligatoriosVacios.push(etq);
+                  }
+                });
               }
 
               const res = await fetch(url, {
@@ -10641,8 +10662,16 @@
               if (data.control_recien_nacido) rnExiste = true;
               // Lo enviado ya es lo que hay en el servidor; lo que no se tocó
               // aquí se pone al día con la respuesta.
-              if (isUpdate) aplicarEnviadoABase(cuerpo, foto);
-              else baseServidor = JSON.parse(JSON.stringify(foto));
+              if (isUpdate) {
+                aplicarEnviadoABase(cuerpo, foto);
+              } else {
+                // 2026-10-07: HALLAZGO -- primero se enlazan las filas que se
+                // acaban de crear con su id; antes se refrescaba primero y la
+                // toma de fetocardia aparecía DOS veces en pantalla.
+                marcarControlesGuardados(data);
+                baseServidor = JSON.parse(JSON.stringify(foto));
+                buildFetocardiaEdits().forEach(f => { baseServidor.fc[String(f.id)] = JSON.parse(JSON.stringify(f)); });
+              }
               refrescarDesdeServidor(data);
 
               // 2026-09-22: aviso (no bloqueante) de que ya existía otro
@@ -10726,13 +10755,9 @@
                 // duplicar los que siguen en vuelo, y resincronizando si su
                 // minuto ya lo ocupó otra persona).
                 await sincronizarPendientesVigilancia();
-              } else {
-                // Primer guardado: el registro se creó junto con sus controles
-                // anidados (postparto/fetocardia/sangrado) en una sola llamada,
-                // así que aquí solo hace falta enlazar los id devueltos por el
-                // backend a cada fila/columna para que quede editable de inmediato.
-                marcarControlesGuardados(data);
               }
+              // Primer guardado: las filas ya se enlazaron con su id arriba
+              // (marcarControlesGuardados), antes de refrescar desde el servidor.
 
               refrescarResponsables();
               // 2026-10-06: "Guardado" solo si TODO quedó en el servidor; antes
@@ -10744,7 +10769,12 @@
                 else showToast('⚠️ ' + detalle + '.', 'error');
               }
               if (silencioso) {
-                if (!sinGuardar) actualizarEstadoAutoguardado('ok');
+                if (obligatoriosVacios.length) {
+                  const lista = obligatoriosVacios.join(', ');
+                  actualizarEstadoAutoguardado('pendiente', `${lista.charAt(0).toUpperCase() + lista.slice(1)} está vacía: se conserva el valor guardado; lo demás sí se guardó`);
+                } else if (!sinGuardar) {
+                  actualizarEstadoAutoguardado('ok');
+                }
               } else {
                 showToast(temporal
                   ? '✅ Progreso guardado. Puede continuar registrando los siguientes controles.'
@@ -11463,7 +11493,18 @@
             // confirmó, el navegador pregunta antes de cerrar (se perderían).
             window.addEventListener('beforeunload', function (e) {
               if (registroCerrado || window.MODO_SOLO_CONSULTA) return;
-              if (controlesVigilanciaPendientes().length) {
+              // 2026-10-07: también tomas de fetocardia sin guardar y cambios
+              // del formulario que aún no llegaron al servidor (sin contar un
+              // obligatorio vaciado, que no se envía a propósito).
+              let cambiosSinEnviar = false;
+              try {
+                if (baseServidor && savedRegistroId) {
+                  const c = cambiosDesdeBase(fotoPantalla());
+                  OBLIGATORIOS_PACIENTE.forEach(([campo]) => { if (c[campo] === null || c[campo] === '') delete c[campo]; });
+                  cambiosSinEnviar = Object.keys(c).length > 0;
+                }
+              } catch (err) {}
+              if (controlesVigilanciaPendientes().length || filasFetocardiaNuevas().length || cambiosSinEnviar) {
                 e.preventDefault();
                 e.returnValue = '';
               }
@@ -11579,10 +11620,15 @@
                   const eg = document.getElementById('edad_gestacional');
                   const gest = document.getElementById('gestas');
                   const nac = document.getElementById('nombre_acompanante');
-                  if (np) np.value = (data.nombre_paciente || data.nombre_completo || '').trim();
-                  if (eg) eg.value = (data.edad_gestacional != null && data.edad_gestacional !== '') ? String(data.edad_gestacional) : '';
-                  if (gest) gest.value = (data.gestas != null && data.gestas !== '') ? String(data.gestas) : '1';
-                  if (nac) nac.value = (data.nombre_acompanante || '').trim();
+                  // 2026-10-07: solo llena lo que sigue vacío. La respuesta de
+                  // Dinámica puede llegar tarde y antes pisaba (incluso con
+                  // vacío) lo que la persona ya había digitado.
+                  const vacio = el => el && !String(el.value || '').trim();
+                  const nombreDin = (data.nombre_paciente || data.nombre_completo || '').trim();
+                  if (vacio(np) && nombreDin) np.value = nombreDin;
+                  if (vacio(eg) && data.edad_gestacional != null && data.edad_gestacional !== '') eg.value = String(data.edad_gestacional);
+                  if (gest && (vacio(gest) || gest.value === '1') && data.gestas != null && data.gestas !== '') gest.value = String(data.gestas);
+                  if (vacio(nac) && (data.nombre_acompanante || '').trim()) nac.value = data.nombre_acompanante.trim();
                 }
               })
               .catch(() => {});
