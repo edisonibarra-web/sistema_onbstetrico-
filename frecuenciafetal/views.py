@@ -33,6 +33,7 @@ from .serializers import (
 from .pdf_generator import generar_pdf_registro
 from .responsables import (
     firma_sesion, registrar_participacion, responsables_para_api, valores_modelo,
+    bitacora_registro_y_rn, registrar_cambios, responsables_por_seccion,
 )
 from .sala_partos_db import listar_pacientes_sala_partos
 from obstetriciaunificador.models import AtencionParto
@@ -107,6 +108,32 @@ def _faltantes_recien_nacido(registro):
     return faltan
 
 
+# 2026-10-06: la tabla de signos vitales posparto (controles_postparto) ya no
+# está en el formulario, así que el control de las 6 h es el de la vigilancia:
+# Sangrado, Globo de seguridad y Sutura deben tener guardado su control del
+# minuto 360. Los registros antiguos con controles_postparto al 360 siguen
+# valiendo.
+VIGILANCIA_CIERRE = [
+    ('controles_sangrado', 'Sangrado cuantificado'),
+    ('controles_globo', 'Globo de seguridad'),
+    ('controles_sutura', 'Sutura y heridas'),
+]
+
+
+def _faltantes_control_6h(registro):
+    """Lista de las tarjetas de vigilancia sin control del minuto 360
+    (vacía si ya se puede cerrar por esta regla)."""
+    if registro.controles_postparto.filter(minuto_control__gte=MINUTO_ULTIMO_CONTROL_POSPARTO).exists():
+        return []
+    faltan = []
+    for relacion, etiqueta in VIGILANCIA_CIERRE:
+        controles = getattr(registro, relacion)
+        if not controles.filter(minuto_control__gte=MINUTO_ULTIMO_CONTROL_POSPARTO).exists():
+            ultimo = controles.order_by('-minuto_control').first()
+            faltan.append(f'{etiqueta} (último: {ultimo.minuto_control} min)' if ultimo else f'{etiqueta} (sin controles)')
+    return faltan
+
+
 def _intentar_cerrar_registro(instance, request):
     """
     Cierra el ciclo (completado_en/completado_por) si ya está registrado el
@@ -120,25 +147,21 @@ def _intentar_cerrar_registro(instance, request):
 
     from django.utils import timezone
 
-    controles = instance.controles_postparto.order_by('-minuto_control')
-    if not controles.filter(minuto_control__gte=MINUTO_ULTIMO_CONTROL_POSPARTO).exists():
-        ultimo = controles.first()
-        if ultimo is None:
-            detalle = 'Todavía no hay ningún control posparto registrado.'
-        else:
-            detalle = (
-                f'Último control registrado: {ultimo.minuto_control} min '
-                f'({ultimo.hora:%H:%M}).'
-            )
+    faltan_6h = _faltantes_control_6h(instance)
+    if faltan_6h:
         return (
-            'Aún no se puede cerrar el registro: falta el último control '
-            'posparto, el de las 6 horas después del parto (minuto '
-            f'{MINUTO_ULTIMO_CONTROL_POSPARTO}). {detalle}'
+            'Aún no se puede cerrar el registro: falta el control de las 6 horas '
+            f'después del parto (minuto {MINUTO_ULTIMO_CONTROL_POSPARTO}) en '
+            f'{"; ".join(faltan_6h)}.'
         )
 
     # 2026-09-30: la hora de parto también es obligatoria (es además la hora
     # de nacimiento que imprime el PDF en "Control del recién nacido").
     pendientes = []
+    # 2026-10-06: el nombre del acompañante es obligatorio para cerrar (el
+    # formulario lo marca con * y no habilita el botón sin él).
+    if not (instance.nombre_acompanante or '').strip():
+        pendientes.append('en "Datos de la paciente" falta el nombre del acompañante')
     if not instance.hora_parto:
         pendientes.append('en "Características del parto" falta la hora de parto')
     faltan_rn = _faltantes_recien_nacido(instance)
@@ -302,13 +325,30 @@ class ParticipacionEnEdicionMixin:
     """2026-09-28: corregir un control ya guardado también cuenta como haber
     diligenciado el registro (el control conserva a quien lo registró). Solo
     si de verdad cambió algo: al guardar, el formulario reenvía todos los
-    controles ya guardados aunque nadie los haya tocado."""
+    controles ya guardados aunque nadie los haya tocado.
+    2026-10-06: la corrección y la eliminación quedan además en la bitácora
+    del paso (bitacora_seccion / bitacora_etiqueta)."""
+    bitacora_seccion = None
+
+    def bitacora_etiqueta(self, instance):
+        minuto = getattr(instance, 'minuto_control', None)
+        return f'control {minuto} min' if minuto is not None else 'control'
 
     def perform_update(self, serializer):
         antes = valores_modelo(serializer.instance)
         super().perform_update(serializer)
         if valores_modelo(serializer.instance) != antes:
             registrar_participacion(serializer.instance.registro, self.request)
+            if self.bitacora_seccion:
+                registrar_cambios(serializer.instance.registro, self.request, self.bitacora_seccion,
+                                  [('correccion', self.bitacora_etiqueta(serializer.instance))])
+
+    def perform_destroy(self, instance):
+        registro, etiqueta = instance.registro, self.bitacora_etiqueta(instance)
+        super().perform_destroy(instance)
+        registrar_participacion(registro, self.request)
+        if self.bitacora_seccion:
+            registrar_cambios(registro, self.request, self.bitacora_seccion, [('eliminacion', etiqueta)])
 
 
 @method_decorator(never_cache, name='dispatch')
@@ -379,13 +419,28 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
         # llega en la creación misma, para no dejar un registro "completo" a
         # medias sin su sello de cierre.
         registrar_participacion(instance, request)
+        # 2026-10-06: bitácora por paso de lo que llegó ya en la creación.
+        bitacora_registro_y_rn(instance, request, None, self._foto_registro(instance))
         if bool(request.data.get('completar')):
             _cerrar_y_enviar_a_repositorio(instance, request, response_data)
         response_data['responsables'] = responsables_para_api(instance)
+        response_data['responsables_secciones'] = responsables_por_seccion(instance)
 
         return Response(response_data)
 
     def update(self, request, *args, **kwargs):
+        # 2026-10-06: HALLAZGO -- el formulario viejo guardaba con PUT la
+        # pantalla COMPLETA; una pestaña abierta desde antes (campos vacíos)
+        # borraba lo que otra persona ya había guardado (se perdió el recién
+        # nacido). El formulario actual envía PATCH solo con lo que cambió.
+        # Un PUT completo ya no se acepta: una pantalla vieja falla con este
+        # aviso en vez de sobrescribir datos.
+        if not kwargs.get('partial', False):
+            return Response(
+                {'detail': 'Esta pantalla tiene una versión anterior del formulario. Recargue la página (F5) '
+                           'para seguir guardando: no se guardó nada para no sobrescribir datos ya guardados.'},
+                status=status.HTTP_409_CONFLICT,
+            )
         completar = bool(request.data.get('completar'))
         response = super().update(request, *args, **kwargs)
         # 2026-09-22: el cierre del ciclo ("Guardar Registro Completo") es un
@@ -406,6 +461,7 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
             if completar:
                 _cerrar_y_enviar_a_repositorio(instance, request, response.data)
             response.data['responsables'] = responsables_para_api(instance)
+            response.data['responsables_secciones'] = responsables_por_seccion(instance)
         return response
 
     @staticmethod
@@ -419,13 +475,22 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     def perform_update(self, serializer):
         antes = self._foto_registro(serializer.instance)
         super().perform_update(serializer)
-        self._hubo_cambios = self._foto_registro(serializer.instance) != antes
+        despues = self._foto_registro(serializer.instance)
+        self._hubo_cambios = despues != antes
+        if self._hubo_cambios:
+            # 2026-10-06: qué campos de Parto / Recién nacido tocó quien guarda.
+            bitacora_registro_y_rn(serializer.instance, self.request, antes, despues)
 
     @action(detail=True, methods=['get'], url_path='responsables')
     def responsables(self, request, pk=None):
         """2026-09-28: quiénes diligenciaron el registro y qué hizo cada uno
-        (liviano: la pantalla lo refresca después de cada guardado)."""
-        return Response(responsables_para_api(self.get_object()))
+        (liviano: la pantalla lo refresca después de cada guardado).
+        2026-10-06: + 'secciones', los responsables de cada paso."""
+        registro = self.get_object()
+        return Response({
+            'general': responsables_para_api(registro),
+            'secciones': responsables_por_seccion(registro),
+        })
 
     @action(detail=True, methods=['get', 'post', 'delete'], url_path='huella-rn')
     def huella_rn(self, request, pk=None):
@@ -475,6 +540,7 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
                 rn.huella_subida_en = None
                 rn.save(update_fields=['huella_pdf', 'huella_subida_por', 'huella_subida_en'])
                 registrar_participacion(registro, request)
+                registrar_cambios(registro, request, 'recien_nacido', [('eliminacion', 'Huella plantar')])
             return Response({'tiene_huella': False})
 
         archivo, error = _foto_a_pdf_huella(request.FILES.get('archivo'))
@@ -492,6 +558,8 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
         if anterior and anterior != rn.huella_pdf.name:
             rn.huella_pdf.storage.delete(anterior)
         registrar_participacion(registro, request)
+        registrar_cambios(registro, request, 'recien_nacido',
+                          [('correccion' if anterior else 'registro', 'Huella plantar')])
         return Response({
             'tiene_huella': True,
             'huella_subida_por': rn.huella_subida_por,
@@ -657,6 +725,12 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
 class ControlFetocardiaViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     serializer_class = ControlFetocardiaSerializer
 
+    bitacora_seccion = 'fetocardia'
+
+    def bitacora_etiqueta(self, instance):
+        hora = instance.hora.strftime('%H:%M') if hasattr(instance.hora, 'strftime') else str(instance.hora or '')[:5]
+        return f'toma {hora}'.strip()
+
     def get_queryset(self):
         registro_id = self.kwargs.get('registro_pk')
         return ControlFetocardia.objects.filter(registro_id=registro_id)
@@ -785,6 +859,23 @@ class ControlPostpartoViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerrado
     # fila existente) ya hace exactamente eso.
 
 
+def _guardar_control_minuto(serializer, **extra):
+    """2026-10-06: guarda un control de vigilancia; si otro guardado del mismo
+    minuto llegó justo a la vez (ambos pasaron la validación del serializer),
+    responde 400 'minuto_ocupado' en vez de un 500 por IntegrityError."""
+    from django.db import IntegrityError, transaction
+    from rest_framework.exceptions import ValidationError
+    try:
+        with transaction.atomic():
+            return serializer.save(**extra)
+    except IntegrityError:
+        minuto = serializer.validated_data.get('minuto_control')
+        raise ValidationError(
+            {'minuto_control': [f'El control del minuto {minuto} ya está registrado.']},
+            code='minuto_ocupado',
+        )
+
+
 @method_decorator(never_cache, name='dispatch')
 class ControlSangradoViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     """
@@ -795,13 +886,18 @@ class ControlSangradoViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoM
     """
     serializer_class = ControlSangradoSerializer
 
+    bitacora_seccion = 'vigilancia'
+
+    def bitacora_etiqueta(self, instance):
+        return f'Sangrado {instance.minuto_control} min'
+
     def get_queryset(self):
         registro_id = self.kwargs.get('registro_pk')
         return ControlSangrado.objects.filter(registro_id=registro_id)
 
     def perform_create(self, serializer):
         registro = get_object_or_404(RegistroParto, pk=self.kwargs['registro_pk'])
-        serializer.save(registro=registro, **firma_sesion(self.request))
+        _guardar_control_minuto(serializer, registro=registro, **firma_sesion(self.request))
         registrar_participacion(registro, self.request)
         # El `estado` (semáforo) de cada control se calcula en el backend
         # según el acumulado hasta ese punto -- nunca lo manda el cliente.
@@ -817,12 +913,16 @@ class ControlSangradoViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoM
         serializer.save()
         if valores_modelo(serializer.instance) != antes:
             registrar_participacion(serializer.instance.registro, self.request)
+            registrar_cambios(serializer.instance.registro, self.request, self.bitacora_seccion,
+                              [('correccion', self.bitacora_etiqueta(serializer.instance))])
         recalcular_estados_sangrado(serializer.instance.registro)
         serializer.instance.refresh_from_db()
 
     def perform_destroy(self, instance):
-        registro = instance.registro
+        registro, etiqueta = instance.registro, self.bitacora_etiqueta(instance)
         instance.delete()
+        registrar_participacion(registro, self.request)
+        registrar_cambios(registro, self.request, self.bitacora_seccion, [('eliminacion', etiqueta)])
         # Borrar un control cambia el acumulado de todos los posteriores.
         recalcular_estados_sangrado(registro)
 
@@ -834,13 +934,18 @@ class ControlGloboViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoMixi
     a diferencia de ControlSangrado."""
     serializer_class = ControlGloboSerializer
 
+    bitacora_seccion = 'vigilancia'
+
+    def bitacora_etiqueta(self, instance):
+        return f'Globo de seguridad {instance.minuto_control} min'
+
     def get_queryset(self):
         registro_id = self.kwargs.get('registro_pk')
         return ControlGlobo.objects.filter(registro_id=registro_id)
 
     def perform_create(self, serializer):
         registro = get_object_or_404(RegistroParto, pk=self.kwargs['registro_pk'])
-        serializer.save(registro=registro, **firma_sesion(self.request))
+        _guardar_control_minuto(serializer, registro=registro, **firma_sesion(self.request))
         registrar_participacion(registro, self.request)
 
 
@@ -851,13 +956,18 @@ class ControlSuturaViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoMix
     a diferencia de ControlSangrado."""
     serializer_class = ControlSuturaSerializer
 
+    bitacora_seccion = 'vigilancia'
+
+    def bitacora_etiqueta(self, instance):
+        return f'Sutura y heridas {instance.minuto_control} min'
+
     def get_queryset(self):
         registro_id = self.kwargs.get('registro_pk')
         return ControlSutura.objects.filter(registro_id=registro_id)
 
     def perform_create(self, serializer):
         registro = get_object_or_404(RegistroParto, pk=self.kwargs['registro_pk'])
-        serializer.save(registro=registro, **firma_sesion(self.request))
+        _guardar_control_minuto(serializer, registro=registro, **firma_sesion(self.request))
         registrar_participacion(registro, self.request)
 
 

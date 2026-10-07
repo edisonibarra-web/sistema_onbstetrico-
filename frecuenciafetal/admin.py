@@ -5,6 +5,7 @@ from .models import (
     ControlRecienNacido,
     GlucometriaRecienNacido,
     ControlPostpartoInmediato,
+    CambioRegistroParto,
 )
 
 
@@ -67,3 +68,20 @@ class GlucometriaRecienNacidoAdmin(admin.ModelAdmin):
 class ControlPostpartoInmediatoAdmin(admin.ModelAdmin):
     list_display = ('registro', 'minuto_control', 'fecha', 'hora', 'tension_arterial', 'temperatura')
     list_filter = ('fecha',)
+
+
+# 2026-10-06: bitácora de quién registró / corrigió / eliminó cada dato (solo consulta).
+@admin.register(CambioRegistroParto)
+class CambioRegistroPartoAdmin(admin.ModelAdmin):
+    list_display = ('creado_en', 'registro', 'seccion', 'accion', 'detalle', 'profesional')
+    list_filter = ('seccion', 'accion')
+    search_fields = ('profesional', 'detalle', 'registro__identificacion')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

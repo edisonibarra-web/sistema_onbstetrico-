@@ -1,0 +1,3876 @@
+[
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20044,
+ "fields": {
+  "registro": "e4e66120-6116-433c-9f09-02b136777d85",
+  "fecha": "2026-09-17",
+  "hora": "11:08:00",
+  "fetocardia": 45,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20018,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "08:58:00",
+  "fetocardia": 56,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20019,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "08:58:00",
+  "fetocardia": 56,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20021,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:03:00",
+  "fetocardia": 54,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20022,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:03:00",
+  "fetocardia": 54,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20024,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20025,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20026,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20027,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20028,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20029,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20030,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20031,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20032,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20033,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20034,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20035,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20036,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20037,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20038,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20039,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20040,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20041,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 20042,
+ "fields": {
+  "registro": "58890dc0-8d33-4a82-99d8-d8dc52ccab45",
+  "fecha": "2026-09-18",
+  "hora": "09:08:00",
+  "fetocardia": 354,
+  "responsable": "",
+  "registrado_por": "",
+  "registrado_en": null
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40052,
+ "fields": {
+  "registro": "07d433a9-d6f7-4cb4-945e-c505515d6c09",
+  "fecha": "2026-10-01",
+  "hora": "15:05:00",
+  "fetocardia": 160,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-01T17:01:33.199Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40046,
+ "fields": {
+  "registro": "cabcc1c8-a2a1-4ada-812e-a6ecc1736e0d",
+  "fecha": "2026-10-01",
+  "hora": "21:05:00",
+  "fetocardia": 787,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-01T01:56:42.568Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40048,
+ "fields": {
+  "registro": "cabcc1c8-a2a1-4ada-812e-a6ecc1736e0d",
+  "fecha": "2026-10-01",
+  "hora": "21:05:00",
+  "fetocardia": 787,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-01T01:56:57.042Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40055,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:02:00",
+  "fetocardia": 3,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-05T22:03:37.148Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40057,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:02:00",
+  "fetocardia": 3,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-05T22:04:33.031Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40059,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:02:00",
+  "fetocardia": 3,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-05T22:05:32.539Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40061,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:02:00",
+  "fetocardia": 3,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-05T22:06:32.504Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40062,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:07:00",
+  "fetocardia": 3,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-05T22:06:32.654Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40060,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:07:00",
+  "fetocardia": 3,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-05T22:05:32.698Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40058,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:07:00",
+  "fetocardia": 3,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-05T22:04:33.258Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40056,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:07:00",
+  "fetocardia": 3,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-05T22:03:37.360Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40064,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:31:53.889Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40065,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:32:00.424Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40067,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:32:25.214Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40069,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:33:25.264Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40071,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:34:25.219Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40073,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:35:25.232Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40075,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:36:25.502Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40077,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:37:25.168Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40079,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:38:25.806Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40081,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:40:06.010Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40083,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:41:06.009Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40085,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:42:05.856Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40087,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:43:06.053Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40089,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:44:06.059Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40091,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:45:05.758Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40093,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:46:05.895Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40095,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:47:05.962Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40097,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:48:05.856Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40099,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:49:05.922Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40101,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:50:05.767Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40103,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:51:05.874Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40105,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:52:00.223Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40107,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:52:08.099Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40109,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:52:25.504Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40111,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:53:16.222Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40113,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:53:25.171Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40115,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:54:25.269Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40117,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:12:00",
+  "fetocardia": 7,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:54:41.651Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40118,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:54:41.818Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40116,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:54:25.429Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40114,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:53:25.292Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40112,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:53:16.388Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40110,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:52:25.755Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40108,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:52:08.242Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40106,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:52:00.437Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40104,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:51:06.062Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40102,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:50:05.923Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40100,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:49:06.097Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40098,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:48:06.006Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40096,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:47:06.129Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40094,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:46:06.028Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40092,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:45:05.901Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40090,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:44:06.266Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40088,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:43:06.233Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40086,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:42:06.006Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40084,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:41:06.149Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40082,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:40:06.147Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40080,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:38:25.985Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40078,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:37:25.339Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40076,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:36:25.694Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40074,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:35:25.357Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40072,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:34:25.353Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40070,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:33:25.383Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40068,
+ "fields": {
+  "registro": "17165fde-eefb-429c-8930-45e86a95393a",
+  "fecha": "2026-10-05",
+  "hora": "17:17:00",
+  "fetocardia": 4,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T16:32:25.392Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40120,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:03:51.481Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40121,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:04:05.476Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40122,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:04:15.416Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40123,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:04:32.886Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40124,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:04:48.143Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40125,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:05:33.859Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40126,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:06:33.595Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40127,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:07:33.410Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40128,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:08:33.428Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40129,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:09:33.471Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40130,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:11:05.135Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40131,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:12:03.719Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40132,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:13:03.987Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40133,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:14:03.494Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40134,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:15:03.664Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40135,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:16:03.494Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40136,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:17:03.622Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40137,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:18:03.535Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40138,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:19:03.554Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40139,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:20:03.552Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40140,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:21:03.575Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40141,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:22:03.390Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40142,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:23:03.412Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40143,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:24:03.637Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40144,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:25:03.407Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40145,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:26:03.524Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40146,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:27:03.621Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40147,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:28:03.694Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40148,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:29:03.606Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40149,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:30:03.609Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40150,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:31:03.538Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40151,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:32:03.679Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40152,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:33:03.562Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40153,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:34:03.789Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40154,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:35:03.589Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40155,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:36:03.616Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40156,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:37:03.733Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40157,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:38:03.569Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40158,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:39:03.559Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40159,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:40:03.669Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40160,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:41:03.537Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40161,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:42:03.560Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40162,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:43:03.487Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40163,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:44:03.574Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40164,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:45:03.695Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40165,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:46:03.413Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40166,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:47:03.597Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40167,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:48:03.587Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40168,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:49:03.449Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40169,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:50:03.550Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40170,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:51:03.497Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40171,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:52:03.528Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40172,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:53:03.505Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40173,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:54:03.551Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40174,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:55:03.571Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40175,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:56:03.757Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40176,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:57:03.724Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40177,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:58:03.504Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40178,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T21:59:03.573Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40179,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:00:03.578Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40180,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:01:03.486Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40181,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:02:03.558Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40182,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:03:03.436Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40183,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:04:03.500Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40184,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:05:03.441Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40185,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:06:03.517Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40186,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:07:03.535Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40187,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:08:03.747Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40188,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:09:03.399Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40189,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:10:03.567Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40190,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:11:03.583Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40191,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:12:03.474Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40192,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:13:03.508Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40193,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:14:03.388Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40194,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:15:03.567Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40195,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:16:03.399Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40196,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:17:03.465Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40197,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:18:03.472Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40198,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:19:00.002Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40199,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:19:33.063Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40200,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:20:32.952Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40201,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:21:32.849Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40202,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:22:32.913Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40203,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:23:32.851Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40204,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:24:32.961Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40205,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:25:33.406Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40206,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:26:33.152Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40207,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:27:32.904Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40208,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:28:32.900Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40209,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:29:32.860Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40210,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:30:33.116Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40211,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:31:32.807Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40212,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:32:33.432Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40213,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:34:03.414Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40214,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:35:03.460Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40215,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:36:03.472Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40216,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:37:03.478Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40217,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:38:03.505Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40218,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:39:03.520Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40219,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:40:03.460Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40220,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:41:03.480Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40221,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:42:03.444Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40222,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:43:03.757Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40223,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:44:03.469Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40224,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:45:03.475Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40225,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:46:03.130Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40226,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:46:23.051Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40227,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:46:33.244Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40228,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:46:45.199Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40229,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:46:51.712Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40230,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:47:01.539Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40231,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:47:18.165Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40232,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:47:32.675Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40233,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:47:35.319Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40234,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:47:52.027Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40235,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:48:07.684Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40236,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:48:29.512Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40237,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:48:32.924Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40238,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:48:49.207Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40239,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:49:31.915Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40240,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:49:32.501Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40241,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:50:32.629Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40242,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:51:32.649Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40243,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:52:32.616Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40244,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:53:32.647Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40245,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:54:32.622Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40246,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:55:33.783Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40247,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:57:04.028Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40248,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:58:03.597Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40249,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T22:59:03.838Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40250,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:00:04.240Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40251,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:01:03.570Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40252,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:02:04.216Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40253,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:03:03.837Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40254,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:04:03.939Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40255,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:05:03.887Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40256,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:06:03.805Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40257,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:07:03.774Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40258,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:08:03.763Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40259,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:09:04.275Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40260,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:10:03.690Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40261,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:11:03.937Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40262,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:12:03.592Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40263,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:13:04.242Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40264,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:14:04.101Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40265,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:15:03.619Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40266,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:16:03.844Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40267,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:17:03.791Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40268,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:18:03.601Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40269,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:19:03.678Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40270,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:20:04.711Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40271,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:21:03.599Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40272,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:22:04.800Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40273,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:23:03.780Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40274,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:24:03.561Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40275,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:25:03.478Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40276,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:26:03.548Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40277,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:27:03.441Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40278,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:28:03.893Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40279,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:29:03.444Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40280,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:30:03.361Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40281,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:31:03.502Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40282,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:32:03.485Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40283,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:33:03.487Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40284,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:34:03.367Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40285,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:35:03.515Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40286,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:36:03.485Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40287,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:37:03.490Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40288,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:38:03.465Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40289,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:39:03.824Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40290,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:40:03.436Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40291,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:41:03.577Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40292,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:42:03.521Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40293,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:43:03.499Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40294,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:44:03.517Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40295,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:45:03.472Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40296,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:46:03.461Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40297,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:47:03.483Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40298,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:48:03.496Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40299,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:49:03.436Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40300,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:50:03.608Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40301,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:51:03.780Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40302,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:52:03.338Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40303,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:53:03.436Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40304,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:54:03.481Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40305,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:55:03.459Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40306,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:56:03.462Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40307,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:57:03.462Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40308,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:58:03.482Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40309,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-06T23:59:03.630Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40310,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:00:03.448Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40311,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:01:03.526Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40312,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:02:03.779Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40313,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:03:03.378Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40314,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:04:03.413Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40315,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:05:03.490Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40316,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:06:03.450Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40317,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:07:03.468Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40318,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:08:03.453Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40319,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:09:03.487Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40320,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:10:03.509Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40321,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:11:03.488Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40322,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:12:03.592Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40323,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:13:03.532Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40324,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:14:03.843Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40325,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:15:03.458Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40326,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:16:03.516Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40327,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:17:03.529Z"
+ }
+},
+{
+ "model": "registros.controlfetocardia",
+ "pk": 40328,
+ "fields": {
+  "registro": "bff594b8-2ae0-4185-8056-3c86dc906c6d",
+  "fecha": "2026-10-06",
+  "hora": "16:03:00",
+  "fetocardia": 34,
+  "responsable": "admin",
+  "registrado_por": "admin",
+  "registrado_en": "2026-10-07T00:18:03.513Z"
+ }
+}
+]

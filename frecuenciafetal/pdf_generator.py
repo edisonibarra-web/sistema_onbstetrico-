@@ -93,6 +93,8 @@ def generar_pdf_registro(registro, es_plantilla=False):
         bottomMargin=MARGIN
     )
     elements = []
+    # 2026-10-06: responsables de cada paso (renglón debajo de cada sección).
+    resp_pasos = _responsables_pasos(registro, es_plantilla)
     styles = getSampleStyleSheet()
 
     # ========== ENCABEZADO (formato de control documental FRSPA-007) ==========
@@ -227,6 +229,14 @@ def generar_pdf_registro(registro, es_plantilla=False):
         marcado_no = (not es_plantilla) and not bool(valor_actual)
         return [etiqueta, _checkbox(marcado_si), 'Sí', _checkbox(marcado_no), 'No', '']
 
+    # 2026-10-06: episiotomía None = "No aplica" (ni Sí ni No).
+    def _fila_booleana_na(etiqueta, valor_actual):
+        no_aplica = (not es_plantilla) and valor_actual is None
+        marcado_si = (not es_plantilla) and valor_actual is True
+        marcado_no = (not es_plantilla) and valor_actual is False
+        return [etiqueta, _checkbox(marcado_si), 'Sí', _checkbox(marcado_no), 'No',
+                'No aplica' if no_aplica else '']
+
     cw_part = [5.5*cm*ESCALA, 1.3*cm*ESCALA, 1.7*cm*ESCALA, 1.3*cm*ESCALA, 1.7*cm*ESCALA, 7.7*cm*ESCALA]
 
     estilo_tipo_label = ParagraphStyle(name='TipoLabel', fontName='Helvetica-Bold', fontSize=7, leading=9, alignment=TA_LEFT)
@@ -255,7 +265,7 @@ def generar_pdf_registro(registro, es_plantilla=False):
         _fila_opcion('   Vaginal', registro.tipo_parto, 'VAGINAL'),
         _fila_opcion('   Cesárea', registro.tipo_parto, 'CESAREA'),
         _fila_opcion('   Instrumentado', registro.tipo_parto, 'INSTRUMENTADO'),
-        _fila_booleana('Episiotomía:', registro.episiotomia),
+        _fila_booleana_na('Episiotomía:', registro.episiotomia),
         ['Alumbramiento:', '', '', '', '', ''],
         _fila_booleana('   Activo', registro.tipo_alumbramiento in ('DIRIGIDO', 'MANUAL')),
         ['Hora de parto:', hora_parto_str, '', '', '', ''],
@@ -296,6 +306,7 @@ def generar_pdf_registro(registro, es_plantilla=False):
         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
     ]))
     elements.append(tbl_part)
+    _agregar_responsables(elements, resp_pasos, 'parto')
     elements.append(Spacer(1, 0.28*cm))
 
     # ========== CONTROL DEL RECIÉN NACIDO ==========
@@ -303,6 +314,7 @@ def generar_pdf_registro(registro, es_plantilla=False):
     rn = _recien_nacido(registro, es_plantilla)
     ubicacion_huella = {}  # la llena _TablaConHuella al dibujarse
     elements.append(KeepTogether(_tabla_recien_nacido(registro, rn, es_plantilla, ubicacion_huella)))
+    _agregar_responsables(elements, resp_pasos, 'recien_nacido')
     elements.append(Spacer(1, 0.28*cm))
 
     # ========== CONTROL FETOCARDIA ==========
@@ -373,6 +385,7 @@ def generar_pdf_registro(registro, es_plantilla=False):
         ('ALIGN', (1, fila_responsable_fc + 1), (-1, fila_responsable_fc + 1), 'LEFT'),
     ]))
     elements.append(tbl_fc)
+    _agregar_responsables(elements, resp_pasos, 'fetocardia')
     elements.append(Spacer(1, 0.28*cm))
 
     # ========== GUÍA DE PARÁMETROS Y SEMÁFORO DE ALERTA (POSPARTO INMEDIATO) ==========
@@ -436,6 +449,14 @@ def generar_pdf_registro(registro, es_plantilla=False):
         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
     ]))
     elements.append(tbl_param)
+    elements.append(Spacer(1, 0.28*cm))
+
+    # ========== CONTROLES DE VIGILANCIA POSPARTO (2026-10-06) ==========
+    # Historial de los controles de Sangrado, Globo de seguridad y Sutura
+    # (cronograma 15/30/60 min hasta 6 h). El control del minuto 360 de los
+    # tres es el que habilita el cierre (views._faltantes_control_6h).
+    elements.append(_tabla_vigilancia_posparto(registro, es_plantilla))
+    _agregar_responsables(elements, resp_pasos, 'vigilancia')
     elements.append(Spacer(1, 0.28*cm))
 
     # ========== CONTROL POSPARTO INMEDIATO (MEOWS) ==========
@@ -521,7 +542,8 @@ def generar_pdf_registro(registro, es_plantilla=False):
         MEOWS_COLS_POR_PAGINA = 16
         ancho_param_m = 2.3*cm
         ancho_valor_m = 1.0*cm
-        ancho_punt_m = 0.9*cm
+        # 2026-10-06: 0.9cm no alcanzaba para "PUNTAJE" (se salía del margen derecho).
+        ancho_punt_m = 1.3*cm
         ancho_fijo_m = ancho_param_m + ancho_valor_m + ancho_punt_m
 
         total_cols_meows = len(columnas_meows)
@@ -645,7 +667,7 @@ def generar_pdf_registro(registro, es_plantilla=False):
         elements.append(Spacer(1, 0.4*cm))
         estilo_celda = ParagraphStyle(name='RespCelda', fontSize=7.5, leading=9.5, fontName='Helvetica')
         estilo_nombre = ParagraphStyle(name='RespNombre', fontSize=8, leading=10, fontName='Helvetica-Bold')
-        filas = [['RESPONSABLES DEL REGISTRO', '', '', ''],
+        filas = [['PARTICIPANTES Y CIERRE DEL REGISTRO', '', '', ''],
                  ['#', 'PROFESIONAL', 'QUÉ DILIGENCIÓ', 'DESDE – HASTA']]
         for i, r in enumerate(responsables, start=1):
             desde, hasta = _hora(r['desde']), _hora(r['hasta'])
@@ -750,6 +772,145 @@ def generar_pdf_registro(registro, es_plantilla=False):
     if rn is not None and rn.huella_pdf:
         pdf_bytes = _incrustar_huella(pdf_bytes, registro, rn, ubicacion_huella)
     return pdf_bytes
+
+
+# ---------------------------------------------------------------------------
+# 2026-10-06: "Responsables:" debajo de Fetocardia, Parto, Vigilancia y
+# Recién nacido (quién registró / corrigió / eliminó qué; sin valores).
+# ---------------------------------------------------------------------------
+
+def _responsables_pasos(registro, es_plantilla):
+    if es_plantilla or getattr(registro, 'pk', None) is None:
+        return {}
+    try:
+        from .responsables import responsables_por_seccion
+        return responsables_por_seccion(registro)
+    except Exception:
+        return {}
+
+
+def _agregar_responsables(elements, resp_pasos, seccion):
+    filas = resp_pasos.get(seccion) or []
+    if not filas:
+        return
+    from xml.sax.saxutils import escape
+    estilo = ParagraphStyle(name=f'Resp_{seccion}', fontName='Helvetica', fontSize=6.5, leading=8.2,
+                            textColor=colors.HexColor('#334155'), alignment=TA_LEFT)
+    partes = [
+        f"<b>{escape(_fix_mojibake_text(r['nombre']))}</b> ({escape('; '.join(r['detalle']))})"
+        for r in filas
+    ]
+    tbl = Table([[Paragraph('<b>Responsables:</b> ' + ' &nbsp;·&nbsp; '.join(partes), estilo)]], colWidths=[ANCHO_UTIL])
+    tbl.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+        ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    elements.append(tbl)
+
+
+# ---------------------------------------------------------------------------
+# 2026-10-06: Controles de vigilancia posparto (Sangrado, Globo de seguridad y
+# Sutura y heridas), una fila por minuto del cronograma 15/30/60 hasta 6 h.
+# ---------------------------------------------------------------------------
+
+MINUTOS_VIGILANCIA = [15, 30, 45, 60, 75, 90, 105, 120, 150, 180, 240, 300, 360]
+ESTADO_CORTO = {
+    'NORMAL': 'Normal', 'ALERTA': 'Alerta', 'VIGILAR': 'Vigilar',
+    'HEMATOMA': 'Alerta: hematoma', 'INFECCION': 'Alerta: infección', 'NO_APLICA': 'No aplica',
+}
+COLOR_ESTADO_VIGILANCIA = {
+    'NORMAL': '#059669', 'VIGILAR': '#d97706', 'ALERTA': '#dc2626',
+    'HEMATOMA': '#dc2626', 'INFECCION': '#dc2626', 'NO_APLICA': '#64748b',
+}
+
+
+def _tabla_vigilancia_posparto(registro, es_plantilla):
+    hay_registro = not es_plantilla and getattr(registro, 'pk', None) is not None
+    sangrado = {c.minuto_control: c for c in registro.controles_sangrado.all()} if hay_registro else {}
+    globo = {c.minuto_control: c for c in registro.controles_globo.all()} if hay_registro else {}
+    sutura = {c.minuto_control: c for c in registro.controles_sutura.all()} if hay_registro else {}
+    # Siempre el cronograma completo (para diligenciar a mano en la
+    # plantilla) más cualquier minuto fuera de él que se haya guardado.
+    minutos = sorted(set(MINUTOS_VIGILANCIA) | set(sangrado) | set(globo) | set(sutura))
+
+    estilo_celda = ParagraphStyle(name='VigCelda', fontName='Helvetica', fontSize=6.5, leading=8, alignment=TA_CENTER)
+    estilo_sub = ParagraphStyle(name='VigSub', fontName='Helvetica-Bold', fontSize=6.3, leading=7.5,
+                                alignment=TA_CENTER, textColor=colors.white)
+
+    def estado(codigo):
+        if not codigo:
+            return ''
+        color = COLOR_ESTADO_VIGILANCIA.get(codigo, '#1e293b')
+        return Paragraph(f"<font color='{color}'><b>{ESTADO_CORTO.get(codigo, codigo)}</b></font>", estilo_celda)
+
+    def hora(control):
+        return control.hora.strftime('%H:%M') if control and control.hora else ''
+
+    acumulado = 0
+    filas = [
+        ['CONTROLES DE VIGILANCIA POSPARTO (cada 15 min las primeras 2 h, cada 30 min la hora siguiente y cada hora hasta 6 h)'] + [''] * 8,
+        ['', 'SANGRADO CUANTIFICADO', '', '', '', 'GLOBO DE SEGURIDAD', '', 'SUTURA Y HERIDAS', ''],
+        [Paragraph(t, estilo_sub) for t in ('Control', 'Hora', 'c.c.', 'Acumulado', 'Semáforo', 'Hora', 'Estado', 'Hora', 'Estado')],
+    ]
+    for minuto in minutos:
+        s, g, su = sangrado.get(minuto), globo.get(minuto), sutura.get(minuto)
+        if s:
+            acumulado += s.cc
+        etiqueta = f"{minuto} min" + (' (6 h)' if minuto == 360 else '')
+        filas.append([
+            etiqueta,
+            hora(s), f"{s.cc}" if s else '', f"{acumulado}" if s else '', estado(s.estado if s else None),
+            hora(g), estado(g.estado if g else None),
+            hora(su), estado(su.estado if su else None),
+        ])
+
+    ancho = ANCHO_UTIL
+    cw_fijas = [1.7*cm, 1.15*cm, 1.15*cm, 1.55*cm, 1.75*cm, 1.15*cm, 0, 1.15*cm, 0]
+    resto = (ancho - sum(cw_fijas)) / 2
+    cw = [w or resto for w in cw_fijas]
+    tbl = Table(filas, colWidths=cw, repeatRows=3)
+    fila_360 = 3 + minutos.index(360) if 360 in minutos else None
+    estilo = [
+        ('SPAN', (0, 0), (-1, 0)),
+        ('BACKGROUND', (0, 0), (-1, 0), COLOR_HEADER),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('SPAN', (0, 1), (0, 2)),
+        ('SPAN', (1, 1), (4, 1)),
+        ('SPAN', (5, 1), (6, 1)),
+        ('SPAN', (7, 1), (8, 1)),
+        ('BACKGROUND', (0, 1), (-1, 2), colors.HexColor('#0c4a6e')),
+        ('TEXTCOLOR', (0, 1), (-1, 2), colors.white),
+        ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 1), (-1, 1), 6.8),
+        ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BACKGROUND', (0, 3), (0, -1), COLOR_LABEL),
+        ('FONTNAME', (0, 3), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 3), (-1, -1), 6.5),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('LEFTPADDING', (0, 0), (-1, -1), 2),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+        ('BOX', (0, 0), (-1, -1), BORDE, COLOR_BORDE),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        # Separadores más marcados entre Sangrado | Globo | Sutura.
+        ('LINEBEFORE', (5, 1), (5, -1), BORDE, COLOR_BORDE),
+        ('LINEBEFORE', (7, 1), (7, -1), BORDE, COLOR_BORDE),
+        ('LINEBEFORE', (1, 1), (1, -1), BORDE, COLOR_BORDE),
+    ]
+    if fila_360 is not None:
+        # El control de las 6 h es el que habilita el cierre: se resalta.
+        estilo.append(('BACKGROUND', (0, fila_360), (-1, fila_360), colors.HexColor('#ecfeff')))
+        estilo.append(('BACKGROUND', (0, fila_360), (0, fila_360), colors.HexColor('#cffafe')))
+    tbl.setStyle(TableStyle(estilo))
+    return tbl
 
 
 # ---------------------------------------------------------------------------
@@ -879,7 +1040,7 @@ def _tabla_recien_nacido(registro, rn, es_plantilla, ubicacion):
         ['TA neonato 12 h', ta('ta'), None, None],
         ['TA neonato 24 h', ta('ta24'), None, None],
         ['TA neonato 48 h', ta('ta48'), None, None],
-        ['Glucometrías', glucos or vacio, None, None],
+        ['Glucometrías', glucos or ('No aplica' if rn is not None and rn.glucometrias_no_aplica else vacio), None, None],
         ['Parto atendido por', parto_atendido, 'Neonato atendido por', v('neonato_atendido_por')],
     ]
 

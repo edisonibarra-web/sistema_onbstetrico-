@@ -43,6 +43,7 @@ class RegistroParto(models.Model):
         ('GRADO_II', 'Grado II'),
         ('GRADO_III', 'Grado III'),
         ('GRADO_IV', 'Grado IV'),
+        ('NO_APLICA', 'No aplica'),
     ]
     # Subclasificación obligatoria solo cuando desgarro == GRADO_III.
     DESGARRO_SUBGRADO_CHOICES = [
@@ -68,7 +69,8 @@ class RegistroParto(models.Model):
     # Datos del parto
     hora_parto = models.TimeField(blank=True, null=True, verbose_name="Hora de Parto")
     tipo_parto = models.CharField(max_length=20, choices=PARTO_CHOICES, blank=True, null=True)
-    episiotomia = models.BooleanField(default=False, verbose_name="Episiotomía")
+    # 2026-10-06: None = "No aplica" (p. ej. cesárea).
+    episiotomia = models.BooleanField(default=False, null=True, blank=True, verbose_name="Episiotomía")
     tipo_alumbramiento = models.CharField(
         max_length=20, choices=ALUMBRAMIENTO_CHOICES, blank=True, null=True
     )
@@ -460,6 +462,9 @@ class ControlRecienNacido(models.Model):
         verbose_name="Frecuencia cardiaca al nacimiento (lpm)"
     )
 
+    # 2026-10-06: "No aplica" para la sección de glucometrías.
+    glucometrias_no_aplica = models.BooleanField(default=False, verbose_name="Glucometrías: no aplica")
+
     neonato_atendido_por = models.CharField(max_length=200, blank=True, null=True)
     valorado_pediatra = models.BooleanField(blank=True, null=True, default=None, verbose_name="Valorado por Pediatra antes del Egreso")
 
@@ -633,3 +638,40 @@ class ParticipacionRegistroParto(models.Model):
 
     def __str__(self):
         return f"{self.profesional} -> {self.registro_id}"
+
+
+class CambioRegistroParto(models.Model):
+    """
+    2026-10-06: bitácora de quién registró, corrigió o eliminó cada dato de
+    los pasos Fetocardia, Parto, Vigilancia y Recién nacido (solo el campo o
+    control, sin valores). De aquí salen los "Responsables de este paso" de
+    cada tarjeta y del PDF (ver responsables.responsables_por_seccion). La
+    llena solo el servidor con el profesional en sesión.
+    """
+    SECCIONES = [
+        ('fetocardia', 'Fetocardia'),
+        ('parto', 'Características del parto'),
+        ('vigilancia', 'Vigilancia posparto'),
+        ('recien_nacido', 'Recién nacido'),
+    ]
+    ACCIONES = [
+        ('registro', 'Registró'),
+        ('correccion', 'Corrigió'),
+        ('eliminacion', 'Eliminó'),
+    ]
+    registro = models.ForeignKey(RegistroParto, on_delete=models.CASCADE, related_name='cambios')
+    seccion = models.CharField(max_length=20, choices=SECCIONES)
+    accion = models.CharField(max_length=15, choices=ACCIONES)
+    detalle = models.CharField(max_length=255, help_text="Campo o control (sin valores).")
+    profesional = models.CharField(max_length=255, blank=True, default='')
+    usuario = models.CharField(max_length=150, blank=True, default='')
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['creado_en', 'id']
+        indexes = [models.Index(fields=['registro', 'seccion'])]
+        verbose_name = "Cambio en registro de parto"
+        verbose_name_plural = "Bitácora de cambios en registros de parto"
+
+    def __str__(self):
+        return f"{self.profesional}: {self.get_accion_display()} {self.detalle} ({self.seccion})"

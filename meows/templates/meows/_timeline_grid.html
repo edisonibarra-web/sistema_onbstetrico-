@@ -20,6 +20,82 @@ resumen. En las demás vistas (meows/historial.html) NO se pasa esta variable
 página, colapsable con el botón "Ocultar/Mostrar".
 {% endcomment %}
 <section class="section timeline-section{% if abrir_en_modal %} timeline-section--compact{% endif %}">
+    {% if abrir_en_modal %}
+    {# 2026-10-05: tarjeta compacta de Control Posparto rediseñada (encabezado #}
+    {# oscuro + 3 tarjetas: tomas, última toma, riesgo actual). Estilos .tlc-* #}
+    {# en frecuenciafetal/registros/formulario.html (única vista con abrir_en_modal). #}
+    <div class="tlc-hdr">
+        <span class="tlc-hdr-ico"><i data-lucide="line-chart"></i></span>
+        <span class="tlc-hdr-txt">
+            <span class="tlc-kicker">Control posparto · Signos vitales de Dinámica</span>
+            <span class="tlc-titulo">Línea de tiempo clínica MEOWS</span>
+            <span class="tlc-ayuda">Resumen de las tomas de la paciente; ábrala en grande para ver el detalle.</span>
+        </span>
+        <span class="tlc-deco" aria-hidden="true">
+            <i data-lucide="heart" class="tlc-deco-corazon"></i>
+            <i data-lucide="baby" class="tlc-deco-bebe"></i>
+        </span>
+        <button type="button" class="btn-abrir-timeline tlc-btn" onclick="abrirMeowsTimeline()" title="Ver la línea de tiempo clínica en una ventana grande">
+            <i data-lucide="line-chart"></i> Ver línea de tiempo clínica <i data-lucide="chevron-right"></i>
+        </button>
+    </div>
+    {% if columnas %}
+    {% with ultima=columnas|last %}
+    <div class="tlc-resumen">
+        <div class="tlc-item tlc-item--tomas">
+            <span class="tlc-ico"><i data-lucide="file-text"></i></span>
+            <span class="tlc-txt">
+                <span class="tlc-etq">Tomas registradas</span>
+                <span class="tlc-valor"><strong>{{ columnas|length }}</strong> toma{{ columnas|length|pluralize }}</span>
+            </span>
+            <span class="tlc-barras" aria-hidden="true"><span></span><span></span><span></span></span>
+        </div>
+        <div class="tlc-item tlc-item--ultima">
+            <span class="tlc-ico"><i data-lucide="clock"></i></span>
+            <span class="tlc-txt">
+                <span class="tlc-etq">Última toma</span>
+                {% if ultima.hora %}
+                <span class="tlc-valor"><b class="tlc-fecha">{{ ultima.hora|date:"d/m/y" }}</b> · {{ ultima.hora|date:"h:i A" }}</span>
+                <span class="tlc-hace" data-desde="{{ ultima.hora|date:'c' }}"><i data-lucide="calendar-days"></i> <span class="tlc-hace-txt">Hace {{ ultima.hora|timesince }}</span></span>
+                {% else %}
+                <span class="tlc-valor">—</span>
+                {% endif %}
+            </span>
+        </div>
+        <div class="tlc-item tlc-item--riesgo">
+            <span class="tlc-ico"><i data-lucide="shield-check"></i></span>
+            <span class="tlc-txt">
+                <span class="tlc-etq">Riesgo actual</span>
+                <span class="tlc-pill tlc-pill--{{ ultima.riesgo|default:'sin'|lower }}">{{ ultima.riesgo|default:"—" }}</span>
+                <span class="tlc-sub">{% if ultima.riesgo == 'BLANCO' %}Sin alteraciones{% elif ultima.riesgo == 'VERDE' %}Riesgo bajo{% elif ultima.riesgo == 'AMARILLO' %}Riesgo moderado{% elif ultima.riesgo == 'ROJO' %}Riesgo alto{% else %}Sin dato{% endif %}</span>
+            </span>
+        </div>
+    </div>
+    <script>
+    // "Hace X horas" a partir de la hora de la última toma (se mantiene al día).
+    (function () {
+        document.querySelectorAll('.tlc-hace[data-desde]').forEach(function (el) {
+            var desde = new Date(el.dataset.desde);
+            var txt = el.querySelector('.tlc-hace-txt');
+            if (isNaN(desde) || !txt) return;
+            function pintar() {
+                var min = Math.max(0, Math.round((Date.now() - desde.getTime()) / 60000));
+                var n, u;
+                if (min < 60) { n = min; u = n === 1 ? 'minuto' : 'minutos'; }
+                else if (min < 1440) { n = Math.floor(min / 60); u = n === 1 ? 'hora' : 'horas'; }
+                else { n = Math.floor(min / 1440); u = n === 1 ? 'día' : 'días'; }
+                txt.textContent = min < 1 ? 'Hace un momento' : 'Hace ' + n + ' ' + u;
+            }
+            pintar();
+            setInterval(pintar, 60000);
+        });
+    })();
+    </script>
+    {% endwith %}
+    {% else %}
+    <p class="tlc-vacio"><i data-lucide="inbox"></i> Sin mediciones MEOWS registradas todavía. Aparecerán aquí en cuanto se registren signos vitales en Dinámica.</p>
+    {% endif %}
+    {% else %}
     {# 2026-09-24: en el Historial MEOWS, "título en placa" (meows-form.css) con los #}
     {# botones agrupados a la derecha. En Control Posparto (modal) queda como antes. #}
     {% if mostrar_link_volver and not abrir_en_modal %}
@@ -94,6 +170,8 @@ página, colapsable con el botón "Ocultar/Mostrar".
     {% else %}
     <p class="meows-timeline-summary meows-timeline-summary--vacio">Sin mediciones MEOWS registradas todavía. Aparecerán aquí en cuanto se registren signos vitales en Dinámica.</p>
     {% endif %}
+    {% endif %}
+
     {% endif %}
 
     {% if abrir_en_modal %}

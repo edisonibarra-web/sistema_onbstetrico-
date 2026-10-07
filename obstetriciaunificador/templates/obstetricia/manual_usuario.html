@@ -514,6 +514,11 @@
                         <br><b>Actualización del 1 de octubre de 2026:</b> en Control Posparto Inmediato, la
                         <b>Línea de Tiempo Clínica MEOWS</b> se abre en una ventana grande y queda disponible también con
                         el registro cerrado; el control de fetocardia es cada 5 minutos (sección 5).
+                        <br><b>Actualización del 6 de octubre de 2026:</b> en Control Posparto Inmediato, la
+                        <b>calculadora de sangrado</b> queda fija en el paso Vigilancia (ya no es una ventana);
+                        <b>"Guardar Registro Completo"</b> se habilita con el control de las 6 horas de Sangrado, Globo
+                        de seguridad y Sutura; se agregó la opción <b>"No aplica"</b> a episiotomía, desgarro y
+                        glucometrías, y el PDF incluye la tabla de <b>controles de vigilancia posparto</b>; además, los <b>pasos en rojo</b> avisan los datos pendientes, cada paso muestra sus <b>responsables</b> y Finalización indica <b>quién cierra</b> el registro (sección 5).
                         <br>Lo nuevo está marcado a lo largo del manual con la etiqueta <span class="badge-nuevo" style="margin-left:2px;">Nuevo</span>.</span>
                     </div>
 
@@ -1204,178 +1209,387 @@
                     </div>
                 </section>
 
-                <!-- 4. CONTROL POSPARTO INMEDIATO -->
+                <!-- 4. CONTROL POSPARTO INMEDIATO (2026-10-06: sección reescrita con la versión actual) -->
                 <section class="section-card c-fetal" id="sec-fetal">
                     <div class="section-head">
                         <div class="section-icon"><i data-lucide="heart-pulse"></i></div>
                         <h2>5. Módulo Control Posparto Inmediato</h2>
                     </div>
                     <p class="section-sub">
-                        Formato de Control de Fetocardia y Postparto (FRSPA-007): datos de la paciente, control
-                        de la frecuencia cardíaca fetal por horario, características del parto, control del
-                        sangrado y firma del responsable.
+                        Formato de Control de Fetocardia y Postparto (FRSPA-007). Se diligencia por <b>pasos</b>:
+                        fetocardia, signos vitales MEOWS, características del parto, vigilancia posparto (sangrado,
+                        globo de seguridad y sutura), recién nacido y finalización. Lo pueden diligenciar varias
+                        personas: el sistema registra solo quién hizo qué.
                     </p>
 
                     <div class="screenshot-frame">
-                        <img src="{% static 'manual/frecuencia_fetal_formulario.png' %}?v=2" alt="Pantalla del formulario de Control Posparto Inmediato">
+                        <img src="{% static 'manual/posparto_encabezado_pasos.png' %}?v=1" alt="Encabezado del Control Posparto con los datos de la paciente y los seis pasos">
                     </div>
                     <div class="screenshot-caption">
                         <i data-lucide="camera" size="14"></i>
-                        <span>Vista real de la pantalla de Control Posparto Inmediato, en blanco (sin paciente seleccionada aún).</span>
+                        <span>Encabezado con los datos de la paciente, el indicador de guardado automático y los seis pasos. Los pasos en rojo tienen datos pendientes ("Faltan N"). Datos de la paciente ficticios.</span>
                         <span class="zoom-hint">🔍 Clic para ampliar</span>
                     </div>
 
-                    <h3 class="step-title">Completar los datos de la paciente</h3>
+                    <h3 class="step-title">5.1 Cómo está organizada la pantalla</h3>
                     <ol class="steps">
-                        <li>Entre al módulo desde la tarjeta <b>CONTROL POSPARTO INMEDIATO</b> en Sala de Partos.</li>
-                        <li>Revise/complete: nombre de la paciente, número de identificación, edad gestacional,
-                            gestas y nombre del acompañante.</li>
+                        <li>Entre al módulo desde la tarjeta <b>CONTROL POSPARTO INMEDIATO</b> en Sala de Partos. Arriba
+                            están el <b>selector de ingreso</b> (sección 9), el botón <code class="btnname">Documentos en el repositorio</code>
+                            y el botón rojo <code class="btnname">Vista previa</code>.</li>
+                        <li>El <b>encabezado oscuro</b> muestra el documento de la paciente, la <b>hora de parto</b>, el estado
+                            (<i>En diligenciamiento</i>, <i>Cerrado</i> o <i>Solo consulta</i>) y el indicador de
+                            <b>guardado automático</b>. Debajo están nombre, identificación, ingreso, edad gestacional,
+                            gestas y nombre del acompañante (este último se escribe aquí).</li>
+                        <li>Los <b>seis pasos</b> aparecen como tarjetas de colores: <b>1 Fetocardia</b>, <b>2 MEOWS</b>,
+                            <b>3 Parto</b>, <b>4 Vigilancia</b>, <b>5 Recién nacido</b> y <b>6 Finalización</b>. Haga clic en
+                            uno para abrirlo, o use <code class="btnname">Anterior</code> / <code class="btnname">Siguiente</code>
+                            al final de cada paso. La barra de cada tarjeta muestra cuánto lleva diligenciado.</li>
+                        <li>Al pie de cada paso, el aviso amarillo indica <b>qué falta para poder cerrar el registro</b>
+                            (por ejemplo, <i>"Falta: Sangrado cuantificado (último: 15 min)…"</i>).</li>
                     </ol>
 
-                    <h3 class="step-title">Registrar el control de fetocardia</h3>
-                    <ol class="steps">
-                        <li>En la sección <b>"Control de fetocardia"</b> el control se registra durante el
-                            expulsivo, con un intervalo fijo de <b>cada 5 minutos</b> (ya no se puede cambiar). El valor
-                            normal, <b>110 – 160 lpm</b>, se muestra junto al intervalo.</li>
-                        <li>Presione <code class="btnname">Agregar control</code> para crear una nueva fila con
-                            fecha y hora sugeridas; solo debe escribir el valor de la frecuencia cardíaca fetal (lpm).
-                            Cada fila indica al lado si el valor está dentro o fuera del rango normal.</li>
-                        <li>Repita el proceso por cada toma que realice durante el expulsivo.</li>
-                        <li>Use el botón <code class="btnname">Vista previa</code> (arriba, siempre visible) para
-                            ver la gráfica del comportamiento de la frecuencia fetal en el tiempo, con la franja
-                            de valores normales resaltada.</li>
-                    </ol>
-
-                    <h3 class="step-title">Características del parto</h3>
+                    <h3 class="step-title">5.2 Pasos en rojo: datos que faltan <span class="badge-nuevo">Nuevo</span></h3>
                     <ul class="plain">
-                        <li>Seleccione el <b>tipo de parto</b> (Vaginal, Instrumentado o Cesárea), si hubo
-                            <b>episiotomía</b> y el <b>tipo de alumbramiento</b>.</li>
+                        <li>Si en un paso hay datos sin diligenciar, su tarjeta se pinta de <b>rojo</b> con la etiqueta
+                            <b>"Faltan N"</b>. Al pasar el mouse sobre la tarjeta se ve la lista de lo que falta.</li>
+                        <li>Dentro del paso, cada campo pendiente aparece con <b>borde rojo</b> y su nombre en rojo. Se quita
+                            solo cuando lo diligencia.</li>
+                        <li>Qué revisa cada paso: <b>Fetocardia</b> (al menos un control), <b>Parto</b> (tipo, hora,
+                            alumbramiento, desgarro y, en grado III, su subclasificación), <b>Vigilancia</b> (el control de
+                            las 6 h de sangrado, globo y sutura) y <b>Recién nacido</b> (datos generales, antropometría,
+                            APGAR, tamizajes, oximetría y TA al nacer, quién atendió, glucometrías o "No aplica", y la huella).</li>
+                        <li>Las tomas de 12, 24 y 48 h y "Valorado por pediatra antes del egreso" no cuentan como
+                            faltantes: se registran después del cierre de las 6 horas.</li>
                     </ul>
+                    <div class="callout tip">
+                        <i data-lucide="info" size="18"></i>
+                        <span>El rojo es un recordatorio: puede seguir trabajando. Al cerrar, el sistema le muestra la lista de
+                        lo que falta y le pregunta si desea cerrar de todas formas. Lo que sí impide cerrar está en la sección 5.11.</span>
+                    </div>
 
-                    <h3 class="step-title">Consultar la Línea de Tiempo Clínica MEOWS <span class="badge-nuevo">Nuevo</span></h3>
-                    <p class="txt">
-                        Entre el control de fetocardia y las características del parto está la tarjeta
-                        <b>"Línea de tiempo clínica MEOWS"</b>, con los signos vitales que se registraron en Dinámica
-                        para esta paciente. Así no tiene que salir de esta pantalla para verlos.
-                    </p>
+                    <h3 class="step-title">5.3 Paso 1 — Control de fetocardia</h3>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_fetocardia.png' %}?v=1" alt="Paso de control de fetocardia con resumen y tabla de controles">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Paso 1: resumen (controles registrados, último valor, rango normal, fuera de rango) y la tabla de controles con su estado.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+
                     <ol class="steps">
-                        <li>La tarjeta muestra un resumen: cuántas <b>tomas</b> hay registradas, la fecha y hora de la
+                        <li>El control se registra durante el expulsivo, <b>cada 5 minutos</b> (intervalo fijo). El rango
+                            normal es <b>110 – 160 lpm</b>.</li>
+                        <li>Presione <code class="btnname">Agregar control</code>: se crea una fila con fecha y hora sugeridas
+                            (5 minutos después de la anterior). Escriba solo la frecuencia cardíaca fetal en lpm.</li>
+                        <li>Cada fila muestra su <b>estado</b> (Normal, Bradicardia o Taquicardia) y si ya quedó
+                            <b>Guardado</b>. Arriba, las tarjetas resumen cuántos controles hay, el último valor y cuántos
+                            están fuera de rango.</li>
+                        <li>Para corregir o eliminar un control ya guardado, use la <b>Vista previa</b> (sección 5.10).</li>
+                    </ol>
+
+                    <h3 class="step-title">5.4 Paso 2 — Signos vitales MEOWS (Línea de Tiempo Clínica)</h3>
+                    <ol class="steps">
+                        <li>La tarjeta muestra cuántas <b>tomas</b> hay registradas en Dinámica, la fecha y hora de la
                             <b>última toma</b> y el <b>riesgo actual</b> (BLANCO, VERDE, AMARILLO o ROJO).</li>
-                        <li>Presione <code class="btnname">📊 Ver línea de tiempo clínica</code> para abrir la cuadrícula
-                            completa en una ventana grande: una columna por toma, con el nombre de quien la registró en
-                            Dinámica, el punto (●) en el valor medido y el color del puntaje.</li>
-                        <li>Dentro de esa ventana, <code class="btnname">🔎 Guía Técnica MEOWS</code> muestra la tabla de
-                            puntajes y qué hacer según el riesgo.</li>
-                        <li>Cierre la ventana con la <b>×</b>, la tecla <b>Esc</b> o haciendo clic fuera de ella.</li>
+                        <li><code class="btnname">📊 Ver línea de tiempo clínica</code> abre la cuadrícula completa: una columna
+                            por toma, con quién la registró, el punto (●) en el valor medido y el color del puntaje.
+                            <code class="btnname">🔎 Guía Técnica MEOWS</code> muestra la tabla de puntajes.</li>
                     </ol>
                     <div class="callout tip">
                         <i data-lucide="info" size="18"></i>
-                        <span>La línea de tiempo es <b>solo de consulta</b>: las tomas vienen de Dinámica y se corrigen allá.
-                        Se puede abrir siempre, también cuando el registro ya está cerrado o se consulta un ingreso
-                        anterior. Si dice <i>"Sin mediciones MEOWS registradas todavía"</i>, aún no hay signos vitales
-                        de la paciente en Dinámica.</span>
+                        <span>Es <b>solo de consulta</b>: las tomas vienen de Dinámica y se corrigen allá. Este paso no se
+                        marca en rojo porque aquí no se escribe nada.</span>
                     </div>
 
-                    <h3 class="step-title">Guía de parámetros y semáforo de alerta</h3>
+                    <h3 class="step-title">5.5 Paso 3 — Características del parto</h3>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_parto.png' %}?v=1" alt="Paso de características del parto">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Paso 3: tipo de parto en tarjetas, hora de parto en formato de 12 horas, episiotomía (Sí / No / No aplica), alumbramiento y desgarro.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+
                     <ol class="steps">
-                        <li><b>Globo de seguridad</b>: seleccione si el útero está firme y contraído (Normal) o
-                            blando/relajado (Alerta). El campo se pinta de verde o rojo automáticamente.</li>
-                        <li><b>Sangrado cuantificado</b>: haga clic sobre esta tarjeta para abrir la
-                            <b>calculadora de sangrado</b>. Allí indique cuántas compresas, gasas, apósitos, toallas,
-                            pañales, campos, etc. se usaron y su peso; el sistema calcula automáticamente los
-                            centímetros cúbicos (cc) de sangrado y le muestra un semáforo: <b>Normal</b>,
-                            <b>Vigilar</b> o <b>Alerta</b> (el umbral cambia según si el parto fue vaginal o por
-                            cesárea). Presione <code class="btnname">Guardar control</code> para dejar constancia
-                            de esa lectura; puede editarla o eliminarla después desde la pestaña
-                            <b>"Registros"</b> del mismo modal. Los pesos que escriba y todavía no guarde quedan como
-                            <b>borrador en ese computador</b>: si cierra la ventana o la página, al volver a abrir la
-                            calculadora se recuperan. Pero <b>no cuentan en el registro</b> hasta presionar
-                            <code class="btnname">Guardar control</code>; por eso, al cerrar la ventana con pesos sin
-                            guardar, el sistema le pregunta si desea cerrar de todas formas.</li>
-                        <li><b>Sutura y heridas</b>: seleccione Normal, Hematoma o Infección; también se colorea
-                            automáticamente.</li>
+                        <li><b>Tipo de parto:</b> haga clic en la tarjeta <b>Vaginal</b>, <b>Cesárea</b> o <b>Instrumentado</b>.
+                            Define el umbral del semáforo de sangrado (más alto en cesárea).</li>
+                        <li><b>Hora de parto</b> (obligatoria para cerrar): escriba hora y minutos, elija <b>a. m.</b> o
+                            <b>p. m.</b>, o use <code class="btnname">Ahora</code>. Debajo se confirma la hora registrada,
+                            también en formato de 24 horas. La <b>×</b> la borra.</li>
+                        <li><b>Episiotomía:</b> <b>Sí</b>, <b>No</b> o <span class="badge-nuevo">Nuevo</span> <b>No aplica</b>
+                            (por ejemplo, en una cesárea).</li>
+                        <li><b>Alumbramiento:</b> Espontáneo, Dirigido o Manual.</li>
+                        <li><b>Desgarro:</b> Grado I a IV o <span class="badge-nuevo">Nuevo</span> <b>No aplica</b>. Si elige
+                            <b>Grado III</b>, aparece la subclasificación obligatoria <b>III A, III B o III C</b>.</li>
                     </ol>
+
+                    <h3 class="step-title">5.6 Paso 4 — Vigilancia posparto <span class="badge-nuevo">Nuevo</span></h3>
+                    <p class="txt">
+                        Sangrado, globo de seguridad y sutura se registran como <b>controles periódicos</b> con el mismo
+                        cronograma: <b>cada 15 minutos las primeras 2 horas, cada 30 minutos la hora siguiente y cada hora
+                        hasta completar las 6 horas</b> (minutos 15, 30, 45, 60, 75, 90, 105, 120, 150, 180, 240, 300 y 360).
+                        El control del <b>minuto 360</b> de los tres es el que permite cerrar el registro.
+                    </p>
+                    <h4 class="step-title" style="font-size:1rem">a) Sangrado cuantificado — calculadora gravimétrica</h4>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_vigilancia_sangrado.png' %}?v=1" alt="Calculadora de sangrado cuantificado con las tarjetas de materiales">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Calculadora fija al inicio del paso: c.c. acumulados con su semáforo, explicación y una tarjeta por material con cantidad, peso húmedo, peso basal y c.c.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+
+                    <ol class="steps">
+                        <li>Arriba a la izquierda ve los <b>c.c. acumulados</b> de todos los controles guardados y el semáforo:
+                            <b>Normal</b> (menos de 250 c.c.), <b>Vigilar</b> o <b>Alerta</b> (desde 500 c.c. en parto vaginal y
+                            1.000 c.c. en cesárea). En alerta aparece el aviso rojo <b>"Código rojo"</b>.</li>
+                        <li>En cada <b>tarjeta de material</b> (compresa, toalla higiénica, toalla materna, gasa, apósito, moño,
+                            pañal, campo, sábana y bolsa recolectora) escriba la <b>cantidad</b> y el <b>peso húmedo en
+                            gramos</b>, o use los botones <b>−</b> / <b>+</b>. El sistema resta el <b>peso basal</b> y muestra
+                            los c.c. de esa tarjeta (1 gr ≈ 1 c.c.). La tarjeta con peso se resalta.</li>
+                        <li>El <b>pañal</b> se pesa con <code class="btnname">Ver pesajes</code>: permite varios pesajes y marcar
+                            <b>"Nuevo pañal"</b> (desde el segundo pesaje se resta el anterior, no el basal).</li>
+                        <li>Revise la <b>Hora del control</b> en el encabezado verde y presione
+                            <code class="btnname">Guardar control (15 min)</code>. El minuto cambia solo (15, 30, 45… 360). Al pie
+                            se ve el <b>Total acumulado</b> (incluye lo que está pesando sin guardar) y el <b>Próximo control</b>.</li>
+                        <li>Los pesos escritos sin guardar quedan como <b>borrador en ese computador</b> (se recuperan si
+                            recarga la página), pero <b>no cuentan</b> hasta presionar <code class="btnname">Guardar control</code>.</li>
+                    </ol>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_vigilancia_registros.png' %}?v=1" alt="Lista de controles de sangrado guardados">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Botón "Registros": lista de controles guardados con hora, c.c., acumulado y semáforo; el lápiz corrige y la × elimina. "Volver a la calculadora" regresa a los materiales.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+
                     <div class="callout danger">
                         <i data-lucide="siren" size="18"></i>
-                        <span>Si el semáforo de sangrado marca <b>Alerta</b>, actúe de inmediato según el protocolo
-                        de hemorragia obstétrica del hospital.</span>
+                        <span>Si el semáforo de sangrado marca <b>Alerta</b> ("Código rojo"), active de inmediato el
+                        protocolo de hemorragia obstétrica del hospital.</span>
                     </div>
 
-                    <h3 class="step-title">Guardar durante la vigilancia</h3>
+                    <h4 class="step-title" style="font-size:1rem">b) Globo de seguridad y Sutura y heridas</h4>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_vigilancia_globo_sutura.png' %}?v=1" alt="Tarjetas de Globo de seguridad y Sutura y heridas">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Cada tarjeta muestra su estado ("Estado normal" o "Alerta activa"), el último control con "Ver detalle" y la acción recomendada.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+
                     <ol class="steps">
-                        <li>Mientras diligencia el formato, el sistema <b>guarda automáticamente</b> lo que va
-                            registrando: no pierde datos si cambia de pantalla.</li>
-                        <li>En <b>"Responsable del Registro"</b>, escriba el nombre completo del responsable (ya
-                            viene sugerido con su nombre de sesión). Este nombre queda impreso en el PDF.</li>
-                        <li>El sistema exige como mínimo el nombre de la paciente, su identificación y la edad gestacional.</li>
-                        <li>Puede descargar el PDF cuando quiera con el botón
-                            <code class="btnname">Descargar PDF</code> (solo lo descarga a su computador).</li>
+                        <li>Debajo del título <b>"Sangrado, involución uterina y herida"</b> están las tarjetas <b>Globo de
+                            seguridad</b> (involución uterina) y <b>Sutura y heridas</b> (herida / episiorrafia).</li>
+                        <li>Arriba a la derecha de cada una se ve el estado: <b>Estado normal</b> (verde), <b>Alerta activa</b>
+                            (rojo), <i>Sin registros</i> o <i>No aplica</i>. La fila "Estado · último control" muestra el
+                            último estado guardado, y debajo la <b>acción inmediata</b> o el <b>hallazgo normal</b>.</li>
+                        <li>Presione <code class="btnname">Historial / Agregar control</code> o <code class="btnname">Ver detalle</code>
+                            para abrir la ventana del historial.</li>
                     </ol>
 
-                    <h3 class="step-title">Cerrar el registro con "Guardar Registro Completo" y envío automático al repositorio <span class="badge-nuevo">Nuevo</span></h3>
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_historial_globo.png' %}?v=1" alt="Ventana Historial de Globo de Seguridad">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Ventana de historial: elija el estado, revise la hora del control y presione "Guardar control". Cada control guardado se corrige con el lápiz.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+
+                    <ol class="steps">
+                        <li>Revise la <b>Hora del control</b>, elija el estado en la lista (Globo: Normal / Alerta / No aplica;
+                            Sutura: Normal / Hematoma / Infección / No aplica) y presione <code class="btnname">Guardar control</code>.</li>
+                        <li>Cada control guardado aparece con su minuto, hora y estado (verde con ✓, rojo con ! o gris). Para
+                            corregirlo use el <b>lápiz</b>. Los controles de globo y sutura <b>no se eliminan</b>: se corrigen.</li>
+                        <li>Abajo se ve el <b>Próximo control</b>. Cierre con <code class="btnname">Cerrar</code>, la <b>×</b> o
+                            haciendo clic fuera de la ventana.</li>
+                    </ol>
+
+                    <h3 class="step-title">5.7 Paso 5 — Control del recién nacido</h3>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_recien_nacido.png' %}?v=1" alt="Paso de control del recién nacido">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Paso 5: secciones numeradas (nacimiento, antropometría, APGAR…) y, a la derecha, la huella plantar. Los campos pendientes se ven en rojo.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+
+                    <ol class="steps">
+                        <li>Complete las secciones numeradas; cada una se pliega con la flecha de su encabezado. Los campos con
+                            <b>*</b> (género, peso, talla, APGAR 1' y 5') son <b>obligatorios para cerrar</b>.</li>
+                        <li>Los <b>Sí / No</b> se pueden desmarcar con un segundo clic sobre la opción marcada.</li>
+                        <li><b>Huella plantar</b> (obligatoria): presione <code class="btnname">Tomar foto</code> y fotografíe la
+                            huella del pie izquierdo. Debe verse clara, completa y bien iluminada. Puede verla en grande,
+                            tomar otra o quitarla mientras el registro no esté cerrado.</li>
+                    </ol>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_glucometrias.png' %}?v=1" alt="Sección de glucometrías con el botón No aplica">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Sección 11. Glucometrías: "Agregar glucometría" por cada toma, o el botón naranja "No aplica" si no se toman.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+
+                    <ul class="plain">
+                        <li>Use <code class="btnname">Agregar glucometría</code> por cada toma: hora y resultado en mg/dL. El
+                            estado se calcula con el rango <b>45 – 125 mg/dL</b> (Hipoglucemia / Normal / Hiperglucemia).</li>
+                        <li><span class="badge-nuevo">Nuevo</span> Si no se le toman glucometrías al recién nacido, marque
+                            <code class="btnname">No aplica</code>: el botón se pone naranja, se bloquea "Agregar glucometría" y
+                            el PDF imprime "No aplica". Si ya había glucometrías, el sistema pregunta antes de quitarlas.</li>
+                    </ul>
+
+                    <h3 class="step-title">5.8 Responsables de cada paso <span class="badge-nuevo">Nuevo</span></h3>
                     <p class="txt">
-                        El botón <code class="btnname">Guardar Registro Completo</code> <b>cierra</b> el ciclo de
-                        vigilancia posparto. Se usa una sola vez, al terminar:
+                        El formato lo diligencian varias personas y nadie escribe su nombre a mano: cada dato queda firmado
+                        con el usuario que inició sesión. Al final de Fetocardia, Parto, Vigilancia y Recién nacido hay un
+                        recuadro plegable <b>"Responsables de este paso"</b>.
+                    </p>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_responsables_paso.png' %}?v=1" alt="Recuadro Responsables de este paso desplegado">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Recuadro desplegado: cada persona con su horario y lo que hizo en ese paso.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+
+                    <ul class="plain">
+                        <li>Muestra cada profesional con su horario y qué hizo: <b>Registró</b> (por ejemplo, "Peso, Talla" o
+                            "Sangrado 15, 30 min"), <b>Corrigió</b> (por ejemplo, "Tipo de parto") o <b>Eliminó</b> (por
+                            ejemplo, "toma 17:02").</li>
+                        <li>Se guarda <b>qué campo o control</b> se tocó, no los valores. Si la misma persona sigue escribiendo
+                            el mismo campo, no se repite.</li>
+                        <li>Lo mismo aparece en el PDF, en un renglón <b>"Responsables:"</b> debajo de cada sección.</li>
+                    </ul>
+
+                    <h3 class="step-title">5.9 Guardado automático</h3>
+                    <ul class="plain">
+                        <li>No hay botón de "guardar" mientras diligencia: el sistema guarda solo unos segundos después de cada
+                            cambio, y cada minuto como respaldo.</li>
+                        <li>El indicador del encabezado muestra <b>Guardado automático</b> (verde, con la hora),
+                            <b>Guardando…</b>, <b>Guardado en espera</b> (falta algún dato de la paciente) o <b>No se pudo
+                            guardar</b> (revise la conexión: se reintenta solo).</li>
+                        <li>Cada control (fetocardia, sangrado, globo, sutura) se envía al servidor en el momento de guardarlo.</li>
+                        <li><code class="btnname">Descargar PDF</code> (en Finalización) descarga el formato a su computador en
+                            cualquier momento.</li>
+                    </ul>
+
+                    <h3 class="step-title">5.10 Vista previa: revisar y corregir</h3>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_vista_previa_fetocardia.png' %}?v=1" alt="Tabla de fetocardia en la vista previa con botones de corregir y eliminar">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Vista previa: cada control de fetocardia se puede corregir (✓ verde) o eliminar (papelera roja).</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+
+                    <ol class="steps">
+                        <li>El botón rojo <code class="btnname">Vista previa</code> muestra la gráfica de la fetocardia, los datos
+                            de la paciente, el parto, la vigilancia y el recién nacido, todo editable.</li>
+                        <li>En la tabla de fetocardia corrija fecha, hora o lpm y presione el <b>✓ verde</b>, o elimine un control
+                            con la <b>papelera roja</b> <span class="badge-nuevo">Nuevo</span> (pide confirmación y no se puede deshacer).</li>
+                        <li>Las demás secciones tienen su botón <code class="btnname">Guardar cambios</code>.</li>
+                        <li>Es la vía para <b>corregir un registro ya cerrado</b>. Toda corrección queda en "Responsables de
+                            este paso".</li>
+                    </ol>
+
+                    <h3 class="step-title">5.11 Paso 6 — Finalización: cierre y firmas <span class="badge-nuevo">Nuevo</span></h3>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_finalizacion.png' %}?v=1" alt="Paso de finalización: quién cierra el registro y participación por paso">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>Finalización: el cuadro "Quién cierra el registro", la tabla de participación por paso y los botones de cierre y PDF.</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
+                    </div>
+
+                    <p class="txt">
+                        Ya no hay "un responsable": hay <b>participantes</b> (todos los que diligenciaron algo, por paso) y
+                        <b>quien cierra el registro</b>, que confirma que el formato está completo y lo envía al repositorio.
                     </p>
                     <ol class="steps">
-                        <li>El botón se habilita cuando está guardado el <b>último control posparto</b>: el de las
-                            <b>6 horas después del parto</b> (última columna del cronograma, minuto 360). No depende de la
-                            hora del reloj ni de cuándo se creó el registro. Mientras falte ese control, el botón se ve
-                            bloqueado con el texto <i>"Se habilita con el control de las 6 h"</i>, y al pasar el mouse indica
-                            cuál fue el último control guardado.</li>
-                        <li>Al cerrarse, arriba aparece la franja <b>"Registro cerrado el &lt;fecha&gt; por
-                            &lt;nombre&gt; — para corregir, use 'Vista previa'"</b> y el formulario queda de <b>solo lectura</b>.
-                            Siguen disponibles <code class="btnname">Vista previa</code>, <code class="btnname">Descargar PDF</code>,
-                            <code class="btnname">Reenviar a repositorio</code> y la <b>Línea de Tiempo Clínica MEOWS</b>.
-                            En <b>Globo de seguridad</b>, <b>Sangrado cuantificado</b> y <b>Sutura y heridas</b> los botones
-                            pasan a decir <code class="btnname">Ver historial</code> / <code class="btnname">Ver registros</code>:
-                            abren los controles guardados solo para consultarlos.</li>
-                        <li>En ese mismo momento, el sistema genera el <b>PDF final (FRSPA-007)</b> y lo guarda
-                            <b>automáticamente</b> en el repositorio clínico, en la carpeta de la paciente y de su
-                            ingreso. No tiene que presionar nada más.</li>
-                        <li>Un aviso en la esquina inferior derecha le confirma el resultado:
-                            <b>📤 "Formato guardado en la NAS: …/otros_control_posparto_inmediato_…_1.pdf"</b>, o
-                            <b>⚠️ "No se pudo guardar el formato…"</b> si hubo un problema. Aunque el envío falle,
-                            <b>el registro queda cerrado igual</b>, y puede intentarlo de nuevo con el botón
-                            <code class="btnname">Reenviar a repositorio</code> (vea abajo).</li>
+                        <li><b>Quién cierra el registro:</b> antes de cerrar dice <i>"Al presionar 'Guardar Registro Completo',
+                            el registro quedará cerrado a nombre de: &lt;usted&gt;"</i>. Ya cerrado, cambia a <i>"Cerrado por
+                            &lt;nombre&gt; el &lt;fecha&gt;"</i>.</li>
+                        <li><b>Participación por paso:</b> tabla con cada profesional y una ✓ en los pasos donde registró algo,
+                            más la columna <b>Cierre</b>.</li>
+                        <li>El botón <code class="btnname">Guardar Registro Completo</code> se habilita cuando
+                            <b>Sangrado</b>, <b>Globo de seguridad</b> y <b>Sutura y heridas</b> tienen cada uno su control de las
+                            <b>6 horas</b> (minuto 360), está la <b>hora del parto</b> y están los datos obligatorios del
+                            <b>recién nacido</b> y su <b>huella</b>. Mientras tanto se ve bloqueado (<i>"Se habilita con el
+                            control de las 6 h"</i>) y el aviso amarillo del pie dice qué falta.</li>
+                        <li>Cuando está habilitado, el paso Finalización late en verde y aparece el aviso <b>"Ya puede guardar
+                            el registro"</b> con el botón <code class="btnname">Ir a guardar</code>.</li>
+                        <li>Al presionarlo, el sistema le confirma que <b>usted quedará como quien cierra el registro</b>. Si hay
+                            datos sin diligenciar (pasos en rojo), los lista y pregunta si desea cerrar de todas formas.</li>
                     </ol>
+                    <h4 class="step-title" style="font-size:1rem">Después de cerrar</h4>
+                    <ol class="steps">
+                        <li>Arriba aparece la franja <b>"Registro cerrado el &lt;fecha&gt; por &lt;nombre&gt; — para corregir,
+                            use 'Vista previa'"</b> y el formulario queda de <b>solo lectura</b>. Globo y sutura pasan a
+                            <code class="btnname">Ver historial</code>, y la calculadora de sangrado muestra solo la lista de controles.</li>
+                        <li>En ese momento se genera el <b>PDF final (FRSPA-007)</b> y se guarda <b>automáticamente</b> en el
+                            repositorio clínico, en la carpeta de la paciente y de su ingreso. El aviso <b>📤 "Formato guardado
+                            en la NAS…"</b> lo confirma. Si dice <b>⚠️ "No se pudo guardar el formato…"</b>, el registro queda
+                            cerrado igual y puede reintentar con <code class="btnname">Reenviar a repositorio</code>.</li>
+                    </ol>
+
                     <div class="screenshot-frame">
                         <img src="{% static 'manual/posparto_envio_repositorio.png' %}?v=1" alt="Registro de Control Posparto cerrado con el aviso de formato guardado en la NAS">
                     </div>
                     <div class="screenshot-caption">
                         <i data-lucide="camera" size="14"></i>
-                        <span>Registro cerrado (franja de arriba) y aviso de envío al repositorio (abajo a la derecha). Datos de la paciente ficticios; el aviso se muestra como ejemplo. Al final del formulario quedan activos "Descargar PDF" y "Reenviar a repositorio".</span>
+                        <span>Registro cerrado (franja de arriba) y aviso de envío al repositorio. Datos de la paciente ficticios.</span>
                         <span class="zoom-hint">🔍 Clic para ampliar</span>
                     </div>
-                    <div class="callout tip">
-                        <i data-lucide="pencil" size="18"></i>
-                        <span><b>¿Hay que corregir algo después del cierre?</b> Use el botón
-                        <code class="btnname">Vista previa</code>: desde ahí se pueden corregir las características del
-                        parto (tipo de parto, episiotomía, alumbramiento, hora del parto) y la vigilancia posparto
-                        (globo de seguridad, sutura y heridas, sangrado cuantificado). El PDF que ya está en el
-                        repositorio <b>no se reemplaza</b> con esas correcciones: para que la versión corregida quede
-                        también en el repositorio, use el botón <code class="btnname">Reenviar a repositorio</code>
-                        (vea abajo).</span>
+
+                    <h3 class="step-title">5.12 Reenviar el formato al repositorio</h3>
+                    <p class="txt">
+                        Con el registro cerrado, junto a <code class="btnname">Descargar PDF</code> aparece
+                        <code class="btnname">Reenviar a repositorio</code>. Úselo <b>solo</b> si el envío automático falló o si
+                        <b>corrigió datos desde "Vista previa"</b>. Pide confirmación y guarda un archivo nuevo
+                        (<b>otros_control_posparto_inmediato_…_2.pdf</b>); el anterior se conserva. Reenviar sin haber
+                        corregido nada solo deja una copia repetida.
+                    </p>
+
+                    <h3 class="step-title">5.13 El PDF FRSPA-007</h3>
+
+                    <div class="screenshot-frame">
+                        <img src="{% static 'manual/posparto_pdf_vigilancia.png' %}?v=1" alt="Tabla de controles de vigilancia posparto en el PDF">
+                    </div>
+                    <div class="screenshot-caption">
+                        <i data-lucide="camera" size="14"></i>
+                        <span>En el PDF: tabla de controles de vigilancia (una fila por minuto del cronograma; la de 6 h resaltada) y el renglón "Responsables:".</span>
+                        <span class="zoom-hint">🔍 Clic para ampliar</span>
                     </div>
 
-                    <h3 class="step-title">Reenviar el formato al repositorio <span class="badge-nuevo">Nuevo</span></h3>
-                    <p class="txt">
-                        Con el registro ya cerrado, al final del formulario, junto a <code class="btnname">Descargar PDF</code>,
-                        aparece el botón <code class="btnname">Reenviar a repositorio</code>. Úselo en dos casos:
-                    </p>
                     <ul class="plain">
-                        <li><b>El envío automático falló</b> al cerrar (apareció el aviso ⚠️ "No se pudo guardar el formato…").</li>
-                        <li><b>Corrigió datos desde "Vista previa"</b> y la versión corregida debe quedar en el repositorio.</li>
+                        <li>Incluye: datos de la paciente, características del parto (con "No aplica" en episiotomía y
+                            desgarro), control del recién nacido con su huella, fetocardia, guía de parámetros y semáforo, la
+                            tabla de <b>controles de vigilancia posparto</b>, la línea de tiempo MEOWS y la tabla
+                            <b>"Participantes y cierre del registro"</b>.</li>
+                        <li>Debajo de Parto, Recién nacido, Fetocardia y Vigilancia va el renglón <b>"Responsables:"</b> con
+                            quién registró, corrigió o eliminó qué.</li>
                     </ul>
-                    <ol class="steps">
-                        <li>Presione <code class="btnname">Reenviar a repositorio</code> y confirme el mensaje
-                            <i>"¿Enviar de nuevo el formato FRSPA-007 al repositorio clínico? Se guardará como un archivo
-                            nuevo; el anterior no se reemplaza."</i></li>
-                        <li>El botón muestra <b>"Enviando..."</b> y luego aparece el aviso con el resultado. El archivo nuevo
-                            queda con el siguiente número (por ejemplo, <b>otros_control_posparto_inmediato_…_2.pdf</b>) y el
-                            anterior se conserva. El más reciente es el de número mayor.</li>
-                    </ol>
-                    <p class="txt">Mientras el registro no esté cerrado, el botón no aparece: al repositorio solo van formatos finales.</p>
                 </section>
 
                 <!-- 5. TRABAJO DE PARTO -->
@@ -1842,8 +2056,10 @@
                     <p style="font-size:14.5px;color:#334155;line-height:1.6;margin:0;">
                         En <b>MEOWS</b> ya no: los registros vienen únicamente de Dinámica, así que una corrección
                         se hace allá, no en esta app (vea la siguiente pregunta). En <b>Control Posparto Inmediato</b>
-                        y <b>Trabajo de Parto</b> nada cambió: vuelva a abrir el formulario de la paciente, corrija
-                        el valor y presione nuevamente el botón de guardar correspondiente.
+                        corrija el valor en su paso (se guarda solo) o, para controles ya guardados y registros
+                        cerrados, use <b>Vista previa</b> o el lápiz del historial (sección 5.10); la corrección queda en
+                        "Responsables de este paso". En <b>Trabajo de Parto</b>, vuelva a abrir el formulario de la
+                        paciente y corrija el valor.
                     </p>
 
                     <h3 class="step-title">¿Qué significa el color del estado de la paciente en Sala de Partos?</h3>
@@ -1993,8 +2209,9 @@
                         <li>Si sospecha que alguien más pudo haber usado su cuenta, cambie su contraseña de
                             Dinámica (o repórtelo a Sistemas si es una cuenta local) de inmediato.</li>
                         <li><b>Su nombre queda en lo que registra</b> <span class="badge-nuevo">Nuevo</span>: las tomas de
-                            Triaje, los cierres de Control Posparto y los envíos al repositorio quedan a nombre de quien
-                            tiene la sesión iniciada. Otra razón para no usar la cuenta de un compañero.</li>
+                            Triaje, cada dato que registra, corrige o elimina en Control Posparto (y quién lo cierra) y los
+                            envíos al repositorio quedan a nombre de quien tiene la sesión iniciada. Otra razón para no usar
+                            la cuenta de un compañero.</li>
                         <li><b>Repositorio clínico</b> <span class="badge-nuevo">Nuevo</span>: los PDF que se guardan en la
                             NAS son parte de la historia clínica. No los copie a memorias USB, correos personales ni
                             equipos fuera del hospital; el acceso directo a la NAS es exclusivo de Sistemas.</li>

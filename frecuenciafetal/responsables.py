@@ -14,6 +14,7 @@ servidor firma solo cada cosa con el profesional en sesión:
 resumen_responsables() arma, para la pantalla y el PDF, qué hizo cada uno.
 """
 import logging
+from datetime import timedelta
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -178,6 +179,194 @@ def responsables_para_api(registro):
         {'nombre': r['nombre'], 'desde': r['desde'], 'hasta': r['hasta'], 'detalle': r['detalle']}
         for r in resumen_responsables(registro)
     ]
+
+
+# ---------------------------------------------------------------------------
+# 2026-10-06: responsables POR PASO (Fetocardia, Parto, Vigilancia, Recién
+# nacido). Bitácora CambioRegistroParto: quién registró / corrigió / eliminó
+# qué campo o control (sin valores). La creación de cada control sale de su
+# registrado_por; la bitácora aporta las correcciones, eliminaciones y los
+# campos de Parto y Recién nacido.
+# ---------------------------------------------------------------------------
+SECCIONES_PASO = ('fetocardia', 'parto', 'vigilancia', 'recien_nacido')
+
+# Si la misma persona vuelve a guardar el mismo campo en este lapso (el
+# autoguardado guarda mientras escribe), no se repite en la bitácora.
+VENTANA_MISMO_CAMBIO = timedelta(minutes=10)
+
+CAMPOS_PARTO = [
+    ('tipo_parto', 'Tipo de parto'),
+    ('hora_parto', 'Hora de parto'),
+    ('episiotomia', 'Episiotomía'),
+    ('tipo_alumbramiento', 'Alumbramiento'),
+    ('desgarro', 'Desgarro'),
+    ('desgarro_subgrado', 'Subclasificación del desgarro'),
+]
+# Del registro, pero se diligencia en la tarjeta del recién nacido.
+CAMPOS_REGISTRO_EN_RN = [('parto_atendido_por', 'Parto atendido por')]
+
+ETIQUETAS_RN = {
+    'genero': 'Género', 'pasa_uci_neonatal': 'Pasa a UCI neonatal', 'causa_uci': 'Causa de UCI',
+    'peso': 'Peso', 'talla': 'Talla', 'pc': 'Perímetro cefálico', 'pt': 'Perímetro torácico',
+    'p_abd': 'Perímetro abdominal', 'apgar_1min': "APGAR 1'", 'apgar_5min': "APGAR 5'",
+    'apgar_10min': "APGAR 10'", 'tsh_tomada': 'TSH tomada', 'hemoclasificacion': 'Hemoclasificación',
+    'vacuna_hb': 'Vacuna HB', 'vacuna_bcg': 'Vacuna BCG',
+    'caracteristicas_liquido_amniotico': 'Líquido amniótico', 'lavado_gastrico': 'Lavado gástrico',
+    'lavado_elimina': 'Elimina (lavado gástrico)', 'meconio': 'Meconio',
+    'oximetria_nacimiento_preductal': 'Oximetría al nacer (preductal)',
+    'oximetria_nacimiento_posductal': 'Oximetría al nacer (posductal)',
+    'oximetria_12h_preductal': 'Oximetría 12 h (preductal)', 'oximetria_12h_posductal': 'Oximetría 12 h (posductal)',
+    'fc_nacimiento': 'FC al nacer', 'neonato_atendido_por': 'Neonato atendido por',
+    'valorado_pediatra': 'Valorado por pediatra', 'glucometrias_no_aplica': 'Glucometrías: no aplica',
+}
+for _pref, _txt in (('tanac', 'TA al nacer'), ('tanac12', 'Al nacimiento: TA 12 h'), ('tanac24', 'Al nacimiento: TA 24 h'),
+                    ('tanac48', 'Al nacimiento: TA 48 h'), ('ta', 'TA neonato 12 h'), ('ta24', 'TA neonato 24 h'),
+                    ('ta48', 'TA neonato 48 h')):
+    for _miembro in ('msd', 'msi', 'mid', 'miiz'):
+        ETIQUETAS_RN[f'{_pref}_{_miembro}'] = f'{_txt} {_miembro.upper()}'
+# Campos del RN que no son datos clínicos diligenciados (la huella va aparte).
+_RN_NO_BITACORA = {'id', 'registro_id', 'huella_pdf', 'huella_subida_por', 'huella_subida_en'}
+
+
+def registrar_cambios(registro, request, seccion, cambios):
+    """cambios: [(accion, detalle)]. Nunca rompe el guardado."""
+    from .models import CambioRegistroParto
+
+    if not cambios or registro is None or getattr(registro, 'pk', None) is None:
+        return
+    try:
+        nombre = (nombre_profesional_sesion(request) or '').strip()[:255] if request is not None else ''
+        if not nombre:
+            return
+        usuario = getattr(getattr(request, 'user', None), 'username', '') or ''
+        ahora = timezone.now()
+        nuevos = []
+        for accion, detalle in cambios:
+            detalle = str(detalle)[:255]
+            ultimo = (CambioRegistroParto.objects
+                      .filter(registro_id=registro.pk, seccion=seccion, detalle=detalle)
+                      .order_by('-creado_en', '-id').first())
+            # La misma persona sigue escribiendo ese campo: no se repite.
+            if (accion != 'eliminacion' and ultimo is not None and ultimo.profesional == nombre
+                    and ultimo.accion != 'eliminacion' and ahora - ultimo.creado_en < VENTANA_MISMO_CAMBIO):
+                continue
+            nuevos.append(CambioRegistroParto(
+                registro_id=registro.pk, seccion=seccion, accion=accion, detalle=detalle,
+                profesional=nombre, usuario=usuario[:150],
+            ))
+        if nuevos:
+            CambioRegistroParto.objects.bulk_create(nuevos)
+    except Exception:
+        logger.exception('No se pudo registrar la bitácora de cambios del registro de parto')
+
+
+def _vacio(valor, defecto=None):
+    return valor is None or valor == '' or valor == defecto
+
+
+def _diferencias(campos, antes, despues, modelo):
+    """[(accion, etiqueta)] de los campos que cambiaron. `antes` None = recién creado."""
+    cambios = []
+    antes = antes or {}
+    despues = despues or {}
+    for campo, etiqueta in campos:
+        try:
+            defecto = modelo._meta.get_field(campo).get_default()
+        except Exception:
+            defecto = None
+        a, d = antes.get(campo), despues.get(campo)
+        if a == d or (campo not in antes and _vacio(d, defecto)):
+            continue
+        cambios.append(('registro' if _vacio(a, defecto) else 'correccion', etiqueta))
+    return cambios
+
+
+def bitacora_registro_y_rn(registro, request, antes, despues):
+    """Compara las fotos (registro, rn, glucometrías) de antes y después de
+    guardar el registro (ver RegistroPartoViewSet._foto_registro) y deja en la
+    bitácora los campos de Parto y Recién nacido que cambiaron."""
+    from .models import ControlRecienNacido, RegistroParto
+
+    reg_a, rn_a, glu_a = antes if antes else (None, None, [])
+    reg_d, rn_d, glu_d = despues
+    registrar_cambios(registro, request, 'parto', _diferencias(CAMPOS_PARTO, reg_a, reg_d, RegistroParto))
+
+    cambios_rn = _diferencias(CAMPOS_REGISTRO_EN_RN, reg_a, reg_d, RegistroParto)
+    campos_rn = [(c, ETIQUETAS_RN.get(c) or c.replace('_', ' ').capitalize())
+                 for c in (rn_d or {}) if c not in _RN_NO_BITACORA]
+    cambios_rn += _diferencias(campos_rn, rn_a, rn_d, ControlRecienNacido)
+    if glu_a != glu_d:
+        cambios_rn.append(('registro' if not glu_a else 'correccion', 'Glucometrías'))
+    registrar_cambios(registro, request, 'recien_nacido', cambios_rn)
+
+
+def responsables_por_seccion(registro):
+    """{seccion: [{'nombre', 'desde', 'hasta', 'detalle': ['Registró: …', 'Corrigió: …']}]}"""
+    vacio = {s: [] for s in SECCIONES_PASO}
+    if registro is None or getattr(registro, 'pk', None) is None:
+        return vacio
+    secciones = {s: {} for s in SECCIONES_PASO}
+
+    def anotar(seccion, nombre, accion, detalle, momento):
+        nombre = (nombre or '').strip()
+        if not nombre:
+            return
+        p = secciones[seccion].setdefault(nombre, {'nombre': nombre, 'desde': None, 'hasta': None, 'acciones': {}})
+        if momento is not None:
+            p['desde'] = momento if p['desde'] is None else min(p['desde'], momento)
+            p['hasta'] = momento if p['hasta'] is None else max(p['hasta'], momento)
+        lista = p['acciones'].setdefault(accion, [])
+        if detalle not in lista:
+            lista.append(detalle)
+
+    # Quién registró cada control (sale del propio control).
+    for c in registro.controles_fetocardia.all():
+        anotar('fetocardia', c.registrado_por or c.responsable, 'registro', ('toma', c.pk), c.registrado_en)
+    for qs, grupo in ((registro.controles_sangrado.all(), 'Sangrado'),
+                      (registro.controles_globo.all(), 'Globo de seguridad'),
+                      (registro.controles_sutura.all(), 'Sutura y heridas')):
+        for c in qs:
+            anotar('vigilancia', c.registrado_por, 'registro', (grupo, c.minuto_control), c.registrado_en)
+
+    for cambio in registro.cambios.all():
+        anotar(cambio.seccion, cambio.profesional, cambio.accion, cambio.detalle, cambio.creado_en)
+
+    # Registros anteriores a la bitácora: lo poco que se sabe del recién nacido.
+    try:
+        rn = registro.control_recien_nacido
+    except Exception:
+        rn = None
+    if rn is not None:
+        if not secciones['recien_nacido']:
+            anotar('recien_nacido', rn.registrado_por, 'registro', 'Datos del recién nacido', rn.registrado_en)
+        if rn.huella_subida_por:
+            anotar('recien_nacido', rn.huella_subida_por, 'registro', 'Huella plantar', rn.huella_subida_en)
+
+    verbo = dict((('registro', 'Registró'), ('correccion', 'Corrigió'), ('eliminacion', 'Eliminó')))
+    salida = {}
+    ahora = timezone.now()
+    for seccion, personas in secciones.items():
+        filas = []
+        for p in personas.values():
+            detalle = []
+            for accion in ('registro', 'correccion', 'eliminacion'):
+                items = p['acciones'].get(accion)
+                if not items:
+                    continue
+                if seccion == 'fetocardia' and accion == 'registro':
+                    texto = f"{len(items)} toma" + ('s' if len(items) != 1 else '')
+                elif seccion == 'vigilancia' and accion == 'registro':
+                    por_grupo = {}
+                    for grupo, minuto in items:
+                        por_grupo.setdefault(grupo, []).append(minuto)
+                    texto = '; '.join(f'{g} {_rango_minutos(m)}' for g, m in por_grupo.items())
+                else:
+                    texto = ', '.join(items)
+                detalle.append(f'{verbo[accion]}: {texto}')
+            filas.append({'nombre': p['nombre'], 'desde': p['desde'], 'hasta': p['hasta'], 'detalle': detalle})
+        filas.sort(key=lambda x: x['desde'] or ahora)
+        salida[seccion] = filas
+    return salida
 
 
 # Campos que no cuentan como "cambio" hecho por quien guarda (automáticos).

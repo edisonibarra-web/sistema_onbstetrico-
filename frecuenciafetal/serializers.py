@@ -53,8 +53,26 @@ class GlucometriaSerializer(serializers.ModelSerializer):
         read_only_fields = ['control_rn']
 
 
+def aplicar_delta_glucometrias(rn, agregar, quitar):
+    """2026-10-06: el formulario ya no manda la lista completa de
+    glucometrías (reemplazarla borraba las que otra pantalla había agregado
+    mientras tanto): manda solo las que agregó y las que quitó. Agregar una
+    que ya existe (misma hora y resultado) no la duplica, así un reintento o
+    dos pantallas registrando la misma toma no crean copias."""
+    for g in quitar or []:
+        existente = rn.glucometrias.filter(hora=g['hora'], resultado=g['resultado']).order_by('id').first()
+        if existente is not None:
+            existente.delete()
+    for g in agregar or []:
+        if not rn.glucometrias.filter(hora=g['hora'], resultado=g['resultado']).exists():
+            GlucometriaRecienNacido.objects.create(control_rn=rn, hora=g['hora'], resultado=g['resultado'])
+
+
 class ControlRecienNacidoSerializer(serializers.ModelSerializer):
     glucometrias = GlucometriaSerializer(many=True, required=False)
+    # 2026-10-06: cambios de la lista en vez de la lista completa (ver aplicar_delta_glucometrias).
+    glucometrias_agregar = GlucometriaSerializer(many=True, required=False, write_only=True)
+    glucometrias_quitar = GlucometriaSerializer(many=True, required=False, write_only=True)
     # 2026-09-30: la huella (PDF) solo se sube/quita por su propio endpoint
     # (RegistroPartoViewSet.huella_rn) -- el autoguardado nunca la toca, y
     # la ruta del archivo en disco no se expone.
@@ -77,13 +95,18 @@ class ControlRecienNacidoSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         glucometrias_data = validated_data.pop('glucometrias', [])
+        agregar = validated_data.pop('glucometrias_agregar', None)
+        quitar = validated_data.pop('glucometrias_quitar', None)
         control_rn = ControlRecienNacido.objects.create(**validated_data)
         for glucometria_data in glucometrias_data:
             GlucometriaRecienNacido.objects.create(control_rn=control_rn, **glucometria_data)
+        aplicar_delta_glucometrias(control_rn, agregar, quitar)
         return control_rn
 
     def update(self, instance, validated_data):
         glucometrias_data = validated_data.pop('glucometrias', None)
+        agregar = validated_data.pop('glucometrias_agregar', None)
+        quitar = validated_data.pop('glucometrias_quitar', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
@@ -91,6 +114,7 @@ class ControlRecienNacidoSerializer(serializers.ModelSerializer):
             instance.glucometrias.all().delete()
             for glucometria_data in glucometrias_data:
                 GlucometriaRecienNacido.objects.create(control_rn=instance, **glucometria_data)
+        aplicar_delta_glucometrias(instance, agregar, quitar)
         return instance
 
 
@@ -101,7 +125,32 @@ class ControlPostpartoSerializer(serializers.ModelSerializer):
         read_only_fields = ['registro', 'responsable'] + CAMPOS_FIRMA
 
 
-class ControlSangradoSerializer(serializers.ModelSerializer):
+class MinutoUnicoPorRegistroMixin:
+    """2026-10-06: un solo control por minuto del cronograma en cada registro
+    (unique_together registro/minuto_control). DRF no lo valida solo porque
+    `registro` es de solo lectura: un duplicado (dos tablets sobre la misma
+    paciente, o un reintento) reventaba con IntegrityError (500) y la
+    pantalla no sabía por qué. Ahora es un 400 con código 'minuto_ocupado',
+    que el formulario usa para resincronizar los controles."""
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        view = self.context.get('view')
+        registro_id = getattr(view, 'kwargs', {}).get('registro_pk') if view else None
+        minuto = attrs.get('minuto_control', getattr(self.instance, 'minuto_control', None))
+        if registro_id and minuto is not None:
+            existentes = self.Meta.model.objects.filter(registro_id=registro_id, minuto_control=minuto)
+            if self.instance is not None:
+                existentes = existentes.exclude(pk=self.instance.pk)
+            if existentes.exists():
+                raise serializers.ValidationError(
+                    {'minuto_control': f'El control del minuto {minuto} ya está registrado.'},
+                    code='minuto_ocupado',
+                )
+        return attrs
+
+
+class ControlSangradoSerializer(MinutoUnicoPorRegistroMixin, serializers.ModelSerializer):
     class Meta:
         model = ControlSangrado
         fields = '__all__'
@@ -110,14 +159,14 @@ class ControlSangradoSerializer(serializers.ModelSerializer):
         read_only_fields = ['registro', 'estado'] + CAMPOS_FIRMA
 
 
-class ControlGloboSerializer(serializers.ModelSerializer):
+class ControlGloboSerializer(MinutoUnicoPorRegistroMixin, serializers.ModelSerializer):
     class Meta:
         model = ControlGlobo
         fields = '__all__'
         read_only_fields = ['registro'] + CAMPOS_FIRMA
 
 
-class ControlSuturaSerializer(serializers.ModelSerializer):
+class ControlSuturaSerializer(MinutoUnicoPorRegistroMixin, serializers.ModelSerializer):
     class Meta:
         model = ControlSutura
         fields = '__all__'
@@ -159,6 +208,8 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
     controles_sutura = ControlSuturaSerializer(many=True, required=False)
     # 2026-09-28: quiénes diligenciaron el registro y qué hizo cada uno.
     responsables = serializers.SerializerMethodField()
+    # 2026-10-06: responsables de cada paso (Fetocardia, Parto, Vigilancia, RN).
+    responsables_secciones = serializers.SerializerMethodField()
 
     class Meta:
         model = RegistroParto
@@ -173,6 +224,10 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
     def get_responsables(self, obj):
         from .responsables import responsables_para_api
         return responsables_para_api(obj)
+
+    def get_responsables_secciones(self, obj):
+        from .responsables import responsables_por_seccion
+        return responsables_por_seccion(obj)
 
     def _firma(self, con_responsable=False):
         from .responsables import firma_sesion
@@ -202,9 +257,12 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
 
         if rn_data:
             glucometrias = rn_data.pop('glucometrias', [])
+            agregar = rn_data.pop('glucometrias_agregar', None)
+            quitar = rn_data.pop('glucometrias_quitar', None)
             rn = ControlRecienNacido.objects.create(registro=registro, **rn_data, **firma)
             for g in glucometrias:
                 GlucometriaRecienNacido.objects.create(control_rn=rn, **g)
+            aplicar_delta_glucometrias(rn, agregar, quitar)
 
         for cp in postparto_data:
             cp = {k: v for k, v in dict(cp).items() if k != 'responsable'}
@@ -225,6 +283,8 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
 
     def _guardar_recien_nacido(self, instance, rn_data):
         glucometrias = rn_data.pop('glucometrias', None)
+        agregar = rn_data.pop('glucometrias_agregar', None)
+        quitar = rn_data.pop('glucometrias_quitar', None)
         rn, creado = ControlRecienNacido.objects.update_or_create(
             registro=instance, defaults=rn_data
         )
@@ -235,6 +295,7 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
             # esto, la respuesta salía sin la firma recién guardada.
             for campo, valor in firma.items():
                 setattr(rn, campo, valor)
+        aplicar_delta_glucometrias(rn, agregar, quitar)
         if glucometrias is None:
             return  # no vinieron: se conservan las que hay
         # 2026-09-30: el autoguardado reenvía el recién nacido completo
