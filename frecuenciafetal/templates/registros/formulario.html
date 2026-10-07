@@ -3491,9 +3491,9 @@
       0%, 100% { box-shadow: 0 0 0 0 rgba(21, 128, 61, .7); }
       50% { box-shadow: 0 0 0 10px rgba(21, 128, 61, 0); }
     }
-    /* 2026-10-06: Recién nacido con todos sus datos al día: tomate. */
+    /* 2026-10-07: Recién nacido con todos sus datos al día: morado (antes tomate). */
     .ppw-step[data-paso="recien-nacido"].hecho {
-      --c: #f0532f; --c-fondo: #fff1ec; --c-borde: #ffa48c; --c-sombra: rgba(240, 83, 47, .28);
+      --c: #9333ea; --c-fondo: #faf5ff; --c-borde: #d8b4fe; --c-sombra: rgba(147, 51, 234, .28);
     }
 
     /* Aviso fijo "Ya puede guardar el registro": visible desde cualquier paso
@@ -3521,6 +3521,19 @@
       grid-column: 2 / -1; grid-row: 3; justify-self: start; display: inline-block; padding: .1rem .55rem;
       border-radius: 999px; background: #dc2626; color: #fff; font-size: .7rem; font-weight: 800; letter-spacing: .02em;
     }
+    /* 2026-10-07: avance de tomas del paso 4 (informativo, no es un error). */
+    .ppw-step .ppw-faltan-badge.vg-progreso, .ppw-step .ppw-faltan-badge.vg-completo {
+      grid-column: 2 / -1; grid-row: 3; justify-self: start; display: inline-block; padding: .12rem .55rem;
+      border-radius: 10px; color: #fff; font-size: .7rem; font-weight: 800; letter-spacing: .01em; line-height: 1.35; max-width: 100%;
+    }
+    .ppw-step .ppw-faltan-badge.vg-progreso { background: var(--c); }
+    .ppw-step .ppw-faltan-badge.vg-completo { background: #15803d; }
+    /* Una línea por tarjeta: las completas en verde claro, las pendientes en blanco. */
+    .ppw-step .ppw-faltan-badge.vg-progreso { display: flex; flex-direction: column; gap: 1px; padding: .3rem .55rem; }
+    .ppw-step .vg-fila { font-weight: 700; line-height: 1.3; font-size: .8rem; }
+    .ppw-step .ppw-faltan-badge.vg-completo { font-size: .8rem; }
+    .ppw-step .vg-fila b { font-weight: 900; }
+    .ppw-step .vg-fila--ok { color: #bbf7d0; }
     .campo-falta { outline: 2px solid #f87171 !important; outline-offset: 3px; border-radius: 10px; }
     .campo-falta .rn-etq, .campo-falta .rn-oxi-col { color: #dc2626 !important; }
 
@@ -10378,9 +10391,9 @@
               'Globo de seguridad': document.getElementById('globo_seguridad'),
               'Sutura y heridas': document.getElementById('sutura_heridas'),
             };
-            faltantesControl6h().forEach(txt => {
-              r.vigilancia.push({ etq: 'Control de 6 h: ' + txt, el: tarjetaVig[txt.split(' (')[0]] });
-            });
+            // 2026-10-07: el control de 6 h ya no se muestra como "Faltan N" (en
+            // rojo confundía): el paso 4 muestra en qué toma va (progresoVigilancia).
+            void tarjetaVig;
             FALTA_RN.forEach(([id, tipo, etq, aplica]) => {
               if (aplica && !aplica()) return;
               if (leerCampoRN(id, tipo) !== null) return;
@@ -10397,6 +10410,52 @@
           function contenedorFaltante(el) {
             if (!el) return null;
             return el.closest('.category-card, .sangrado-modal, .rn-grupo-gluco, .rn-huella, .rn-campo, .fc-table-wrap') || el;
+          }
+
+          // 2026-10-07: avance de las tomas de vigilancia (cronograma 15/30/60
+          // hasta 6 h = 13 tomas). Cuenta la tarjeta MÁS ATRASADA entre
+          // Sangrado, Globo y Sutura, porque el cierre exige las tres; solo
+          // tomas ya guardadas en el servidor (igual que el botón de cierre).
+          function progresoVigilancia() {
+            const total = PP_MINUTOS.length;
+            const tarjetas = [['Sangrado', sangradoRegistros], ['Globo de seguridad', SEMAFORO_TIPOS.globo.registros], ['Sutura y heridas', SEMAFORO_TIPOS.sutura.registros]];
+            const detalle = tarjetas.map(([nombre, regs]) => {
+              const guardado = m => (regs || []).some(r => r.id && Number(r.minuto) === m);
+              return { nombre, hechas: PP_MINUTOS.filter(guardado).length, proxima: PP_MINUTOS.find(m => !guardado(m)) || null };
+            });
+            if (cierrePospartoAntiguo360) detalle.forEach(d => { d.hechas = total; d.proxima = null; });
+            const atrasada = detalle.reduce((a, b) => (b.hechas < a.hechas ? b : a));
+            return { total, hechas: atrasada.hechas, faltan: total - atrasada.hechas, proxima: atrasada.proxima, detalle };
+          }
+
+          function pintarProgresoVigilancia(b, apagado) {
+            const badge = b.querySelector('.ppw-faltan-badge');
+            if (!badge) return;
+            badge.classList.remove('vg-progreso', 'vg-completo');
+            if (apagado) return;
+            const p = progresoVigilancia();
+            const completo = p.faltan === 0;
+            // 2026-10-07: mientras no se completen las 6 h, el paso sigue en ROJO
+            // (como los demás pasos incompletos), pero con el avance de tomas.
+            b.classList.toggle('falta', !completo);
+            badge.classList.add(completo ? 'vg-completo' : 'vg-progreso');
+            // 2026-10-07: una línea por tarjeta (antes un solo número, el de la
+            // más atrasada, y no se sabía de cuál era: parecía desincronizado).
+            const CORTO = { 'Sangrado': 'Sangrado', 'Globo de seguridad': 'Globo', 'Sutura y heridas': 'Sutura' };
+            badge.innerHTML = completo ? '✔ 6 h completas'
+              : p.detalle.map(d => {
+                  const lista = d.hechas >= p.total;
+                  return `<span class="vg-fila${lista ? ' vg-fila--ok' : ''}"><b>${lista ? '✔' : '●'} ${CORTO[d.nombre]}</b> ${d.hechas}/${p.total}` +
+                    (lista ? '' : ` · próx. ${d.proxima}'`) + '</span>';
+                }).join('');
+            if (!b.classList.contains('listo-guardar')) {
+              b.title = (completo
+                ? 'Vigilancia de 6 h completa en Sangrado, Globo de seguridad y Sutura.'
+                : `Tomas de vigilancia: van ${p.hechas} de ${p.total}; faltan ${p.faltan} hasta el minuto 360 (6 h). ` +
+                  (p.proxima ? `Próxima toma: ${p.proxima} min. ` : '') +
+                  'Al completarlas en las tres tarjetas se habilita "Guardar Registro Completo".') +
+                '\n' + p.detalle.map(d => `${d.nombre}: ${d.hechas}/${p.total}`).join(' · ');
+            }
           }
 
           function pintarFaltantesPosparto() {
@@ -10423,6 +10482,7 @@
               // ruido); quedan el paso en rojo con "Faltan N" (la lista va en el
               // tooltip) y cada campo marcado.
               lista.forEach(f => contenedorFaltante(f.el)?.classList.add('campo-falta'));
+              if (paso.id === 'vigilancia' && !lista.length) pintarProgresoVigilancia(b, apagado);
             });
           }
 
@@ -10434,7 +10494,7 @@
               fetocardia: Array.from(document.querySelectorAll('#fc-table-body [data-param="fetocardia"]')).some(i => i.value),
               meows: !!document.querySelector('.meows-grid-table th.grid-th-columna'),
               parto: !!(v('tipo_parto') && v('hora_parto')),
-              vigilancia: !!(v('globo_seguridad') && v('sutura_heridas') && v('sangrado_cuantificado_cc')),
+              vigilancia: progresoVigilancia().faltan === 0,  // 2026-10-07: las 13 tomas (6 h)
               'recien-nacido': faltantesRecienNacido().length === 0,
               finalizacion: !!registroCerrado,
             };
@@ -10443,7 +10503,8 @@
               fetocardia: hecho.fetocardia ? 1 : 0,
               meows: hecho.meows ? 1 : 0,
               parto: lleno(['tipo_parto', 'hora_parto', 'tipo_alumbramiento']),
-              vigilancia: lleno(['globo_seguridad', 'sutura_heridas', 'sangrado_cuantificado_cc']),
+              // Avance total de las tres tarjetas (no solo la más atrasada).
+              vigilancia: (() => { const p = progresoVigilancia(); return p.detalle.reduce((s, d) => s + d.hechas, 0) / (p.total * p.detalle.length); })(),
               'recien-nacido': (RN_OBLIGATORIOS_CIERRE.length + 1 - faltantesRecienNacido().length) / (RN_OBLIGATORIOS_CIERRE.length + 1),
               finalizacion: registroCerrado ? 1 : 0,
             };
