@@ -2845,6 +2845,7 @@
     .sangrado-registro-hora {
       color: var(--text-secondary);
       min-width: 50px;
+      white-space: nowrap;  /* "10:34 a. m." en una sola línea */
     }
 
     .sangrado-registro-cc {
@@ -9064,7 +9065,7 @@
                 <div class="sangrado-registro-row hs-fila hs-fila--${clase || 'na'}" data-idx="${idx}">
                   ${reloj}
                   <span class="sangrado-registro-min">${r.minuto} min</span>
-                  <span class="sangrado-registro-hora">${r.hora}</span>
+                  <span class="sangrado-registro-hora">${hora12(r.hora)}</span>
                   <span class="sg-reg-cc"><strong>${r.cc.toFixed(0)} cc</strong><small>Acumulado: ${acumulado.toFixed(0)} cc</small></span>
                   <span class="sg-reg-estado">${estadoBadge}${badgeSinGuardar(r)}</span>
                   ${lectura ? '' : `<span class="sangrado-registro-actions">
@@ -9390,7 +9391,7 @@
                 <div class="sangrado-registro-row semaforo-registro-row hs-fila hs-fila--${clase}" data-tipo="${tipo}" data-idx="${idx}">
                   ${reloj}
                   <span class="sangrado-registro-min">${r.minuto} min</span>
-                  <span class="sangrado-registro-hora">${r.hora}</span>
+                  <span class="sangrado-registro-hora">${hora12(r.hora)}</span>
                   <span class="semaforo-badge ${badgeClaseEstadoSemaforo(r.estado)} hs-estado hs-estado--${clase}"><span class="hs-estado-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${icono}</svg></span>${textoEstadoSemaforo(tipo, r.estado)}</span>
                   ${badgeSinGuardar(r)}
                   ${lectura ? '' : `<span class="sangrado-registro-actions">
