@@ -1258,8 +1258,9 @@
                             alumbramiento, desgarro y, en grado III, su subclasificación), <b>Vigilancia</b> (el control de
                             las 6 h de sangrado, globo y sutura) y <b>Recién nacido</b> (datos generales, antropometría,
                             APGAR, tamizajes, oximetría y TA al nacer, quién atendió, glucometrías o "No aplica", y la huella).</li>
-                        <li>Las tomas de 12, 24 y 48 h y "Valorado por pediatra antes del egreso" no cuentan como
-                            faltantes: se registran después del cierre de las 6 horas.</li>
+                        <li>La oximetría de las 12 h no cuenta como faltante: se registra después del cierre de las
+                            6 horas. La tensión arterial del recién
+                            nacido se registra solo <b>al nacimiento</b> (sección "08. Tensión arterial al nacimiento").</li>
                     </ul>
                     <div class="callout tip">
                         <i data-lucide="info" size="18"></i>
@@ -1353,8 +1354,15 @@
                             pañal, campo, sábana y bolsa recolectora) escriba la <b>cantidad</b> y el <b>peso húmedo en
                             gramos</b>, o use los botones <b>−</b> / <b>+</b>. El sistema resta el <b>peso basal</b> y muestra
                             los c.c. de esa tarjeta (1 gr ≈ 1 c.c.). La tarjeta con peso se resalta.</li>
-                        <li>El <b>pañal</b> se pesa con <code class="btnname">Ver pesajes</code>: permite varios pesajes y marcar
-                            <b>"Nuevo pañal"</b> (desde el segundo pesaje se resta el anterior, no el basal).</li>
+                        <li>El <b>pañal</b> se pesa en su propia tarjeta: <b>un solo pesaje por control</b> en
+                            "Peso del pañal (gr)". Se resta el <b>peso basal</b> (pañal seco, ajustable en el pie de la
+                            tarjeta) o, si es el <b>mismo pañal</b> del control anterior, el peso que tenía entonces, para no
+                            contar dos veces la misma sangre. Si en esta toma se <b>cambió el pañal</b>, marque
+                            <b>"Nuevo pañal"</b>: el campo de peso se bloquea, el pañal cuenta 0 c.c. y en el próximo control se
+                            resta el peso basal. Debajo del campo se indica qué se está restando.</li>
+                        <li><span class="badge-nuevo">Nuevo</span> Cada control guarda <b>de dónde salen sus c.c.</b>: los
+                            materiales con su peso y el peso del pañal. Se ve debajo de cada control en
+                            <code class="btnname">Registros</code> y en el PDF.</li>
                         <li>Revise la <b>Hora del control</b> en el encabezado verde y presione
                             <code class="btnname">Guardar control (15 min)</code>. El minuto cambia solo (15, 30, 45… 360). Al pie
                             se ve el <b>Total acumulado</b> (incluye lo que está pesando sin guardar) y el <b>Próximo control</b>.</li>
@@ -1367,7 +1375,7 @@
                     </div>
                     <div class="screenshot-caption">
                         <i data-lucide="camera" size="14"></i>
-                        <span>Botón "Registros": lista de controles guardados con hora, c.c., acumulado y semáforo; el lápiz corrige y la × elimina. "Volver a la calculadora" regresa a los materiales.</span>
+                        <span>Botón "Registros": lista de controles guardados con hora, c.c., acumulado y semáforo; el lápiz corrige y la × elimina. "Nuevo control" regresa a los materiales para registrar el siguiente control.</span>
                         <span class="zoom-hint">🔍 Clic para ampliar</span>
                     </div>
 
@@ -1441,7 +1449,7 @@
                     </div>
                     <div class="screenshot-caption">
                         <i data-lucide="camera" size="14"></i>
-                        <span>Sección 11. Glucometrías: "Agregar glucometría" por cada toma, o el botón naranja "No aplica" si no se toman.</span>
+                        <span>Sección 10. Glucometrías: "Agregar glucometría" por cada toma, o el botón naranja "No aplica" si no se toman.</span>
                         <span class="zoom-hint">🔍 Clic para ampliar</span>
                     </div>
 

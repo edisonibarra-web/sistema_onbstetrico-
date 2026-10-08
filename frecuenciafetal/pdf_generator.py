@@ -456,6 +456,9 @@ def generar_pdf_registro(registro, es_plantilla=False):
     # (cronograma 15/30/60 min hasta 6 h). El control del minuto 360 de los
     # tres es el que habilita el cierre (views._faltantes_control_6h).
     elements.append(_tabla_vigilancia_posparto(registro, es_plantilla))
+    detalle_sg = _detalle_sangrado_pdf(registro, es_plantilla)
+    if detalle_sg is not None:
+        elements.append(detalle_sg)
     _agregar_responsables(elements, resp_pasos, 'vigilancia')
     elements.append(Spacer(1, 0.28*cm))
 
@@ -828,6 +831,48 @@ COLOR_ESTADO_VIGILANCIA = {
 }
 
 
+def _detalle_sangrado_pdf(registro, es_plantilla):
+    """2026-10-08: de dónde salen los c.c. de cada control de sangrado
+    (materiales con su peso y pesajes del pañal). None si no hay detalle."""
+    if es_plantilla or getattr(registro, 'pk', None) is None:
+        return None
+    from xml.sax.saxutils import escape
+    filas = []
+    for c in registro.controles_sangrado.order_by('minuto_control'):
+        det = c.detalle or {}
+        partes = []
+        for m in det.get('materiales') or []:
+            cant = f" ×{m.get('cantidad')}" if (m.get('cantidad') or 1) > 1 else ''
+            partes.append(f"{escape(str(m.get('nombre', '')))}{cant}: {m.get('peso_humedo')} gr → {m.get('cc')} cc")
+        panal = det.get('panal') or {}
+        if panal.get('pesajes'):
+            pes = ', '.join('nuevo pañal (sin pesaje)' if (p.get('nuevo') and not p.get('peso')) else f"{p.get('peso')} gr" + (' (nuevo)' if p.get('nuevo') else '') for p in panal['pesajes'])
+            partes.append(f"Pañal (basal {panal.get('basal')} gr): {pes} → {panal.get('cc')} cc")
+        if not partes and not det:
+            continue  # control anterior a este detalle
+        texto = ' · '.join(partes) or 'Sin materiales con peso (0 cc)'
+        if det.get('cc_corregido'):
+            texto += ' · <i>c.c. corregidos a mano después</i>'
+        filas.append(f"<b>{c.minuto_control} min</b> ({c.cc} cc): {texto}")
+    if not filas:
+        return None
+    estilo = ParagraphStyle(name='DetSangrado', fontName='Helvetica', fontSize=6.3, leading=8,
+                            textColor=colors.HexColor('#334155'), alignment=TA_LEFT)
+    datos = [[Paragraph('<b>Detalle del sangrado por control</b> (materiales y pesajes):', estilo)]]
+    datos += [[Paragraph(f, estilo)] for f in filas]
+    tbl = Table(datos, colWidths=[ANCHO_UTIL])
+    tbl.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#fff1f2')),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+        ('LINEBELOW', (0, 0), (-1, -2), 0.3, colors.HexColor('#e2e8f0')),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    return tbl
+
+
 def _tabla_vigilancia_posparto(registro, es_plantilla):
     hay_registro = not es_plantilla and getattr(registro, 'pk', None) is not None
     sangrado = {c.minuto_control: c for c in registro.controles_sangrado.all()} if hay_registro else {}
@@ -1029,17 +1074,11 @@ def _tabla_recien_nacido(registro, rn, es_plantilla, ubicacion):
         ['Hemoclasificación', v('hemoclasificacion'), 'Vacunas', f"[{check('vacuna_hb')}] HB &nbsp; [{check('vacuna_bcg')}] BCG"],
         ['Líquido amniótico', v('caracteristicas_liquido_amniotico'), None, None],
         ['Lavado gástrico', sino('lavado_gastrico'), 'Elimina', sino('lavado_elimina')],
-        ['Meconio', sino('meconio'), 'Valorado por pediatra antes del egreso', sino('valorado_pediatra')],
+        ['Meconio', sino('meconio'), None, None],
         ['Oximetría al nacer', oxi('oximetria_nacimiento_preductal', 'oximetria_nacimiento_posductal'),
          'Oximetría a las 12 h', oxi('oximetria_12h_preductal', 'oximetria_12h_posductal')],
         ['TA neonato al nacer', ta('tanac'), None, None],
         ['FC al nacer', v('fc_nacimiento', ' lpm'), None, None],
-        ['Al nacimiento: TA 12 h', ta('tanac12'), None, None],
-        ['Al nacimiento: TA 24 h', ta('tanac24'), None, None],
-        ['Al nacimiento: TA 48 h', ta('tanac48'), None, None],
-        ['TA neonato 12 h', ta('ta'), None, None],
-        ['TA neonato 24 h', ta('ta24'), None, None],
-        ['TA neonato 48 h', ta('ta48'), None, None],
         ['Glucometrías', glucos or ('No aplica' if rn is not None and rn.glucometrias_no_aplica else vacio), None, None],
         ['Parto atendido por', parto_atendido, 'Neonato atendido por', v('neonato_atendido_por')],
     ]

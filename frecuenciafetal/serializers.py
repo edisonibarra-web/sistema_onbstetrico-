@@ -158,6 +158,27 @@ class ControlSangradoSerializer(MinutoUnicoPorRegistroMixin, serializers.ModelSe
         # `recalcular_estados_sangrado` en models.py -- nunca lo manda el cliente.
         read_only_fields = ['registro', 'estado'] + CAMPOS_FIRMA
 
+    def validate_detalle(self, valor):
+        """2026-10-08: el detalle de materiales/pesajes es un objeto pequeño."""
+        import json
+        if valor is None:
+            return None
+        if not isinstance(valor, dict):
+            raise serializers.ValidationError('El detalle debe ser un objeto.')
+        if len(json.dumps(valor)) > 20000:
+            raise serializers.ValidationError('El detalle es demasiado grande.')
+        # 2026-10-08: el control siguiente resta este peso ("mismo pañal"):
+        # un error de digitación (p. ej. 87878 gr) dejaba en 0 cc los siguientes.
+        panal = valor.get('panal') or {}
+        for pesaje in (panal.get('pesajes') or []) if isinstance(panal, dict) else []:
+            try:
+                peso = float((pesaje or {}).get('peso') or 0)
+            except (TypeError, ValueError, AttributeError):
+                raise serializers.ValidationError('Peso del pañal inválido.')
+            if peso < 0 or peso > 2000:
+                raise serializers.ValidationError('El peso del pañal debe estar entre 0 y 2000 gr.')
+        return valor
+
 
 class ControlGloboSerializer(MinutoUnicoPorRegistroMixin, serializers.ModelSerializer):
     class Meta:

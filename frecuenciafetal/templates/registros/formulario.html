@@ -2362,6 +2362,57 @@
       outline: none;
     }
 
+    /* 2026-10-08: hora de nacimiento (de Características del parto) en el RN. */
+    .rn-hora-nac .rn-etq { display: inline-flex; align-items: center; gap: 6px; }
+    .rn-hora-nac .rn-etq svg { width: 16px; height: 16px; }
+    .rn-hora-nac-fila { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; }
+    .rn-hora-nac-valor {
+      padding: 6px 16px; border-radius: 10px; background: #eff6ff; border: 1px solid #bfdbfe;
+      color: #1e3a8a; font-size: 1.15rem; font-weight: 800; white-space: nowrap;
+    }
+    .rn-hora-nac-valor.vacia { background: #fef2f2; border-color: #fecaca; color: #b91c1c; font-size: .95rem; }
+    .rn-hora-nac-origen { font-size: .82rem; color: #64748b; }
+    /* 2026-10-08: pesaje del pañal dentro de su tarjeta. */
+    #sangrado-modal-overlay.sg-v2 .sg-campos--panal { display: block; padding: 10px 12px; }
+    .sg-campos--panal .sangrado-panal-row { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 0; background: none; border: none; }
+    #sangrado-modal-overlay.sg-v2 .sg-campos--panal .sangrado-item-input-label { min-height: 0; display: block; margin-bottom: 6px; white-space: nowrap; }
+    #sangrado-modal-overlay.sg-v2 .sg-campos--panal .sangrado-item-input-label::before { content: none; }
+    .sg-campos--panal .sg-panal-nuevo { justify-self: start; }
+    /* Pie del pañal: peso basal editable arriba y c.c. abajo (no caben lado a lado). */
+    .sg-pie:has(.panal-basal-input) { grid-template-columns: 1fr; }
+    .sg-pie:has(.panal-basal-input) .sg-cc { border-left: none; border-top: 2px solid #fff; }
+    .sg-basal:has(.panal-basal-input) { white-space: nowrap; }
+    .sg-campos--panal .sg-campo { padding: 0; }
+    .sg-campos--panal .sangrado-item-input-label { text-align: left !important; justify-content: flex-start !important; }
+    .sg-campos--panal .sg-stepper .sangrado-panal-peso {
+      flex: 1; width: auto; min-width: 0; min-height: 28px; padding: 0 2px; text-align: center; font-size: 1.1rem; font-weight: 700;
+      color: #0f172a; background: transparent; border: none; box-shadow: none; -moz-appearance: textfield; appearance: textfield;
+    }
+    .sg-campos--panal .sangrado-panal-peso::-webkit-outer-spin-button,
+    .sg-campos--panal .sangrado-panal-peso::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .sg-panal-nuevo {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 10px; cursor: pointer;
+      font-size: .82rem; font-weight: 700; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; white-space: nowrap;
+    }
+    .sg-panal-nuevo input { width: 16px; height: 16px; accent-color: #f59e0b; margin: 0; }
+    .sg-panal-ref { grid-column: 1 / -1; font-size: .76rem; color: #64748b; line-height: 1.3; }
+    .sangrado-panal-row.panal-nuevo .sg-stepper { opacity: .45; background: #f1f5f9; }
+    .sangrado-panal-row.panal-nuevo .sangrado-panal-peso { cursor: not-allowed; }
+    .sangrado-panal-row.panal-nuevo .sg-panal-ref { color: #92400e; font-weight: 600; }
+    .sangrado-panal-row.panal-aviso .sg-panal-ref {
+      color: #b91c1c; font-weight: 700; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 4px 8px;
+    }
+    .sangrado-panal-row.panal-aviso .sg-stepper { border-color: #f87171; }
+    .sangrado-item-row.sg-peso-fuera .sg-stepper { border-color: #f87171; background: #fef2f2; }
+    .sg-basal .panal-basal-etq { font-size: .85rem; color: #1e293b; }
+    .sg-basal .panal-basal-input {
+      width: 58px; padding: 2px 6px; border-radius: 6px; border: 1px solid #fcd34d; background: #fff;
+      color: #1e293b; font-size: .85rem; font-weight: 700;
+    }
+    /* 2026-10-08: un solo pesaje de pañal por control. */
+    .panal-ayuda { margin: 0 0 12px; font-size: .88rem; color: #475569; }
+    .panal-peso-etq { font-size: .85rem; font-weight: 700; color: #334155; }
+    .sangrado-panal-row .sangrado-panal-peso { width: 150px; }
     .btn-panal-add {
       display: flex;
       align-items: center;
@@ -2842,10 +2893,26 @@
       min-width: 56px;
     }
 
+    /* 2026-10-08: materiales y pesajes de cada control, en su propia línea. */
+    .sangrado-registro-row.hs-fila:has(.sg-reg-detalle) { flex-wrap: wrap; }
+    .sg-reg-detalle {
+      flex: 1 1 100%; order: 10; margin: 2px 0 0 60px; padding: 6px 12px; border-radius: 8px;
+      background: #f8fafc; border: 1px dashed #cbd5e1; color: #475569; font-size: .84rem; line-height: 1.4;
+    }
     .sangrado-registro-hora {
       color: var(--text-secondary);
       min-width: 50px;
       white-space: nowrap;  /* "10:34 a. m." en una sola línea */
+    }
+    /* 2026-10-08: cronograma de controles, una sola vez en el recuadro informativo. */
+    .sangrado-modal-intro .intro-txt { display: block; min-width: 0; }
+    .crono-ctrl { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .crono-item {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+      background: #fff; border: 1px solid #fcd9a8; color: #7a4a1f; font-size: .88rem; font-weight: 600; line-height: 1.3;
+    }
+    .crono-item b {
+      padding: 2px 9px; border-radius: 999px; background: #0e7490; color: #fff; font-size: .82rem; font-weight: 800; white-space: nowrap;
     }
 
     .sangrado-registro-cc {
@@ -4143,7 +4210,9 @@
       .rn-v2 .rn-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(330px, .85fr); gap: 16px; align-items: stretch; }
       .rn-v2 .rn-datos { display: contents; }
       .rn-v2 .rn-huella { grid-column: 3; grid-row: 1 / span 4; position: static; }
-      .rn-v2 .rn-atencion { grid-column: 1 / -1; }
+      /* 2026-10-08: Atención ocupa una columna (al lado de "08. Tensión arterial
+         al nacimiento"), no todo el ancho: llena el espacio que quedaba en blanco. */
+      .rn-v2 .rn-atencion { grid-column: auto; }
     }
     .rn-v2 .rn-gluco-ancho { margin-top: 16px; }
 
@@ -6154,7 +6223,17 @@
                   .hs-v2 .sangrado-registro-row.hs-fila { flex-wrap: wrap; gap: 10px; }
                   .hs-v2 .hs-fila .sangrado-registro-min { border-right: none; padding-right: 0; }
                 }
+                /* 2026-10-08: el detalle de materiales ocupa toda la fila (en la
+                   cuadrícula ancha caía en la columna de 48px del reloj). */
+                .hs-v2 .hs-fila .sg-reg-detalle {
+                    grid-column: 1 / -1; grid-row: 2; flex: 1 1 100%; order: 10; min-width: 0;
+                    margin: 8px 0 0 60px; white-space: normal; overflow-wrap: anywhere;
+                }
                 .hs-v2 .hs-fila--editando { background: #fffbeb; border-left-color: #f59e0b !important; }
+                /* En corrección (hora, c.c. y peso del pañal) la fila fluye: no cabe en las 6 columnas. */
+                .hs-v2.sangrado-registros-list .sangrado-registro-row.hs-fila.hs-fila--editando { display: flex; flex-wrap: wrap; gap: 12px 18px; }
+                .hs-v2 .hs-fila--editando .sangrado-registro-actions { margin-left: auto; }
+                .hs-v2 .hs-fila--editando .sangrado-edit-hora { flex: 0 0 auto; width: 175px; }
                 .hs-v2 .hs-fila--editando .semaforo-edit-estado { flex: 1; min-width: 0; }
 
                 /* Pie: próximo control | Cerrar | Guardar control. */
@@ -6198,9 +6277,9 @@
                   </div>
                   {# 2026-10-06: Registros (alterna con la calculadora) y Guardar control en el encabezado. #}
                   <div class="sg-head-acciones">
-                    <button type="button" class="sangrado-tab-btn sg-btn-registros" data-tab="registros" onclick="alternarRegistrosSangrado()" title="Ver los controles guardados / volver a la calculadora">
+                    <button type="button" class="sangrado-tab-btn sg-btn-registros" data-tab="registros" onclick="alternarRegistrosSangrado()" title="Ver los controles guardados / registrar un nuevo control">
                       <span class="sg-reg-ver"><i data-lucide="file-text"></i> Registros</span>
-                      <span class="sg-reg-volver"><i data-lucide="calculator"></i> Volver a la calculadora</span>
+                      <span class="sg-reg-volver"><i data-lucide="plus-circle"></i> Nuevo control</span>
                       <span id="sangrado-registros-count" class="sangrado-tab-badge">0</span>
                     </button>
                     <button type="button" id="sangrado-guardar-btn" class="btn btn-primary btn-sm" onclick="guardarRegistroSangrado()"><i data-lucide="save"></i> Guardar control ( <span id="sangrado-guardar-label">15 min</span> )</button>
@@ -6226,11 +6305,11 @@
                       </div>
                       <p id="sangrado-hint" class="semaforo-hint"><span class="semaforo-hint-eyebrow">Código rojo</span>Activar protocolo de hemorragia obstétrica de inmediato.</p>
                     </div>
-                    <p class="sangrado-modal-intro">
+                    <p class="sangrado-modal-intro"><span class="intro-txt">
                       Registre el peso húmedo (gr) de cada material utilizado en el control actual. El sistema calcula
                       automáticamente los c.c. de sangrado (peso húmedo − peso basal, 1 gr ≈ 1 c.c.), suma el total de
-                      la lectura y la guarda como un control periódico: cada 15 min las primeras 2 horas, cada 30 min
-                      la hora siguiente y cada hora hasta completar las 6 horas.
+                      la lectura y la guarda como un control periódico, según este cronograma:
+                      <span class="crono-ctrl" aria-label="Cronograma de controles"><span class="crono-item"><b>15 min</b>Primeras 2 h después del parto · cada 15 min</span><span class="crono-item"><b>30 min</b>Hora siguiente (2 a 3 h) · cada 30 min</span><span class="crono-item"><b>60 min</b>Hasta completar las 6 h · cada hora</span></span></span>
                     </p>
                   </div>
                   <div id="sangrado-tab-calc" class="sangrado-tab-panel">
@@ -6371,7 +6450,7 @@
                 </div>
                 <div class="preview-modal-body">
                   <p class="vigilancia-aviso-lectura" id="globo-aviso-lectura" role="status"></p>
-                  <p class="sangrado-modal-intro">Registre el estado del globo de seguridad en cada control periódico: cada 15 min las primeras 2 horas, cada 30 min la hora siguiente y cada hora hasta completar las 6 horas.</p>
+                  <p class="sangrado-modal-intro"><span class="intro-txt">Registre el estado del globo de seguridad en cada control periódico, según este cronograma: <span class="crono-ctrl" aria-label="Cronograma de controles"><span class="crono-item"><b>15 min</b>Primeras 2 h después del parto · cada 15 min</span><span class="crono-item"><b>30 min</b>Hora siguiente (2 a 3 h) · cada 30 min</span><span class="crono-item"><b>60 min</b>Hasta completar las 6 h · cada hora</span></span></span></p>
                   <div class="hs-select">
                     <i data-lucide="list"></i>
                     <select id="globo-estado-nuevo" class="form-input">
@@ -6416,7 +6495,7 @@
                 </div>
                 <div class="preview-modal-body">
                   <p class="vigilancia-aviso-lectura" id="sutura-aviso-lectura" role="status"></p>
-                  <p class="sangrado-modal-intro">Registre el estado de sutura y heridas en cada control periódico: cada 15 min las primeras 2 horas, cada 30 min la hora siguiente y cada hora hasta completar las 6 horas.</p>
+                  <p class="sangrado-modal-intro"><span class="intro-txt">Registre el estado de sutura y heridas en cada control periódico, según este cronograma: <span class="crono-ctrl" aria-label="Cronograma de controles"><span class="crono-item"><b>15 min</b>Primeras 2 h después del parto · cada 15 min</span><span class="crono-item"><b>30 min</b>Hora siguiente (2 a 3 h) · cada 30 min</span><span class="crono-item"><b>60 min</b>Hasta completar las 6 h · cada hora</span></span></span></p>
                   <div class="hs-select">
                     <i data-lucide="list"></i>
                     <select id="sutura-estado-nuevo" class="form-input">
@@ -6439,26 +6518,6 @@
                     <button type="button" class="btn btn-secondary btn-sm hs-btn-cerrar" onclick="cerrarModalSemaforo('sutura')">Cerrar</button>
                     <button type="button" id="sutura-guardar-btn" class="btn btn-primary btn-sm hs-btn-guardar" onclick="guardarRegistroSemaforo('sutura')"><i data-lucide="save"></i> Guardar control ( <span id="sutura-guardar-label">15 min</span> )</button>
                   </span>
-                </div>
-              </div>
-            </div>
-
-            <div id="sangrado-panal-modal-overlay" class="preview-modal-overlay" onclick="if(event.target===this) cerrarPanalPesajesModal()">
-              <div class="preview-modal sangrado-modal" style="max-width:680px;--accent:#059669;--accent-bg:#ecfdf5;--accent-dark:#065f46;--accent-shadow:rgba(5, 150, 105, 0.18);">
-                <div class="preview-modal-header">
-                  <span>👶 Pesajes de pañal <span style="opacity:.9;font-weight:600;font-size:.85em;">— PESO BASAL:
-                    <input type="number" id="panal-basal-input" class="panal-basal-input" min="0" step="1" value="115"
-                      title="Peso del pañal seco/vacío antes de usarlo; ajústelo si la marca o el tamaño es distinto"
-                      oninput="recalcularPanal()"> gr</span></span>
-                  <span class="preview-modal-close" onclick="cerrarPanalPesajesModal()" title="Cerrar">&times;</span>
-                </div>
-                <div class="preview-modal-body">
-                  <div class="sangrado-panal-rows" id="sangrado-panal-rows"></div>
-                  <button type="button" class="btn-panal-add" onclick="agregarPesajePanal()">➕ Agregar pesaje</button>
-                </div>
-                <div class="preview-modal-footer" style="justify-content: space-between;">
-                  <span style="font-weight:800;color:var(--text-primary);">Total pañal: <span id="sangrado-panal-modal-total" style="color:#065f46;">0 cc</span></span>
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="cerrarPanalPesajesModal()">Cerrar</button>
                 </div>
               </div>
             </div>
@@ -6492,6 +6551,15 @@
                   <fieldset class="rn-grupo rn-sec rn-c-azul">
                     <legend><span class="rn-leg-ico"><i data-lucide="baby"></i></span><span class="rn-leg-tit">01. Nacimiento</span><button type="button" class="rn-colapsar ppw-ctrl" aria-expanded="true" title="Contraer / expandir la sección"><i data-lucide="chevron-up"></i></button></legend>
                     <div class="rn-g rn-g-2">
+                      {# 2026-10-08: hora de nacimiento = hora de parto de "Características del parto" #}
+                      {# (solo lectura; se cambia en Parto). La pinta pintarHoraNacimientoRN(). #}
+                      <div class="rn-campo rn-ancho rn-hora-nac">
+                        <span class="rn-etq"><i data-lucide="clock"></i> Hora de nacimiento</span>
+                        <div class="rn-hora-nac-fila">
+                          <span class="rn-hora-nac-valor" id="rn-hora-nac-vista">Sin registrar</span>
+                          <span class="rn-hora-nac-origen">Tomada de la hora de parto en "Características del parto".</span>
+                        </div>
+                      </div>
                       <div class="rn-campo">
                         <span class="rn-etq">Género <b class="rn-obl">*</b></span>
                         <span class="doc-radio-inline rn-radio rn-radio-lleno" role="radiogroup" aria-label="Género">
@@ -6616,11 +6684,12 @@
                     </div>
                   </fieldset>
 
+                  {# 2026-10-08: sin las tomas de 12/24/48 h (no se registran): solo TA al nacer y FC. #}
                   {# 2026-10-02: card "Al nacimiento": tensión arterial por miembro al #}
                   {# nacer, a las 12 h, 24 h y 48 h (campos propios tanac*_, distintos #}
                   {# de los de la card "Tensión arterial de nacido") y FC al nacer. #}
                   <fieldset class="rn-grupo rn-grupo-ta rn-grupo-nac rn-sec rn-c-azul">
-                    <legend><span class="rn-leg-ico"><i data-lucide="stethoscope"></i></span><span class="rn-leg-tit">08. Al nacimiento</span><button type="button" class="rn-colapsar ppw-ctrl" aria-expanded="true" title="Contraer / expandir la sección"><i data-lucide="chevron-up"></i></button></legend>
+                    <legend><span class="rn-leg-ico"><i data-lucide="stethoscope"></i></span><span class="rn-leg-tit">08. Tensión arterial al nacimiento</span><button type="button" class="rn-colapsar ppw-ctrl" aria-expanded="true" title="Contraer / expandir la sección"><i data-lucide="chevron-up"></i></button></legend>
                     <div class="rn-ta-scroll">
                     <div class="rn-oxi rn-ta" role="group" aria-label="Al nacimiento: tensión arterial por miembro y frecuencia cardiaca">
                       <span></span>
@@ -6633,21 +6702,6 @@
                       <label class="rn-campo"><input type="text" id="rn_tanac_msi" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial al nacimiento, miembro superior izquierdo"></label>
                       <label class="rn-campo"><input type="text" id="rn_tanac_mid" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial al nacimiento, miembro inferior derecho"></label>
                       <label class="rn-campo"><input type="text" id="rn_tanac_miiz" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial al nacimiento, miembro inferior izquierdo"></label>
-                      <span class="rn-oxi-fila">TA a las 12 h</span>
-                      <label class="rn-campo"><input type="text" id="rn_tanac12_msd" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 12 h (card Al nacimiento), miembro superior derecho"></label>
-                      <label class="rn-campo"><input type="text" id="rn_tanac12_msi" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 12 h (card Al nacimiento), miembro superior izquierdo"></label>
-                      <label class="rn-campo"><input type="text" id="rn_tanac12_mid" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 12 h (card Al nacimiento), miembro inferior derecho"></label>
-                      <label class="rn-campo"><input type="text" id="rn_tanac12_miiz" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 12 h (card Al nacimiento), miembro inferior izquierdo"></label>
-                      <span class="rn-oxi-fila">TA a las 24 h</span>
-                      <label class="rn-campo"><input type="text" id="rn_tanac24_msd" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 24 h (card Al nacimiento), miembro superior derecho"></label>
-                      <label class="rn-campo"><input type="text" id="rn_tanac24_msi" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 24 h (card Al nacimiento), miembro superior izquierdo"></label>
-                      <label class="rn-campo"><input type="text" id="rn_tanac24_mid" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 24 h (card Al nacimiento), miembro inferior derecho"></label>
-                      <label class="rn-campo"><input type="text" id="rn_tanac24_miiz" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 24 h (card Al nacimiento), miembro inferior izquierdo"></label>
-                      <span class="rn-oxi-fila">TA a las 48 h</span>
-                      <label class="rn-campo"><input type="text" id="rn_tanac48_msd" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 48 h (card Al nacimiento), miembro superior derecho"></label>
-                      <label class="rn-campo"><input type="text" id="rn_tanac48_msi" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 48 h (card Al nacimiento), miembro superior izquierdo"></label>
-                      <label class="rn-campo"><input type="text" id="rn_tanac48_mid" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 48 h (card Al nacimiento), miembro inferior derecho"></label>
-                      <label class="rn-campo"><input type="text" id="rn_tanac48_miiz" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 48 h (card Al nacimiento), miembro inferior izquierdo"></label>
                       {# Frecuencia cardiaca al nacer: un solo campo ancho (las 4 columnas). #}
                       <span class="rn-oxi-fila">FC al nacer</span>
                       <label class="rn-campo rn-fc-ancho"><span class="rn-unidad"><input type="number" id="rn_fc_nacimiento" class="doc-input" min="0" max="300" step="1" placeholder="140" aria-label="Frecuencia cardiaca al nacimiento, latidos por minuto"><em>lpm</em></span></label>
@@ -6656,47 +6710,8 @@
                     <p class="rn-ta-ayuda">TA: tensión arterial · FC: frecuencia cardiaca · MSD/MSI: miembro superior derecho/izquierdo · MID/MIIZ: miembro inferior derecho/izquierdo.</p>
                   </fieldset>
 
-                  {# 2026-10-01: tensión arterial a las 12 h, 24 h y 48 h de nacido #}
-                  {# (antes solo 12 h). Las de 12 h conservan los id rn_ta_*. #}
-                  <fieldset class="rn-grupo rn-grupo-ta rn-sec rn-c-rojo">
-                    <legend><span class="rn-leg-ico"><i data-lucide="activity"></i></span><span class="rn-leg-tit">09. Tensión arterial de nacido</span><button type="button" class="rn-colapsar ppw-ctrl" aria-expanded="true" title="Contraer / expandir la sección"><i data-lucide="chevron-up"></i></button></legend>
-                    <div class="rn-ta-scroll">
-                    <div class="rn-oxi rn-ta" role="group" aria-label="Tensión arterial del recién nacido por miembro">
-                      <span></span>
-                      <span class="rn-oxi-col" title="Miembro superior derecho">MSD</span>
-                      <span class="rn-oxi-col" title="Miembro superior izquierdo">MSI</span>
-                      <span class="rn-oxi-col" title="Miembro inferior derecho">MID</span>
-                      <span class="rn-oxi-col" title="Miembro inferior izquierdo">MIIZ</span>
-                      <span class="rn-oxi-fila">A las 12 h</span>
-                      <label class="rn-campo"><input type="text" id="rn_ta_msd" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 12 h, miembro superior derecho"></label>
-                      <label class="rn-campo"><input type="text" id="rn_ta_msi" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 12 h, miembro superior izquierdo"></label>
-                      <label class="rn-campo"><input type="text" id="rn_ta_mid" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 12 h, miembro inferior derecho"></label>
-                      <label class="rn-campo"><input type="text" id="rn_ta_miiz" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 12 h, miembro inferior izquierdo"></label>
-                      <span class="rn-oxi-fila">A las 24 h</span>
-                      <label class="rn-campo"><input type="text" id="rn_ta24_msd" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 24 h, miembro superior derecho"></label>
-                      <label class="rn-campo"><input type="text" id="rn_ta24_msi" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 24 h, miembro superior izquierdo"></label>
-                      <label class="rn-campo"><input type="text" id="rn_ta24_mid" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 24 h, miembro inferior derecho"></label>
-                      <label class="rn-campo"><input type="text" id="rn_ta24_miiz" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 24 h, miembro inferior izquierdo"></label>
-                      <span class="rn-oxi-fila">A las 48 h</span>
-                      <label class="rn-campo"><input type="text" id="rn_ta48_msd" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 48 h, miembro superior derecho"></label>
-                      <label class="rn-campo"><input type="text" id="rn_ta48_msi" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 48 h, miembro superior izquierdo"></label>
-                      <label class="rn-campo"><input type="text" id="rn_ta48_mid" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 48 h, miembro inferior derecho"></label>
-                      <label class="rn-campo"><input type="text" id="rn_ta48_miiz" class="doc-input" maxlength="20" placeholder="70/40" aria-label="Tensión arterial a las 48 h, miembro inferior izquierdo"></label>
-                    </div>
-                    </div>
-                    <p class="rn-ta-ayuda">MSD/MSI: miembro superior derecho/izquierdo · MID/MIIZ: miembro inferior derecho/izquierdo.</p>
-                    {# 2026-10-06: movido aquí desde "10. Atención" (a pedido). #}
-                    <div class="rn-campo rn-ancho rn-ta-pediatra">
-                      <span class="rn-etq">Valorado por pediatra antes del egreso</span>
-                      <span class="doc-radio-inline rn-radio rn-radio-lleno" role="radiogroup" aria-label="Valorado por pediatra antes del egreso">
-                        <label><input type="radio" name="rn_valorado_pediatra" value="true"> Sí</label>
-                        <label><input type="radio" name="rn_valorado_pediatra" value="false"> No</label>
-                      </span>
-                    </div>
-                  </fieldset>
-
                   <fieldset class="rn-grupo rn-sec rn-c-morado rn-atencion">
-                    <legend><span class="rn-leg-ico"><i data-lucide="users"></i></span><span class="rn-leg-tit">10. Atención</span><button type="button" class="rn-colapsar ppw-ctrl" aria-expanded="true" title="Contraer / expandir la sección"><i data-lucide="chevron-up"></i></button></legend>
+                    <legend><span class="rn-leg-ico"><i data-lucide="users"></i></span><span class="rn-leg-tit">09. Atención</span><button type="button" class="rn-colapsar ppw-ctrl" aria-expanded="true" title="Contraer / expandir la sección"><i data-lucide="chevron-up"></i></button></legend>
                     <div class="rn-g rn-g-2">
                       <label class="rn-campo"><span class="rn-etq">Parto atendido por</span>
                         <input type="text" id="rn_parto_atendido_por" class="doc-input" maxlength="200" placeholder="Nombre del profesional"></label>
@@ -6745,7 +6760,7 @@
               {# 2026-09-30: mismo diseño de la tabla de fetocardia; filas las crea #}
               {# agregarGlucometriaRN() (conservan .rn-gluco-fila y [data-g]). #}
               <fieldset class="rn-grupo rn-grupo-gluco rn-gluco-ancho rn-sec rn-c-verde">
-                <legend><span class="rn-leg-ico"><i data-lucide="droplet"></i></span><span class="rn-leg-tit">11. Glucometrías</span><span class="fc-rango-chip rn-gluco-chip" title="Rango de referencia usado para el estado"><span class="fc-rango-dot"></span> Normal: <strong>45 – 125 mg/dL</strong></span><label class="rn-gluco-na" title="Marque si al recién nacido no se le toman glucometrías"><input type="checkbox" id="rn_glucometrias_no_aplica" onchange="toggleGlucoNoAplicaRN(this)"> No aplica</label><button type="button" id="rn-gluco-agregar-btn" class="btn-pp-quick rn-gluco-agregar" onclick="agregarGlucometriaRN()"><i data-lucide="plus"></i> Agregar glucometría</button><button type="button" class="rn-colapsar ppw-ctrl" aria-expanded="true" title="Contraer / expandir la sección"><i data-lucide="chevron-up"></i></button></legend>
+                <legend><span class="rn-leg-ico"><i data-lucide="droplet"></i></span><span class="rn-leg-tit">10. Glucometrías</span><span class="fc-rango-chip rn-gluco-chip" title="Rango de referencia usado para el estado"><span class="fc-rango-dot"></span> Normal: <strong>45 – 125 mg/dL</strong></span><label class="rn-gluco-na" title="Marque si al recién nacido no se le toman glucometrías"><input type="checkbox" id="rn_glucometrias_no_aplica" onchange="toggleGlucoNoAplicaRN(this)"> No aplica</label><button type="button" id="rn-gluco-agregar-btn" class="btn-pp-quick rn-gluco-agregar" onclick="agregarGlucometriaRN()"><i data-lucide="plus"></i> Agregar glucometría</button><button type="button" class="rn-colapsar ppw-ctrl" aria-expanded="true" title="Contraer / expandir la sección"><i data-lucide="chevron-up"></i></button></legend>
                 <p class="rn-gluco-vacio" id="rn-gluco-vacio">Sin glucometrías registradas. Use "Agregar glucometría" para registrar la primera.</p>
                 <p class="rn-gluco-vacio rn-gluco-na-msg" id="rn-gluco-na-msg" hidden>Glucometrías: <strong>No aplica</strong> para este recién nacido.</p>
                 <div class="fc-table-wrap" id="rn-gluco-tabla" hidden>
@@ -7261,6 +7276,20 @@
             if (valor < FC_RANGO_NORMAL.min) return { clase: 'bradi', texto: 'Bradicardia' };
             if (valor > FC_RANGO_NORMAL.max) return { clase: 'taqui', texto: 'Taquicardia' };
             return { clase: 'normal', texto: 'Normal' };
+          }
+
+          // 2026-10-08: solo el TEXTO de la columna de los controles de vigilancia:
+          // hasta el minuto 120 (las tomas cada 15 min) se muestra "15 min"; del
+          // 150 y 180 (las tomas cada 30 min) "30 min"; del 240 en adelante (las
+          // tomas cada hora) "60 min". No cambia el cronograma.
+          // El cronograma completo se explica una sola vez, en el recuadro
+          // informativo de arriba (.crono-ctrl), no en cada fila.
+          function etiquetaMinutoControl(minuto) {
+            const m = Number(minuto);
+            if (isNaN(m)) return `${minuto} min`;
+            if (m <= 120) return '15 min';
+            if (m <= 180) return '30 min';
+            return '60 min';
           }
 
           // "21:05" -> "9:05 p. m."
@@ -8257,16 +8286,22 @@
                   <span class="sg-cc">${GOTA}<span class="sangrado-item-result" id="sangrado-result-${item.id}">0 cc</span></span>
                 </div>`;
               if (item.id === 'panal') {
-                // El pañal se pesa por pesajes secuenciales (ventana "Ver pesajes").
+                // 2026-10-08: un pesaje de pañal por control, en la propia tarjeta
+                // (ver agregarPesajePanal / recalcularPanal). El peso basal se
+                // ajusta en el pie (varía según marca o tamaño).
                 return `
                   <div class="sangrado-item-card sg-card" style="${estilo}">
                     ${cabecera}
                     <div class="sangrado-item-row sg-campos sg-campos--panal" id="sangrado-row-panal">
-                      <button type="button" class="sangrado-panal-open-btn" onclick="abrirPanalPesajesModal()">
-                        <i data-lucide="clipboard-list"></i> Ver pesajes <span class="sangrado-panal-count-badge" id="sangrado-panal-count">1</span>
-                      </button>
+                      <div class="sangrado-panal-rows" id="sangrado-panal-rows"></div>
                     </div>
-                    ${pie('panal-basal-card-label')}
+                    <div class="sg-pie">
+                      <span class="sg-basal"><i data-lucide="scale"></i>
+                        <label class="panal-basal-etq" for="panal-basal-input">Peso basal:</label>
+                        <input type="number" id="panal-basal-input" class="panal-basal-input" min="0" step="1" value="${item.basal}"
+                          title="Peso del pañal seco antes de usarlo; ajústelo si la marca o el tamaño es distinto" oninput="this.dataset.tocado='1'; recalcularPanal()"> gr</span>
+                      <span class="sg-cc">${GOTA}<span class="sangrado-item-result" id="sangrado-result-panal">0 cc</span></span>
+                    </div>
                   </div>`;
               }
               return `
@@ -8317,21 +8352,35 @@
           // (no el basal); si se marca "Nuevo pañal" ese pesaje resta 0 y reinicia la
           // referencia al peso basal para los pesajes siguientes de ese nuevo pañal.
           let panalRowSeq = 0;
+          // 2026-10-08: tope de digitación. Un pañal posparto empapado no llega a 2 kg;
+          // los demás materiales: peso seco × cantidad + 3 kg.
+          const PANAL_PESO_MAX = 2000;
+          const MATERIAL_SANGRE_MAX = 3000;
 
           function agregarPesajePanal() {
             const cont = document.getElementById('sangrado-panal-rows');
             if (!cont) return;
+            // 2026-10-08: un solo pesaje por control.
+            if (cont.querySelector('.sangrado-panal-row')) { recalcularPanal(); return; }
             panalRowSeq++;
             const row = document.createElement('div');
             row.className = 'sangrado-panal-row';
             row.dataset.rowId = String(panalRowSeq);
+            const paso = (delta, etq) => `<button type="button" class="sg-step" data-target="panal-peso-input" data-delta="${delta}" aria-label="${etq}">${delta > 0 ? '+' : '−'}</button>`;
             row.innerHTML = `
-              <input type="number" min="0" step="1" class="form-control sangrado-panal-peso" placeholder="Peso (gr)" oninput="recalcularPanal()">
-              <label class="sangrado-panal-nuevo-label">
+              <div class="sg-campo">
+                <label class="sangrado-item-input-label" for="panal-peso-input">Peso del pañal (gr)</label>
+                <div class="sg-stepper">
+                  ${paso(-1, 'Restar 1 gr')}
+                  <input type="number" id="panal-peso-input" min="0" step="1" class="sangrado-panal-peso" placeholder="0" oninput="recalcularPanal()">
+                  ${paso(1, 'Sumar 1 gr')}
+                </div>
+              </div>
+              <label class="sg-panal-nuevo" title="Márquelo si el pañal se cambió desde el control anterior">
                 <input type="checkbox" class="sangrado-panal-nuevo" onchange="recalcularPanal()"> Nuevo pañal
               </label>
-              <span class="sangrado-panal-cc">0 cc</span>
-              <button type="button" class="btn-remove-row" onclick="eliminarPesajePanal(this)" title="Eliminar pesaje">&times;</button>
+              <span class="sangrado-panal-cc" hidden>0 cc</span>
+              <small class="sg-panal-ref" id="panal-ref-txt"></small>
             `;
             cont.appendChild(row);
             recalcularPanal();
@@ -8357,22 +8406,52 @@
             const basal = basalInput && basalInput.value !== '' ? Math.max(0, parseFloat(basalInput.value) || 0) : basalDefault;
             const basalLabel = document.getElementById('panal-basal-card-label');
             if (basalLabel) basalLabel.textContent = `Peso basal: ${basal} gr`;
-            let referencia = basal;
+            // 2026-10-08: un pesaje por control. "Nuevo pañal": en esta toma se
+            // cambió el pañal y NO se pesa (0 cc; el campo se bloquea); el control
+            // siguiente resta el peso basal. Sin marcar: se resta el peso que tenía
+            // el mismo pañal en el control anterior (o el basal si es el primero).
+            const anterior = pesoPanalAnterior();
+            // Bloqueado igual que el resto de la calculadora (ver aplicarModoLecturaVigilancia):
+            // con el registro cerrado también en corrección desde "Vista previa".
+            const soloLectura = (typeof vigilanciaSoloLectura === 'function' && vigilanciaSoloLectura('sangrado'))
+              || !!(typeof registroCerrado !== 'undefined' && registroCerrado) || !!window.MODO_SOLO_CONSULTA;
             let total = 0;
             document.querySelectorAll('#sangrado-panal-rows .sangrado-panal-row').forEach(row => {
               const pesoEl = row.querySelector('.sangrado-panal-peso');
               const nuevoEl = row.querySelector('.sangrado-panal-nuevo');
               const ccEl = row.querySelector('.sangrado-panal-cc');
-              const peso = parseFloat(pesoEl?.value) || 0;
-              let cc;
-              if (nuevoEl?.checked) {
-                cc = 0;
-                referencia = basal;
-              } else {
-                cc = peso ? Math.max(0, peso - referencia) : 0;
-                if (peso) referencia = peso;
-              }
+              const refEl = row.querySelector('.sg-panal-ref');
+              const nuevo = !!nuevoEl?.checked;
+              // Nuevo pañal: sin peso en esta toma (campo y botones − / + bloqueados).
+              if (nuevo && pesoEl && pesoEl.value !== '') pesoEl.value = '';
+              if (pesoEl) pesoEl.disabled = nuevo || soloLectura;
+              row.querySelectorAll('.sg-step').forEach(b => { b.disabled = nuevo || soloLectura; });
+              row.classList.toggle('panal-nuevo', nuevo);
+              const peso = nuevo ? 0 : (parseFloat(pesoEl?.value) || 0);
+              const usaAnterior = !nuevo && anterior;
+              const referencia = usaAnterior ? anterior.peso : basal;
+              row.dataset.ref = String(nuevo ? 0 : referencia);
+              const cc = peso ? Math.max(0, peso - referencia) : 0;
               if (ccEl) ccEl.textContent = `${cc.toFixed(0)} cc`;
+              // 2026-10-08: avisos para que un error de digitación no dé 0 cc en silencio.
+              let aviso = '';
+              if (peso > PANAL_PESO_MAX) {
+                aviso = `⚠ ${peso} gr supera el máximo de un pañal (${PANAL_PESO_MAX} gr). Revise el peso.`;
+              } else if (usaAnterior && anterior.peso > PANAL_PESO_MAX) {
+                aviso = `⚠ El pañal del control de ${anterior.minuto} min quedó con ${anterior.peso} gr (error de digitación). ` +
+                  'Corríjalo con el lápiz en "Registros" o marque "Nuevo pañal".';
+              } else if (peso && peso < referencia) {
+                aviso = usaAnterior
+                  ? `⚠ Pesa menos que en el control de ${anterior.minuto} min (${anterior.peso} gr). Si se cambió el pañal, marque "Nuevo pañal".`
+                  : `⚠ Pesa menos que el peso basal (${basal} gr). Revise el peso o ajuste el peso basal.`;
+              }
+              row.dataset.aviso = aviso;
+              row.classList.toggle('panal-aviso', !!aviso);
+              if (refEl) refEl.textContent = nuevo
+                ? 'Nuevo pañal: no se pesa en esta toma (0 cc). En el próximo control se resta el peso basal.'
+                : aviso || (usaAnterior
+                  ? `Mismo pañal: se resta su peso del control de ${anterior.minuto} min (${anterior.peso} gr)`
+                  : `Se resta el peso basal (${basal} gr)`);
               total += cc;
             });
             const resultEl = document.getElementById('sangrado-result-panal');
@@ -8385,6 +8464,17 @@
             if (modalTotalEl) modalTotalEl.textContent = `${total.toFixed(0)} cc`;
 
             recalcularTotalSangrado();
+          }
+
+          // Peso del pañal en el último control guardado que lo registró.
+          function pesoPanalAnterior() {
+            const conPanal = (sangradoRegistros || [])
+              .filter(r => r.detalle?.panal?.pesajes?.length)
+              .sort((a, b) => a.minuto - b.minuto);
+            const ultimo = conPanal[conPanal.length - 1];
+            const pesaje = ultimo?.detalle.panal.pesajes[0];
+            if (!pesaje || pesaje.nuevo || !(Number(pesaje.peso) > 0)) return null;  // pañal nuevo: basal
+            return { peso: Number(pesaje.peso), minuto: ultimo.minuto };
           }
 
           function abrirPanalPesajesModal() {
@@ -8409,6 +8499,7 @@
             const resultEl = document.getElementById(`sangrado-result-${itemId}`);
             if (resultEl) resultEl.textContent = `${cc.toFixed(0)} cc`;
             humedoEl?.closest('.sangrado-item-row')?.classList.toggle('has-value', humedo > 0);
+            humedoEl?.closest('.sangrado-item-row')?.classList.toggle('sg-peso-fuera', humedo > basal * cantidad + MATERIAL_SANGRE_MAX);
             return cc;
           }
 
@@ -8445,9 +8536,15 @@
           // control, o sea después de cargar el registro).
           function prepararPanelSangrado({ restaurar = false } = {}) {
             renderSangradoModalItems();
+            // 2026-10-08: el peso basal ajustado se conserva al recargar: se toma
+            // del último control con pañal (si aquí no lo han cambiado a mano).
+            const basalInput = document.getElementById('panal-basal-input');
+            const ultimoBasal = sangradoRegistros.filter(r => Number(r.detalle?.panal?.basal) > 0)
+              .sort((a, b) => a.minuto - b.minuto).pop()?.detalle.panal.basal;
+            if (basalInput && basalInput.dataset.tocado !== '1' && ultimoBasal) basalInput.value = String(ultimoBasal);
             const lectura = aplicarModoLecturaVigilancia();
             if (restaurar && !lectura) restaurarBorradorSangrado();
-            recalcularTotalSangrado();
+            recalcularPanal();  // incluye recalcularTotalSangrado()
             renderRegistrosSangrado();
             actualizarProximoControlSangrado();
             cambiarTabSangrado(lectura ? 'registros' : 'calc');
@@ -8496,7 +8593,7 @@
               peso: row.querySelector('.sangrado-panal-peso')?.value || '',
               nuevo: !!row.querySelector('.sangrado-panal-nuevo')?.checked,
             }));
-            if (filas.some(f => f.peso !== '')) hayDatos = true;
+            if (filas.some(f => f.peso !== '' || f.nuevo)) hayDatos = true;  // "Nuevo pañal" sin peso también es un dato
             const basal = document.getElementById('panal-basal-input')?.value || '';
             return { hayDatos, items, panal: { basal, filas } };
           }
@@ -8537,14 +8634,13 @@
             if (basalInput && b.panal?.basal) basalInput.value = b.panal.basal;
             const filas = b.panal?.filas || [];
             const cont = document.getElementById('sangrado-panal-rows');
-            if (cont && filas.some(f => f.peso !== '')) {
+            if (cont && filas.some(f => f.peso !== '' || f.nuevo)) {
               cont.innerHTML = '';
-              filas.forEach(f => {
-                agregarPesajePanal();
-                const row = cont.lastElementChild;
-                row.querySelector('.sangrado-panal-peso').value = f.peso;
-                row.querySelector('.sangrado-panal-nuevo').checked = !!f.nuevo;
-              });
+              const f = filas.find(x => x.peso !== '' || x.nuevo) || filas[0];
+              agregarPesajePanal();
+              cont.querySelector('.sangrado-panal-row .sangrado-panal-peso').value = f.peso;
+              const nuevoEl = cont.querySelector('.sangrado-panal-row .sangrado-panal-nuevo');
+              if (nuevoEl) nuevoEl.checked = !!f.nuevo;
             }
             recalcularPanal();
             showToast(`Se recuperaron los pesos sin guardar del control de ${b.minuto} min.`, 'success');
@@ -8709,7 +8805,9 @@
           function mapearControlServidor(tipo, c) {
             const hora = String(c.hora || '').length > 5 ? String(c.hora).substring(0, 5) : (c.hora || '');
             return tipo === 'sangrado'
-              ? { id: c.id, minuto: c.minuto_control, hora, cc: parseFloat(c.cc) || 0, estado: c.estado || null }
+              // 2026-10-08: con su detalle (antes se perdía al resincronizar cada
+              // 60 s: desaparecía de "Registros" y el pañal volvía al basal).
+              ? { id: c.id, minuto: c.minuto_control, hora, cc: parseFloat(c.cc) || 0, estado: c.estado || null, detalle: c.detalle || null }
               : { id: c.id, minuto: c.minuto_control, hora, estado: c.estado };
           }
 
@@ -8872,6 +8970,58 @@
             recalcularTotalSangrado();
           }
 
+          // 2026-10-08: de dónde salen los c.c. de la lectura (se guarda con el
+          // control): cada material con peso y los pesajes del pañal.
+          function construirDetalleSangrado() {
+            const materiales = [];
+            SANGRADO_ITEMS.forEach(item => {
+              if (item.id === 'panal') return;
+              const pesoEl = document.getElementById(`sangrado-input-${item.id}`);
+              const peso = parseFloat(pesoEl?.value) || 0;
+              if (!peso) return;
+              const cantidad = parseFloat(document.getElementById(`sangrado-cantidad-${item.id}`)?.value) || 1;
+              const basal = parseFloat(pesoEl.getAttribute('data-basal')) || 0;
+              materiales.push({
+                item: item.id, nombre: item.nombre, cantidad, peso_humedo: peso, basal,
+                cc: Math.round(Math.max(0, peso - basal * cantidad)),
+              });
+            });
+            let panal = null;
+            const filasPanal = Array.from(document.querySelectorAll('#sangrado-panal-rows .sangrado-panal-row'));
+            const pesajes = filasPanal.map(row => ({
+              peso: parseFloat(row.querySelector('.sangrado-panal-peso')?.value) || 0,
+              nuevo: !!row.querySelector('.sangrado-panal-nuevo')?.checked,
+              cc: parseFloat(row.querySelector('.sangrado-panal-cc')?.textContent) || 0,
+            })).filter(p => p.peso || p.nuevo);
+            if (pesajes.length) {
+              const basalInput = document.getElementById('panal-basal-input');
+              const basalDefault = SANGRADO_ITEMS.find(i => i.id === 'panal')?.basal || 0;
+              panal = {
+                basal: basalInput && basalInput.value !== '' ? (parseFloat(basalInput.value) || 0) : basalDefault,
+                referencia: parseFloat(filasPanal[0]?.dataset.ref) || 0,
+                pesajes,
+                cc: pesajes.reduce((t, p) => t + p.cc, 0),
+              };
+            }
+            return { materiales, panal };
+          }
+
+          // Texto corto del detalle para la lista de "Registros".
+          function textoDetalleSangrado(det) {
+            if (!det) return '';
+            const partes = (det.materiales || []).map(m =>
+              `${m.nombre}${m.cantidad > 1 ? ` ×${m.cantidad}` : ''}: ${m.peso_humedo} gr → ${m.cc} cc`);
+            if (det.panal && (det.panal.pesajes || []).length) {
+              const pes = det.panal.pesajes.map(p => (p.nuevo && !p.peso) ? 'nuevo pañal (sin pesaje)' : `${p.peso} gr${p.nuevo ? ' (nuevo pañal)' : ''}`).join(', ');
+              const resta = (det.panal.referencia && det.panal.cc) ? ` − ${det.panal.referencia} gr` : '';
+              partes.push(`Pañal (basal ${det.panal.basal} gr): ${pes}${resta} → ${det.panal.cc} cc` +
+                (det.panal.peso_corregido ? ' (peso del pañal corregido después)' : ''));
+            }
+            let txt = partes.length ? partes.join(' · ') : 'Sin materiales con peso (0 cc)';
+            if (det.cc_corregido) txt += ' · c.c. corregidos a mano después';
+            return txt;
+          }
+
           function guardarRegistroSangrado() {
             if (vigilanciaSoloLectura('sangrado') || registroCerrado) return;  // cerrado: solo se corrige
             const proximo = proximoControlSangrado();
@@ -8879,7 +9029,27 @@
               showToast('Ya se completaron los controles programados (6 horas).', 'error');
               return;
             }
+            recalcularPanal();  // el "mismo pañal" puede haber cambiado (resincronización)
             const total = recalcularTotalSangrado();
+            // 2026-10-08: pesos imposibles (error de digitación) no se guardan.
+            const fuera = SANGRADO_ITEMS.filter(item => item.id !== 'panal'
+              && document.getElementById(`sangrado-row-${item.id}`)?.classList.contains('sg-peso-fuera'));
+            if (fuera.length) {
+              showToast(`Revise el peso de: ${fuera.map(i => i.nombre).join(', ')} (parece un error de digitación).`, 'error');
+              return;
+            }
+            const filaPanal = document.querySelector('#sangrado-panal-rows .sangrado-panal-row');
+            const pesoPanal = parseFloat(filaPanal?.querySelector('.sangrado-panal-peso')?.value) || 0;
+            if (pesoPanal > PANAL_PESO_MAX) {
+              showToast(`El pañal no puede pesar ${pesoPanal} gr (máximo ${PANAL_PESO_MAX} gr). Revise el peso.`, 'error');
+              filaPanal.querySelector('.sangrado-panal-peso')?.focus();
+              return;
+            }
+            // Pañal más liviano que la referencia: casi siempre es que se cambió y no se marcó.
+            if (pesoPanal && filaPanal?.dataset.aviso && !window.confirm(
+              `${filaPanal.dataset.aviso.replace(/^⚠\s*/, '')}\n\nEl pañal sumará 0 cc en este control.\n\n¿Guardar así de todas formas?`)) {
+              return;
+            }
             // 2026-10-06: un control sin sangrado (0 cc) también es un control:
             // antes no se podía guardar, la tarjeta nunca llegaba al minuto 360
             // y "Guardar Registro Completo" jamás se habilitaba.
@@ -8892,7 +9062,7 @@
             const ahora = new Date();
             const horaAutomatica = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
             const horaGuardada = horaInput?.value || horaAutomatica;
-            const nuevoControl = { minuto: proximo, cc: total, hora: horaGuardada };
+            const nuevoControl = { minuto: proximo, cc: total, hora: horaGuardada, detalle: construirDetalleSangrado() };
             sangradoRegistros.push(nuevoControl);
             renderRegistrosSangrado();
             resetCalculadoraSangrado();
@@ -8930,7 +9100,10 @@
               const res = await fetch(url, {
                 method: accion === 'crear' ? 'POST' : 'PATCH',
                 headers: getHeaders(),
-                body: JSON.stringify({ minuto_control: control.minuto, hora: control.hora, cc: Math.round(control.cc) }),
+                body: JSON.stringify({
+                  minuto_control: control.minuto, hora: control.hora, cc: Math.round(control.cc),
+                  ...(control.detalle !== undefined ? { detalle: control.detalle } : {}),
+                }),
               });
               if (!res.ok) {
                 await anotarErrorControl(control, res);
@@ -8999,16 +9172,38 @@
               showToast('Ingrese una hora y una cantidad válidas.', 'error');
               return;
             }
+            // 2026-10-08: el peso del pañal también se corrige (el control
+            // siguiente lo resta si es el mismo pañal).
+            const panalEl = row.querySelector('.sangrado-edit-panal');
+            const nuevoPesoPanal = panalEl ? parseFloat(panalEl.value) : null;
+            if (panalEl && (isNaN(nuevoPesoPanal) || nuevoPesoPanal <= 0 || nuevoPesoPanal > PANAL_PESO_MAX)) {
+              showToast(`Peso del pañal inválido (entre 1 y ${PANAL_PESO_MAX} gr).`, 'error');
+              return;
+            }
             const ccAnterior = control.cc;
             const horaAnterior = control.hora;
+            const detalleAnterior = control.detalle;
             control.hora = nuevaHora;
             control.cc = nuevoCc;
+            // Si cambian los c.c. a mano, el detalle de materiales ya no suma eso: se marca.
+            if (Math.round(nuevoCc) !== Math.round(ccAnterior)) {
+              control.detalle = { ...(control.detalle || { materiales: [], panal: null }), cc_corregido: true };
+            }
+            const pesajePanal = control.detalle?.panal?.pesajes?.[0];
+            if (panalEl && pesajePanal && nuevoPesoPanal !== Number(pesajePanal.peso)) {
+              const panal = control.detalle.panal;
+              control.detalle = {
+                ...control.detalle,
+                panal: { ...panal, pesajes: [{ ...pesajePanal, peso: nuevoPesoPanal }, ...panal.pesajes.slice(1)], peso_corregido: true },
+              };
+            }
 
             if (control.id && savedRegistroId) {
               const ok = await persistirControlSangrado(control, 'editar');
               if (!ok) {
                 control.cc = ccAnterior;
                 control.hora = horaAnterior;
+                control.detalle = detalleAnterior;
                 showToast('No se pudo guardar la corrección en el servidor.', 'error');
                 sangradoEditandoIdx = null;
                 renderRegistrosSangrado();
@@ -9046,9 +9241,10 @@
                 return `
                   <div class="sangrado-registro-row sangrado-registro-editando hs-fila hs-fila--editando" data-idx="${idx}">
                     ${reloj}
-                    <span class="sangrado-registro-min">${r.minuto} min</span>
+                    <span class="sangrado-registro-min">${etiquetaMinutoControl(r.minuto)}</span>
                     <input type="time" class="form-control sangrado-edit-hora" value="${r.hora}">
                     <span class="sg-reg-edit-cc"><input type="number" min="0" step="1" class="form-control sangrado-edit-cc" value="${r.cc.toFixed(0)}"> cc</span>
+                    ${Number(r.detalle?.panal?.pesajes?.[0]?.peso) > 0 ? `<span class="sg-reg-edit-cc" title="El control siguiente resta este peso si es el mismo pañal">Pañal <input type="number" min="1" max="${PANAL_PESO_MAX}" step="1" class="form-control sangrado-edit-panal" value="${Number(r.detalle.panal.pesajes[0].peso)}"> gr</span>` : ''}
                     <span class="sg-reg-acum">Acumulado: ${acumulado.toFixed(0)} cc</span>
                     <span class="sangrado-registro-actions">
                       <button type="button" class="btn-icon-guardar" onclick="guardarEdicionRegistroSangrado(${idx})" title="Guardar corrección">✔ Guardar</button>
@@ -9064,10 +9260,11 @@
               return `
                 <div class="sangrado-registro-row hs-fila hs-fila--${clase || 'na'}" data-idx="${idx}">
                   ${reloj}
-                  <span class="sangrado-registro-min">${r.minuto} min</span>
+                  <span class="sangrado-registro-min">${etiquetaMinutoControl(r.minuto)}</span>
                   <span class="sangrado-registro-hora">${hora12(r.hora)}</span>
                   <span class="sg-reg-cc"><strong>${r.cc.toFixed(0)} cc</strong><small>Acumulado: ${acumulado.toFixed(0)} cc</small></span>
                   <span class="sg-reg-estado">${estadoBadge}${badgeSinGuardar(r)}</span>
+                  ${r.detalle ? `<span class="sg-reg-detalle" title="Materiales y pesajes de esta lectura">${escaparHtml(textoDetalleSangrado(r.detalle))}</span>` : ''}
                   ${lectura ? '' : `<span class="sangrado-registro-actions">
                     <button type="button" class="btn-icon-editar hs-btn-editar" onclick="editarRegistroSangrado(${idx})" title="Editar control"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zm17.7-10.2a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
                     ${registroCerrado ? '' : `<button type="button" class="btn-remove-row hs-btn-eliminar" onclick="eliminarRegistroSangrado(${idx})" title="Eliminar control"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button>`}
@@ -9078,6 +9275,7 @@
           }
 
           function aplicarTotalAcumuladoSangrado() {
+            recalcularPanal();  // 2026-10-08: el "mismo pañal" depende del último control guardado
             const total = sangradoBaseAnterior + sangradoRegistros.reduce((sum, r) => sum + r.cc, 0);
             document.getElementById('sangrado_cuantificado_cc').value = total.toFixed(0);
             actualizarSemaforoSangrado();
@@ -9375,7 +9573,7 @@
                 return `
                   <div class="sangrado-registro-row semaforo-registro-row hs-fila hs-fila--editando" data-tipo="${tipo}" data-idx="${idx}">
                     ${reloj}
-                    <span class="sangrado-registro-min">${r.minuto} min</span>
+                    <span class="sangrado-registro-min">${etiquetaMinutoControl(r.minuto)}</span>
                     <input type="time" class="form-control semaforo-edit-hora" value="${r.hora}">
                     <select class="form-control semaforo-edit-estado">${opcionesHtml}</select>
                     <span class="sangrado-registro-actions">
@@ -9390,7 +9588,7 @@
               return `
                 <div class="sangrado-registro-row semaforo-registro-row hs-fila hs-fila--${clase}" data-tipo="${tipo}" data-idx="${idx}">
                   ${reloj}
-                  <span class="sangrado-registro-min">${r.minuto} min</span>
+                  <span class="sangrado-registro-min">${etiquetaMinutoControl(r.minuto)}</span>
                   <span class="sangrado-registro-hora">${hora12(r.hora)}</span>
                   <span class="semaforo-badge ${badgeClaseEstadoSemaforo(r.estado)} hs-estado hs-estado--${clase}"><span class="hs-estado-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${icono}</svg></span>${textoEstadoSemaforo(tipo, r.estado)}</span>
                   ${badgeSinGuardar(r)}
@@ -9455,7 +9653,7 @@
               // update). Únicamente los controles sin id de backend todavía
               // (persistencia inmediata pendiente o registro recién creado).
               controles_sangrado: sangradoRegistros.filter(r => !r.id).map(r => ({
-                minuto_control: r.minuto, hora: r.hora, cc: Math.round(r.cc),
+                minuto_control: r.minuto, hora: r.hora, cc: Math.round(r.cc), detalle: r.detalle || null,
               })),
               controles_globo: SEMAFORO_TIPOS.globo.registros.filter(r => !r.id).map(r => ({
                 minuto_control: r.minuto, hora: r.hora, estado: r.estado,
@@ -9704,33 +9902,8 @@
             ['tanac_mid', 'rn_tanac_mid', 'texto'],
             ['tanac_miiz', 'rn_tanac_miiz', 'texto'],
             ['fc_nacimiento', 'rn_fc_nacimiento', 'ent'],
-            ['tanac12_msd', 'rn_tanac12_msd', 'texto'],
-            ['tanac12_msi', 'rn_tanac12_msi', 'texto'],
-            ['tanac12_mid', 'rn_tanac12_mid', 'texto'],
-            ['tanac12_miiz', 'rn_tanac12_miiz', 'texto'],
-            ['tanac24_msd', 'rn_tanac24_msd', 'texto'],
-            ['tanac24_msi', 'rn_tanac24_msi', 'texto'],
-            ['tanac24_mid', 'rn_tanac24_mid', 'texto'],
-            ['tanac24_miiz', 'rn_tanac24_miiz', 'texto'],
-            ['tanac48_msd', 'rn_tanac48_msd', 'texto'],
-            ['tanac48_msi', 'rn_tanac48_msi', 'texto'],
-            ['tanac48_mid', 'rn_tanac48_mid', 'texto'],
-            ['tanac48_miiz', 'rn_tanac48_miiz', 'texto'],
-            ['ta_msd', 'rn_ta_msd', 'texto'],
-            ['ta_msi', 'rn_ta_msi', 'texto'],
-            ['ta_mid', 'rn_ta_mid', 'texto'],
-            ['ta_miiz', 'rn_ta_miiz', 'texto'],
-            ['ta24_msd', 'rn_ta24_msd', 'texto'],
-            ['ta24_msi', 'rn_ta24_msi', 'texto'],
-            ['ta24_mid', 'rn_ta24_mid', 'texto'],
-            ['ta24_miiz', 'rn_ta24_miiz', 'texto'],
-            ['ta48_msd', 'rn_ta48_msd', 'texto'],
-            ['ta48_msi', 'rn_ta48_msi', 'texto'],
-            ['ta48_mid', 'rn_ta48_mid', 'texto'],
-            ['ta48_miiz', 'rn_ta48_miiz', 'texto'],
             ['glucometrias_no_aplica', 'rn_glucometrias_no_aplica', 'check'],
             ['neonato_atendido_por', 'rn_neonato_atendido_por', 'texto'],
-            ['valorado_pediatra', 'rn_valorado_pediatra', 'sino'],
           ];
           // Obligatorios para "Guardar Registro Completo" (mismos que
           // CAMPOS_RN_OBLIGATORIOS_CIERRE en views.py), además de la huella.
@@ -10669,7 +10842,17 @@
             });
           }
 
+          // 2026-10-08: "Hora de nacimiento" del recién nacido = hora de parto.
+          function pintarHoraNacimientoRN() {
+            const el = document.getElementById('rn-hora-nac-vista');
+            if (!el) return;
+            const v = (document.getElementById('hora_parto')?.value || '').trim();
+            el.textContent = v ? hora12(v) : 'Sin registrar';
+            el.classList.toggle('vacia', !v);
+          }
+
           function actualizarPasosPosparto() {
+            pintarHoraNacimientoRN();
             if (!ppwPasos.length) return;
             // 2026-10-07: el botón de cierre depende de todos los pasos: se
             // recalcula aquí (cualquier cambio en el formulario y cada 3 s).
@@ -11427,6 +11610,7 @@
                   hora: String(sc.hora || '').length > 5 ? String(sc.hora).substring(0, 5) : (sc.hora || ''),
                   cc: parseFloat(sc.cc) || 0,
                   estado: sc.estado || null,
+                  detalle: sc.detalle || null,
                 })).sort((a, b) => a.minuto - b.minuto);
                 sangradoBaseAnterior = 0;
               } else {
@@ -11810,7 +11994,7 @@
             document.addEventListener('keydown', e => {
               if (e.key === 'Escape') {
                 if (document.getElementById('preview-modal-overlay').classList.contains('show')) cerrarVistaPrevia();
-                if (document.getElementById('sangrado-panal-modal-overlay').classList.contains('show')) cerrarPanalPesajesModal();
+                if (document.getElementById('sangrado-panal-modal-overlay')?.classList.contains('show')) cerrarPanalPesajesModal();
                 if (document.getElementById('fc-trace-modal-overlay').classList.contains('show')) cerrarVistaPreviaFetocardia();
               }
             });

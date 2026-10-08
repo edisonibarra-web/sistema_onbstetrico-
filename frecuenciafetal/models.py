@@ -228,6 +228,12 @@ class ControlSangrado(models.Model):
     )
     hora = models.TimeField(verbose_name="Hora del control")
     cc = models.PositiveIntegerField(verbose_name="Sangrado cuantificado en este control (c.c.)")
+    # 2026-10-08: de dónde salen esos c.c. (trazabilidad): cada material con su
+    # cantidad, peso húmedo, peso basal y c.c., y los pesajes del pañal.
+    # {"materiales": [{"item", "nombre", "cantidad", "peso_humedo", "basal", "cc"}],
+    #  "panal": {"basal", "pesajes": [{"peso", "nuevo", "cc"}], "cc"} | null,
+    #  "cc_corregido": bool}  -- cc_corregido: los c.c. se cambiaron a mano después.
+    detalle = models.JSONField(blank=True, null=True, verbose_name="Detalle de materiales y pesajes")
     # Semáforo (Normal/Vigilar/Alerta) que tenía el acumulado justo en este
     # control -- se calcula en el backend (ver `estado_sangrado` arriba y
     # `recalcular_estados_sangrado` en views.py), nunca lo manda el cliente,
