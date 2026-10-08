@@ -573,45 +573,107 @@
            un botón (a pedido explícito, para ahorrar ese paso); queda
            siempre visible en el módulo Triaje. Mismo lenguaje visual que el
            resto de tarjetas del sistema (encabezado oscuro, acento cian). */
+        /* 2026-10-08: rediseño según maqueta -- banner cian con curva,
+           ilustración médica a la derecha, campo con ícono de documento y
+           botón con lupa (la lupa va por CSS porque el JS cambia textContent). */
         .triaje-modal {
-            background: #fff; border-radius: 14px; overflow: hidden;
-            width: 100%; max-width: 420px;
-            box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+            position: relative; overflow: hidden; box-sizing: border-box;
+            width: 100%; max-width: 760px; padding: 12px;
+            background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+            border: 1px solid #e6edf7; border-radius: 20px;
+            box-shadow: 0 14px 34px rgba(30, 64, 120, 0.10), 0 2px 6px rgba(30, 64, 120, 0.05);
         }
+        .triaje-modal-ilustracion {
+            position: absolute; top: 12px; right: 12px; width: 50%; height: 270px;
+            pointer-events: none; z-index: 0; border-top-right-radius: 16px; overflow: hidden;
+            -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 28%), linear-gradient(180deg, #000 62%, transparent 100%);
+            -webkit-mask-composite: source-in;
+            mask-image: linear-gradient(90deg, transparent 0%, #000 28%), linear-gradient(180deg, #000 62%, transparent 100%);
+            mask-composite: intersect;
+        }
+        .triaje-modal-ilustracion svg { display: block; width: 100%; height: 100%; }
         .triaje-modal-header {
-            display: flex; align-items: center; justify-content: space-between;
-            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
-            color: #fff; padding: 14px 18px; font-weight: 800; font-size: 1.02rem;
+            position: relative; z-index: 1; display: flex; align-items: center; gap: 26px;
+            min-height: 104px; padding: 14px 20px; border-radius: 16px; overflow: hidden;
+            color: #fff;
         }
-        .triaje-modal-body { padding: 18px; }
+        .triaje-modal-banner { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+        .triaje-modal-icono {
+            flex-shrink: 0; width: 76px; height: 76px; border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(160deg, #ffffff 0%, #e8f3fb 100%);
+            box-shadow: 0 8px 18px rgba(8, 47, 99, 0.28), inset 0 1px 0 #ffffff;
+        }
+        .triaje-modal-icono svg { width: 52px; height: 52px; }
+        .triaje-modal-titulo { display: flex; flex-direction: column; gap: 10px; }
+        .triaje-modal-titulo h3 {
+            margin: 0; color: #ffffff; font-size: 1.85rem; font-weight: 800; line-height: 1.05;
+            letter-spacing: -0.01em; text-shadow: 0 2px 8px rgba(6, 50, 100, 0.25);
+        }
+        .triaje-modal-titulo-barra {
+            width: 66px; height: 5px; border-radius: 999px;
+            background: linear-gradient(90deg, #5ee0f5 0%, #3fd0ee 100%);
+            box-shadow: 0 0 10px rgba(94, 224, 245, 0.6);
+        }
+        .triaje-modal-body { position: relative; z-index: 1; padding: 18px 24px 16px; }
         .triaje-modal-intro {
-            font-size: 0.85rem; color: #475569; margin: 0 0 14px; line-height: 1.5;
+            max-width: 62%; margin: 0 0 22px;
+            font-size: 0.98rem; line-height: 1.6; color: #3a4a66;
         }
         .triaje-modal-label {
-            display: block; font-size: 0.78rem; font-weight: 700; color: #334155;
-            margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.02em;
+            display: block; margin-bottom: 10px;
+            font-size: 0.8rem; font-weight: 800; color: #26365a;
+            text-transform: uppercase; letter-spacing: 0.06em;
+        }
+        .triaje-modal-campo { position: relative; }
+        .triaje-modal-campo-ico {
+            position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+            width: 32px; height: 26px; color: #6a7da3; pointer-events: none;
         }
         .triaje-modal-input {
-            width: 100%; padding: 10px 12px; border-radius: 8px;
-            border: 1.5px solid #cbd5e1; font-size: 0.95rem; box-sizing: border-box;
+            width: 100%; height: 50px; box-sizing: border-box; padding: 0 16px 0 70px;
+            border-radius: 10px; border: 1.5px solid #c9d4e6; background: #ffffff;
+            font-size: 1.05rem; color: #1e293b;
+            box-shadow: 0 2px 6px rgba(30, 64, 120, 0.05);
+            transition: border-color .2s, box-shadow .2s;
         }
-        .triaje-modal-input:focus { outline: none; border-color: #0891b2; }
-        .triaje-modal-resultado { margin-top: 12px; font-size: 0.85rem; font-weight: 600; }
+        .triaje-modal-input::placeholder { color: #8b9abb; }
+        .triaje-modal-input:focus { outline: none; border-color: #1aa6cf; box-shadow: 0 0 0 3px rgba(26, 166, 207, 0.18); }
+        .triaje-modal-resultado { margin-top: 12px; font-size: 0.88rem; font-weight: 600; }
         .triaje-modal-resultado-ok { color: #0e7490; }
         .triaje-modal-resultado-nuevo { color: #b45309; }
         .triaje-modal-footer {
-            display: flex; justify-content: flex-end; gap: 8px;
-            padding: 14px 18px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+            position: relative; z-index: 1; display: flex; justify-content: flex-end; gap: 8px;
+            margin: 4px 6px 0; padding: 12px 6px 6px; border-top: 1px solid #dfe7f2;
         }
         .triaje-modal-btn {
-            padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 700;
-            cursor: pointer; border: none;
+            display: inline-flex; align-items: center; justify-content: center; gap: 18px;
+            padding: 0 34px; height: 48px; border-radius: 12px; border: none; cursor: pointer;
+            font-size: 1.05rem; font-weight: 800;
         }
         .triaje-modal-btn-primary {
-            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%); color: #fff;
+            min-width: 280px; color: #fff;
+            background: linear-gradient(90deg, #16b8d8 0%, #1497c6 45%, #11689f 100%);
+            box-shadow: 0 8px 18px rgba(17, 120, 175, 0.32), 0 0 14px rgba(22, 184, 216, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            transition: box-shadow .2s, filter .2s;
         }
-        .triaje-modal-btn-primary:hover { box-shadow: 0 4px 12px rgba(8, 145, 178, 0.4); }
+        .triaje-modal-btn-primary::before {
+            content: ""; width: 24px; height: 24px; flex-shrink: 0; background: currentColor;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='7'/%3E%3Cpath d='m21 21-5.2-5.2'/%3E%3C/svg%3E") center / contain no-repeat;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='7'/%3E%3Cpath d='m21 21-5.2-5.2'/%3E%3C/svg%3E") center / contain no-repeat;
+        }
+        .triaje-modal-btn-primary:hover { filter: brightness(1.05); box-shadow: 0 10px 22px rgba(17, 120, 175, 0.42), 0 0 18px rgba(22, 184, 216, 0.35); }
         .triaje-modal-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        @media (max-width: 640px) {
+            .triaje-modal-ilustracion { width: 70%; opacity: .45; }
+            .triaje-modal-header { gap: 16px; min-height: 88px; }
+            .triaje-modal-icono { width: 62px; height: 62px; }
+            .triaje-modal-icono svg { width: 42px; height: 42px; }
+            .triaje-modal-titulo h3 { font-size: 1.5rem; }
+            .triaje-modal-body { padding: 16px 12px 14px; }
+            .triaje-modal-intro { max-width: none; }
+            .triaje-modal-btn-primary { min-width: 0; width: 100%; }
+        }
 
         .active-patient-name {
             font-weight: 800;
@@ -1776,6 +1838,87 @@
         @media (max-width: 1040px) {
             .timeline-groups { grid-template-columns: 1fr; }
         }
+
+        /* 2026-10-07: encabezado con el diseño de "Información del paciente" de meows/resultado.html. */
+        #search-section .search-header {
+            gap: 0; min-height: 118px; padding: 12px 30px 12px 0;
+            background: linear-gradient(100deg, #0a1a33 0%, #0d2a52 30%, #0f3766 52%, #0c2f5a 75%, #0a1f3d 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 6px 16px rgba(10, 26, 51, .35);
+        }
+        #search-section .search-header::before { display: none; }
+        #search-section .search-header::after {
+            content: ''; position: absolute; top: 0; bottom: 0; left: 48%; right: 0; pointer-events: none;
+            clip-path: polygon(9% 0, 100% 0, 100% 100%, 0 100%);
+            background: linear-gradient(90deg, rgba(64, 140, 220, .22) 0%, rgba(30, 90, 170, .12) 60%, rgba(10, 30, 60, 0) 100%);
+        }
+        #search-section .search-header > * { position: relative; z-index: 1; }
+        #search-section .search-header .icon-container {
+            width: 86px; height: 84px; min-width: 86px; margin: 0 16px 0 34px; border-radius: 12px; color: #ffffff;
+            background: linear-gradient(160deg, #4a5f7e 0%, #2f4361 100%);
+            border: 1px solid rgba(255, 255, 255, .22);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 8px 18px rgba(0, 0, 0, .35);
+        }
+        #search-section .search-header .icon-container svg { width: 38px !important; height: 38px !important; }
+        #search-section .rp2-separador { align-self: stretch; width: 1px; margin: 0 20px 0 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .28) 50%, rgba(255, 255, 255, 0) 100%); }
+        #search-section .search-header .title-group { flex: 0 1 auto; max-width: 52%; gap: 2px; }
+        #search-section .search-header .subtitle { font-size: .95rem; font-weight: 600; letter-spacing: .03em; color: #8fb3e0; }
+        #search-section .search-header.modo-triaje .subtitle { color: #fde047; }
+        #search-section .search-header .main-title { font-size: 2.45rem; font-weight: 700; line-height: 1.1; letter-spacing: -.01em; }
+        #search-section .search-header .ayuda { font-size: 1rem; color: #b8cbe6; }
+        #search-section .rp2-ekg { flex: 1 1 0; min-width: 120px; height: 110px; margin: 0 18px 0 24px; pointer-events: none; }
+        #search-section .rp2-ekg svg { width: 100%; height: 100%; overflow: visible; }
+        #search-section .active-patients-refresh {
+            margin-left: auto; flex-shrink: 0; gap: 14px; padding: 18px 30px; border-radius: 12px;
+            font-size: 1.4rem; font-weight: 600; color: #ffffff;
+            background: linear-gradient(180deg, rgba(70, 90, 120, .55) 0%, rgba(40, 56, 82, .6) 100%);
+            border: 1px solid rgba(255, 255, 255, .12);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 6px 14px rgba(0, 0, 0, .3);
+        }
+        #search-section .active-patients-refresh svg { width: 24px !important; height: 24px !important; color: #b8cbe6; }
+        #search-section .active-patients-refresh:hover { background: linear-gradient(180deg, rgba(90, 115, 150, .65) 0%, rgba(55, 75, 105, .7) 100%); }
+        @media (max-width: 1200px) {
+            #search-section .search-header .main-title { font-size: 1.75rem; }
+            #search-section .rp2-ekg { opacity: .8; }
+            #search-section .active-patients-refresh { font-size: 1.15rem; padding: 14px 20px; }
+        }
+        @media (max-width: 900px) {
+            #search-section .search-header { flex-wrap: wrap; padding: 16px 18px; gap: 14px; }
+            #search-section .search-header .icon-container { width: 64px; height: 62px; min-width: 64px; margin: 0; }
+            #search-section .rp2-separador { display: none; }
+            #search-section .search-header .main-title { font-size: 1.6rem; }
+            #search-section .search-header > .rp2-ekg { position: absolute; left: 30%; right: 0; top: 10px; margin: 0; opacity: .45; z-index: 0; }
+            #search-section .search-header .title-group { max-width: 100%; flex-basis: 100%; }
+            #search-section .active-patients-refresh { margin-left: 0; font-size: 1rem; padding: 10px 16px; }
+        }
+
+        /* 2026-10-07: cards de módulos con imágenes realistas (ícono en baldosa blanca y foto a la derecha). */
+        .module-card .card-icon {
+            width: 128px; height: 126px; padding: 4px; margin-bottom: 22px; border-radius: 24px; overflow: hidden;
+            background: #ffffff; box-shadow: 0 0 0 9px rgba(255, 255, 255, 0.5), 0 10px 22px var(--mc-sombra);
+        }
+        .module-card .card-icon img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 20px; }
+        /* 2026-10-08: íconos de línea simples (antes imágenes 3D) con el color de cada módulo. */
+        .module-card .card-icon.ci-basico {
+            display: flex; align-items: center; justify-content: center; padding: 0;
+            background: linear-gradient(160deg, #ffffff 0%, var(--mc-medio) 100%);
+            border: 1.5px solid var(--mc-borde);
+        }
+        .module-card .card-icon.ci-basico svg { width: 58px; height: 58px; stroke-width: 2; color: var(--mc-fuerte); }
+        .mc-deco { width: 40%; right: 0; top: 0; bottom: 0; }
+        .mc-deco img {
+            position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: right center;
+            -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 38%); mask-image: linear-gradient(90deg, transparent 0%, #000 38%);
+        }
+        .module-card::after { z-index: -2; }
+        .module-card h3 { max-width: 100%; font-size: 1.5rem; position: relative; }
+        .module-card p { max-width: 70%; position: relative; }
+        .mc-flecha { right: 26px; bottom: 24px; width: 62px; height: 62px; }
+        .mc-flecha svg { width: 28px; height: 28px; }
+        @media (max-width: 760px) {
+            .module-card .card-icon { width: 96px; height: 94px; }
+            .module-card .card-icon.ci-basico svg { width: 44px; height: 44px; }
+            .mc-deco { width: 46%; }
+        }
     </style>
 </head>
 <body>
@@ -1787,23 +1930,26 @@
             <!-- Identificar Paciente = Pacientes activos en Sala de Partos (DGEMPRES_NEXUS, solo lectura) -->
             <div class="search-container" id="search-section">
                 <div class="search-header">
-                    {# 2026-10-01: decoración de fondo (ver .sp-deco). #}
-                    <span class="sp-deco" aria-hidden="true">
-                        <span class="sp-onda"></span>
-                        <span class="sp-puntos"></span>
-                        <svg class="sp-corazon sp-corazon--a" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg>
-                        <svg class="sp-corazon sp-corazon--b" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg>
-                        <svg class="sp-silueta" viewBox="0 0 120 160" fill="currentColor"><path d="M70 6c-12 0-20 9-20 20 0 8 4 14 10 18-6 6-8 16-6 24-14 8-22 24-20 42 2 22 20 38 44 38h30l-4-20c10-12 12-30 2-44-6-8-14-12-22-12 4-10 2-22-6-30 8-4 12-12 12-20 0-9-8-16-20-16z"/><path d="M76 120c3-6 12-5 12 2 0 5-7 9-12 13-5-4-12-8-12-13 0-7 9-8 12-2z" fill="#0b1f4d"/></svg>
-                        <svg class="sp-ecg" viewBox="0 0 120 70" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="spEcgGrad" x1="0" x2="1"><stop offset="0" stop-color="#7c5cff" stop-opacity="0"/><stop offset=".5" stop-color="#d946ef"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></linearGradient></defs><path d="M0 40h34l8-26 10 50 10-56 8 32h50" stroke="url(#spEcgGrad)"/></svg>
-                    </span>
+                    {# 2026-10-07: mismo diseño que "Información del paciente" en meows/resultado.html (barra azul con electrocardiograma). #}
                     <div class="icon-container" id="search-header-icon">
                         <i data-lucide="bed-double" size="24"></i>
                     </div>
+                    <span class="rp2-separador" aria-hidden="true"></span>
                     <div class="title-group">
                         <div class="subtitle" id="search-header-subtitle">Consulta · Sala de Partos</div>
                         <div class="main-title" id="search-header-title">Pacientes activos en Sala de Partos</div>
                         <div class="ayuda" id="search-header-ayuda">Pacientes internadas en el área gineco-obstétrica (o gestantes en otra área), según Dinámica.</div>
                     </div>
+                    <span class="rp2-ekg" aria-hidden="true">
+                        <svg viewBox="0 0 700 120" preserveAspectRatio="none" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <defs>
+                                <linearGradient id="rp2Ekg" x1="0" x2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity="0"/><stop offset=".25" stop-color="#38bdf8" stop-opacity=".55"/><stop offset=".5" stop-color="#7dd3fc"/><stop offset=".85" stop-color="#38bdf8" stop-opacity=".8"/><stop offset="1" stop-color="#38bdf8" stop-opacity=".6"/></linearGradient>
+                                <filter id="rp2Brillo" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                            </defs>
+                            <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="url(#rp2Ekg)" stroke-width="2.6" filter="url(#rp2Brillo)"/>
+                            <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="#e0f7ff" stroke-width="1" opacity=".85"/>
+                        </svg>
+                    </span>
                     <button type="button" class="active-patients-refresh" id="btn-refrescar-activos" onclick="cargarPacientesActivosSalaPartos()">
                         <i data-lucide="refresh-cw" size="14"></i> Actualizar
                     </button>
@@ -1864,18 +2010,121 @@
                      es un modal detrás de un botón -- se muestra directo, sin
                      pasos de más, apenas se entra al módulo "Triaje". -->
                 <div id="triaje-tab-actions" style="display:none;margin-bottom:16px;">
-                    <div class="triaje-modal" style="max-width:480px;">
+                    <div class="triaje-modal">
+                        <div class="triaje-modal-ilustracion" aria-hidden="true">
+                            <svg viewBox="0 0 380 270" preserveAspectRatio="xMaxYMin slice">
+                                <defs>
+                                    <linearGradient id="tmFondo" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0" stop-color="#eef5fb"/><stop offset=".6" stop-color="#e3eef8"/><stop offset="1" stop-color="#d7e6f3"/>
+                                    </linearGradient>
+                                    <radialGradient id="tmLuz" cx=".35" cy=".25" r=".6">
+                                        <stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+                                    </radialGradient>
+                                    <linearGradient id="tmBata" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dbe6f2"/>
+                                    </linearGradient>
+                                    <linearGradient id="tmPlata" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0" stop-color="#f8fafc"/><stop offset=".45" stop-color="#cbd5e1"/><stop offset=".7" stop-color="#94a3b8"/><stop offset="1" stop-color="#e2e8f0"/>
+                                    </linearGradient>
+                                    <linearGradient id="tmPluma" x1="0" y1="0" x2="1" y2="0">
+                                        <stop offset="0" stop-color="#3b5c8f"/><stop offset=".5" stop-color="#1f3a66"/><stop offset="1" stop-color="#2c4a7a"/>
+                                    </linearGradient>
+                                </defs>
+                                <rect width="380" height="270" fill="url(#tmFondo)"/>
+                                <rect x="40" y="0" width="70" height="200" fill="#ffffff" opacity=".35"/>
+                                <rect x="120" y="0" width="34" height="160" fill="#ffffff" opacity=".25"/>
+                                <rect width="380" height="270" fill="url(#tmLuz)"/>
+                                <!-- Bata del médico -->
+                                <path d="M300 0 H380 V200 C360 190 330 176 312 150 C296 120 292 70 300 0 Z" fill="url(#tmBata)"/>
+                                <path d="M318 0 C314 40 322 80 350 110 L380 96 V0 Z" fill="#f4f8fc"/>
+                                <path d="M352 0 L362 28 L380 22 V0 Z" fill="#2563a8" opacity=".85"/>
+                                <path d="M300 0 C296 60 300 110 318 148" fill="none" stroke="#c8d6e6" stroke-width="2"/>
+                                <!-- Estetoscopio colgando -->
+                                <path d="M338 0 C334 30 326 50 318 70 C312 86 312 98 316 108" fill="none" stroke="#1f3a66" stroke-width="5" stroke-linecap="round"/>
+                                <path d="M352 0 C352 24 348 40 346 52" fill="none" stroke="#1f3a66" stroke-width="5" stroke-linecap="round"/>
+                                <circle cx="318" cy="122" r="17" fill="url(#tmPlata)" stroke="#64748b" stroke-width="2"/>
+                                <circle cx="318" cy="122" r="9" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2"/>
+                                <rect x="314" y="100" width="8" height="8" rx="2" fill="#94a3b8"/>
+                                <!-- Cruz médica -->
+                                <circle cx="150" cy="78" r="56" fill="none" stroke="#bfe6f5" stroke-width="10" opacity=".7"/>
+                                <circle cx="150" cy="78" r="44" fill="#d6eff9" opacity=".75"/>
+                                <path d="M140 52 h20 v16 h16 v20 h-16 v16 h-20 v-16 h-16 v-20 h16 Z" fill="#8fd3ec" opacity=".85"/>
+                                <circle cx="215" cy="148" r="62" fill="#bfe3f5" opacity=".35"/>
+                                <!-- Portapapeles -->
+                                <g transform="translate(82 128) rotate(-16)">
+                                    <rect x="0" y="0" width="250" height="168" rx="10" fill="#c9d8ea" stroke="#9fb3cc" stroke-width="2"/>
+                                    <rect x="10" y="12" width="230" height="156" rx="4" fill="#ffffff"/>
+                                    <g stroke="#d5deea" stroke-width="3" stroke-linecap="round">
+                                        <path d="M30 42 H120"/><path d="M140 42 H218"/>
+                                        <path d="M30 62 H200"/><path d="M30 82 H180"/><path d="M30 102 H210"/>
+                                        <path d="M30 122 H160"/><path d="M30 142 H196"/>
+                                    </g>
+                                    <g stroke="#e3e9f2" stroke-width="2"><path d="M128 32 V150"/></g>
+                                    <rect x="20" y="-10" width="96" height="26" rx="6" fill="url(#tmPlata)" stroke="#64748b" stroke-width="2"/>
+                                    <rect x="46" y="-18" width="44" height="14" rx="7" fill="none" stroke="#64748b" stroke-width="4"/>
+                                    <circle cx="68" cy="3" r="4" fill="#64748b"/>
+                                </g>
+                                <!-- Bolígrafo -->
+                                <g transform="translate(222 180) rotate(20)">
+                                    <rect x="0" y="-7" width="150" height="14" rx="7" fill="url(#tmPlata)"/>
+                                    <rect x="16" y="-8" width="62" height="16" rx="8" fill="url(#tmPluma)"/>
+                                    <rect x="96" y="-9" width="10" height="18" rx="3" fill="#64748b"/>
+                                    <path d="M0 -7 L-18 0 L0 7 Z" fill="#94a3b8"/>
+                                    <path d="M-18 0 L-24 0" stroke="#1f3a66" stroke-width="3" stroke-linecap="round"/>
+                                    <path d="M8 -3 H140" stroke="#ffffff" stroke-width="2" opacity=".6"/>
+                                </g>
+                            </svg>
+                        </div>
                         <div class="triaje-modal-header">
-                            <span>🩺 Iniciar Triaje</span>
+                            <svg class="triaje-modal-banner" viewBox="0 0 700 104" preserveAspectRatio="none" aria-hidden="true">
+                                <defs>
+                                    <linearGradient id="tmBanner" x1="0" y1="0" x2="1" y2="0">
+                                        <stop offset="0" stop-color="#1cc0e0"/><stop offset=".22" stop-color="#1490c4"/>
+                                        <stop offset=".55" stop-color="#1373b1"/><stop offset=".8" stop-color="#1b93c8"/><stop offset="1" stop-color="#5fd0ea"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M0 0 H515 C470 8 440 42 404 70 C374 93 350 104 318 104 H0 Z" fill="url(#tmBanner)"/>
+                                <path d="M340 104 C372 84 402 66 446 66 C490 66 520 84 548 104 Z" fill="#ffffff" opacity=".22"/>
+                                <path d="M515 0 C470 8 440 42 404 70 C430 40 470 10 540 0 Z" fill="#7fe0f3" opacity=".35"/>
+                            </svg>
+                            <span class="triaje-modal-icono" aria-hidden="true">
+                                <svg viewBox="0 0 64 64">
+                                    <defs>
+                                        <linearGradient id="tmTubo" x1="0" y1="0" x2="1" y2="1">
+                                            <stop offset="0" stop-color="#2f6db5"/><stop offset="1" stop-color="#173a6b"/>
+                                        </linearGradient>
+                                        <radialGradient id="tmCampana" cx=".35" cy=".3" r=".8">
+                                            <stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#cbd5e1"/><stop offset="1" stop-color="#64748b"/>
+                                        </radialGradient>
+                                    </defs>
+                                    <path d="M10 8 V22 C10 32 16 38 24 38 C32 38 38 32 38 22 V8" fill="none" stroke="#94a3b8" stroke-width="3.2" stroke-linecap="round"/>
+                                    <circle cx="10" cy="7" r="3" fill="#334155"/><circle cx="38" cy="7" r="3" fill="#334155"/>
+                                    <path d="M24 38 V44 C24 53 31 58 39 58 C48 58 54 52 54 44 V38" fill="none" stroke="url(#tmTubo)" stroke-width="4.2" stroke-linecap="round"/>
+                                    <circle cx="54" cy="32" r="8.5" fill="url(#tmCampana)" stroke="#475569" stroke-width="1.6"/>
+                                    <circle cx="54" cy="32" r="4" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.2"/>
+                                </svg>
+                            </span>
+                            <div class="triaje-modal-titulo">
+                                <h3>Iniciar Triaje</h3>
+                                <span class="triaje-modal-titulo-barra" aria-hidden="true"></span>
+                            </div>
                         </div>
                         <div class="triaje-modal-body">
                             <p class="triaje-modal-intro">
-                                Registra los signos vitales de una paciente que todavía no tiene ingreso formal en el
-                                hospital. Si ya estuvo antes, sus datos se traen automáticamente; si es nueva, se crea
-                                un registro para ella.
+                                Registre los signos vitales de una paciente que todavía no tiene ingreso formal en el
+                                hospital. Si ya estuvo antes, sus datos se traen automáticamente del sistema; si es nueva,
+                                se crea un registro para ella.
                             </p>
                             <label class="triaje-modal-label" for="triaje-nuevo-doc">Número de documento</label>
-                            <input type="text" id="triaje-nuevo-doc" class="triaje-modal-input" placeholder="Ej. 1234567890" autocomplete="off" inputmode="numeric">
+                            <div class="triaje-modal-campo">
+                                <svg class="triaje-modal-campo-ico" viewBox="0 0 32 26" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+                                    <rect x="1.5" y="1.5" width="29" height="23" rx="3.5"/>
+                                    <circle cx="10.5" cy="10.5" r="3.2" fill="currentColor" stroke="none"/>
+                                    <path d="M5 20 C5.8 16.2 8 14.8 10.5 14.8 C13 14.8 15.2 16.2 16 20 Z" fill="currentColor" stroke="none"/>
+                                    <path d="M19 9 H26 M19 13.5 H26 M19 18 H24" stroke-linecap="round"/>
+                                </svg>
+                                <input type="text" id="triaje-nuevo-doc" class="triaje-modal-input" placeholder="Ej. 1234567890" autocomplete="off" inputmode="numeric">
+                            </div>
                             <div id="triaje-nuevo-resultado" class="triaje-modal-resultado" style="display:none;"></div>
                         </div>
                         <div class="triaje-modal-footer">
@@ -1959,8 +2208,8 @@
             <!-- Grid de Módulos (Visible si paciente existe) -->
             <div class="modules-grid" id="modules-grid">
                 <a href="#" id="link-meows" class="module-card card-meows">
-                    <div class="card-icon"><i data-lucide="activity" size="32"></i></div>
-                    <span class="mc-deco" aria-hidden="true"><svg viewBox="0 0 200 160" fill="currentColor"><path d="M10 92h44l10-30 14 58 16-78 12 50h34" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="150" cy="22" r="12"/><path d="M142 36c-9 6-11 18-7 28-12 6-20 20-18 36 2 16 14 26 30 26l2 34h22l-3-38c8-10 8-26 0-38 4-14 0-30-12-40z"/></svg></span>
+                    <div class="card-icon ci-basico" role="img" aria-label="Signos vitales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg></div>
+                    <span class="mc-deco" aria-hidden="true"><img src="{% static 'obstetriciaunificador/img/modulos/meows_foto.jpg' %}" alt=""></span>
                     <h3>MÓDULO MEOWS</h3>
                     <span class="mc-linea" aria-hidden="true"></span>
                     <p>Monitoreo de signos vitales y alerta temprana obstétrica.</p>
@@ -1968,8 +2217,8 @@
                 </a>
                 
                 <a href="#" id="link-fetal" class="module-card card-fetal">
-                    <div class="card-icon"><i data-lucide="baby" size="32"></i></div>
-                    <span class="mc-deco" aria-hidden="true"><svg viewBox="0 0 200 160" fill="currentColor"><circle cx="112" cy="30" r="15"/><path d="M98 44c-22 10-34 36-30 62 4 26 26 44 52 46 18 1 34-6 44-18l-12-10c-8 9-20 13-32 12-18-2-32-16-34-34-2-16 6-32 18-40z"/><circle cx="138" cy="82" r="13"/><path d="M118 100c8 10 22 14 34 10l6 14c-18 6-38 0-48-14z"/><path d="M172 40c3-6 13-5 13 3 0 6-8 11-13 15-5-4-13-9-13-15 0-8 10-9 13-3z"/></svg></span>
+                    <div class="card-icon ci-basico" role="img" aria-label="Portapapeles clínico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></div>
+                    <span class="mc-deco" aria-hidden="true"><img src="{% static 'obstetriciaunificador/img/modulos/posparto_foto.jpg' %}" alt=""></span>
                     <h3>CONTROL POSPARTO INMEDIATO</h3>
                     <span class="mc-linea" aria-hidden="true"></span>
                     <p>Registro y seguimiento del control posparto inmediato.</p>
@@ -1977,8 +2226,8 @@
                 </a>
                 
                 <a href="#" id="link-parto" class="module-card card-parto">
-                    <div class="card-icon"><i data-lucide="clipboard-list" size="32"></i></div>
-                    <span class="mc-deco" aria-hidden="true"><svg viewBox="0 0 200 160" fill="none" stroke="currentColor" stroke-width="5"><ellipse cx="128" cy="82" rx="58" ry="72"/><g fill="currentColor" stroke="none"><circle cx="138" cy="52" r="20"/><path d="M120 66c-14 10-20 30-12 48 8 16 26 24 44 18 12-4 18-16 16-28-6 6-14 8-22 6 6-8 6-20-2-28-6 6-14 6-20 0 4-6 2-12-4-16z"/></g></svg></span>
+                    <div class="card-icon ci-basico" role="img" aria-label="Estetoscopio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></svg></div>
+                    <span class="mc-deco" aria-hidden="true"><img src="{% static 'obstetriciaunificador/img/modulos/parto_foto.jpg' %}" alt=""></span>
                     <h3>TRABAJO DE PARTO</h3>
                     <span class="mc-linea" aria-hidden="true"></span>
                     <p>Formulario clínico y partograma de evolución.</p>

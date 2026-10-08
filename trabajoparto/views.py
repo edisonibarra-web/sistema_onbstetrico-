@@ -7,6 +7,7 @@ from django.http import HttpResponse
 from django.db import connections, models
 from django.db.models import Q
 from django.conf import settings
+from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from reportlab.lib.pagesizes import A4
@@ -2409,7 +2410,7 @@ def preview_pdf_paciente(request, paciente_id):
             'codigo': formulario.codigo,
             'version': formulario.version,
             'fecha_elabora': formulario.fecha_elabora.strftime('%d/%m/%Y') if formulario.fecha_elabora else None,
-            'fecha_actualizacion': formulario.fecha_actualizacion.strftime('%d/%m/%Y %H:%M') if formulario.fecha_actualizacion else None,
+            'fecha_actualizacion': timezone.localtime(formulario.fecha_actualizacion).strftime('%d/%m/%Y %H:%M') if formulario.fecha_actualizacion else None,
             'num_hoja': formulario.num_hoja,
             'aseguradora': formulario.aseguradora.nombre if formulario.aseguradora else None,
             'diagnostico': formulario.diagnostico,
@@ -2491,7 +2492,7 @@ def generar_pdf_paciente(request, paciente_id):
             y -= 15
         
         if formulario.fecha_actualizacion:
-            p.drawString(40, y, f"Fecha de Actualización: {formulario.fecha_actualizacion.strftime('%d/%m/%Y %H:%M')}")
+            p.drawString(40, y, f"Fecha de Actualización: {timezone.localtime(formulario.fecha_actualizacion).strftime('%d/%m/%Y %H:%M')}")
             y -= 15
         
         p.drawString(40, y, f"Número de Hoja: {formulario.num_hoja}")

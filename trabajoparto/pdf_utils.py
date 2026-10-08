@@ -507,9 +507,12 @@ def seccion_grid_mediciones(c, formulario, x, y, ancho_total):
             fontName='Helvetica-Bold', alignment=1, textColor=colors.white,
         )
 
+        # 2026-10-08: tomada_en viene en UTC (USE_TZ) -- sin localtime() el PDF
+        # imprimía la hora 5 h adelantada (20:22 en vez de 15:22) y, después de
+        # las 7 p. m., con la fecha del día siguiente.
         header_data = [
             ["PARÁMETRO"] + [
-                Paragraph(f"{h.strftime('%d/%m/%y')}<br/>{h.strftime('%H:%M')}", estilo_header)
+                Paragraph(f"{localtime(h).strftime('%d/%m/%y')}<br/>{localtime(h).strftime('%H:%M')}", estilo_header)
                 for h in horas_pagina
             ],
             [""] + [

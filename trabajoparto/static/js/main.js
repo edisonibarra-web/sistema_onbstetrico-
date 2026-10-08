@@ -939,12 +939,23 @@ async function prepararControlAlCargar(data) {
 
     // 1) Último control registrado a mano (sin la FCF que llega de Dinámica).
     let ultima = null;
+    let responsableUltima = '';
     mediciones.forEach(m => {
         const pid = String(m.parametro && m.parametro.id !== undefined ? m.parametro.id : m.parametro);
         if (PARAMETROS_AUTOMATICOS.includes(pid) || !m.tomada_en) return;
-        if (!ultima || new Date(m.tomada_en) > new Date(ultima)) ultima = m.tomada_en;
+        if (!ultima || new Date(m.tomada_en) > new Date(ultima)) {
+            ultima = m.tomada_en;
+            responsableUltima = (m.responsable || '').trim();
+        }
     });
-    if (formularioId && ultima && (Date.now() - new Date(ultima).getTime()) <= MINUTOS_RETOMAR_CONTROL * 60 * 1000) {
+    // 2026-10-08: solo se retoma si ese control lo registró quien está
+    // conectada ahora. Si lo registró otra persona (cambio de turno), se
+    // empieza limpio: antes se retomaba y lo que registraba la enfermera
+    // siguiente caía dentro del control de la anterior, a nombre de ella.
+    const responsableActual = (obtenerValorInput('responsable') || '').trim();
+    const esDeOtraPersona = responsableUltima && responsableActual &&
+        normalizarNombreResponsable(responsableUltima) !== normalizarNombreResponsable(responsableActual);
+    if (formularioId && ultima && !esDeOtraPersona && (Date.now() - new Date(ultima).getTime()) <= MINUTOS_RETOMAR_CONTROL * 60 * 1000) {
         const hora = formatearComoInputHora(ultima);
         setValorInput('hora_registro_actual', hora);
         await sincronizarMedicionesGuardadas(formularioId, hora);
@@ -962,14 +973,36 @@ async function prepararControlAlCargar(data) {
     }
 }
 
+function normalizarNombreResponsable(nombre) {
+    return String(nombre || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+}
+
 // Cambiar la "Hora del control actual" a una hora ya registrada carga sus
 // valores guardados en los botones (así se pueden ver y corregir).
+// 2026-10-08: antes de eso se avisa que esa hora YA tiene un control (y de
+// quién): sin el aviso, la enfermera creía registrar un control nuevo y
+// terminaba reescribiendo el de otra persona. Si no confirma, se vuelve a un
+// control nuevo con la hora actual.
 document.addEventListener('change', async function (e) {
     if (!e.target || e.target.id !== 'hora_registro_actual') return;
     const formularioId = obtenerValorInput('formulario_id');
     if (formularioId && e.target.value) {
-        const encontrados = await sincronizarMedicionesGuardadas(formularioId, e.target.value);
-        marcarControlEnEdicion(encontrados > 0 ? e.target.value : null);
+        const hora = e.target.value;
+        const encontrados = await sincronizarMedicionesGuardadas(formularioId, hora);
+        if (encontrados > 0) {
+            const horaTexto = new Date(hora).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+            const quien = window.responsableControlCargado ? ` registrado por ${window.responsableControlCargado}` : '';
+            const confirmado = confirm(
+                `Ya existe un control a las ${horaTexto}${quien}\n\n` +
+                'Presione "OK" si desea MODIFICAR ese registro.\n' +
+                'Presione "Cancelar" para registrar uno NUEVO.'
+            );
+            if (!confirmado) {
+                establecerHoraActual();
+                return;
+            }
+        }
+        marcarControlEnEdicion(encontrados > 0 ? hora : null);
     } else {
         marcarControlEnEdicion(null);
     }
@@ -1954,6 +1987,7 @@ async function sincronizarMedicionesGuardadas(formularioId, horaRegistro) {
         };
 
         const parametrosActualizados = new Set();
+        const responsables = new Set();
 
         mediciones.forEach(medicion => {
             if (formatearComoInputHora(medicion.tomada_en) !== horaRegistro) return;
@@ -1963,6 +1997,7 @@ async function sincronizarMedicionesGuardadas(formularioId, horaRegistro) {
             // autoguardado la reenviaría a nombre de la enfermera (y con la hora
             // sin segundos, como una medición duplicada).
             if (PARAMETROS_AUTOMATICOS.includes(String(parametroId))) return;
+            if (medicion.responsable && medicion.responsable.trim()) responsables.add(medicion.responsable.trim());
 
             (medicion.valores || []).forEach(v => {
                 const campoId = v.campo ? v.campo.id : v.campo;
@@ -2002,6 +2037,11 @@ async function sincronizarMedicionesGuardadas(formularioId, horaRegistro) {
                     valor_texto: valorTexto,
                     hora: horaRegistro
                 };
+                // 2026-10-08: se recuerda el valor ya guardado para que
+                // guardarMediciones() NO lo reenvíe si nadie lo cambió (antes
+                // cada autoguardado lo reenviaba con el nombre de quien estaba
+                // conectada y le quitaba el control a quien lo registró).
+                window.valoresGuardadosControl[claveValorGuardado(parametroId, campoId, horaRegistro)] = String(valor);
                 const indiceExistente = window.medicionesPendientes.findIndex(m =>
                     m.parametro_id == parametroId && m.campo_id == campoId && m.hora == horaRegistro
                 );
@@ -2014,6 +2054,7 @@ async function sincronizarMedicionesGuardadas(formularioId, horaRegistro) {
             });
         });
 
+        window.responsableControlCargado = Array.from(responsables).join(', ');
         parametrosActualizados.forEach(id => actualizarBotonUI(id));
         return parametrosActualizados.size;
     } catch (e) {
@@ -2023,6 +2064,20 @@ async function sincronizarMedicionesGuardadas(formularioId, horaRegistro) {
 
 // Variable global para almacenar las mediciones que se van a guardar
 window.medicionesPendientes = [];
+
+// 2026-10-08: valores YA guardados de los controles cargados en pantalla
+// ({ "parametro|campo|hora": valor }) y quién registró el control cargado.
+// Con esto guardarMediciones() solo envía lo nuevo o lo que se corrigió.
+window.valoresGuardadosControl = {};
+window.responsableControlCargado = '';
+
+function claveValorGuardado(parametroId, campoId, hora) {
+    return `${parametroId}|${campoId}|${hora}`;
+}
+
+function escapeHtmlParto(texto) {
+    return String(texto || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
 /**
  * Mapa global: { [parametro_id]: { [campo_codigo]: campo_id } }
@@ -2135,8 +2190,10 @@ function marcarControlEnEdicion(hora) {
     const hoy = new Date();
     const mismoDia = d.toDateString() === hoy.toDateString();
     const fechaTexto = mismoDia ? '' : ` del ${d.toLocaleDateString('es-CO')}`;
-    aviso.innerHTML = `<b>Estás editando el control de las ${horaTexto}${fechaTexto}</b> (ya guardado).<br>` +
-        'Lo que registres se guarda en ese control. Para registrar uno nuevo presiona <b>Nuevo control.</b>';
+    const quien = window.responsableControlCargado
+        ? ` registrado por <b>${escapeHtmlParto(window.responsableControlCargado)}</b>` : '';
+    aviso.innerHTML = `<b>Estás editando el control de las ${horaTexto}${fechaTexto}</b> (ya guardado${quien}).<br>` +
+        'Lo que cambies queda como corrección de ese control y conserva a quien lo registró. Para registrar uno nuevo presiona <b>Nuevo control.</b>';
     aviso.style.display = 'block';
 }
 
@@ -2663,7 +2720,16 @@ async function guardarMediciones(formularioId) {
     // mientras el envío está en curso, esa queda para el siguiente.
     const pendientesEnviadas = (window.medicionesPendientes || []).slice();
     // Nunca se envía desde aquí un parámetro automático (FCF de Dinámica).
-    const pendientesAEnviar = pendientesEnviadas.filter(m => !PARAMETROS_AUTOMATICOS.includes(String(m.parametro_id)));
+    // 2026-10-08: tampoco un valor de un control ya guardado que nadie cambió
+    // (se reenviaba en cada autoguardado con el nombre de quien estaba
+    // conectada). Si sí cambió, va como corrección explícita (corregir).
+    const valoresGuardados = window.valoresGuardadosControl || {};
+    const pendientesAEnviar = pendientesEnviadas.filter(m => {
+        if (PARAMETROS_AUTOMATICOS.includes(String(m.parametro_id))) return false;
+        const clave = claveValorGuardado(m.parametro_id, m.campo_id, m.hora);
+        if (!(clave in valoresGuardados)) return true;
+        return String(m.valor) !== valoresGuardados[clave];
+    });
 
     // 1. Extraer horas válidas definidas en el encabezado de la cuadrícula
     const timeInputs = document.querySelectorAll('.time-input');
@@ -2680,7 +2746,9 @@ async function guardarMediciones(formularioId) {
     dataInputs.forEach(input => {
         const valor = input.value.trim();
         if (valor === '') return; // Ignorar celdas vacías
-        
+        // 2026-10-08: columna ya guardada (bloqueada al cargar): no se reenvía.
+        if (input.getAttribute('data-bloqueado') === 'true') return;
+
         const parametroId = input.getAttribute('data-parametro-id');
         const campoId = input.getAttribute('data-campo-id');
         // El atributo puede llamarse data-hora-index dependiendo de cómo fue renderizado
@@ -2735,7 +2803,7 @@ async function guardarMediciones(formularioId) {
         pendientesAEnviar.forEach(med => {
             const horaIso = new Date(med.hora).toISOString();
             const key = `${med.parametro_id}-${horaIso}`;
-            
+
             if (!medicionesMap.has(key)) {
                 medicionesMap.set(key, {
                     formulario: formularioId,
@@ -2744,6 +2812,11 @@ async function guardarMediciones(formularioId) {
                     responsable: responsableActual,
                     valores: []
                 });
+            }
+            // Corrige un valor que ya estaba guardado (la enfermera confirmó
+            // editar ese control): el servidor solo lo cambia con esta marca.
+            if (claveValorGuardado(med.parametro_id, med.campo_id, med.hora) in valoresGuardados) {
+                medicionesMap.get(key).corregir = true;
             }
 
             const payloadValor = { campo_id: parseInt(med.campo_id) };
@@ -3293,7 +3366,9 @@ function limpiarFormulario() {
     if (window.medicionesPendientes) {
         window.medicionesPendientes = [];
     }
-    
+    window.valoresGuardadosControl = {};
+    window.responsableControlCargado = '';
+
     // Limpiar el estado visual de los botones de parámetros
     document.querySelectorAll('.btn-parametro').forEach(btn => {
         const id = btn.getAttribute('data-parametro-id');

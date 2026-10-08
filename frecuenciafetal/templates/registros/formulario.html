@@ -147,7 +147,7 @@
 
     .main-wrapper {
       width: 100%;
-      max-width: min(2300px, 99vw);
+      max-width: none; /* 2026-10-07: ocupa todo el ancho disponible, sin franjas vacías a los lados. */
       margin: 0;
       padding: 2rem;
       border-left: 1px solid rgba(5, 150, 105, 0.3);
@@ -2500,7 +2500,36 @@
 
     /* Pestañas. */
     /* 2026-10-06: botones Registros y Guardar control en el encabezado. */
-    .sg-head-acciones { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .sg-head-acciones { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; position: relative; }
+    /* 2026-10-08: recordatorio "No olvide guardar" apuntando al botón. */
+    .sg-recordatorio {
+      position: absolute; top: calc(100% + 14px); right: 0; z-index: 30; width: 300px;
+      display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 12px;
+      background: #fffbeb; border: 2px solid #f59e0b; color: #78350f; font-size: .92rem; line-height: 1.35;
+      box-shadow: 0 10px 24px rgba(120, 53, 15, .25);
+      opacity: 0; visibility: hidden; transform: translateY(-6px);
+      transition: opacity .25s, transform .25s, visibility .25s;
+      pointer-events: none;
+    }
+    .sg-recordatorio::before {
+      content: ""; position: absolute; top: -10px; right: 110px; width: 16px; height: 16px;
+      background: #fffbeb; border-left: 2px solid #f59e0b; border-top: 2px solid #f59e0b; transform: rotate(45deg);
+    }
+    .sg-recordatorio svg { width: 22px; height: 22px; flex: none; color: #d97706; }
+    .sg-recordatorio b { color: #92400e; }
+    .sg-recordatorio.visible { opacity: 1; visibility: visible; transform: translateY(0); }
+    .sg-recordatorio.sg-salto { animation: sgSaltoGlobo .7s ease-out 1; }
+    .sg-recordatorio.sg-salto svg { animation: sgCampana .6s ease-in-out 2; }
+    #sangrado-guardar-btn.sg-pulso { animation: sgPulsoGuardar 1.2s ease-out 2; }
+    @keyframes sgCampana { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-18deg); } 75% { transform: rotate(18deg); } }
+    @keyframes sgSaltoGlobo { 0%, 100% { transform: translateY(0); } 30% { transform: translateY(-8px); } 60% { transform: translateY(2px); } }
+    @keyframes sgPulsoGuardar {
+      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, .85); }
+      100% { box-shadow: 0 0 0 14px rgba(245, 158, 11, 0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .sg-recordatorio, .sg-recordatorio.sg-salto, .sg-recordatorio.sg-salto svg, #sangrado-guardar-btn.sg-pulso { animation: none; transition: none; }
+    }
     #sangrado-modal-overlay.sg-v2 .sg-btn-registros {
       gap: 8px; padding: 10px 18px; border-radius: 999px; font-size: 1rem; font-weight: 700; color: #fff;
       background: rgba(255, 255, 255, .12); border: 1.5px solid rgba(255, 255, 255, .45); box-shadow: none;
@@ -2516,6 +2545,22 @@
     #sangrado-modal-overlay.sg-v2 .sg-btn-registros.active .sangrado-tab-badge { background: #0f766e; color: #fff; }
     /* En solo consulta la lista es lo único que se ve: el botón no alterna. */
     .vigilancia-solo-lectura .sg-btn-registros { pointer-events: none; }
+    /* 2026-10-07: corrección desde "Vista previa": solo se corrigen los controles existentes. */
+    .vigilancia-correccion .hs-select,
+    .vigilancia-correccion [id$="-estado-nuevo"],
+    .vigilancia-correccion [id$="-guardar-btn"],
+    .vigilancia-correccion .sangrado-hora-manual-row { display: none !important; }
+    .vp-semaforo { flex-direction: column; gap: 8px; }
+    .vp-semaforo-sub { font-size: .78rem; font-weight: 600; color: #64748b; }
+    .vp-corregir { margin-top: 4px; }
+    .vp-nota-correccion { margin: .6rem 0 0; font-size: .78rem; color: #64748b; }
+    /* 2026-10-07: registro cerrado / solo consulta: sin calculadora, solo la lista. */
+    .sangrado-calc-bloqueada #sangrado-tab-calc { display: none !important; }
+    .sangrado-calc-bloqueada #sangrado-guardar-btn,
+    .sangrado-calc-bloqueada .sangrado-hora-manual-row { display: none !important; }
+    .sangrado-calc-bloqueada .sg-btn-registros { pointer-events: none; }
+    .sangrado-calc-bloqueada .sg-btn-registros .sg-reg-volver { display: none !important; }
+    .sangrado-calc-bloqueada .sg-btn-registros .sg-reg-ver { display: inline-flex !important; }
     .vigilancia-solo-lectura .sg-btn-registros .sg-reg-volver { display: none !important; }
     .vigilancia-solo-lectura .sg-btn-registros .sg-reg-ver { display: inline-flex !important; }
     #sangrado-modal-overlay.sg-v2 #sangrado-tab-calc { margin-top: 2px; }
@@ -6158,6 +6203,11 @@
                       <span id="sangrado-registros-count" class="sangrado-tab-badge">0</span>
                     </button>
                     <button type="button" id="sangrado-guardar-btn" class="btn btn-primary btn-sm" onclick="guardarRegistroSangrado()"><i data-lucide="save"></i> Guardar control ( <span id="sangrado-guardar-label">15 min</span> )</button>
+                    {# 2026-10-08: recordatorio de guardar (ver recordatorioGuardarSangrado). #}
+                    <div id="sangrado-recordatorio-guardar" class="sg-recordatorio" role="status" aria-live="polite">
+                      <i data-lucide="bell-ring"></i>
+                      <span><b>¡No olvide guardar!</b> Presione <b>Guardar control</b> para registrar esta toma.</span>
+                    </div>
                   </div>
                 </div>
                 <div class="preview-modal-body">
@@ -7760,14 +7810,11 @@
                       <span class="category-icon-chip">🎈</span>
                       <span class="category-title-text">Globo de seguridad</span>
                     </h3>
-                    <div class="buttons-container">
-                      <select id="fc-preview-globo_seguridad" class="doc-input semaforo-select" onchange="actualizarSemaforoSelect(this, 'fc-preview-globo-hint')">
-                        <option value="">— Seleccionar —</option>
-                        <option value="NORMAL" ${globo === 'NORMAL' ? 'selected' : ''}>Normal: útero firme y contraído</option>
-                        <option value="ALERTA" ${globo === 'ALERTA' ? 'selected' : ''}>Alerta: útero blando, relajado, atonía</option>
-                        <option value="NO_APLICA" ${globo === 'NO_APLICA' ? 'selected' : ''}>No aplica</option>
-                      </select>
-                      <p id="fc-preview-globo-hint" class="semaforo-hint"></p>
+                    <div class="buttons-container centered vp-semaforo">
+                      ${resumenSemaforoPreview('globo')}
+                      <button type="button" class="btn btn-secondary btn-sm vp-corregir" onclick="cerrarVistaPreviaFetocardia(); abrirModalSemaforo('globo', { correccion: true });">
+                        <i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Corregir controles
+                      </button>
                     </div>
                   </div>
                   <div class="category-card card-danger">
@@ -7792,23 +7839,31 @@
                       <span class="category-icon-chip">🧵</span>
                       <span class="category-title-text">Sutura y heridas</span>
                     </h3>
-                    <div class="buttons-container">
-                      <select id="fc-preview-sutura_heridas" class="doc-input semaforo-select" onchange="actualizarSemaforoSelect(this, 'fc-preview-sutura-hint')">
-                        <option value="">— Seleccionar —</option>
-                        <option value="NORMAL" ${sutura === 'NORMAL' ? 'selected' : ''}>Normal: bordes afrontados, dolor tolerable, sin cambios de coloración</option>
-                        <option value="HEMATOMA" ${sutura === 'HEMATOMA' ? 'selected' : ''}>Alerta: hematoma (masa violácea, tensa, dolor intenso)</option>
-                        <option value="INFECCION" ${sutura === 'INFECCION' ? 'selected' : ''}>Alerta: (eritema, calor local, edema, secreción purulenta)</option>
-                        <option value="NO_APLICA" ${sutura === 'NO_APLICA' ? 'selected' : ''}>No aplica</option>
-                      </select>
-                      <p id="fc-preview-sutura-hint" class="semaforo-hint"></p>
+                    <div class="buttons-container centered vp-semaforo">
+                      ${resumenSemaforoPreview('sutura')}
+                      <button type="button" class="btn btn-secondary btn-sm vp-corregir" onclick="cerrarVistaPreviaFetocardia(); abrirModalSemaforo('sutura', { correccion: true });">
+                        <i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Corregir controles
+                      </button>
                     </div>
                   </div>
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;" onclick="guardarEdicionVigilanciaPosparto()"><i data-lucide="check" style="width:14px;height:14px;vertical-align:-2px;"></i> Guardar cambios</button>
+                <p class="vp-nota-correccion">Cada corrección se guarda al momento y queda en la bitácora del registro.</p>
               </div>`;
           }
 
+          // 2026-10-07: estado del último control + cuántos hay, para la Vista previa.
+          function resumenSemaforoPreview(tipo) {
+            const regs = SEMAFORO_TIPOS[tipo].registros;
+            if (!regs.length) return '<span class="semaforo-badge badge-vacio">Sin controles</span>';
+            const ultimo = regs.reduce((a, b) => (b.minuto > a.minuto ? b : a));
+            return `<span class="semaforo-badge ${badgeClaseEstadoSemaforo(ultimo.estado)}">${escaparHtml(textoEstadoSemaforo(tipo, ultimo.estado))}</span>` +
+              `<span class="vp-semaforo-sub">${regs.length} de ${PP_MINUTOS.length} controles · último: ${ultimo.minuto} min</span>`;
+          }
+
+          // 2026-10-07: ya no se usa (Globo y Sutura se corrigen por control con
+          // "Corregir controles"); se conserva por si algo antiguo la llama.
           function guardarEdicionVigilanciaPosparto() {
+            if (!document.getElementById('fc-preview-globo_seguridad')) return;
             const globo = document.getElementById('fc-preview-globo_seguridad').value;
             const sutura = document.getElementById('fc-preview-sutura_heridas').value;
 
@@ -8499,6 +8554,63 @@
             ['input', 'change'].forEach(ev => overlay?.addEventListener(ev, guardarBorradorSangrado));
           });
 
+          // --- 2026-10-08: recordatorio "No olvide guardar" ----------------
+          // Las enfermeras escribían los pesos y olvidaban presionar "Guardar
+          // control" (los pesos solo quedan como borrador en el navegador).
+          // Apenas se registra un dato en CUALQUIERA de los 10 materiales
+          // (peso, cantidad o pesajes del pañal) aparece un globo apuntando
+          // al botón y se queda mientras haya datos sin guardar; cada 5 s
+          // vuelve a llamar la atención (salta y el botón late). Al guardar,
+          // al borrar los datos, en solo consulta o con el registro cerrado,
+          // desaparece.
+          const RECORDATORIO_GUARDAR_CADA_MS = 5000;
+
+          function hayDatosSinGuardarSangrado() {
+            if (leerBorradorCalculadora().hayDatos) return true;
+            // Cantidad cambiada (por defecto 1) aunque aún no se haya pesado.
+            return SANGRADO_ITEMS.some(item => {
+              const cant = document.getElementById(`sangrado-cantidad-${item.id}`)?.value;
+              return cant !== undefined && cant !== '' && cant !== '1';
+            });
+          }
+
+          function recordatorioGuardarSangrado({ llamarAtencion = false } = {}) {
+            const globo = document.getElementById('sangrado-recordatorio-guardar');
+            const btn = document.getElementById('sangrado-guardar-btn');
+            if (!globo || !btn) return;
+            const calc = document.getElementById('sangrado-tab-calc');
+            const aplica = !vigilanciaSoloLectura('sangrado') && !registroCerrado && !btn.disabled
+              && (!calc || calc.style.display !== 'none')
+              && hayDatosSinGuardarSangrado();
+            if (!aplica) {
+              globo.classList.remove('visible', 'sg-salto');
+              btn.classList.remove('sg-pulso');
+              return;
+            }
+            const recienAparece = !globo.classList.contains('visible');
+            globo.classList.add('visible');
+            if (recienAparece || llamarAtencion) {
+              globo.classList.remove('sg-salto');
+              btn.classList.remove('sg-pulso');
+              void btn.offsetWidth;  // reinicia las animaciones
+              globo.classList.add('sg-salto');
+              btn.classList.add('sg-pulso');
+            }
+          }
+
+          // Al escribir en cualquier material (o en los pesajes del pañal): de inmediato.
+          ['sangrado-modal-overlay', 'sangrado-panal-modal-overlay'].forEach(id => {
+            const overlay = document.getElementById(id);
+            ['input', 'change', 'click'].forEach(ev => overlay?.addEventListener(ev, () => {
+              setTimeout(() => recordatorioGuardarSangrado(), 0);  // después de que el +/- actualice el valor
+            }));
+          });
+          // Y cada 5 s mientras siga pendiente.
+          setInterval(() => recordatorioGuardarSangrado({ llamarAtencion: true }), RECORDATORIO_GUARDAR_CADA_MS);
+          document.getElementById('sangrado-guardar-btn')?.addEventListener('click', () => {
+            setTimeout(() => recordatorioGuardarSangrado(), 300);
+          });
+
           // 2026-10-06: sin pestaña "Calculadora": el botón "Registros" del
           // encabezado alterna entre la lista de controles y la calculadora
           // (en solo consulta se queda en la lista).
@@ -8760,7 +8872,7 @@
           }
 
           function guardarRegistroSangrado() {
-            if (vigilanciaSoloLectura('sangrado')) return;
+            if (vigilanciaSoloLectura('sangrado') || registroCerrado) return;  // cerrado: solo se corrige
             const proximo = proximoControlSangrado();
             if (!proximo) {
               showToast('Ya se completaron los controles programados (6 horas).', 'error');
@@ -8844,7 +8956,7 @@
           }
 
           async function eliminarRegistroSangrado(idx) {
-            if (vigilanciaSoloLectura('sangrado')) return;
+            if (vigilanciaSoloLectura('sangrado') || registroCerrado) return;  // cerrado: solo se corrige
             const control = sangradoRegistros[idx];
             if (control?.id && savedRegistroId) {
               const res = await fetch(`${API_BASE}/registros/${savedRegistroId}/sangrado/${control.id}/`, {
@@ -8957,7 +9069,7 @@
                   <span class="sg-reg-estado">${estadoBadge}${badgeSinGuardar(r)}</span>
                   ${lectura ? '' : `<span class="sangrado-registro-actions">
                     <button type="button" class="btn-icon-editar hs-btn-editar" onclick="editarRegistroSangrado(${idx})" title="Editar control"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zm17.7-10.2a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
-                    <button type="button" class="btn-remove-row hs-btn-eliminar" onclick="eliminarRegistroSangrado(${idx})" title="Eliminar control"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button>
+                    ${registroCerrado ? '' : `<button type="button" class="btn-remove-row hs-btn-eliminar" onclick="eliminarRegistroSangrado(${idx})" title="Eliminar control"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button>`}
                   </span>`}
                 </div>
               `;
@@ -8977,10 +9089,13 @@
           // agregar, corregir ni borrar controles. Excepción: el sangrado
           // abierto desde "Vista previa" de un registro cerrado (corrección).
           let sangradoModoCorreccion = false;
+          // 2026-10-07: corrección de Globo / Sutura abierta desde "Vista previa".
+          const semaforoModoCorreccion = { globo: false, sutura: false };
 
           function vigilanciaSoloLectura(tipo) {
             if (window.MODO_SOLO_CONSULTA) return true;
-            return registroCerrado && !(tipo === 'sangrado' && sangradoModoCorreccion);
+            const correccion = tipo === 'sangrado' ? sangradoModoCorreccion : !!semaforoModoCorreccion[tipo];
+            return registroCerrado && !correccion;
           }
 
           function aplicarModoLecturaVigilancia() {
@@ -8997,7 +9112,7 @@
               : '🔒 Registro cerrado: aquí solo se consultan los controles. Para corregir, use "Vista previa".';
             ['globo', 'sangrado', 'sutura'].forEach(t => {
               const lectura = vigilanciaSoloLectura(t);
-              const correccion = t === 'sangrado' && !lectura && registroCerrado;
+              const correccion = !lectura && registroCerrado;  // abierto desde "Vista previa"
               const overlay = document.getElementById(`${t}-modal-overlay`);
               overlay?.classList.toggle('vigilancia-solo-lectura', lectura);
               overlay?.classList.toggle('vigilancia-correccion', correccion);
@@ -9006,6 +9121,19 @@
                 : correccion ? '✏️ Corrección de un registro cerrado: cada cambio se guarda al momento. Para que la versión corregida quede en el repositorio, use "Reenviar a repositorio".'
                 : '';
             });
+
+            // 2026-10-07: con el registro cerrado (o ingreso en solo consulta)
+            // la calculadora de Sangrado no se puede usar: queda oculta y sus
+            // campos deshabilitados, y la tarjeta muestra la lista de registros
+            // (antes quedaba en la calculadora, editable, y "Registros" no
+            // respondía). En corrección desde "Vista previa" los controles
+            // existentes se siguen corrigiendo desde la lista.
+            const calcBloqueada = !!(registroCerrado || window.MODO_SOLO_CONSULTA);
+            const panelSangrado = document.getElementById('sangrado-modal-overlay');
+            panelSangrado?.classList.toggle('sangrado-calc-bloqueada', calcBloqueada);
+            document.querySelectorAll('#sangrado-tab-calc input, #sangrado-tab-calc button, #sangrado-tab-calc select, #sangrado-panal-modal-overlay input, #sangrado-panal-modal-overlay button:not([onclick*="cerrar"])')
+              .forEach(el => { el.disabled = calcBloqueada; });
+            if (calcBloqueada) cambiarTabSangrado('registros');
             return vigilanciaSoloLectura('sangrado');
           }
 
@@ -9041,7 +9169,8 @@
             if (typeof actualizarPasosPosparto === 'function') actualizarPasosPosparto();
           }
 
-          function abrirModalSemaforo(tipo) {
+          function abrirModalSemaforo(tipo, opciones = {}) {
+            semaforoModoCorreccion[tipo] = !!opciones.correccion;
             aplicarModoLecturaVigilancia();
             renderRegistrosSemaforo(tipo);
             actualizarProximoControlSemaforo(tipo);
@@ -9058,10 +9187,17 @@
 
           function cerrarModalSemaforo(tipo) {
             document.getElementById(`${tipo}-modal-overlay`).classList.remove('show');
+            // Al cerrar, la corrección termina: el historial vuelve a ser de consulta.
+            if (semaforoModoCorreccion[tipo]) {
+              semaforoModoCorreccion[tipo] = false;
+              SEMAFORO_TIPOS[tipo].editandoIdx = null;
+              aplicarModoLecturaVigilancia();
+              renderRegistrosSemaforo(tipo);
+            }
           }
 
           function guardarRegistroSemaforo(tipo) {
-            if (vigilanciaSoloLectura(tipo)) return;
+            if (vigilanciaSoloLectura(tipo) || registroCerrado) return;  // cerrado: solo se corrige
             const proximo = proximoControlSemaforo(tipo);
             if (!proximo) {
               showToast('Ya se completaron los controles programados (6 horas).', 'error');
@@ -9134,7 +9270,7 @@
           }
 
           async function eliminarRegistroSemaforo(tipo, idx) {
-            if (vigilanciaSoloLectura(tipo)) return;
+            if (vigilanciaSoloLectura(tipo) || registroCerrado) return;  // cerrado: solo se corrige
             const cfg = SEMAFORO_TIPOS[tipo];
             const control = cfg.registros[idx];
             if (control?.id && savedRegistroId) {
@@ -9199,6 +9335,7 @@
             renderRegistrosSemaforo(tipo);
             aplicarUltimoEstadoSemaforo(tipo);
             showToast('Control corregido correctamente.', 'success');
+            if (registroCerrado && savedRegistroId) submitForm('autoguardado', true, true);
           }
 
           function badgeClaseEstadoSemaforo(estado) {
@@ -10533,6 +10670,9 @@
 
           function actualizarPasosPosparto() {
             if (!ppwPasos.length) return;
+            // 2026-10-07: el botón de cierre depende de todos los pasos: se
+            // recalcula aquí (cualquier cambio en el formulario y cada 3 s).
+            actualizarDisponibilidadCierre();
             const v = id => (document.getElementById(id)?.value || '').trim();
             const hecho = {
               paciente: !!(v('nombre_paciente') && v('identificacion') && v('edad_gestacional') && v('nombre_acompanante')),
@@ -10553,9 +10693,13 @@
               'recien-nacido': (RN_OBLIGATORIOS_CIERRE.length + 1 - faltantesRecienNacido().length) / (RN_OBLIGATORIOS_CIERRE.length + 1),
               finalizacion: registroCerrado ? 1 : 0,
             };
+            // 2026-10-07: un paso con datos faltantes ("Faltan N") nunca se marca
+            // como completo (antes el Recién nacido quedaba morado con "Faltan 1",
+            // p. ej. sin "Pasa a UCI neonatal").
+            const faltanPorPaso = (registroCerrado || window.MODO_SOLO_CONSULTA) ? {} : faltantesPorPaso();
             document.querySelectorAll('#ppw .ppw-step').forEach((b, j) => {
               const id = ppwPasos[j].id;
-              b.classList.toggle('hecho', !!hecho[id]);
+              b.classList.toggle('hecho', !!hecho[id] && !(faltanPorPaso[id] || []).length);
               const relleno = b.querySelector('.ppw-step-barra > span');
               if (relleno) relleno.style.setProperty('--p', Math.round((avance[id] || 0) * 100) + '%');
             });
@@ -11176,17 +11320,28 @@
               // pulsar el botón, ya habilitado: el error salía al final).
               const faltaAcompanante = !(document.getElementById('nombre_acompanante')?.value || '').trim();
               if (faltaAcompanante) pendientes.push('nombre del acompañante ("Datos de la paciente")');
-              const faltaHora = !document.getElementById('hora_parto')?.value;
-              if (faltaHora) pendientes.push('hora de parto ("Características del parto")');
-              const faltanRN = faltantesRecienNacido();
-              if (faltanRN.length) pendientes.push('en "Control del recién nacido": ' + faltanRN.join(', '));
+              // 2026-10-07: el cierre exige que NINGÚN paso esté en rojo: todo lo
+              // que cada paso marca como faltante (misma lista que pinta "Faltan N"
+              // -- faltantesPorPaso). Antes solo se pedían la hora de parto y los
+              // mínimos del recién nacido. La vigilancia de 6 h ya se exige arriba.
+              const faltanPaso = faltantesPorPaso();
+              const PASOS_CIERRE = [
+                ['fetocardia', 'Control de la fetocardia'],
+                ['parto', 'Características del parto'],
+                ['vigilancia', 'Sangrado, involución uterina y herida'],
+                ['recien-nacido', 'Control del recién nacido y huella'],
+              ];
+              PASOS_CIERRE.forEach(([id, titulo]) => {
+                const lista = (faltanPaso[id] || []).map(f => f.etq);
+                if (id === 'recien-nacido' && !lista.length) lista.push(...faltantesRecienNacido());  // respaldo
+                if (lista.length) pendientes.push(`en "${titulo}": ${lista.join(', ')}`);
+              });
               cierreSoloFaltaAcompanante = faltaAcompanante && pendientes.length === 1;
               if (pendientes.length) {
                 btn.disabled = true;
                 btn.title = 'Para cerrar el registro falta: ' + pendientes.join('; ') + '.';
                 const texto = pendientes.length > 1 ? 'Falta completar datos obligatorios'
-                  : faltaAcompanante ? 'Falta el nombre del acompañante'
-                  : faltaHora ? 'Falta la hora de parto' : 'Falta completar datos obligatorios';
+                  : faltaAcompanante ? 'Falta el nombre del acompañante' : 'Falta completar datos obligatorios';
                 btn.innerHTML = `<i data-lucide="lock" size="16" style="display:inline-block;vertical-align:-3px;margin-right:4px"></i> ${texto}`;
                 pintarMotivoCierre(btn.title);
                 if (typeof lucide !== 'undefined') lucide.createIcons();

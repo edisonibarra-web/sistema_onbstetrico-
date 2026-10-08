@@ -1,3 +1,6 @@
+import logging
+from decimal import Decimal, InvalidOperation
+
 from rest_framework import serializers
 from trabajoparto.models import (
     Aseguradora,
@@ -14,6 +17,8 @@ from trabajoparto.models import (
     TipoValor,
 )
 from trabajoparto.utils_aseguradora import get_or_create_aseguradora_by_nombre
+
+logger = logging.getLogger(__name__)
 
 
 class AseguradoraSerializer(serializers.ModelSerializer):
@@ -377,6 +382,31 @@ class FormularioCreateSerializer(serializers.ModelSerializer):
         return attrs
 
 
+_CAMPOS_VALOR = ('valor_number', 'valor_text', 'valor_boolean', 'valor_json')
+
+
+def _mismo_valor(existente, valor_data):
+    """True si el valor enviado es igual al ya guardado (Decimal vs float incluido)."""
+    for nombre in _CAMPOS_VALOR:
+        actual, nuevo = getattr(existente, nombre), valor_data.get(nombre)
+        if actual is None and nuevo is None:
+            continue
+        if actual is None or nuevo is None:
+            return False
+        if nombre == 'valor_number':
+            try:
+                if Decimal(str(actual)) != Decimal(str(nuevo)):
+                    return False
+            except (InvalidOperation, ValueError):
+                return False
+        elif nombre == 'valor_text':
+            if str(actual).strip() != str(nuevo).strip():
+                return False
+        elif actual != nuevo:
+            return False
+    return True
+
+
 class MedicionCreateSerializer(serializers.ModelSerializer):
     """Serializador para crear Mediciones con valores anidados"""
     valores = MedicionValorSerializer(many=True, required=False)
@@ -410,27 +440,47 @@ class MedicionCreateSerializer(serializers.ModelSerializer):
             defaults=validated_data
         )
 
-        # Si no se creó (ya existe), actualizamos observación/responsable si vienen
-        # -- por ejemplo, si otra persona corrige ese mismo registro más tarde.
+        # 2026-10-08: un control ya registrado NO se reescribe con cada guardado.
+        # Antes, cada autoguardado reenviaba los controles cargados en pantalla
+        # con el nombre de quien estaba conectada: el responsable original se
+        # reemplazaba (los controles de una enfermera quedaban a nombre de la
+        # del turno siguiente) y sus valores podían quedar pisados sin rastro.
+        # Ahora:
+        # - responsable: se conserva el de quien registró el control; solo se
+        #   completa si estaba vacío.
+        # - valores: un valor ya guardado solo cambia si el frontend lo envía
+        #   como corrección explícita ("corregir": true, tras confirmar la
+        #   enfermera). Los campos que el control aún no tenía sí se agregan.
+        corregir = str(self.initial_data.get('corregir', '')).lower() in ('true', '1')
         if not created:
-            campos_actualizables = {}
-            if 'observacion' in validated_data:
-                campos_actualizables['observacion'] = validated_data['observacion']
-            if 'responsable' in validated_data:
-                campos_actualizables['responsable'] = validated_data['responsable']
+            campos_actualizables = []
+            if validated_data.get('observacion') and validated_data['observacion'] != medicion.observacion:
+                medicion.observacion = validated_data['observacion']
+                campos_actualizables.append('observacion')
+            if validated_data.get('responsable') and not (medicion.responsable or '').strip():
+                medicion.responsable = validated_data['responsable']
+                campos_actualizables.append('responsable')
             if campos_actualizables:
-                for campo, valor in campos_actualizables.items():
-                    setattr(medicion, campo, valor)
-                medicion.save()
+                medicion.save(update_fields=campos_actualizables)
 
-        # Crear o actualizar valores
+        existentes = {v.campo_id: v for v in medicion.valores.all()} if not created else {}
         for valor_data in valores_data:
             campo = valor_data.get('campo')
-            if campo:
-                MedicionValor.objects.update_or_create(
-                    medicion=medicion,
-                    campo=campo,
-                    defaults=valor_data
+            if not campo:
+                continue
+            existente = existentes.get(campo.id)
+            if existente is None:
+                MedicionValor.objects.create(medicion=medicion, **valor_data)
+            elif _mismo_valor(existente, valor_data):
+                continue
+            elif corregir:
+                for nombre in _CAMPOS_VALOR:
+                    setattr(existente, nombre, valor_data.get(nombre))
+                existente.save()
+            else:
+                logger.warning(
+                    'Medición %s (formulario %s, %s): se ignoró un cambio no confirmado del campo %s',
+                    medicion.id, formulario.id if formulario else None, tomada_en, campo.id,
                 )
 
         return medicion

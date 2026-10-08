@@ -66,6 +66,392 @@
         .container > .sel-ing .sel-ing__aviso--info { background: #fff7e6; border-color: #fcd9a0; color: #7c2d12; }
         .container > .sel-ing .sel-ing__aviso { text-align: left; align-items: center; }
         .container > .sel-ing .sel-ing__aviso > span:first-child { flex: none; }
+
+        /* 2026-10-07: encabezado "Información del paciente" igual al de resultado.html. */
+        .rp2-barra {
+            position: relative; overflow: hidden; display: flex; align-items: center; gap: 0;
+            min-height: 118px; margin: 0 0 16px; padding: 12px 30px 12px 0; border-radius: 14px;
+            background: linear-gradient(100deg, #0a1a33 0%, #0d2a52 30%, #0f3766 52%, #0c2f5a 75%, #0a1f3d 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 6px 16px rgba(10, 26, 51, .35);
+        }
+        .rp2-barra::after {
+            content: ''; position: absolute; top: 0; bottom: 0; left: 48%; right: 0; pointer-events: none;
+            clip-path: polygon(9% 0, 100% 0, 100% 100%, 0 100%);
+            background: linear-gradient(90deg, rgba(64, 140, 220, .22) 0%, rgba(30, 90, 170, .12) 60%, rgba(10, 30, 60, 0) 100%);
+        }
+        .rp2-barra > * { position: relative; z-index: 1; }
+        .rp2-avatar {
+            flex-shrink: 0; width: 86px; height: 84px; margin: 0 16px 0 34px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; color: #ffffff;
+            background: linear-gradient(160deg, #4a5f7e 0%, #2f4361 100%);
+            border: 1px solid rgba(255, 255, 255, .22);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 8px 18px rgba(0, 0, 0, .35);
+        }
+        .rp2-avatar svg { width: 38px; height: 38px; fill: #ffffff; stroke: none; }
+        .rp2-separador { align-self: stretch; width: 1px; margin: 0 20px 0 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .28) 50%, rgba(255, 255, 255, 0) 100%); }
+        .rp2-nombre { min-width: 0; flex: 0 1 auto; max-width: 52%; display: flex; flex-direction: column; gap: 2px; }
+        .rp2-kicker { font-size: .95rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: #8fb3e0; }
+        .rp2-valor { font-size: 2.45rem; font-weight: 700; line-height: 1.1; color: #ffffff; letter-spacing: -.01em; }
+        .rp2-ayuda { font-size: 1rem; color: #b8cbe6; }
+        .rp2-ekg { flex: 1 1 0; min-width: 120px; height: 110px; margin: 0 18px 0 24px; pointer-events: none; }
+        .rp2-ekg svg { width: 100%; height: 100%; overflow: visible; }
+        .rp2-fecha {
+            margin-left: auto; flex-shrink: 0; display: inline-flex; gap: 18px; padding: 18px 30px; border-radius: 12px;
+            font-size: 1.4rem; font-weight: 600; color: #ffffff; letter-spacing: .01em;
+            background: linear-gradient(180deg, rgba(70, 90, 120, .55) 0%, rgba(40, 56, 82, .6) 100%);
+            border: 1px solid rgba(255, 255, 255, .12);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 6px 14px rgba(0, 0, 0, .3);
+        }
+        .rp2-fecha-etq { font-weight: 500; color: #b8cbe6; }
+        @media (max-width: 1200px) {
+            .rp2-valor { font-size: 1.75rem; }
+            .rp2-ekg { opacity: .8; }
+            .rp2-fecha { font-size: 1.15rem; padding: 14px 20px; }
+        }
+        @media (max-width: 900px) {
+            .rp2-barra { flex-wrap: wrap; padding: 16px 18px; gap: 14px; }
+            .rp2-avatar { width: 64px; height: 62px; margin: 0; }
+            .rp2-separador { display: none; }
+            .rp2-valor { font-size: 1.6rem; }
+            .rp2-ekg { position: absolute; left: 30%; right: 0; top: 10px; margin: 0; opacity: .45; z-index: 0; }
+            .rp2-nombre { max-width: 100%; }
+            .rp2-fecha { margin-left: 0; font-size: 1rem; padding: 10px 16px; }
+        }
+
+        /* ===== 2026-10-07: "Parámetros vitales" con el diseño oscuro de Detalle de parámetros ===== */
+        .tp-v2 {
+            margin: 1.5rem 0; padding: 18px; border-radius: 20px;
+            background: radial-gradient(60% 50% at 10% 0%, rgba(37, 99, 235, .18) 0%, transparent 70%), linear-gradient(160deg, #0b1630 0%, #0d1f3f 55%, #0a1a35 100%);
+            border: 1px solid rgba(96, 165, 250, .25);
+            box-shadow: 0 18px 40px rgba(8, 19, 46, .45), inset 0 1px 0 rgba(255, 255, 255, .05);
+        }
+        .tp-v2 .section-title.titulo-placa.tp-placa {
+            margin: 0 0 16px; padding: 16px 22px; gap: 18px; border-radius: 16px;
+            background: linear-gradient(100deg, #0f2347 0%, #12305c 60%, #0f2a52 100%);
+            border: 1px solid rgba(96, 165, 250, .22); box-shadow: 0 8px 20px rgba(0, 0, 0, .3);
+        }
+        .tp-v2 .tp-placa::before, .tp-v2 .tp-placa::after { display: none !important; }
+        .tp-v2 .tp-placa .section-icon-badge {
+            width: 78px; height: 78px; min-width: 78px; border-radius: 18px; color: #fff;
+            background: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 60%, #1e3a8a 100%);
+            border: 2px solid rgba(147, 197, 253, .7);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, .2), 0 0 22px rgba(59, 130, 246, .55);
+        }
+        .tp-v2 .tp-placa .section-icon-badge svg { width: 38px !important; height: 38px !important; color: #fff; }
+        .tp-v2 .tp-placa .titulo-placa-kicker { color: #e2e8f0; letter-spacing: .14em; font-size: .9rem; }
+        .tp-v2 .tp-placa .titulo-placa-principal { color: #ffffff; font-size: 2.1rem; }
+        .tp-v2 .tp-placa .titulo-placa-ayuda { color: #b6c3d9; font-size: 1.02rem; }
+        .tp-v2 .tp-placa .titulo-placa-chip {
+            margin-left: auto; display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; border-radius: 12px;
+            background: linear-gradient(180deg, #eef4ff 0%, #d9e6ff 100%); color: #1e3a8a; font-weight: 800;
+            text-transform: uppercase; letter-spacing: .04em; border: 2px solid rgba(147, 197, 253, .9);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, .25), 0 0 18px rgba(59, 130, 246, .45);
+        }
+        .tp-v2 .tp-placa .titulo-placa-chip::before, .tp-v2 .tp-placa .titulo-placa-chip::after { content: none; display: none; }
+        .tp-v2 .tp-placa .titulo-placa-chip svg { width: 22px; height: 22px; color: #2563eb; }
+        .tp-v2 .section-description { color: #fcd34d !important; }
+
+        .tp-v2 .parametros-resumen-layout { grid-template-columns: minmax(0, 1.9fr) minmax(360px, 1fr); gap: 22px; margin: 0; align-items: start; }
+        @media (max-width: 1250px) { .tp-v2 .parametros-resumen-layout { grid-template-columns: 1fr; } }
+        .tp-v2 .parametros-resumen-layout .parameters-grid {
+            container: tpfilas / inline-size; max-width: none; margin: 0; padding: 0; gap: 10px;
+            background: transparent; border: none; box-shadow: none;
+        }
+
+        /* Filas */
+        .tp-v2 .parameters-grid .parameter-card {
+            --t: #64748b; --t2: #334155; --t-rgb: 100, 116, 139;
+            display: grid; align-items: center; column-gap: 14px; row-gap: 4px;
+            grid-template-columns: 62px minmax(150px, 1.3fr) 180px 74px 56px minmax(60px, 1fr) 160px;
+            grid-template-areas: "ico nom inp lab val bar est" ". . msg msg msg msg msg";
+            min-height: 76px; padding: 8px 14px; border-radius: 14px; overflow: visible;
+            background: linear-gradient(90deg, rgba(30, 45, 75, .9) 0%, rgba(24, 38, 66, .75) 100%);
+            border: 1px solid rgba(148, 163, 184, .2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+            transform: none; transition: background .3s, border-color .3s, box-shadow .3s;
+        }
+        .tp-v2 .parameters-grid .parameter-card::before, .tp-v2 .parameters-grid .parameter-card::after { content: none; display: none; }
+        .tp-v2 .parameters-grid .parameter-card:hover, .tp-v2 .parameters-grid .parameter-card:focus-within { transform: none; }
+        .tp-v2 .parameters-grid .parameter-card.card-score-1 { --t: #22c55e; --t2: #15803d; --t-rgb: 34, 197, 94; }
+        .tp-v2 .parameters-grid .parameter-card.card-score-2 { --t: #facc15; --t2: #ca8a04; --t-rgb: 250, 204, 21; }
+        .tp-v2 .parameters-grid .parameter-card.card-score-3 { --t: #ef4444; --t2: #b91c1c; --t-rgb: 239, 68, 68; }
+        .tp-v2 .parameters-grid .parameter-card.card-score-1,
+        .tp-v2 .parameters-grid .parameter-card.card-score-2,
+        .tp-v2 .parameters-grid .parameter-card.card-score-3 {
+            background: linear-gradient(90deg, rgba(var(--t-rgb), .32) 0%, rgba(var(--t-rgb), .14) 100%);
+            border-color: rgba(var(--t-rgb), .85);
+            box-shadow: 0 0 0 1px rgba(var(--t-rgb), .35), 0 0 22px rgba(var(--t-rgb), .3), inset 0 0 24px rgba(var(--t-rgb), .12);
+        }
+        .tp-v2 .tp-ico {
+            grid-area: ico; width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #e2e8f0;
+            background: linear-gradient(145deg, #4b5d7a 0%, #2c3b55 100%); border: 1px solid rgba(255, 255, 255, .15);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 6px 14px rgba(0, 0, 0, .35);
+        }
+        .tp-v2 .tp-ico svg { width: 28px; height: 28px; stroke-width: 2.2; }
+        .tp-v2 .tp-o2 { font-size: 1.4rem; font-weight: 900; line-height: 1; }
+        .tp-v2 .tp-o2 sub { font-size: .65em; }
+        .tp-v2 .card-score-1 .tp-ico, .tp-v2 .card-score-2 .tp-ico, .tp-v2 .card-score-3 .tp-ico {
+            color: #fff; background: linear-gradient(145deg, var(--t) 0%, var(--t2) 100%); border-color: rgba(255, 255, 255, .35);
+            box-shadow: 0 0 16px rgba(var(--t-rgb), .55), inset 0 1px 0 rgba(255, 255, 255, .3);
+        }
+        .tp-v2 .parameters-grid .parameter-header { grid-area: nom; margin: 0; min-width: 0; }
+        .tp-v2 .parameters-grid .parameter-label {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0; padding: 0;
+            color: #ffffff; font-size: .86rem; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; line-height: 1.25; cursor: pointer;
+        }
+        .tp-v2 .parameters-grid .parameter-label::before { content: none; display: none; }
+        .tp-v2 .parameters-grid .parameter-unit {
+            flex-shrink: 0; padding: 0; margin: 0; background: none; border: none; box-shadow: none;
+            color: #94a3b8; font-size: .85rem; font-weight: 600; text-transform: none; letter-spacing: 0;
+        }
+        .tp-v2 .parameters-grid .input-wrapper { grid-area: inp; flex: none; margin: 0; min-width: 0; }
+        .tp-v2 .parameters-grid .parameter-card .parameter-input {
+            width: 100%; height: 44px; padding: 0 12px; border-radius: 10px; font-size: 1.05rem; font-weight: 800;
+            color: #ffffff !important; color-scheme: dark;
+            background: rgba(15, 23, 42, .75) !important; border: 1.5px solid rgba(148, 163, 184, .45) !important;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, .35) !important; transform: none;
+        }
+        .tp-v2 .parameters-grid .parameter-card .parameter-input:focus { outline: none; border-color: #60a5fa !important; box-shadow: 0 0 0 3px rgba(96, 165, 250, .3) !important; }
+        .tp-v2 .parameters-grid .parameter-card select.parameter-input { font-size: .92rem; padding-right: 6px; }
+        .tp-v2 .parameters-grid .parameter-card .parameter-input::placeholder { color: #94a3b8; font-weight: 600; }
+        .tp-v2 .parameters-grid .parameter-card .parameter-input option { background: #0f172a; color: #ffffff; }
+        .tp-v2 .parameters-grid .card-score-1 .parameter-input, .tp-v2 .parameters-grid .card-score-2 .parameter-input, .tp-v2 .parameters-grid .card-score-3 .parameter-input {
+            background: rgba(var(--t-rgb), .18) !important; border-color: rgba(var(--t-rgb), .9) !important;
+        }
+        .tp-v2 .parameters-grid .input-unit { display: none; }
+        .tp-v2 .parameters-grid .score-feedback, .tp-v2 .parameters-grid .score-indicator { display: contents; }
+        .tp-v2 .parameters-grid .score-label { grid-area: lab; color: #ffffff; font-size: .9rem; font-weight: 900; letter-spacing: .04em; }
+        .tp-v2 .parameters-grid .parameter-card .score-value {
+            grid-area: val; width: 52px; height: 52px; min-width: 0; padding: 0; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 1.7rem; font-weight: 900; color: #ffffff;
+            background: radial-gradient(circle at 50% 40%, #1e2b45 0%, #0f172a 100%);
+            border: 3px solid rgba(var(--t-rgb), .9);
+            box-shadow: 0 0 0 3px rgba(var(--t-rgb), .18), 0 0 14px rgba(var(--t-rgb), .35);
+            transform: none; animation: none;
+        }
+        .tp-v2 .parameters-grid .parameter-card .score-value::before, .tp-v2 .parameters-grid .parameter-card .score-value::after { content: none; }
+        .tp-v2 .parameters-grid .card-score-3 .score-value { background: radial-gradient(circle at 50% 40%, #7f1d1d 0%, #450a0a 100%); }
+        .tp-v2 .parameters-grid .card-score-2 .score-value { background: radial-gradient(circle at 50% 40%, #422006 0%, #1c1003 100%); }
+        .tp-v2 .parameters-grid .card-score-1 .score-value { background: radial-gradient(circle at 50% 40%, #14532d 0%, #052e16 100%); }
+        .tp-v2 .parameters-grid .parameter-card:not([class*="card-score-"]) .score-value { color: #94a3b8; border-color: rgba(148, 163, 184, .45); box-shadow: none; }
+        .tp-v2 .parameters-grid .parameter-card .score-bar {
+            grid-area: bar; height: 12px; min-width: 0; margin: 0; border-radius: 999px; overflow: hidden;
+            background: rgba(148, 163, 184, .22); border: 1px solid rgba(148, 163, 184, .25); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .4);
+        }
+        .tp-v2 .parameters-grid .parameter-card .score-bar::before, .tp-v2 .parameters-grid .parameter-card .score-bar::after,
+        .tp-v2 .parameters-grid .parameter-card .score-fill::before, .tp-v2 .parameters-grid .parameter-card .score-fill::after { content: none; display: none; }
+        .tp-v2 .parameters-grid .parameter-card .score-fill {
+            height: 100%; border-radius: 999px; animation: none; box-shadow: 0 0 10px rgba(var(--t-rgb), .6);
+            background: linear-gradient(90deg, var(--t2) 0%, var(--t) 100%);
+        }
+        .tp-v2 .parameters-grid .parameter-card .score-fill.score-0 { width: 20%; background: #64748b; box-shadow: none; }
+        .tp-v2 .tp-estado {
+            grid-area: est; justify-self: stretch; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 9px 14px; border-radius: 999px; font-size: .82rem; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap;
+            color: #e2e8f0; background: rgba(51, 65, 85, .85); border: 1px solid rgba(148, 163, 184, .35);
+        }
+        .tp-v2 .tp-estado-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; background: #cbd5e1; box-shadow: 0 0 0 3px rgba(203, 213, 225, .2); }
+        .tp-v2 .tp-estado-txt::after { content: "Sin registro"; }
+        .tp-v2 .card-score-0 .tp-estado-txt::after { content: "Normal"; }
+        .tp-v2 .card-score-1 .tp-estado-txt::after { content: "Moderado"; }
+        .tp-v2 .card-score-2 .tp-estado-txt::after { content: "Moderado-alto"; }
+        .tp-v2 .card-score-3 .tp-estado-txt::after { content: "Crítico"; }
+        .tp-v2 .card-score-1 .tp-estado, .tp-v2 .card-score-2 .tp-estado, .tp-v2 .card-score-3 .tp-estado {
+            color: #ffffff; background: linear-gradient(180deg, rgba(var(--t-rgb), .55) 0%, rgba(var(--t-rgb), .35) 100%);
+            border-color: rgba(var(--t-rgb), .9); box-shadow: 0 0 12px rgba(var(--t-rgb), .35);
+        }
+        .tp-v2 .card-score-2 .tp-estado { color: #fef08a; background: linear-gradient(180deg, rgba(133, 77, 14, .85) 0%, rgba(113, 63, 18, .85) 100%); }
+        .tp-v2 .card-score-1 .tp-estado-dot, .tp-v2 .card-score-2 .tp-estado-dot, .tp-v2 .card-score-3 .tp-estado-dot { background: var(--t); box-shadow: 0 0 0 3px rgba(255, 255, 255, .2), 0 0 8px var(--t); }
+        .tp-v2 .card-score-3 .tp-estado-dot { background: #fca5a5; }
+        .tp-v2 .parameters-grid .parameter-card .validation-message { grid-area: msg; margin: 0; padding: 0; min-height: 0; background: none !important; border: none !important; box-shadow: none !important; text-transform: none; letter-spacing: 0; font-size: .82rem; font-weight: 700; color: #fca5a5; }
+        .tp-v2 .parameters-grid .validation-message::before, .tp-v2 .parameters-grid .validation-message::after { content: none !important; display: none !important; }
+        .tp-v2 .parameters-grid .validation-message:empty, .tp-v2 .parameters-grid .parameter-card[class*="card-score-"] .validation-message { display: none; }
+        @container tpfilas (max-width: 860px) {
+            .tp-v2 .parameters-grid .parameter-card {
+                grid-template-columns: 56px minmax(0, 1fr) 140px 56px;
+                grid-template-areas: "ico nom nom val" "ico inp bar est" ". msg msg msg";
+            }
+            .tp-v2 .parameters-grid .score-label { display: none; }
+            .tp-v2 .parameters-grid .parameter-card .score-value { grid-row: 1; }
+            .tp-v2 .tp-estado { grid-column: 3 / 5; }
+            .tp-v2 .parameters-grid .parameter-card .score-bar { grid-column: 3 / 5; grid-row: 2; display: none; }
+            .tp-v2 .parameters-grid .input-wrapper { grid-column: 2; }
+        }
+
+        /* Resumen */
+        .tp-v2 .tp-resumen {
+            --c: #16a34a; --c2: #166534; --c-texto: #15803d; --c-rgb: 22, 163, 74;
+            border-radius: 18px; padding: 10px; background: rgba(15, 30, 60, .85); border: 1px solid rgba(96, 165, 250, .25);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, .35);
+        }
+        .tp-v2 .tp-resumen[data-riesgo="rojo"] { --c: #dc2626; --c2: #991b1b; --c-texto: #b91c1c; --c-rgb: 220, 38, 38; }
+        .tp-v2 .tp-resumen[data-riesgo="amarillo"] { --c: #f59e0b; --c2: #b45309; --c-texto: #b45309; --c-rgb: 245, 158, 11; }
+        .tp-v2 .tp-resumen[data-riesgo="blanco"] { --c: #64748b; --c2: #334155; --c-texto: #475569; --c-rgb: 100, 116, 139; }
+        .tp-v2 .tp-resumen-tit {
+            display: flex; align-items: center; gap: 14px; padding: 10px 14px 14px; color: #ffffff; font-size: 1.45rem; font-weight: 800;
+        }
+        .tp-v2 .tp-resumen-ico { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; background: linear-gradient(145deg, #3b4f72 0%, #22324f 100%); border: 1px solid rgba(255, 255, 255, .18); }
+        .tp-v2 .tp-resumen-ico svg { width: 26px; height: 26px; }
+        .tp-v2 .tp-resumen-cuerpo { display: flex; flex-direction: column; gap: 14px; padding: 14px; border-radius: 14px; background: #ffffff; }
+        .tp-v2 .tp-total {
+            display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 10px; border-radius: 14px;
+            background: linear-gradient(180deg, rgba(var(--c-rgb), .14) 0%, rgba(var(--c-rgb), .05) 100%); border: 1px solid rgba(var(--c-rgb), .22);
+        }
+        .tp-v2 .tp-total-tit { font-size: 1.05rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; color: #1e293b; }
+        .tp-v2 .tp-total-fila { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
+        .tp-v2 .tp-total-ekg { flex: 1 1 0; max-width: 110px; height: 46px; color: var(--c); }
+        .tp-v2 .tp-anillo { position: relative; width: 150px; height: 150px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .tp-v2 .tp-anillo svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+        .tp-v2 .tp-anillo-fondo { fill: #ffffff; stroke: #e5e7eb; stroke-width: 10; }
+        .tp-v2 .tp-anillo-arco { fill: none; stroke: var(--c); stroke-width: 10; stroke-linecap: round; stroke-dasharray: 0 327; transition: stroke-dasharray .4s ease; filter: drop-shadow(0 0 4px rgba(var(--c-rgb), .5)); }
+        .tp-v2 .tp-total-valor { position: relative; font-size: 4.2rem; font-weight: 900; line-height: 1; color: var(--c-texto); }
+        .tp-v2 .tp-nivel {
+            display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px; border-radius: 14px; color: #ffffff;
+            background: linear-gradient(135deg, var(--c) 0%, var(--c2) 100%); box-shadow: 0 10px 22px rgba(var(--c-rgb), .3);
+        }
+        .tp-v2 .tp-nivel-tit { font-size: 1.05rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+        .tp-v2 .tp-nivel-pill {
+            display: inline-flex; align-items: center; gap: 22px; padding: 8px 40px 8px 18px; border-radius: 12px;
+            background: linear-gradient(90deg, rgba(0, 0, 0, .25) 0%, rgba(0, 0, 0, .05) 100%), var(--c2);
+            border: 2px solid rgba(255, 255, 255, .75);
+        }
+        .tp-v2 .tp-nivel-pill::before {
+            content: ""; width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; background: #ffffff;
+            box-shadow: 0 0 0 6px rgba(var(--c-rgb), .6), 0 0 12px #ffffff;
+        }
+        .tp-v2 .tp-nivel-pill .risk-badge {
+            display: inline; padding: 0; margin: 0; border: none; border-radius: 0; background: none; box-shadow: none; transform: none; animation: none;
+            color: #ffffff; font-size: 2rem; font-weight: 900; letter-spacing: .04em; text-transform: uppercase;
+        }
+        .tp-v2 .tp-nivel-pill .risk-badge::before, .tp-v2 .tp-nivel-pill .risk-badge::after { content: none; display: none; }
+        .tp-v2 .tp-respuesta-tit { display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 900; letter-spacing: .03em; text-transform: uppercase; color: var(--c-texto); }
+        .tp-v2 .tp-respuesta-tit svg { width: 24px; height: 24px; }
+        .tp-v2 .tp-respuesta {
+            padding: 14px 16px; border-radius: 0 12px 12px 0; border: 1px solid rgba(var(--c-rgb), .25); border-left: 5px solid var(--c);
+            background: #ffffff; color: #1e293b; font-size: .98rem; line-height: 1.5;
+        }
+        .tp-v2 .tp-respuesta strong { color: var(--c-texto); font-weight: 900; }
+        .tp-v2 .tp-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding-top: 12px; border-top: 1px solid #e5e7eb; }
+        .tp-v2 .tp-meta-item { display: flex; align-items: center; gap: 12px; padding: 4px 12px; min-width: 0; }
+        .tp-v2 .tp-meta-item + .tp-meta-item { border-left: 1px solid #e5e7eb; }
+        .tp-v2 .tp-meta-item > svg { width: 34px; height: 34px; flex-shrink: 0; color: #1e3a8a; }
+        .tp-v2 .tp-meta-item > span { display: flex; flex-direction: column; min-width: 0; }
+        .tp-v2 .tp-meta-etq { font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #475569; }
+        .tp-v2 .tp-meta-valor { font-size: 1.05rem; font-weight: 800; color: #0f172a; }
+        @media (max-width: 700px) {
+            .tp-v2 { padding: 12px; }
+            .tp-v2 .tp-placa .titulo-placa-chip { margin-left: 0; }
+            .tp-v2 .tp-placa .titulo-placa-principal { font-size: 1.5rem; }
+            .tp-v2 .tp-meta { grid-template-columns: 1fr; }
+            .tp-v2 .tp-meta-item + .tp-meta-item { border-left: none; }
+        }
+        /* Puntaje 0 (blanco): blanco intenso para que se distinga sobre el fondo oscuro. */
+        .tp-v2 .parameters-grid .parameter-card .score-value { box-sizing: border-box; justify-self: center; flex-shrink: 0; }
+        .tp-v2 .parameters-grid .parameter-card.card-score-0 { --t: #ffffff; --t2: #e2e8f0; --t-rgb: 255, 255, 255; border-color: rgba(255, 255, 255, .55); box-shadow: 0 0 0 1px rgba(255, 255, 255, .15), 0 0 14px rgba(255, 255, 255, .12); }
+        .tp-v2 .parameters-grid .card-score-0 .score-value {
+            color: #0f172a; background: radial-gradient(circle at 50% 35%, #ffffff 0%, #e2e8f0 100%);
+            border-color: #ffffff; box-shadow: 0 0 0 3px rgba(255, 255, 255, .3), 0 0 16px rgba(255, 255, 255, .6);
+        }
+        .tp-v2 .parameters-grid .parameter-card .score-fill.score-0 { width: 20%; background: #ffffff; box-shadow: 0 0 8px rgba(255, 255, 255, .7); }
+        .tp-v2 .card-score-0 .tp-estado { color: #0f172a; background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%); border-color: #ffffff; box-shadow: 0 0 12px rgba(255, 255, 255, .35); }
+        .tp-v2 .card-score-0 .tp-estado-dot { background: #0f172a; box-shadow: 0 0 0 3px rgba(15, 23, 42, .15); }
+        .tp-v2 .card-score-0 .tp-ico { color: #0f172a; background: linear-gradient(145deg, #ffffff 0%, #cbd5e1 100%); border-color: #ffffff; box-shadow: 0 0 14px rgba(255, 255, 255, .4); }
+        .tp-v2 .parameters-grid .card-score-0 .parameter-input { border-color: rgba(255, 255, 255, .85) !important; }
+        /* 2026-10-07: datos de la paciente (debajo de la barra azul) como las casillas de resultado.html. */
+        .rp2-barra + .info-section-row {
+            display: grid; grid-template-columns: 2.3fr 1.4fr 2fr 1.4fr 1fr; gap: 4px; margin-top: -10px; padding: 6px;
+            border-radius: 0 0 16px 16px; background: linear-gradient(180deg, #e2ebf9 0%, #dbe6f7 100%);
+            border: 1.5px solid #b4c9ef; border-top: none;
+            box-shadow: 0 10px 24px rgba(59, 110, 210, .18);
+        }
+        .rp2-barra + .info-section-row .info-field {
+            min-width: 0; padding: 14px 18px 12px; border-radius: 10px;
+            background: linear-gradient(180deg, #f5f8fd 0%, #edf2fa 100%);
+            border: 1px solid #dbe5f4; box-shadow: inset 0 1px 0 #ffffff;
+        }
+        .rp2-barra + .info-section-row .info-field:first-of-type { padding-left: 30px; }
+        .rp2-barra + .info-section-row .info-field:focus-within { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(59, 130, 246, .18), inset 0 1px 0 #ffffff; }
+        .rp2-barra + .info-section-row .info-field-label {
+            margin-bottom: 4px; gap: 0; font-size: .8rem; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: #3e5f8a;
+        }
+        .rp2-barra + .info-section-row .info-field-label-icon { display: none; }
+        .rp2-barra + .info-section-row .patient-input,
+        .rp2-barra + .info-section-row .patient-input:hover,
+        .rp2-barra + .info-section-row .patient-input:focus,
+        .rp2-barra + .info-section-row .patient-input:valid:not(:placeholder-shown),
+        .rp2-barra + .info-section-row .patient-input[readonly] {
+            width: 100%; padding: 0; border: none; border-radius: 0; background: transparent; box-shadow: none; transform: none;
+            font-size: 1.12rem; font-weight: 600; color: #0f1d33; cursor: text;
+        }
+        .rp2-barra + .info-section-row .patient-input[readonly] { cursor: default; }
+        .rp2-barra + .info-section-row .patient-input::placeholder { color: #94a3b8; font-style: normal; font-weight: 500; }
+        .rp2-barra + .info-section-row .patient-input.error { color: #b91c1c; }
+        .rp2-barra + .info-section-row small { font-size: .7rem !important; }
+        @media (max-width: 1100px) { .rp2-barra + .info-section-row { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 900px) {
+            .rp2-barra + .info-section-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .rp2-barra + .info-section-row .info-field:first-of-type { grid-column: 1 / -1; padding-left: 18px; }
+            .rp2-barra + .info-section-row .info-field-label { white-space: normal; }
+        }
+
+        /* Aviso de triaje dentro de la card de fecha/hora, entre las casillas y los botones. */
+        .footer-actions .footer-datetime-group { margin-right: 0; }
+        .footer-actions .triaje-banner { flex: 1 1 220px; align-self: center; margin: 0; font-size: .86rem; line-height: 1.35; font-weight: 600; }
+
+        /* Separación entre la card de fecha/hora del monitoreo y el panel de parámetros. */
+        .footer-actions-card + .tp-v2 { margin-top: 72px !important; }
+
+        /* Azul del panel un poco más claro. */
+        .tp-v2 {
+            background: radial-gradient(60% 50% at 10% 0%, rgba(96, 165, 250, .22) 0%, transparent 70%), linear-gradient(160deg, #1a3260 0%, #1e3b70 55%, #1a3465 100%);
+            border-color: rgba(147, 197, 253, .35);
+        }
+        .tp-v2 .section-title.titulo-placa.tp-placa { background: linear-gradient(100deg, #22427a 0%, #28508f 60%, #234983 100%); border-color: rgba(147, 197, 253, .3); }
+        .tp-v2 .parameters-grid .parameter-card:not([class*="card-score-"]) { background: linear-gradient(90deg, rgba(51, 75, 120, .9) 0%, rgba(44, 66, 108, .8) 100%); border-color: rgba(191, 219, 254, .25); }
+        .tp-v2 .parameters-grid .parameter-card .parameter-input { background: rgba(23, 37, 70, .75) !important; }
+        .tp-v2 .tp-resumen { background: rgba(32, 56, 102, .9); border-color: rgba(147, 197, 253, .35); }
+        /* Encabezado "Parámetros vitales" en blanco oscuro (gris muy claro) con texto oscuro. */
+        .tp-v2 .section-title.titulo-placa.tp-placa {
+            background: linear-gradient(100deg, #eef2f7 0%, #e2e8f0 60%, #d9e0ea 100%);
+            border-color: #cbd5e1; box-shadow: 0 8px 20px rgba(0, 0, 0, .25), inset 0 1px 0 #ffffff;
+        }
+        .tp-v2 .tp-placa .titulo-placa-kicker { color: #334155; }
+        .tp-v2 .tp-placa .titulo-placa-principal { color: #0f172a; }
+        .tp-v2 .tp-placa .titulo-placa-ayuda { color: #475569; }
+        .tp-v2 .tp-placa .titulo-placa-chip { background: linear-gradient(180deg, #ffffff 0%, #eef4ff 100%); }
+        /* % de O2 requerido: el tramo elegido conserva su color, en versión oscura. */
+        .tp-v2 .o2-req-select.o2-verde { background-color: rgba(34, 197, 94, .2) !important; color: #ffffff !important; border-color: #22c55e !important; }
+        .tp-v2 .o2-req-select.o2-rojo { background-color: rgba(239, 68, 68, .2) !important; color: #ffffff !important; border-color: #ef4444 !important; }
+        .tp-v2 .o2-req-select.o2-blanco { background-color: rgba(15, 23, 42, .75) !important; color: #ffffff !important; }
+
+        /* 2026-10-07: casillas de valor de los parámetros en blanco oscuro con texto oscuro. */
+        .tp-v2 .parameters-grid .parameter-card .parameter-input,
+        .tp-v2 .parameters-grid .parameter-card .parameter-input:hover,
+        .tp-v2 .parameters-grid .parameter-card .parameter-input:focus {
+            color: #0f172a !important; color-scheme: light;
+            background: linear-gradient(180deg, #eef2f7 0%, #e2e8f0 100%) !important;
+            border: 1.5px solid #cbd5e1 !important;
+            box-shadow: inset 0 1px 0 #ffffff, 0 2px 6px rgba(0, 0, 0, .25) !important;
+        }
+        .tp-v2 .parameters-grid .parameter-card .parameter-input:focus { border-color: #3b82f6 !important; box-shadow: 0 0 0 3px rgba(96, 165, 250, .45) !important; }
+        .tp-v2 .parameters-grid .parameter-card .parameter-input::placeholder { color: #64748b; }
+        .tp-v2 .parameters-grid .parameter-card .parameter-input option { background: #ffffff; color: #0f172a; }
+        .tp-v2 .parameters-grid .parameter-card.card-score-1 .parameter-input,
+        .tp-v2 .parameters-grid .parameter-card.card-score-2 .parameter-input,
+        .tp-v2 .parameters-grid .parameter-card.card-score-3 .parameter-input { border: 2px solid var(--t) !important; }
+        .tp-v2 .parameters-grid .parameter-card.card-score-0 .parameter-input { border: 2px solid #ffffff !important; }
+
+        /* 2026-10-08: fondo plateado (metálico) en las filas de parámetros sin registro. */
+        .tp-v2 .parameters-grid .parameter-card:not([class*="card-score-"]) {
+            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 22%, #c7d0dc 50%, #dfe5ec 78%, #b8c2cf 100%);
+            border-color: #94a3b8;
+            box-shadow: inset 0 1px 0 #ffffff, inset 0 -1px 0 rgba(71, 85, 105, .35), 0 4px 12px rgba(0, 0, 0, .3);
+        }
+        .tp-v2 .parameters-grid .parameter-card:not([class*="card-score-"]) .parameter-label,
+        .tp-v2 .parameters-grid .parameter-card:not([class*="card-score-"]) .score-label { color: #0f172a; }
+        .tp-v2 .parameters-grid .parameter-card:not([class*="card-score-"]) .parameter-unit { color: #475569; }
+        .tp-v2 .parameters-grid .parameter-card:not([class*="card-score-"]) .parameter-input { background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%) !important; border-color: #94a3b8 !important; }
+        .tp-v2 .parameters-grid .parameter-card:not([class*="card-score-"]) .score-bar { background: rgba(71, 85, 105, .25); border-color: rgba(71, 85, 105, .35); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .25); }
+        .tp-v2 .parameters-grid .parameter-card:not([class*="card-score-"]) .validation-message { color: #b91c1c; }
     </style>
 </head>
 
@@ -79,12 +465,6 @@
         {# El formulario sigue siendo para registrar; el ingreso elegido se consulta en el Historial MEOWS. #}
         {% if paciente.id %}{% url 'historial_meows' paciente_id=paciente.id as url_historial_triaje %}{% include 'obstetricia/_selector_ingreso.html' with documento=documento|default:paciente.numero_documento modulo='triaje' destino=url_historial_triaje %}{% endif %}
         {% include 'meows/_mensajes.html' %}
-
-        <div class="triaje-banner">
-            <span style="font-size:1.2em;">🩺</span>
-            Registro de TRIAJE — esta paciente todavía no tiene ingreso formal. Estos datos quedan marcados como
-            "Triaje" en su línea de tiempo, separados de lo que llegue después desde Dinámica.
-        </div>
 
         <!-- SECCIÓN: PARÁMETROS VITALES -->
         <section class="section parameters-section">
@@ -102,16 +482,27 @@
                      pantalla, el POST nunca los incluye. -->
                 <div class="section patient-section patient-section-redesigned">
                     <div class="info-section">
-                        {# 2026-09-24: "título en placa" (meows-form.css). #}
-                        <h3 class="section-title titulo-placa titulo-placa--triaje">
-                            <span class="section-icon-badge"><i data-lucide="user"></i></span>
-                            <span class="titulo-placa-texto">
-                                <span class="titulo-placa-kicker">Triaje obstétrico · Datos de la paciente</span>
-                                <span class="titulo-placa-principal">Información del paciente</span>
-                                <span class="titulo-placa-ayuda">Si ya estuvo antes en el hospital, sus datos se completan solos; si no, digítelos.</span>
+                        {# 2026-10-07: encabezado con el mismo diseño que "Información del paciente" en resultado.html (barra azul con electrocardiograma). #}
+                        <div class="rp2-barra">
+                            <span class="rp2-avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.5" r="4.3"/><path d="M3.5 21c0-4.4 3.8-7.3 8.5-7.3s8.5 2.9 8.5 7.3z"/></svg></span>
+                            <span class="rp2-separador" aria-hidden="true"></span>
+                            <span class="rp2-nombre">
+                                <span class="rp2-kicker">Triaje obstétrico · Datos de la paciente</span>
+                                <span class="rp2-valor">Información del paciente</span>
+                                <span class="rp2-ayuda">Si ya estuvo antes en el hospital, sus datos se completan solos; si no, digítelos.</span>
                             </span>
-                            <span class="titulo-placa-chip">Sin ingreso</span>
-                        </h3>
+                            <span class="rp2-ekg" aria-hidden="true">
+                                <svg viewBox="0 0 700 120" preserveAspectRatio="none" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <defs>
+                                        <linearGradient id="rp2Ekg" x1="0" x2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity="0"/><stop offset=".25" stop-color="#38bdf8" stop-opacity=".55"/><stop offset=".5" stop-color="#7dd3fc"/><stop offset=".85" stop-color="#38bdf8" stop-opacity=".8"/><stop offset="1" stop-color="#38bdf8" stop-opacity=".6"/></linearGradient>
+                                        <filter id="rp2Brillo" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                                    </defs>
+                                    <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="url(#rp2Ekg)" stroke-width="2.6" filter="url(#rp2Brillo)"/>
+                                    <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="#e0f7ff" stroke-width="1" opacity=".85"/>
+                                </svg>
+                            </span>
+                            <span class="rp2-fecha"><span class="rp2-fecha-etq">Ingreso</span><span>Sin ingreso</span></span>
+                        </div>
                         <div class="info-section-row">
                             <div class="info-field size-lg">
                                 <label class="info-field-label" for="nombre_completo"><span class="info-field-label-icon"><i data-lucide="user"></i></span>Nombre Completo *</label>
@@ -172,6 +563,12 @@
                             <input type="hidden" id="hora_monitoreo" name="hora_monitoreo" required>
                         </div>
                     </div>
+                    {# 2026-10-07: aviso de triaje junto a la fecha/hora del monitoreo (antes iba arriba de todo). #}
+                    <div class="triaje-banner">
+                        <span style="font-size:1.2em;">🩺</span>
+                        <span>Registro de TRIAJE — esta paciente todavía no tiene ingreso formal. Estos datos quedan marcados como
+                        "Triaje" en su línea de tiempo, separados de lo que llegue después desde Dinámica.</span>
+                    </div>
                     {% if paciente.id %}
                     <a href="{% url 'historial_meows' paciente_id=paciente.id %}{% if documento %}?doc={{ documento|urlencode }}{% endif %}" class="btn btn-info" id="btn-ver-historial">
                         <span class="btn-icon">📊</span>
@@ -185,16 +582,17 @@
                 </div>
                 </div>
 
-                {# 2026-09-25: título de "Parámetros vitales" debajo de la barra de
-                   fecha/hora y botones, justo encima de las tarjetas de signos. #}
-                <h3 class="section-title titulo-placa {% if medicion %}titulo-placa--correccion{% else %}titulo-placa--triaje{% endif %}">
+                {# 2026-10-07: panel oscuro de "Parámetros vitales" (mismo diseño que "Detalle de parámetros" de resultado.html, pero editable). #}
+                <div class="tp-v2">
+                {# 2026-09-25: título de "Parámetros vitales" debajo de la barra de fecha/hora y botones, justo encima de las tarjetas de signos. #}
+                <h3 class="section-title titulo-placa tp-placa {% if medicion %}titulo-placa--correccion{% else %}titulo-placa--triaje{% endif %}">
                     <span class="section-icon-badge"><i data-lucide="{% if medicion %}pencil-line{% else %}activity{% endif %}"></i></span>
                     <span class="titulo-placa-texto">
                         <span class="titulo-placa-kicker">{% if medicion %}Corrección de registro · Triaje{% else %}Triaje obstétrico · Paciente sin ingreso{% endif %}</span>
                         <span class="titulo-placa-principal">{% if medicion %}Editar medición de triaje{% else %}Parámetros vitales{% endif %}</span>
                         {% if not medicion %}<span class="titulo-placa-ayuda">Registre los signos vitales tal como los tomó; la escala MEOWS se calcula sola.</span>{% endif %}
                     </span>
-                    <span class="titulo-placa-chip">Escala MEOWS</span>
+                    <span class="titulo-placa-chip"><i data-lucide="gauge"></i> Escala MEOWS</span>
                 </h3>
                 {% if medicion %}
                 <p class="section-description" style="color:#b45309;font-weight:600;">
@@ -207,6 +605,7 @@
                 <div class="parameters-grid">
                     {% for parametro in parametros %}
                     <div class="parameter-card" data-param="{{ parametro.codigo }}">
+                        <span class="tp-ico" aria-hidden="true">{% with c=parametro.codigo %}{% if c == 'temp' %}<i data-lucide="thermometer"></i>{% elif c == 'ta_sys' %}<i data-lucide="heart-pulse"></i>{% elif c == 'ta_dia' %}<i data-lucide="activity"></i>{% elif c == 'fc' %}<i data-lucide="heart"></i>{% elif c == 'fcf' %}<i data-lucide="baby"></i>{% elif c == 'fr' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v9"/><path d="M12 11c-1.5 1-3 1.5-4 1.5"/><path d="M12 11c1.5 1 3 1.5 4 1.5"/><path d="M8.5 7.5C6 8 4 11 3.5 15c-.4 3 .5 5 2.5 5 2.5 0 4-2 4-5V9.5c0-1.2-.6-2.2-1.5-2z"/><path d="M15.5 7.5C18 8 20 11 20.5 15c.4 3-.5 5-2.5 5-2.5 0-4-2-4-5V9.5c0-1.2.6-2.2 1.5-2z"/></svg>{% elif c == 'o2_req' or c == 'spo2' %}<span class="tp-o2">O<sub>2</sub></span>{% elif c == 'glasgow' %}<i data-lucide="brain"></i>{% else %}<i data-lucide="activity"></i>{% endif %}{% endwith %}</span>
                         <div class="parameter-header">
                             <label class="parameter-label" for="{{ parametro.codigo }}">
                                 {{ parametro.nombre }}
@@ -258,34 +657,77 @@
                         </div>
 
                         <div class="validation-message" id="message-{{ parametro.codigo }}"></div>
+                        <span class="tp-estado"><span class="tp-estado-dot"></span><span class="tp-estado-txt"></span></span>
                     </div>
                     {% endfor %}
                 </div>
 
-                <section class="section summary-section summary-section-lateral">
-                    <h3 class="section-title">
-                        <span class="icon">📋</span>
-                        Resumen
-                    </h3>
-                    <div class="summary-card">
-                        <div class="summary-item">
-                            <label class="summary-label">Puntaje Total MEOWS</label>
-                            <div class="summary-value" id="total-score">0</div>
-                        </div>
-                        <div class="summary-item">
-                            <label class="summary-label">Nivel de Riesgo</label>
-                            <div class="summary-risk" id="risk-level">
-                                <span class="risk-badge risk-verde">VERDE</span>
+                <section class="tp-resumen" id="tp-resumen" data-riesgo="verde">
+                    <div class="tp-resumen-tit"><span class="tp-resumen-ico"><i data-lucide="clipboard-list"></i></span> Resumen</div>
+                    <div class="tp-resumen-cuerpo">
+                        <div class="tp-total">
+                            <span class="tp-total-tit">Puntaje total MEOWS</span>
+                            <div class="tp-total-fila">
+                                <svg class="tp-total-ekg" viewBox="0 0 120 50" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M0 30h40l6-6 5 6h6l6-24 8 40 7-26 5 10h37"/></svg>
+                                <div class="tp-anillo">
+                                    <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="tp-anillo-fondo"/><circle cx="60" cy="60" r="52" class="tp-anillo-arco" id="tp-anillo-arco"/></svg>
+                                    <div class="tp-total-valor" id="total-score">0</div>
+                                </div>
+                                <svg class="tp-total-ekg" viewBox="0 0 120 50" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M0 30h37l5-10 7 26 8-40 6 24h6l5-6 6 6h40"/></svg>
                             </div>
                         </div>
-                        <div class="summary-item">
-                            <label class="summary-label">GRADO DE RESPUESTA</label>
-                            <div class="summary-conducta" id="conducta-text">
-                                Esperando valores...
-                            </div>
+                        <div class="tp-nivel">
+                            <span class="tp-nivel-tit">Nivel de riesgo</span>
+                            <div class="tp-nivel-pill" id="risk-level"><span class="risk-badge risk-verde">VERDE</span></div>
+                        </div>
+                        <div class="tp-respuesta-tit"><i data-lucide="clipboard-list"></i> Grado de respuesta recomendada</div>
+                        <div class="tp-respuesta" id="conducta-text">Esperando valores...</div>
+                        <div class="tp-meta">
+                            <div class="tp-meta-item"><i data-lucide="calendar-days"></i><span><span class="tp-meta-etq">Fecha y hora de la medición</span><span class="tp-meta-valor" id="tp-meta-fecha">—</span></span></div>
+                            <div class="tp-meta-item"><i data-lucide="stethoscope"></i><span><span class="tp-meta-etq">Área</span><span class="tp-meta-valor">Triaje obstétrico</span></span></div>
                         </div>
                     </div>
                 </section>
+                <script>
+                    // 2026-10-07: pinta el resumen (anillo, color del nivel, negrita del grado de respuesta y fecha/hora)
+                    // a partir de lo que meows-form.js escribe en #total-score, #risk-level y #conducta-text.
+                    (function () {
+                        const resumen = document.getElementById('tp-resumen');
+                        const total = document.getElementById('total-score');
+                        const nivel = document.getElementById('risk-level');
+                        const conducta = document.getElementById('conducta-text');
+                        const arco = document.getElementById('tp-anillo-arco');
+                        function pintar() {
+                            const maximo = document.querySelectorAll('.tp-v2 .parameter-card').length * 3 || 24;
+                            const valor = parseInt(total.textContent, 10) || 0;
+                            arco.style.strokeDasharray = (Math.min(valor / maximo, 1) * 327) + ' 327';
+                            resumen.dataset.riesgo = (nivel.textContent || 'verde').trim().toLowerCase();
+                            const texto = conducta.textContent;
+                            const corte = texto.indexOf(':');
+                            if (corte > 0 && !conducta.querySelector('strong')) {
+                                conducta.innerHTML = '';
+                                const b = document.createElement('strong');
+                                b.textContent = texto.slice(0, corte + 1);
+                                conducta.append(b, document.createTextNode(texto.slice(corte + 1)));
+                            }
+                        }
+                        function pintarFecha() {
+                            const f = document.getElementById('fecha_monitoreo');
+                            const h = document.getElementById('hora_monitoreo_horas');
+                            const m = document.getElementById('hora_monitoreo_minutos');
+                            const pp = document.getElementById('hora_monitoreo_periodo');
+                            const partes = f && f.value ? f.value.split('-') : null;
+                            let txt = partes ? partes[2] + '/' + partes[1] + '/' + partes[0] : '—';
+                            if (h && h.value && m && m.value) txt += ' ' + h.value + ':' + m.value + ' ' + (pp ? pp.value : '');
+                            document.getElementById('tp-meta-fecha').textContent = txt;
+                        }
+                        const obs = new MutationObserver(pintar);
+                        [total, nivel, conducta].forEach(el => obs.observe(el, { childList: true, characterData: true, subtree: true }));
+                        document.addEventListener('change', e => { if (e.target.closest('.footer-datetime-group')) pintarFecha(); });
+                        document.addEventListener('DOMContentLoaded', () => { pintar(); pintarFecha(); setTimeout(pintarFecha, 600); });
+                    })();
+                </script>
+                </div>
                 </div>
 
                 <div class="form-actions">
