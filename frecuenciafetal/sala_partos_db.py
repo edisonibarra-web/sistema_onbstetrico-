@@ -205,6 +205,9 @@ AREA_SIN_CAMA = 'SIN CAMA ASIGNADA'
 # egreso) y de los últimos días: hay urgencias viejas que nunca se cerraron.
 # Una paciente de Triaje cuya urgencia pase de esto sin cama sigue en Triaje.
 DIAS_MAX_INGRESO_SIN_CAMA = 3
+# 2026-10-08: un ingreso sin egreso más viejo que esto no es el "actual"
+# (mismo criterio que ingresos.DIAS_MAX_EN_CURSO_SIN_EGRESO).
+DIAS_MAX_INGRESO_VIGENTE_SIN_EGRESO = 60
 DIAS_TRIAJE_RECIENTE = 30
 MAX_DOCUMENTOS_TRIAJE = 1000
 
@@ -555,7 +558,9 @@ def consultar_ingreso_paciente(cedula):
     Ingreso de Dinámica al que pertenecen los formatos de la paciente:
     el ingreso ACTIVO (estancia sin fecha de salida, HPNESTANC.HESFECSAL IS
     NULL) y, si ya no hay ninguno activo (p. ej. se dio de alta minutos antes
-    de finalizar el formato), el ingreso más reciente. 2026-09-24: se
+    de finalizar el formato), el más reciente que siga VIGENTE (sin egreso y
+    de menos de 60 días, o egresado dentro de las horas de gracia); si no hay,
+    None (paciente en triaje, aunque tenga ingresos antiguos). 2026-09-24: se
     ignoran los ingresos anulados y, a igual condición, se prefiere uno de
     urgencias/hospitalización antes que una consulta externa (Dinámica crea un
     ingreso por cada consulta, laboratorio, etc.).
@@ -580,11 +585,22 @@ def consultar_ingreso_paciente(cedula):
     FROM ADNINGRESO AS ING
     INNER JOIN GENPACIEN AS PAC ON ING.GENPACIEN = PAC.OID
     WHERE PAC.PACNUMDOC = %s AND ING.AINESTADO <> %s
+      AND (
+          EXISTS (SELECT 1 FROM HPNESTANC AS EST2 WHERE EST2.ADNINGRES = ING.OID AND EST2.HESFECSAL IS NULL)
+          OR (ING.AINFECEGRE IS NULL AND ING.AINFECING >= DATEADD(DAY, -%s, GETDATE()))
+          OR ING.AINFECEGRE >= DATEADD(HOUR, -%s, GETDATE())
+      )
     ORDER BY activo DESC, clinico DESC, ING.AINFECING DESC, ING.OID DESC
     """
+    # 2026-10-08: solo un ingreso VIGENTE es el "actual": estancia activa, sin
+    # egreso y reciente, o egresado dentro de las horas de gracia (formatos
+    # que se terminan después del alta). Antes, sin ingreso activo se devolvía
+    # el más reciente aunque fuera de hace años: la paciente que volvía a
+    # Triaje quedaba en ese ingreso viejo, en solo consulta.
+    gracia_horas = getattr(settings, 'INGRESO_HORAS_GRACIA_EDICION', 24)
     try:
         with connections['readonly'].cursor() as cursor:
-            cursor.execute(sql, [cedula, AINESTADO_ANULADO])
+            cursor.execute(sql, [cedula, AINESTADO_ANULADO, DIAS_MAX_INGRESO_VIGENTE_SIN_EGRESO, gracia_horas])
             row = cursor.fetchone()
     except Exception as exc:
         _marcar_dinamica_caida(exc)

@@ -303,6 +303,19 @@ def _separar_triaje_actual(grupos, fecha_por_id):
         del grupos[CLAVE_TRIAJE_SIN_INGRESO]
 
 
+def actual_efectivo(actual, ingresos, grupos):
+    """2026-10-08: si el ingreso "actual" ya egresó (aún dentro de las horas
+    de gracia) y la paciente volvió a Triaje después, lo vigente es ese
+    triaje: no el ingreso que acaba de cerrar. Las tomas de CLAVE_TRIAJE_ACTUAL
+    son, por construcción, recientes y fuera de la ventana de ese ingreso."""
+    if not actual or CLAVE_TRIAJE_ACTUAL not in grupos:
+        return actual
+    ingreso = next((i for i in ingresos if i['numero'] == actual), None)
+    if ingreso is not None and ingreso['fecha_egreso'] is not None:
+        return ''
+    return actual
+
+
 def asignar_registros_posparto(doc, ingresos):
     """{clave de ingreso: [id de RegistroParto, ...]} -- por la fecha en que
     se abrió el registro (durante el parto)."""
@@ -361,6 +374,7 @@ def conteos_ingreso_actual(doc):
 
     ingresos, _, actual = ingresos_de_paciente(doc)
     grupos_meows = asignar_mediciones_meows(doc, ingresos)
+    actual = actual_efectivo(actual, ingresos, grupos_meows)
     if actual:
         mediciones = Medicion.objects.filter(id__in=grupos_meows.get(actual, []))
         fetal = len(asignar_registros_posparto(doc, ingresos).get(actual, []))
@@ -535,6 +549,7 @@ def resumen_ingresos(doc, modulo, ingreso_elegido='', fresco=False):
 
     ingresos, dinamica_ok, actual = ingresos_de_paciente(doc, fresco=fresco)
     grupos = asignar_registros(doc, modulo, ingresos)
+    actual = actual_efectivo(actual, ingresos, grupos)
     inicio_app = fecha_inicio_app()
 
     # Envíos al repositorio por ingreso: todos los formatos (para el selector)
