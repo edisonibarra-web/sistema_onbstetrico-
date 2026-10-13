@@ -300,6 +300,50 @@
         .container > .sel-ing .sel-ing__aviso--info { background: #fff7e6; border-color: #fcd9a0; color: #7c2d12; }
         .container > .sel-ing .sel-ing__aviso { text-align: left; align-items: center; }
         .container > .sel-ing .sel-ing__aviso > span:first-child { flex: none; }
+
+        /* 2026-10-09: encabezado "Información del paciente" con el mismo diseño que
+           el de Sala de Partos (fondo azul marino, panel diagonal, ícono en baldosa,
+           separador y trazado EKG). Sobrescribe las versiones anteriores. */
+        .mh-v2 .section-title.titulo-placa {
+            gap: 0; min-height: 118px; padding: 12px 30px 12px 0;
+            border: 1px solid rgba(255, 255, 255, .1);
+            background: linear-gradient(100deg, #0a1a33 0%, #0d2a52 30%, #0f3766 52%, #0c2f5a 75%, #0a1f3d 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 6px 16px rgba(10, 26, 51, .35);
+        }
+        .mh-v2 .section-title.titulo-placa::before { display: none; }
+        .mh-v2 .section-title.titulo-placa::after {
+            display: block; content: ''; position: absolute; top: 0; bottom: 0; left: 48%; right: 0; width: auto;
+            pointer-events: none; z-index: 0; border-radius: 0;
+            clip-path: polygon(9% 0, 100% 0, 100% 100%, 0 100%);
+            background: linear-gradient(90deg, rgba(64, 140, 220, .22) 0%, rgba(30, 90, 170, .12) 60%, rgba(10, 30, 60, 0) 100%);
+        }
+        .mh-v2 .titulo-placa .section-icon-badge {
+            width: 86px; height: 84px; min-width: 86px; margin: 0 16px 0 34px; border-radius: 12px; color: #ffffff;
+            background: linear-gradient(160deg, #4a5f7e 0%, #2f4361 100%);
+            border: 1px solid rgba(255, 255, 255, .22);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 8px 18px rgba(0, 0, 0, .35);
+        }
+        .mh-v2 .titulo-placa .section-icon-badge svg { width: 38px !important; height: 38px !important; stroke-width: 2; }
+        .mh-separador { align-self: stretch; flex-shrink: 0; width: 1px; margin: 0 20px 0 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .28) 50%, rgba(255, 255, 255, 0) 100%); }
+        .mh-v2 .titulo-placa-texto { flex: 0 1 auto; max-width: 52%; gap: 2px; }
+        .mh-v2 .titulo-placa-kicker { font-size: .95rem; font-weight: 600; text-transform: none; letter-spacing: .03em; color: #8fb3e0; }
+        .mh-v2 .titulo-placa--triaje .titulo-placa-kicker { color: #fde047; }
+        .mh-v2 .titulo-placa-principal { font-size: 2.45rem; font-weight: 700; line-height: 1.1; letter-spacing: -.01em; color: #ffffff; }
+        .mh-v2 .titulo-placa-ayuda { font-size: 1rem; color: #b8cbe6; }
+        .mh-v2 .section-title.titulo-placa > .mh-ekg { flex: 1 1 0; min-width: 120px; height: 110px; margin: 0 18px 0 24px; pointer-events: none; }
+        .mh-ekg svg { width: 100%; height: 100%; overflow: visible; }
+        @media (max-width: 1200px) {
+            .mh-v2 .titulo-placa-principal { font-size: 1.75rem; }
+            .mh-v2 .section-title.titulo-placa > .mh-ekg { opacity: .8; }
+        }
+        @media (max-width: 900px) {
+            .mh-v2 .section-title.titulo-placa { flex-wrap: wrap; padding: 16px 18px; gap: 14px; }
+            .mh-v2 .titulo-placa .section-icon-badge { width: 64px; height: 62px; min-width: 64px; margin: 0; }
+            .mh-separador { display: none; }
+            .mh-v2 .titulo-placa-principal { font-size: 1.6rem; }
+            .mh-v2 .section-title.titulo-placa > .mh-ekg { position: absolute; left: 30%; right: 0; top: 10px; margin: 0; opacity: .45; z-index: 0; }
+            .mh-v2 .titulo-placa-texto { max-width: 100%; flex: 1 1 0; }
+        }
     </style>
 </head>
 <body>
@@ -325,24 +369,23 @@
                 {# 2026-09-24: "título en placa" (meows-form.css). #}
                 {# 2026-09-24: "título en placa" (meows-form.css). #}
                 <h3 class="section-title titulo-placa {% if todo_origen_triaje %}titulo-placa--triaje{% else %}titulo-placa--meows{% endif %}">
-                    {# 2026-10-01: decoración de fondo (ver .mh-deco). #}
-                    <span class="mh-deco" aria-hidden="true">
-                        <span class="mh-onda"></span>
-                        <span class="mh-onda mh-onda--2"></span>
-                        <svg class="mh-ekg" viewBox="0 0 700 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <defs>
-                                <linearGradient id="mhEkg" x1="0" x2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0"/><stop offset=".2" stop-color="#e5e7eb"/><stop offset=".5" stop-color="#ffffff"/><stop offset=".8" stop-color="#d1d5db"/><stop offset="1" stop-color="#ffffff" stop-opacity=".15"/></linearGradient>
-                                <filter id="mhEkgBrillo" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-                            </defs>
-                            <path d="M0 96h120l14-10 12 10h40l12-44 16 98 18-118 14 64h70l12-14 14 14h64l12-40 16 86 18-104 14 58h66l12-12 12 12h98" stroke="url(#mhEkg)" stroke-width="4" filter="url(#mhEkgBrillo)"/>
-                            <g fill="#1c1c20" stroke="#ffffff" stroke-width="3"><circle cx="198" cy="52" r="6"/></g>
-                        </svg>
-                    </span>
                     <span class="section-icon-badge"><i data-lucide="user"></i></span>
+                    <span class="mh-separador" aria-hidden="true"></span>
                     <span class="titulo-placa-texto">
                         <span class="titulo-placa-kicker">Historial clínico MEOWS{% if todo_origen_triaje %} · Triaje{% endif %}</span>
                         <span class="titulo-placa-principal">Información del paciente</span>
                         <span class="titulo-placa-ayuda">Datos de la paciente y del ingreso que se está consultando.</span>
+                    </span>
+                    {# 2026-10-09: trazado EKG, igual que el encabezado de Sala de Partos (.rp2-ekg). #}
+                    <span class="mh-ekg" aria-hidden="true">
+                        <svg viewBox="0 0 700 120" preserveAspectRatio="none" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <defs>
+                                <linearGradient id="mhEkg" x1="0" x2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity="0"/><stop offset=".25" stop-color="#38bdf8" stop-opacity=".55"/><stop offset=".5" stop-color="#7dd3fc"/><stop offset=".85" stop-color="#38bdf8" stop-opacity=".8"/><stop offset="1" stop-color="#38bdf8" stop-opacity=".6"/></linearGradient>
+                                <filter id="mhEkgBrillo" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                            </defs>
+                            <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="url(#mhEkg)" stroke-width="2.6" filter="url(#mhEkgBrillo)"/>
+                            <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="#e0f7ff" stroke-width="1" opacity=".85"/>
+                        </svg>
                     </span>
                 </h3>
                 <div class="patient-info-grid">

@@ -3447,21 +3447,51 @@
     }
 
     /* Encabezado oscuro: título, insignias y datos de la paciente. */
+    /* 2026-10-09: mismo diseño que el encabezado de Sala de Partos (baldosa, separador, títulos y trazado EKG). */
     .ppw-hdr {
       position: relative; overflow: hidden; display: flex; align-items: center; flex-wrap: wrap; gap: .75rem;
-      padding: 18px 20px; color: #fff; border-radius: 18px;
-      background: linear-gradient(135deg, #1e2a33 0%, #2c3944 60%, #26323c 100%);
-      box-shadow: 0 14px 32px rgba(15, 23, 42, .28);
+      padding: 0 20px 18px; color: #fff; border-radius: 18px;
+      background: linear-gradient(100deg, #0a1a33 0%, #0d2a52 30%, #0f3766 52%, #0c2f5a 75%, #0a1f3d 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 14px 32px rgba(10, 26, 51, .35);
     }
     .ppw-hdr > * { position: relative; z-index: 1; }
-    .ppw-hdr > .ppw-hdr-deco { position: absolute; z-index: 0; right: 18px; top: -6px; width: 150px; height: 150px; color: #fff; opacity: .07; }
-    .ppw-hdr-icono {
-      display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px;
-      background: linear-gradient(135deg, #0891b2, #0e7490); box-shadow: 0 6px 14px rgba(8, 145, 178, .4);
+    .ppw-hdr-top {
+      position: relative; flex: 1 1 100%; display: flex; align-items: center; gap: 0;
+      min-height: 118px; margin: 0 -20px; padding: 12px 24px 12px 0;
     }
-    .ppw-hdr-icono svg { width: 26px; height: 26px; }
-    .ppw-hdr h4 { margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: .005em; }
-    .ppw-hdr-sub { color: #cbd5e1; font-weight: 600; }
+    .ppw-hdr-top::after {
+      content: ''; position: absolute; top: 0; bottom: 0; left: 48%; right: 0; pointer-events: none; z-index: 0;
+      clip-path: polygon(9% 0, 100% 0, 100% 100%, 0 100%);
+      background: linear-gradient(90deg, rgba(64, 140, 220, .22) 0%, rgba(30, 90, 170, .12) 60%, rgba(10, 30, 60, 0) 100%);
+    }
+    .ppw-hdr-top > * { position: relative; z-index: 1; }
+    .ppw-hdr-icono {
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+      width: 86px; height: 84px; margin: 0 16px 0 34px; border-radius: 12px; color: #fff;
+      background: linear-gradient(160deg, #4a5f7e 0%, #2f4361 100%);
+      border: 1px solid rgba(255, 255, 255, .22);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 8px 18px rgba(0, 0, 0, .35);
+    }
+    .ppw-hdr-icono svg { width: 38px; height: 38px; }
+    .ppw-hdr-separador { align-self: stretch; width: 1px; margin: 0 20px 0 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .28) 50%, rgba(255, 255, 255, 0) 100%); }
+    .ppw-hdr-titulos { display: flex; flex-direction: column; gap: 4px; flex: 0 1 auto; min-width: 0; }
+    .ppw-hdr-subtitulo { font-size: .95rem; font-weight: 600; letter-spacing: .03em; color: #8fb3e0; }
+    .ppw-hdr h4 { margin: 0; font-size: 2.1rem; font-weight: 700; line-height: 1.1; letter-spacing: -.01em; color: #fff; }
+    .ppw-hdr-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: 4px; }
+    .ppw-hdr-sub { color: #b8cbe6; font-weight: 600; }
+    .ppw-hdr-ekg { flex: 1 1 0; min-width: 120px; height: 110px; margin: 0 18px 0 24px; pointer-events: none; }
+    .ppw-hdr-ekg svg { width: 100%; height: 100%; overflow: visible; }
+    @media (max-width: 1200px) {
+      .ppw-hdr h4 { font-size: 1.7rem; }
+      .ppw-hdr-ekg { opacity: .8; }
+    }
+    @media (max-width: 900px) {
+      .ppw-hdr-top { flex-wrap: wrap; gap: 14px; padding: 16px 18px; }
+      .ppw-hdr-icono { width: 64px; height: 62px; margin: 0; }
+      .ppw-hdr-separador { display: none; }
+      .ppw-hdr-titulos { flex: 1 1 0; }
+      .ppw-hdr-top > .ppw-hdr-ekg { position: absolute; left: 30%; right: 0; top: 10px; margin: 0; opacity: .45; z-index: 0; }
+    }
     .ppw-badge {
       background: #0e7490; border: 1.5px solid #22d3ee; border-radius: 999px; padding: .35rem 1rem; font-weight: 800; font-size: .95rem;
     }
@@ -3483,6 +3513,7 @@
       animation: ppw-readonly-latido 2s ease-in-out infinite;
     }
     .ppw-readonly[hidden] { display: none; }
+    .ppw-hdr-top .ppw-readonly { flex-shrink: 0; margin-right: 12px; }
     .ppw-readonly svg { width: 22px; height: 22px; stroke-width: 2.5; }
     @keyframes ppw-readonly-latido {
       0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, .55), 0 6px 18px rgba(234, 88, 12, .45); }
@@ -3710,8 +3741,10 @@
       .ppw-step-ico, .ppw-step-flecha { display: none; }
     }
     @media (max-width: 640px) {
-      .ppw-hdr { padding: 14px; }
-      .ppw-hdr h4 { font-size: 1.1rem; }
+      .ppw-hdr { padding: 0 14px 14px; }
+      .ppw-hdr-top { margin: 0 -14px; padding: 14px; }
+      .ppw-hdr h4 { font-size: 1.3rem; }
+      .ppw-hdr-subtitulo { font-size: .8rem; }
       .ppw-hdr .ppw-datos .pcard-field { flex: 1 1 100%; }
       .ppw-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
       .ppw-step { padding: 10px; column-gap: 8px; font-size: .85rem; }
@@ -10554,13 +10587,31 @@
             shell.id = 'ppw';
             shell.innerHTML = `
               <div class="ppw-hdr">
-                <i data-lucide="baby" class="ppw-hdr-deco" aria-hidden="true"></i>
-                <span class="ppw-hdr-icono"><i data-lucide="clipboard-check"></i></span>
-                <h4>Control posparto inmediato <span class="ppw-hdr-sub">— Paciente:</span></h4>
-                <span class="ppw-badge" id="ppw-badge-doc">—</span>
-                <span class="ppw-chip">Hora de parto: <b id="ppw-res-hora">—</b></span>
-                <span id="ppw-res-estado"></span>
-                <span class="ppw-readonly" id="ppw-readonly" hidden><i data-lucide="eye"></i> SOLO LECTURA</span>
+                <div class="ppw-hdr-top">
+                  <span class="ppw-hdr-icono"><i data-lucide="clipboard-check"></i></span>
+                  <span class="ppw-hdr-separador" aria-hidden="true"></span>
+                  <div class="ppw-hdr-titulos">
+                    <div class="ppw-hdr-subtitulo">Registro · Sala de Partos</div>
+                    <h4>Control posparto inmediato</h4>
+                    <div class="ppw-hdr-meta">
+                      <span class="ppw-hdr-sub">Paciente:</span>
+                      <span class="ppw-badge" id="ppw-badge-doc">—</span>
+                      <span class="ppw-chip">Hora de parto: <b id="ppw-res-hora">—</b></span>
+                      <span id="ppw-res-estado"></span>
+                    </div>
+                  </div>
+                  <span class="ppw-hdr-ekg" aria-hidden="true">
+                    <svg viewBox="0 0 700 120" preserveAspectRatio="none" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                      <defs>
+                        <linearGradient id="ppwEkg" x1="0" x2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity="0"/><stop offset=".25" stop-color="#38bdf8" stop-opacity=".55"/><stop offset=".5" stop-color="#7dd3fc"/><stop offset=".85" stop-color="#38bdf8" stop-opacity=".8"/><stop offset="1" stop-color="#38bdf8" stop-opacity=".6"/></linearGradient>
+                        <filter id="ppwBrillo" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                      </defs>
+                      <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="url(#ppwEkg)" stroke-width="2.6" filter="url(#ppwBrillo)"/>
+                      <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="#e0f7ff" stroke-width="1" opacity=".85"/>
+                    </svg>
+                  </span>
+                  <span class="ppw-readonly" id="ppw-readonly" hidden><i data-lucide="eye"></i> SOLO LECTURA</span>
+                </div>
                 <div class="pcard-section ppw-datos" id="ppw-datos"></div>
               </div>
               <div class="ppw-steps" role="tablist" aria-label="Pasos del formato">
@@ -10600,7 +10651,7 @@
             const estadoGuardado = document.getElementById('autosave-status');
             if (estadoGuardado) {
               const filaEstado = estadoGuardado.closest('.autosave-status-row');
-              shell.querySelector('.ppw-hdr').insertBefore(estadoGuardado, document.getElementById('ppw-datos'));
+              shell.querySelector('.ppw-hdr-top').appendChild(estadoGuardado);
               if (filaEstado) filaEstado.style.display = 'none';
             }
             if (filaPaciente) {

@@ -1698,6 +1698,85 @@
     .tl-v2 .btn-meows-referencia, .tl-v2 .btn-volver-parto, .tl-v2 .btn-toggle-timeline { padding: 10px 16px; font-size: 0.9rem; }
 }
 
+/* 2026-10-12: distribución con ícono en baldosa, separador y trazado EKG,
+   conservando los colores de la placa (negro con marco plateado y lila).
+   Sobrescribe lo anterior; los botones conservan su estilo. */
+.timeline-section .section-title.titulo-placa.tl-v2 {
+    gap: 0; min-height: 118px; padding: 12px 24px 12px 0;
+    margin: 6px 6px 1.5rem;
+}
+.timeline-section .section-title.titulo-placa.tl-v2::before { display: none; }
+.timeline-section .tl-v2 .section-icon-badge {
+    width: 86px; height: 84px; min-width: 86px; margin: 0 16px 0 34px; border-radius: 12px;
+}
+.timeline-section .tl-v2 .section-icon-badge svg { width: 38px; height: 38px; stroke-width: 2; }
+.tl-separador { align-self: stretch; flex-shrink: 0; width: 1px; margin: 0 20px 0 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .28) 50%, rgba(255, 255, 255, 0) 100%); }
+.tl-v2 .titulo-placa-texto { flex: 0 1 auto; gap: 2px; min-width: 0; }
+.tl-v2 .titulo-placa-principal { font-size: 2.45rem; font-weight: 700; line-height: 1.1; letter-spacing: -.01em; }
+.tl-v2 .titulo-placa-ayuda { font-size: 1rem; }
+.tl-v2 .timeline-placa-acciones { flex-shrink: 0; margin-left: auto; padding-left: 24px; }
+@media (max-width: 1400px) {
+    .tl-v2 .titulo-placa-principal { font-size: 1.75rem; }
+}
+@media (max-width: 1100px) {
+    .timeline-section .section-title.titulo-placa.tl-v2 { padding: 16px 18px; gap: 14px; }
+    .timeline-section .tl-v2 .section-icon-badge { width: 64px; height: 62px; min-width: 64px; margin: 0; }
+    .tl-separador { display: none; }
+    .tl-v2 .titulo-placa-texto { flex: 1 1 0; }
+    .tl-v2 .timeline-placa-acciones { padding-left: 0; }
+}
+@media (max-width: 700px) {
+    .tl-v2 .titulo-placa-principal { font-size: 1.5rem; }
+}
+
+/* 2026-10-12: encabezado + leyenda en una sola card (.tl-card), con los
+   colores de antes: el marco plateado pasa a la card, la placa negra queda
+   arriba y la leyenda abajo en su franja blanca. */
+.tl-card {
+    position: relative; overflow: hidden; margin: 6px 6px 1.5rem;
+    border: 3px solid #d1d5db; border-radius: 18px; background: #ffffff;
+    box-shadow:
+        0 0 0 1px #9ca3af,
+        0 0 0 5px #f3f4f6,
+        0 0 0 6px #c4c8d0,
+        0 14px 30px rgba(15, 15, 25, 0.35);
+}
+.timeline-section .tl-card > .section-title.titulo-placa.tl-v2 {
+    margin: 0; border: 0; border-radius: 0; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.tl-card > .grid-legend.tl-card-leyenda {
+    position: relative; z-index: 1;
+    gap: 0; margin: 0; padding: 14px 34px;
+    border-top: 1px solid #e6e8f0;
+    background: linear-gradient(180deg, #ffffff 0%, #f6f7fb 100%);
+    font-size: .98rem; color: #1f2437;
+}
+.tl-card-leyenda .grid-legend-item { gap: 12px; padding: 4px 26px; }
+.tl-card-leyenda .grid-legend-item:first-child { padding-left: 0; }
+.tl-card-leyenda .grid-legend-item + .grid-legend-item { border-left: 1.5px solid #d9dce6; }
+.tl-card-leyenda .grid-legend-item strong { color: #10142a; font-weight: 800; }
+.tl-card-leyenda .grid-legend-swatch {
+    width: 22px; height: 22px; border-radius: 50%; border: 0;
+    box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.18), 0 2px 5px rgba(0, 0, 0, 0.18);
+}
+.tl-card-leyenda .grid-legend-swatch.score-0 { background: radial-gradient(circle at 35% 30%, #c3c8d4 0%, #8e95a6 70%); }
+.tl-card-leyenda .grid-legend-swatch.score-1 { background: radial-gradient(circle at 35% 30%, #4ade80 0%, #16a34a 70%); }
+.tl-card-leyenda .grid-legend-swatch.score-2 { background: radial-gradient(circle at 35% 30%, #fde047 0%, #eab308 70%); }
+.tl-card-leyenda .grid-legend-swatch.score-3 { background: radial-gradient(circle at 35% 30%, #f87171 0%, #dc2626 70%); }
+.tl-card-leyenda .grid-legend-marca {
+    display: inline-block; width: 44px; height: 20px; border-radius: 5px;
+    font-size: 0; color: transparent;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 9h7l2-4 3 9 3-13 3 11 2-3h6'/%3E%3C/svg%3E") center / 22px 13px no-repeat, linear-gradient(180deg, #e3262b 0%, #c81b20 100%);
+    box-shadow: 0 2px 5px rgba(200, 27, 32, .35);
+}
+@media (max-width: 1100px) {
+    .tl-card > .grid-legend.tl-card-leyenda { padding: 12px 18px; row-gap: 8px; }
+}
+@media (max-width: 700px) {
+    .tl-card-leyenda .grid-legend-item { padding: 4px 14px; }
+    .tl-card-leyenda .grid-legend-item + .grid-legend-item { border-left: 0; }
+}
+
 /* ==========================================================================
    2026-10-02: cuadrícula clínica del Historial MEOWS rediseñada (leyenda en
    barra blanca con círculos, encabezado oscuro con íconos, parámetro en

@@ -477,7 +477,7 @@ class Command(BaseCommand):
 
     @staticmethod
     def _datos_basicos_paciente(p):
-        nombre = (p.get('nombre_paciente') or '').strip()
+        nombre = ' '.join((p.get('nombre_paciente') or '').split())
         partes = nombre.split(maxsplit=1) if nombre else []
         return {
             'nombres': partes[0] if partes else 'N/A',
@@ -525,12 +525,26 @@ class Command(BaseCommand):
 
         # 2026-10-05: el nombre solo se tomaba al CREAR la ficha; si ya existía
         # la ficha vacía "N/A N/A" (se crea al abrir un módulo con una cédula
-        # nueva), se quedaba así para siempre. Solo se reemplaza una ficha
-        # vacía: un nombre ya digitado (triaje) no se toca.
-        if paciente.es_ficha_vacia and (p.get('nombre_paciente') or '').strip():
-            datos = Command._datos_basicos_paciente(p)
-            cambios['nombres'] = datos['nombres']
-            cambios['apellidos'] = datos['apellidos']
+        # nueva), se quedaba así para siempre.
+        # 2026-10-13: si la fila viene de Dinámica (origen 'sala_partos'), su
+        # nombre manda aunque la ficha local ya tenga otro: en producción un
+        # triaje digitado con la cédula equivocada dejó a 1087132502 (YULI
+        # TATIANA CORTES MOSQUERA) como "JOSE RAFAEL VILLOTA BRAVO", y las
+        # alertas MEOWS de ella salían con ese nombre. Un nombre digitado solo
+        # se respeta cuando Dinámica no trae uno (p. ej. respaldo local).
+        nombre_dinamica = ' '.join((p.get('nombre_paciente') or '').split())
+        if nombre_dinamica:
+            nombre_local = ' '.join(f"{paciente.nombres or ''} {paciente.apellidos or ''}".split())
+            desde_dinamica = p.get('origen') == 'sala_partos'
+            if paciente.es_ficha_vacia or (desde_dinamica and nombre_local.upper() != nombre_dinamica.upper()):
+                if not paciente.es_ficha_vacia:
+                    print(
+                        f"[MEOWS] Nombre corregido desde Dinámica para {paciente.numero_documento}: "
+                        f"'{nombre_local}' -> '{nombre_dinamica}'"
+                    )
+                datos = Command._datos_basicos_paciente(p)
+                cambios['nombres'] = datos['nombres']
+                cambios['apellidos'] = datos['apellidos']
 
         hubo_cambio = False
         for campo, valor_nuevo in cambios.items():

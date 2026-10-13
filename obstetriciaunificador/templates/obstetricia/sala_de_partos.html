@@ -1284,40 +1284,39 @@
             box-shadow: 0 22px 44px rgba(11, 20, 48, 0.45);
         }
         #card-clinico-unificado::before { content: none; }
+        /* 2026-10-09: encabezado con el mismo diseño que #search-section .search-header
+           (fondo azul marino, panel diagonal, avatar en baldosa, separador y trazado EKG). */
         #card-clinico-unificado .card-clinico-header {
-            margin-bottom: 0; padding: 22px 26px 22px 30px;
-            border: 1px solid rgba(148, 163, 255, 0.14); border-radius: 18px;
-            background: linear-gradient(120deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            margin-bottom: 0; padding: 12px 26px 12px 0; min-height: 118px; gap: 0; flex-wrap: nowrap;
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 18px;
+            background: linear-gradient(100deg, #0a1a33 0%, #0d2a52 30%, #0f3766 52%, #0c2f5a 75%, #0a1f3d 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 6px 16px rgba(10, 26, 51, .35);
         }
         #card-clinico-unificado .card-clinico-header::before {
-            width: 6px; background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%);
-            box-shadow: 0 0 14px rgba(167, 139, 250, 0.8);
-        }
-        .cc-deco { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-        .cc-deco .cc-silueta { position: absolute; left: 40%; top: -4px; width: 150px; height: 120%; color: #6d8cff; opacity: 0.28; }
-        .cc-deco .cc-puntos {
-            position: absolute; width: 120px; height: 70px; opacity: 0.35;
-            background: radial-gradient(circle, #8ea2ff 1.4px, transparent 1.7px) 0 0 / 14px 14px;
-        }
-        .cc-deco .cc-puntos--a { left: 33%; top: 10px; }
-        .cc-deco .cc-puntos--b { left: 50%; bottom: 8px; width: 90px; height: 30px; }
-        .cc-deco .cc-onda {
-            position: absolute; left: 30%; right: 0; bottom: -40%; height: 120%;
-            border-radius: 50% 50% 0 0 / 60% 60% 0 0;
-            background: linear-gradient(180deg, rgba(79, 110, 247, 0.18) 0%, rgba(79, 110, 247, 0) 70%);
+            left: 48%; right: 0; width: auto; box-shadow: none; pointer-events: none;
+            clip-path: polygon(9% 0, 100% 0, 100% 100%, 0 100%);
+            background: linear-gradient(90deg, rgba(64, 140, 220, .22) 0%, rgba(30, 90, 170, .12) 60%, rgba(10, 30, 60, 0) 100%);
         }
         #card-clinico-unificado .card-clinico-identidad,
         #card-clinico-unificado .card-clinico-actions { position: relative; z-index: 1; }
-        #card-clinico-unificado .card-clinico-identidad { gap: 22px; }
+        #card-clinico-unificado .card-clinico-identidad { gap: 0; align-self: stretch; flex: 0 1 auto; }
         #card-clinico-unificado .card-clinico-avatar-wrap {
-            width: 92px; height: 92px; border-radius: 24px; padding: 3px;
-            background: rgba(255, 255, 255, 0.18); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 10px 22px rgba(0, 0, 0, 0.35);
+            width: 86px; height: 84px; margin: 0 16px 0 34px; border-radius: 12px; padding: 0;
+            background: none; box-shadow: none; align-self: center;
         }
-        #card-clinico-unificado .card-clinico-avatar { border-radius: 21px; color: #1e293b; background: linear-gradient(160deg, #ffffff 0%, #e8edf6 100%); }
-        #card-clinico-unificado .card-clinico-avatar svg { width: 42px; height: 42px; stroke-width: 1.9; }
-        #card-clinico-unificado .card-clinico-title { padding-left: 22px; border-left: 1px solid rgba(255, 255, 255, 0.18); }
-        #card-clinico-unificado .card-clinico-eyebrow { font-size: 0.86rem; letter-spacing: 0.12em; color: #c7d2fe; }
-        #card-clinico-unificado .card-clinico-title h2 { font-size: 2.2rem; font-weight: 900; letter-spacing: 0.01em; }
+        #card-clinico-unificado .card-clinico-avatar {
+            border-radius: 12px; color: #ffffff;
+            background: linear-gradient(160deg, #4a5f7e 0%, #2f4361 100%);
+            border: 1px solid rgba(255, 255, 255, .22);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 8px 18px rgba(0, 0, 0, .35);
+        }
+        #card-clinico-unificado .card-clinico-avatar svg { width: 38px; height: 38px; stroke-width: 2; }
+        .cc-separador { align-self: stretch; flex-shrink: 0; width: 1px; margin: 0 20px 0 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .28) 50%, rgba(255, 255, 255, 0) 100%); }
+        #card-clinico-unificado .card-clinico-title { align-self: center; }
+        #card-clinico-unificado .card-clinico-eyebrow { font-size: .95rem; font-weight: 600; text-transform: none; letter-spacing: .03em; color: #8fb3e0; }
+        #card-clinico-unificado .card-clinico-title h2 { font-size: 2.2rem; font-weight: 700; line-height: 1.1; letter-spacing: -.01em; }
+        .cc-ekg { position: relative; z-index: 1; flex: 1 1 0; min-width: 120px; height: 110px; margin: 0 18px 0 24px; pointer-events: none; }
+        .cc-ekg svg { width: 100%; height: 100%; overflow: visible; }
         #card-clinico-unificado .card-clinico-meta-item {
             padding: 6px 14px; font-size: 0.86rem; font-weight: 800;
             background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.16);
@@ -1393,11 +1392,14 @@
         .sp-flecha svg { width: 24px; height: 24px; }
         @media (max-width: 1100px) {
             #card-clinico-unificado .clinico-stats-row { flex-direction: column; }
-            .cc-deco .cc-silueta { display: none; }
+            #card-clinico-unificado .card-clinico-header { flex-wrap: wrap; gap: 14px; padding: 16px 18px; }
+            #card-clinico-unificado .card-clinico-avatar-wrap { margin: 0 16px 0 0; }
+            .cc-ekg { position: absolute; left: 30%; right: 0; top: 10px; margin: 0; opacity: .45; z-index: 0; }
         }
         @media (max-width: 700px) {
             #card-clinico-unificado .card-clinico-title h2 { font-size: 1.5rem; }
-            #card-clinico-unificado .card-clinico-avatar-wrap { width: 64px; height: 64px; }
+            #card-clinico-unificado .card-clinico-avatar-wrap { width: 64px; height: 62px; }
+            .cc-separador { display: none; }
             .sp-icono { width: 54px; height: 54px; min-width: 54px; }
             .sp-desc { display: none; }
         }
@@ -2138,17 +2140,11 @@
             <!-- 🏥 CARD CLÍNICA COMPACTA (Colorful & Organized) -->
             <div class="card-clinico-unificado" id="card-clinico-unificado">
                 <div class="card-clinico-header">
-                    {# 2026-10-01: decoración de fondo (ver .cc-deco). #}
-                    <span class="cc-deco" aria-hidden="true">
-                        <span class="cc-onda"></span>
-                        <span class="cc-puntos cc-puntos--a"></span>
-                        <span class="cc-puntos cc-puntos--b"></span>
-                        <svg class="cc-silueta" viewBox="0 0 120 160" fill="currentColor"><circle cx="66" cy="22" r="13"/><path d="M58 38c-10 7-12 20-8 31-14 7-22 23-20 40 3 22 22 36 44 34 18-2 30-16 30-34 0-16-10-28-24-32 4-16-2-32-14-39z"/><path d="M78 108c3-6 12-5 12 2 0 5-7 9-12 13-5-4-12-8-12-13 0-7 9-8 12-2z" fill="#0b1430"/></svg>
-                    </span>
                     <div class="card-clinico-identidad">
                         <div class="card-clinico-avatar-wrap">
                             <div class="card-clinico-avatar"><i data-lucide="user-round"></i></div>
                         </div>
+                        <span class="cc-separador" aria-hidden="true"></span>
                         <div class="card-clinico-title">
                             <span class="card-clinico-eyebrow">Paciente en atención</span>
                             <h2 id="display-nombres">-</h2>
@@ -2162,6 +2158,17 @@
                             </div>
                         </div>
                     </div>
+                    {# 2026-10-09: trazado EKG, igual que el encabezado de búsqueda (.rp2-ekg). #}
+                    <span class="cc-ekg" aria-hidden="true">
+                        <svg viewBox="0 0 700 120" preserveAspectRatio="none" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <defs>
+                                <linearGradient id="ccEkg" x1="0" x2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity="0"/><stop offset=".25" stop-color="#38bdf8" stop-opacity=".55"/><stop offset=".5" stop-color="#7dd3fc"/><stop offset=".85" stop-color="#38bdf8" stop-opacity=".8"/><stop offset="1" stop-color="#38bdf8" stop-opacity=".6"/></linearGradient>
+                                <filter id="ccBrillo" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                            </defs>
+                            <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="url(#ccEkg)" stroke-width="2.6" filter="url(#ccBrillo)"/>
+                            <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="#e0f7ff" stroke-width="1" opacity=".85"/>
+                        </svg>
+                    </span>
                     <div class="card-clinico-actions">
                         <span id="display-estado-valor" class="card-clinico-status status-estable">ESTABLE</span>
                         <span class="card-clinico-actions-divider"></span>
@@ -2745,6 +2752,8 @@
             ultimaTrazaFetal = hayAlgo ? traza : null;
 
             if (wrap) wrap.style.display = hayAlgo ? '' : 'none';
+            // 2026-10-12: el canvas nace oculto; sin esto quedaba solo el botón (igual que en renderGraficaParto).
+            canvas.style.display = hayAlgo ? '' : 'none';
             if (pendiente) pendiente.style.display = hayAlgo ? 'none' : '';
             if (btnVerTrazabilidad) btnVerTrazabilidad.style.display = hayAlgo ? '' : 'none';
 

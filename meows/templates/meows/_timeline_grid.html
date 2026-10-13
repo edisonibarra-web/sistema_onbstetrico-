@@ -99,8 +99,11 @@ página, colapsable con el botón "Ocultar/Mostrar".
     {# 2026-09-24: en el Historial MEOWS, "título en placa" (meows-form.css) con los #}
     {# botones agrupados a la derecha. En Control Posparto (modal) queda como antes. #}
     {% if mostrar_link_volver and not abrir_en_modal %}
+    {# 2026-10-12: encabezado y leyenda unificados en una sola card (.tl-card). #}
+    <div class="tl-card">
     <h3 class="section-title titulo-placa timeline-placa tl-v2 {% if todo_origen_triaje %}titulo-placa--triaje{% else %}titulo-placa--meows{% endif %}">
         <span class="section-icon-badge"><i data-lucide="line-chart"></i></span>
+        <span class="tl-separador" aria-hidden="true"></span>
         <span class="titulo-placa-texto">
             <span class="titulo-placa-kicker">Historial clínico MEOWS · {% if todo_origen_triaje %}Triaje{% else %}Dinámica{% endif %}</span>
             <span class="titulo-placa-principal">Línea de tiempo <em class="tl-acento">{% if todo_origen_triaje %}triaje{% else %}clínica{% endif %}</em></span>
@@ -157,6 +160,18 @@ página, colapsable con el botón "Ocultar/Mostrar".
         </span>
     {% endif %}
     </h3>
+    {% if mostrar_link_volver and not abrir_en_modal %}
+    {% if columnas %}
+    <div class="grid-legend tl-card-leyenda">
+        <span class="grid-legend-item"><span class="grid-legend-swatch score-0"></span>Normal <strong>· 0 puntos</strong></span>
+        <span class="grid-legend-item"><span class="grid-legend-swatch score-1"></span>Moderado <strong>· 1 punto</strong></span>
+        <span class="grid-legend-item"><span class="grid-legend-swatch score-2"></span>Moderado-alto <strong>· 2 puntos</strong></span>
+        <span class="grid-legend-item"><span class="grid-legend-swatch score-3"></span>Crítico <strong>· 3 puntos</strong></span>
+        <span class="grid-legend-item"><span class="grid-legend-marca">●</span>Valor registrado</span>
+    </div>
+    {% endif %}
+    </div>
+    {% endif %}
 
     {% if abrir_en_modal %}
     {% if columnas %}
@@ -194,6 +209,8 @@ página, colapsable con el botón "Ocultar/Mostrar".
     <div class="meows-grid-body-inner mg-v2">
     {% endif %}
     {% if columnas %}
+    {% if abrir_en_modal or not mostrar_link_volver %}
+    {# En el Historial MEOWS la leyenda va dentro de la card del encabezado (.tl-card). #}
     <div class="grid-legend">
         <span class="grid-legend-item"><span class="grid-legend-swatch score-0"></span>Normal <strong>· 0 puntos</strong></span>
         <span class="grid-legend-item"><span class="grid-legend-swatch score-1"></span>Moderado <strong>· 1 punto</strong></span>
@@ -201,6 +218,7 @@ página, colapsable con el botón "Ocultar/Mostrar".
         <span class="grid-legend-item"><span class="grid-legend-swatch score-3"></span>Crítico <strong>· 3 puntos</strong></span>
         <span class="grid-legend-item"><span class="grid-legend-marca">●</span>Valor registrado</span>
     </div>
+    {% endif %}
 
     {# Esta guía refleja la tabla física FRSPA-026. Desde 2026-09-10 los #}
     {# RangoParametro de la BD ya coinciden con estos valores para #}
