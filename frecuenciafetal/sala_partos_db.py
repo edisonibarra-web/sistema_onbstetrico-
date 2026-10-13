@@ -205,6 +205,18 @@ AREA_SIN_CAMA = 'SIN CAMA ASIGNADA'
 # egreso) y de los últimos días: hay urgencias viejas que nunca se cerraron.
 # Una paciente de Triaje cuya urgencia pase de esto sin cama sigue en Triaje.
 DIAS_MAX_INGRESO_SIN_CAMA = 3
+# 2026-10-13: un ingreso SIN cama solo cuenta como Sala de Partos cuando
+# Dinámica ya tiene signos vitales de enfermería de ese ingreso (los mismos que
+# trae la sincronización MEOWS). En producción, admisiones abre el ingreso de
+# urgencias al llegar la paciente y Triaje la bloqueaba de inmediato ("ya tiene
+# ingreso activo") sin que nadie le hubiera tomado signos en Dinámica: no se le
+# podían registrar los de triaje. Mientras no haya tomas allá, sigue en Triaje.
+SQL_INGRESO_CON_SIGNOS_DINAMICA = """
+          AND EXISTS (
+              SELECT 1 FROM HCNREGENF AS RE
+              INNER JOIN HCNSIGVIT AS SV ON SV.HCNREGENF = RE.OID
+              WHERE RE.ADNINGRESO = I.OID
+          )"""
 # 2026-10-08: un ingreso sin egreso más viejo que esto no es el "actual"
 # (mismo criterio que ingresos.DIAS_MAX_EN_CURSO_SIN_EGRESO).
 DIAS_MAX_INGRESO_VIGENTE_SIN_EGRESO = 60
@@ -301,7 +313,7 @@ def listar_pacientes_sala_partos(query=None, limit=50):
           AND I.AINFECING >= DATEADD(DAY, -%s, GETDATE())
           AND (I.AINESTADO IS NULL OR I.AINESTADO <> %s)
           AND (I.AINTIPING = 2 OR I.AINURGCON = 0)
-          AND NOT EXISTS (SELECT 1 FROM HPNESTANC AS E2 WHERE E2.ADNINGRES = I.OID)
+          AND NOT EXISTS (SELECT 1 FROM HPNESTANC AS E2 WHERE E2.ADNINGRES = I.OID){sin_cama_con_signos}
     ) AS EST
     LEFT JOIN HPNDEFCAM AS CAM ON EST.HPNDEFCAM = CAM.OID
     LEFT JOIN HPNSUBGRU AS SUB ON CAM.HPNSUBGRU = SUB.OID
@@ -374,6 +386,7 @@ def listar_pacientes_sala_partos(query=None, limit=50):
           {filtro_triaje}
       )
     """
+    sql = sql.replace('{sin_cama_con_signos}', SQL_INGRESO_CON_SIGNOS_DINAMICA)
     params = [DIAS_MAX_INGRESO_SIN_CAMA, AINESTADO_ANULADO]
     if docs_triaje:
         sql = sql.replace('{filtro_triaje}', 'OR PAC.PACNUMDOC IN (' + ', '.join(['%s'] * len(docs_triaje)) + ')')
@@ -522,7 +535,7 @@ def paciente_en_sala_partos(cedula):
           AND I.AINFECING >= DATEADD(DAY, -%s, GETDATE())
           AND (I.AINESTADO IS NULL OR I.AINESTADO <> %s)
           AND (I.AINTIPING = 2 OR I.AINURGCON = 0)
-          AND NOT EXISTS (SELECT 1 FROM HPNESTANC AS E2 WHERE E2.ADNINGRES = I.OID)
+          AND NOT EXISTS (SELECT 1 FROM HPNESTANC AS E2 WHERE E2.ADNINGRES = I.OID){sin_cama_con_signos}
     ) AS EST
     LEFT JOIN HPNDEFCAM AS CAM ON EST.HPNDEFCAM = CAM.OID
     LEFT JOIN HPNSUBGRU AS SUB ON CAM.HPNSUBGRU = SUB.OID
@@ -544,6 +557,7 @@ def paciente_en_sala_partos(cedula):
           ))
       )
     """
+    sql = sql.replace('{sin_cama_con_signos}', SQL_INGRESO_CON_SIGNOS_DINAMICA)
     try:
         with connections['readonly'].cursor() as cursor:
             cursor.execute(sql, [DIAS_MAX_INGRESO_SIN_CAMA, AINESTADO_ANULADO, cedula, viene_de_triaje])
