@@ -27,6 +27,7 @@ urlpatterns = [
     path("triaje/abrir/<str:doc>/", views.abrir_triaje, name="abrir_triaje_doc"),
     path("triaje/nuevo/<int:paciente_id>/", views.crear_medicion_triaje, name="crear_triaje"),
     path("triaje/editar/<int:medicion_id>/", views.crear_medicion_triaje, name="editar_triaje"),
+    path("triaje/finalizar/<int:paciente_id>/", views.finalizar_triaje, name="finalizar_triaje"),
     path("api/buscar-paciente-triaje/", views.api_buscar_paciente_triaje, name="api_buscar_paciente_triaje"),
     path("api/pacientes-triaje/", views.api_pacientes_triaje, name="api_pacientes_triaje"),
     path("api/alertas-pendientes-triaje/", views.api_alertas_pendientes_triaje, name="api_alertas_pendientes_triaje"),

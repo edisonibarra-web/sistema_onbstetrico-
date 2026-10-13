@@ -452,6 +452,30 @@
         .tp-v2 .parameters-grid .parameter-card:not([class*="card-score-"]) .parameter-input { background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%) !important; border-color: #94a3b8 !important; }
         .tp-v2 .parameters-grid .parameter-card:not([class*="card-score-"]) .score-bar { background: rgba(71, 85, 105, .25); border-color: rgba(71, 85, 105, .35); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .25); }
         .tp-v2 .parameters-grid .parameter-card:not([class*="card-score-"]) .validation-message { color: #b91c1c; }
+
+        /* 2026-10-13: aviso + botón "Finalizar triaje" (paciente con ingreso de urgencias ya abierto). */
+        .triaje-finalizar {
+            display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+            margin: 0 0 16px; padding: 16px 20px; border-radius: 16px;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 1px solid #6ee7b7; box-shadow: 0 6px 18px rgba(4, 120, 87, .12);
+        }
+        .triaje-finalizar__icono {
+            width: 48px; height: 48px; flex: none; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
+            background: linear-gradient(145deg, #10b981 0%, #047857 100%); color: #ffffff;
+        }
+        .triaje-finalizar__icono svg { width: 26px; height: 26px; }
+        .triaje-finalizar__texto { flex: 1 1 320px; display: flex; flex-direction: column; gap: 4px; color: #064e3b; font-size: .95rem; }
+        .triaje-finalizar__texto strong { font-size: 1.05rem; color: #065f46; }
+        .triaje-finalizar form { margin: 0; }
+        .triaje-finalizar__btn {
+            display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; border: 0; border-radius: 12px; cursor: pointer;
+            font-size: 1rem; font-weight: 800; color: #ffffff;
+            background: linear-gradient(180deg, #10b981 0%, #047857 100%); box-shadow: 0 6px 14px rgba(4, 120, 87, .35);
+        }
+        .triaje-finalizar__btn svg { width: 20px; height: 20px; }
+        .triaje-finalizar__btn:hover:not(:disabled) { filter: brightness(1.08); }
+        .triaje-finalizar__btn:disabled { cursor: not-allowed; opacity: .55; box-shadow: none; }
     </style>
 </head>
 
@@ -465,6 +489,29 @@
         {# El formulario sigue siendo para registrar; el ingreso elegido se consulta en el Historial MEOWS. #}
         {% if paciente.id %}{% url 'historial_meows' paciente_id=paciente.id as url_historial_triaje %}{% include 'obstetricia/_selector_ingreso.html' with documento=documento|default:paciente.numero_documento modulo='triaje' destino=url_historial_triaje %}{% endif %}
         {% include 'meows/_mensajes.html' %}
+
+        {# 2026-10-13: la paciente ya tiene ingreso de urgencias (lo abrió admisiones) pero sigue en Triaje #}
+        {# hasta que enfermería lo finalice aquí o registre signos en Dinámica. Ver finalizar_triaje. #}
+        {% if ingreso_triaje and paciente.id and not medicion %}
+        <div class="triaje-finalizar">
+            <span class="triaje-finalizar__icono"><i data-lucide="clipboard-check"></i></span>
+            <div class="triaje-finalizar__texto">
+                <strong>Ingreso de urgencias {{ ingreso_triaje.numero_ingreso }} ya abierto en Dinámica</strong>
+                {% if tiene_tomas_visita %}
+                <span>Registre aquí los signos de triaje. Cuando termine, pulse <b>Finalizar triaje</b>: la paciente pasará a Sala de Partos y desde ahí sus signos se registran en Dinámica.</span>
+                {% else %}
+                <span>Registre al menos una toma de triaje; después podrá finalizar el triaje para que la paciente pase a Sala de Partos.</span>
+                {% endif %}
+            </div>
+            <form method="post" action="{% url 'finalizar_triaje' paciente_id=paciente.id %}"
+                  onsubmit="return confirm('¿Finalizar el triaje de esta paciente?\n\nSaldrá de Triaje y pasará a Sala de Partos (ingreso {{ ingreso_triaje.numero_ingreso }}). Ya no se le podrán registrar tomas de triaje.');">
+                {% csrf_token %}
+                <button type="submit" class="triaje-finalizar__btn" {% if not tiene_tomas_visita %}disabled title="Registre al menos una toma de triaje"{% endif %}>
+                    <i data-lucide="check-circle-2"></i> Finalizar triaje
+                </button>
+            </form>
+        </div>
+        {% endif %}
 
         <!-- SECCIÓN: PARÁMETROS VITALES -->
         <section class="section parameters-section">
@@ -501,7 +548,7 @@
                                     <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="#e0f7ff" stroke-width="1" opacity=".85"/>
                                 </svg>
                             </span>
-                            <span class="rp2-fecha"><span class="rp2-fecha-etq">Ingreso</span><span>Sin ingreso</span></span>
+                            <span class="rp2-fecha"><span class="rp2-fecha-etq">Ingreso</span><span>{% if ingreso_triaje %}{{ ingreso_triaje.numero_ingreso }}{% else %}Sin ingreso{% endif %}</span></span>
                         </div>
                         <div class="info-section-row">
                             <div class="info-field size-lg">
@@ -566,7 +613,7 @@
                     {# 2026-10-07: aviso de triaje junto a la fecha/hora del monitoreo (antes iba arriba de todo). #}
                     <div class="triaje-banner">
                         <span style="font-size:1.2em;">🩺</span>
-                        <span>Registro de TRIAJE — esta paciente todavía no tiene ingreso formal. Estos datos quedan marcados como
+                        <span>Registro de TRIAJE — {% if ingreso_triaje %}la paciente sigue en triaje hasta que lo finalice.{% else %}esta paciente todavía no tiene ingreso formal.{% endif %} Estos datos quedan marcados como
                         "Triaje" en su línea de tiempo, separados de lo que llegue después desde Dinámica.</span>
                     </div>
                     {% if paciente.id %}

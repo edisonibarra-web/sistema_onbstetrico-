@@ -451,6 +451,28 @@ class MedicionValor(models.Model):
         return f"{self.parametro.codigo}: {self.valor}"
 
 
+class TriajeFinalizado(models.Model):
+    """
+    2026-10-13: enfermería dio por terminado el triaje de una paciente cuyo
+    ingreso de urgencias ya existía en Dinámica (admisiones lo abre al llegar,
+    antes de la toma de signos). Desde ahí ese ingreso sin cama cuenta como
+    Sala de Partos aunque Dinámica todavía no tenga signos vitales -- ver
+    frecuenciafetal.sala_partos_db._filtro_ingreso_sin_cama.
+    """
+    numero_documento = models.CharField(max_length=20, db_index=True)
+    numero_ingreso = models.CharField(max_length=20, help_text="ADNINGRESO.AINCONSEC")
+    finalizado_en = models.DateTimeField(default=timezone.now, db_index=True)
+    finalizado_por = models.CharField(max_length=255, blank=True, default="")
+
+    class Meta:
+        verbose_name = "Triaje finalizado"
+        verbose_name_plural = "Triajes finalizados"
+        unique_together = ("numero_documento", "numero_ingreso")
+
+    def __str__(self):
+        return f"{self.numero_documento} - ingreso {self.numero_ingreso}"
+
+
 # ============================================================================
 # 6️⃣ MODELO RANGO PARÁMETRO (Rangos de valores para cálculo de scores)
 # ============================================================================

@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from django.db.models import Q
 from django.contrib import messages
 from django.conf import settings
-from meows.models import Paciente, Formulario, Parametro, Medicion, MedicionValor, RangoParametro, Hpnestanc, Genpacien
+from meows.models import Paciente, Formulario, Parametro, Medicion, MedicionValor, RangoParametro, Hpnestanc, Genpacien, TriajeFinalizado
 from obstetriciaunificador.models import AtencionParto
 from meows.services.meows import calcular_score_desde_bd
 from meows.services.grid import construir_grid_meows
@@ -732,6 +732,8 @@ def crear_medicion_triaje(request, paciente_id=None, medicion_id=None):
         from frecuenciafetal.sala_partos_db import consultar_aseguradora_paciente
         aseguradora_dinamica = consultar_aseguradora_paciente(paciente.numero_documento)
 
+    ingreso_triaje, tiene_tomas_visita = _ingreso_sin_cama_triaje(paciente)
+
     return render(request, "meows/formulario_triaje.html", {
         "paciente": paciente,
         "parametros": parametros,
@@ -739,7 +741,66 @@ def crear_medicion_triaje(request, paciente_id=None, medicion_id=None):
         "documento": paciente.numero_documento,
         "profesional_nombre_sesion": nombre_profesional_sesion(request),
         "aseguradora_dinamica": aseguradora_dinamica,
+        "ingreso_triaje": ingreso_triaje,
+        "tiene_tomas_visita": tiene_tomas_visita,
     })
+
+
+def _ingreso_sin_cama_triaje(paciente):
+    """
+    2026-10-13: (ingreso de urgencias sin cama ya abierto en Dinámica | None,
+    ¿hay tomas de triaje de esta visita?). Si hay ingreso, Triaje ofrece
+    "Finalizar triaje" (ver finalizar_triaje).
+    """
+    if not paciente or not paciente.numero_documento or not getattr(settings, 'HABILITAR_BD_EXTERNA', True):
+        return None, False
+    from frecuenciafetal.sala_partos_db import consultar_ingreso_sin_cama
+    ingreso = consultar_ingreso_sin_cama(paciente.numero_documento)
+    if not ingreso:
+        return None, False
+    # Tomas de esta visita: desde 24 h antes del ingreso (el triaje puede ir antes).
+    fecha = ingreso['fecha_ingreso']
+    if fecha is not None and timezone.is_naive(fecha):
+        fecha = timezone.make_aware(fecha, timezone.get_current_timezone())
+    tomas = Medicion.objects.filter(paciente=paciente, origen='triaje')
+    if fecha is not None:
+        tomas = tomas.filter(fecha_hora__gte=fecha - timedelta(hours=24))
+    return ingreso, tomas.exists()
+
+
+@login_required_if_enabled
+@require_http_methods(["POST"])
+def finalizar_triaje(request, paciente_id):
+    """
+    2026-10-13: enfermería da por terminado el triaje de una paciente cuyo
+    ingreso de urgencias ya abrió admisiones en Dinámica. Desde ahí sale de
+    Triaje y aparece en Sala de Partos (en el filtro que le corresponda),
+    aunque Dinámica todavía no tenga signos vitales -- ver
+    frecuenciafetal.sala_partos_db._filtro_ingreso_sin_cama.
+    """
+    paciente = get_object_or_404(Paciente, id=paciente_id)
+    volver = redirect(f"/meows/triaje/nuevo/{paciente.id}/")
+    ingreso, tiene_tomas = _ingreso_sin_cama_triaje(paciente)
+    if not ingreso:
+        messages.error(request, "La paciente no tiene un ingreso de urgencias abierto en Dinámica: el triaje sigue abierto.")
+        return volver
+    if not tiene_tomas:
+        messages.error(request, "Registre al menos una toma de signos vitales de triaje antes de finalizarlo.")
+        return volver
+    _, creado = TriajeFinalizado.objects.get_or_create(
+        numero_documento=paciente.numero_documento,
+        numero_ingreso=ingreso['numero_ingreso'],
+        defaults={'finalizado_por': (nombre_profesional_sesion(request) or '')[:255]},
+    )
+    logger.info(
+        "Triaje finalizado: %s, ingreso %s (%s)",
+        paciente.numero_documento, ingreso['numero_ingreso'], 'nuevo' if creado else 'ya estaba',
+    )
+    messages.success(
+        request,
+        f"Triaje finalizado. La paciente pasó a Sala de Partos con el ingreso {ingreso['numero_ingreso']}.",
+    )
+    return redirect(f"/meows/historial/{paciente.id}/?doc={paciente.numero_documento}")
 
 
 @login_required_if_enabled

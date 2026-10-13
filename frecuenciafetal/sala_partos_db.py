@@ -210,13 +210,42 @@ DIAS_MAX_INGRESO_SIN_CAMA = 3
 # trae la sincronización MEOWS). En producción, admisiones abre el ingreso de
 # urgencias al llegar la paciente y Triaje la bloqueaba de inmediato ("ya tiene
 # ingreso activo") sin que nadie le hubiera tomado signos en Dinámica: no se le
-# podían registrar los de triaje. Mientras no haya tomas allá, sigue en Triaje.
-SQL_INGRESO_CON_SIGNOS_DINAMICA = """
-          AND EXISTS (
+# podían registrar los de triaje. Mientras no haya tomas allá, sigue en Triaje
+# -- salvo que enfermería pulse "Finalizar triaje" (meows.TriajeFinalizado).
+SQL_EXISTEN_SIGNOS_DINAMICA = """EXISTS (
               SELECT 1 FROM HCNREGENF AS RE
               INNER JOIN HCNSIGVIT AS SV ON SV.HCNREGENF = RE.OID
               WHERE RE.ADNINGRESO = I.OID
           )"""
+
+
+def _ingresos_triaje_finalizado():
+    """AINCONSEC de los ingresos cuyo triaje se finalizó en esta app (solo los
+    recientes: un ingreso sin cama más viejo que DIAS_MAX_INGRESO_SIN_CAMA ya
+    no entra a la lista de todos modos)."""
+    from datetime import timedelta
+    from django.utils import timezone
+    try:
+        from meows.models import TriajeFinalizado
+        desde = timezone.now() - timedelta(days=DIAS_MAX_INGRESO_SIN_CAMA + 1)
+        numeros = TriajeFinalizado.objects.filter(finalizado_en__gte=desde).values_list('numero_ingreso', flat=True)
+        return sorted({int(n) for n in numeros if str(n or '').strip().isdigit()})
+    except Exception:
+        return []
+
+
+def _filtro_ingreso_sin_cama():
+    """(sql, params) que se agrega al bloque de ingresos SIN cama: cuentan como
+    Sala de Partos si Dinámica ya tiene signos vitales o si su triaje se
+    finalizó en esta app."""
+    finalizados = _ingresos_triaje_finalizado()
+    if not finalizados:
+        return "\n          AND " + SQL_EXISTEN_SIGNOS_DINAMICA, []
+    marcas = ', '.join(['%s'] * len(finalizados))
+    return (
+        f"\n          AND ({SQL_EXISTEN_SIGNOS_DINAMICA} OR I.AINCONSEC IN ({marcas}))",
+        finalizados,
+    )
 # 2026-10-08: un ingreso sin egreso más viejo que esto no es el "actual"
 # (mismo criterio que ingresos.DIAS_MAX_EN_CURSO_SIN_EGRESO).
 DIAS_MAX_INGRESO_VIGENTE_SIN_EGRESO = 60
@@ -386,8 +415,9 @@ def listar_pacientes_sala_partos(query=None, limit=50):
           {filtro_triaje}
       )
     """
-    sql = sql.replace('{sin_cama_con_signos}', SQL_INGRESO_CON_SIGNOS_DINAMICA)
-    params = [DIAS_MAX_INGRESO_SIN_CAMA, AINESTADO_ANULADO]
+    filtro_sin_cama, params_sin_cama = _filtro_ingreso_sin_cama()
+    sql = sql.replace('{sin_cama_con_signos}', filtro_sin_cama)
+    params = [DIAS_MAX_INGRESO_SIN_CAMA, AINESTADO_ANULADO, *params_sin_cama]
     if docs_triaje:
         sql = sql.replace('{filtro_triaje}', 'OR PAC.PACNUMDOC IN (' + ', '.join(['%s'] * len(docs_triaje)) + ')')
         params += docs_triaje
@@ -557,14 +587,50 @@ def paciente_en_sala_partos(cedula):
           ))
       )
     """
-    sql = sql.replace('{sin_cama_con_signos}', SQL_INGRESO_CON_SIGNOS_DINAMICA)
+    filtro_sin_cama, params_sin_cama = _filtro_ingreso_sin_cama()
+    sql = sql.replace('{sin_cama_con_signos}', filtro_sin_cama)
     try:
         with connections['readonly'].cursor() as cursor:
-            cursor.execute(sql, [DIAS_MAX_INGRESO_SIN_CAMA, AINESTADO_ANULADO, cedula, viene_de_triaje])
+            cursor.execute(sql, [DIAS_MAX_INGRESO_SIN_CAMA, AINESTADO_ANULADO, *params_sin_cama, cedula, viene_de_triaje])
             return cursor.fetchone() is not None
     except Exception as exc:
         _marcar_dinamica_caida(exc)
         return None
+
+
+def consultar_ingreso_sin_cama(cedula):
+    """
+    2026-10-13: ingreso de urgencias que admisiones ya abrió en Dinámica pero
+    que todavía no tiene cama (mismo criterio que el bloque "sin cama" de
+    listar_pacientes_sala_partos). Triaje lo usa para ofrecer "Finalizar
+    triaje". Devuelve {'numero_ingreso': str, 'fecha_ingreso': datetime} o
+    None (sin ingreso así / sin conexión).
+    """
+    cedula = (cedula or '').strip()
+    if not cedula or not dinamica_disponible():
+        return None
+    sql = """
+    SELECT TOP 1 I.AINCONSEC, I.AINFECING
+    FROM ADNINGRESO AS I
+    INNER JOIN GENPACIEN AS PAC ON I.GENPACIEN = PAC.OID
+    WHERE PAC.PACNUMDOC = %s
+      AND I.AINFECEGRE IS NULL
+      AND I.AINFECING >= DATEADD(DAY, -%s, GETDATE())
+      AND (I.AINESTADO IS NULL OR I.AINESTADO <> %s)
+      AND (I.AINTIPING = 2 OR I.AINURGCON = 0)
+      AND NOT EXISTS (SELECT 1 FROM HPNESTANC AS E2 WHERE E2.ADNINGRES = I.OID)
+    ORDER BY I.AINFECING DESC, I.OID DESC
+    """
+    try:
+        with connections['readonly'].cursor() as cursor:
+            cursor.execute(sql, [cedula, DIAS_MAX_INGRESO_SIN_CAMA, AINESTADO_ANULADO])
+            row = cursor.fetchone()
+    except Exception as exc:
+        _marcar_dinamica_caida(exc)
+        return None
+    if not row or row[0] is None:
+        return None
+    return {'numero_ingreso': str(row[0]).strip(), 'fecha_ingreso': row[1]}
 
 
 def consultar_ingreso_paciente(cedula):
