@@ -480,7 +480,7 @@
 </head>
 
 <body>
-{% include 'obstetricia/header_formatos.html' with current_module='meows' documento=documento|default:paciente.numero_documento|default:'' modulo_titulo='Sistema de Alerta Temprana Obstétrico' modulo_subtitulo='Triaje (sin ingreso)' %}
+{% if ingreso_triaje %}{% include 'obstetricia/header_formatos.html' with current_module='meows' documento=documento|default:paciente.numero_documento|default:'' modulo_titulo='Sistema de Alerta Temprana Obstétrico' modulo_subtitulo='Triaje (ingreso de urgencias abierto)' %}{% else %}{% include 'obstetricia/header_formatos.html' with current_module='meows' documento=documento|default:paciente.numero_documento|default:'' modulo_titulo='Sistema de Alerta Temprana Obstétrico' modulo_subtitulo='Triaje (sin ingreso)' %}{% endif %}
 <div class="app-layout-sidebar">
     {% include 'obstetricia/sidebar.html' with is_panel=False documento=documento|default:paciente.numero_documento|default:'' current_module='meows' %}
     <div class="sidebar-main-content">
@@ -635,7 +635,7 @@
                 <h3 class="section-title titulo-placa tp-placa {% if medicion %}titulo-placa--correccion{% else %}titulo-placa--triaje{% endif %}">
                     <span class="section-icon-badge"><i data-lucide="{% if medicion %}pencil-line{% else %}activity{% endif %}"></i></span>
                     <span class="titulo-placa-texto">
-                        <span class="titulo-placa-kicker">{% if medicion %}Corrección de registro · Triaje{% else %}Triaje obstétrico · Paciente sin ingreso{% endif %}</span>
+                        <span class="titulo-placa-kicker">{% if medicion %}Corrección de registro · Triaje{% elif ingreso_triaje %}Triaje obstétrico · Ingreso {{ ingreso_triaje.numero_ingreso }}{% else %}Triaje obstétrico · Paciente sin ingreso{% endif %}</span>
                         <span class="titulo-placa-principal">{% if medicion %}Editar medición de triaje{% else %}Parámetros vitales{% endif %}</span>
                         {% if not medicion %}<span class="titulo-placa-ayuda">Registre los signos vitales tal como los tomó; la escala MEOWS se calcula sola.</span>{% endif %}
                     </span>

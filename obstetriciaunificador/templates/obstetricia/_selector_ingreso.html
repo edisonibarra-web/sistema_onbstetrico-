@@ -93,6 +93,10 @@ Se incluye en MEOWS (historial), Trabajo de Parto y Control Posparto:
     background: #e2e8f0; color: #334155; text-transform: uppercase; letter-spacing: 0.03em;
 }
 .sel-ing__etiqueta--app { background: #dbeafe; color: #1e3a8a; }
+/* 2026-10-14: varias versiones del mismo formato y registro (_1, _2...). */
+.sel-ing__etiqueta--vigente { background: #dcfce7; color: #166534; }
+.sel-ing__etiqueta--reemplazado { background: #fef3c7; color: #92400e; }
+.sel-ing__docs-lista li.sel-ing__doc--reemplazado a { color: #64748b; font-weight: 500; text-decoration: line-through; }
 .sel-ing__vacio { font-size: 0.85rem; color: var(--sel-suave); }
 @media (max-width: 700px) {
     .sel-ing { padding: 10px 12px; }
@@ -303,8 +307,14 @@ window.activarSoloConsulta = function (opciones) {
                 }
                 panelDocs.innerHTML = titulo + '<ul class="sel-ing__docs-lista">' + data.archivos.map(function (a) {
                     var href = '/atencion/api/ingresos/documento/?doc=' + encodeURIComponent(doc) + '&ingreso=' + encodeURIComponent(s.numero) + '&archivo=' + encodeURIComponent(a.nombre);
-                    return '<li>📄 <a href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(a.nombre) + '</a>'
-                        + '<span class="sel-ing__etiqueta' + (a.de_esta_app ? ' sel-ing__etiqueta--app' : '') + '">' + (a.de_esta_app ? 'Esta app' : 'Otro aplicativo') + '</span></li>';
+                    // 2026-10-14: versión vigente / reemplazada (ver repositorio.versiones_de_documentos).
+                    var version = a.vigente ? '<span class="sel-ing__etiqueta sel-ing__etiqueta--vigente">Vigente</span>'
+                        : a.reemplazado_por ? '<span class="sel-ing__etiqueta sel-ing__etiqueta--reemplazado" title="Hay una versión corregida: '
+                            + esc(a.reemplazado_por) + '">Reemplazado por _' + esc((a.reemplazado_por.match(/_(\d+)\.pdf$/i) || [])[1] || '?') + '</span>'
+                        : '';
+                    return '<li' + (a.reemplazado_por ? ' class="sel-ing__doc--reemplazado"' : '') + '>📄 <a href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(a.nombre) + '</a>'
+                        + '<span class="sel-ing__etiqueta' + (a.de_esta_app ? ' sel-ing__etiqueta--app' : '') + '">' + (a.de_esta_app ? 'Esta app' : 'Otro aplicativo') + '</span>'
+                        + version + '</li>';
                 }).join('') + '</ul>';
             })
             .catch(function () { panelDocs.innerHTML = '<p class="sel-ing__vacio">⚠️ No se pudo contactar el servidor.</p>'; });

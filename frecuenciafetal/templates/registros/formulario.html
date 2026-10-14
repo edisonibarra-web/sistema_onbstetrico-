@@ -6877,13 +6877,13 @@
           </div>
           {# 2026-10-06: qué falta para habilitar "Guardar Registro Completo" (ver pintarMotivoCierre). #}
           <p id="cierre-motivo" class="cierre-motivo" role="status" style="display:none"></p>
-          {# 2026-10-05: el formato ya se envía solo al cerrar; reenviar sin #}
-          {# haber corregido nada solo deja una copia repetida en la NAS. #}
+          {# 2026-10-05: el formato ya se envía solo al cerrar. 2026-10-14: sin #}
+          {# cambios no se guarda nada; con cambios, queda una versión nueva (_2, _3...). #}
           <p id="aviso-reenviar-repositorio" class="aviso-reenviar-repositorio" style="display:none">
             <i data-lucide="alert-triangle" style="width:16px;height:16px;vertical-align:-3px"></i>
             <strong>Importante:</strong> al cerrar el registro, el formato ya se envió automáticamente al repositorio.
             Use <strong>"Reenviar a repositorio"</strong> únicamente si <strong>corrigió el registro desde "Vista previa"</strong>
-            o si el envío automático falló. Cada reenvío guarda una copia nueva.
+            o si el envío automático falló. La versión corregida queda como un archivo nuevo y se marca como vigente.
           </p>
 
         </main>
@@ -11786,23 +11786,19 @@
             const textoOriginal = btn ? btn.innerHTML : '';
             if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
             try {
-              const enviar = (forzar) => fetch('/atencion/api/repositorio/enviar/', {
+              const resp = await fetch('/atencion/api/repositorio/enviar/', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                body: JSON.stringify({ formato: 'control_posparto', registro_id: savedRegistroId, forzar }),
+                body: JSON.stringify({ formato: 'control_posparto', registro_id: savedRegistroId }),
               });
-              let resp = await enviar(false);
-              let data = await resp.json().catch(() => ({ ok: false, mensaje: 'HTTP ' + resp.status }));
-              // 2026-09-25: sin cambios desde el último envío -> no se guarda otra
-              // copia idéntica, salvo que el usuario lo confirme.
+              const data = await resp.json().catch(() => ({ ok: false, mensaje: 'HTTP ' + resp.status }));
+              // 2026-10-14: sin cambios desde el último envío -> el formato ya está
+              // en el repositorio; ya no se ofrece guardar otra copia idéntica
+              // (el servidor tampoco la acepta, ver FORMATOS_SIN_COPIA_IDENTICA).
               if (data.sin_cambios) {
-                if (!confirm(data.mensaje + '\n\n¿Desea guardar de todos modos OTRA copia en el repositorio?')) {
-                  showToast('ℹ️ ' + data.mensaje, 'info');
-                  return;
-                }
-                resp = await enviar(true);
-                data = await resp.json().catch(() => ({ ok: false, mensaje: 'HTTP ' + resp.status }));
+                showToast('ℹ️ ' + data.mensaje, 'info');
+                return;
               }
               showToast((data.ok ? '📤 ' : '⚠️ ') + (data.mensaje || 'Error desconocido'), data.ok ? 'success' : 'error');
             } catch (err) {

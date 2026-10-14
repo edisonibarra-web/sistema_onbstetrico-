@@ -1079,7 +1079,7 @@ def api_documentos_ingreso(request):
     """GET /atencion/api/ingresos/documentos/?doc=...&ingreso=... -- archivos de
     <cédula>/<ingreso> en el repositorio (de esta app y de otros aplicativos)."""
     from .ingresos import limpiar_numero_ingreso
-    from .repositorio import listar_documentos_ingreso
+    from .repositorio import listar_documentos_ingreso, versiones_de_documentos
 
     doc = (request.GET.get("doc") or "").strip()
     ingreso = limpiar_numero_ingreso(request.GET.get("ingreso"))
@@ -1095,9 +1095,15 @@ def api_documentos_ingreso(request):
             "mensaje": f"No se pudo consultar {destino} en este momento. "
                        "Los registros de la app se siguen viendo normalmente.",
         }, status=502)
+    # 2026-10-14: si un formato tiene varias versiones del mismo registro
+    # (_1, _2...), se marca la vigente y las reemplazadas.
+    versiones = versiones_de_documentos(doc, ingreso, archivos)
     return JsonResponse({
         "ok": True, "modo": settings.REPOSITORIO_MODO, "destino": destino,
-        "archivos": [{"nombre": nombre, "de_esta_app": nombre.startswith("otros_")} for nombre in archivos],
+        "archivos": [
+            {"nombre": nombre, "de_esta_app": nombre.startswith("otros_"), **versiones.get(nombre, {})}
+            for nombre in archivos
+        ],
     })
 
 

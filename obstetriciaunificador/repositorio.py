@@ -27,7 +27,8 @@ Duplicados (2026-09-25):
 - Los envíos MANUALES (Finalizar / Reenviar) guardan la huella del contenido
   (huella_contenido): si no cambió nada desde el último envío de ese mismo
   registro, no se guarda otra copia idéntica (SinCambiosError) salvo que el
-  usuario lo confirme (forzar=True).
+  usuario lo confirme (forzar=True). En FORMATOS_SIN_COPIA_IDENTICA
+  (control posparto, 2026-10-14) forzar se ignora: nunca hay copia idéntica.
 
 Modo (settings.REPOSITORIO_MODO):
 - "local": pruebas en el equipo local -- misma estructura en
@@ -59,6 +60,14 @@ FORMATOS = {
     'triaje': 'triaje_obstetrico',
 }
 PREFIJO_CATEGORIA = 'otros'
+
+# 2026-10-14: formatos en los que "forzar" NO permite guardar una copia
+# idéntica al último envío. En producción quedaron _2 idénticos de control
+# posparto (ingresos 1828125, 1829157, 1829976): el personal pulsaba
+# "Reenviar a repositorio" justo después de cerrar y aceptaba "guardar otra
+# copia". Una copia idéntica no aporta nada; si el registro se corrigió, la
+# huella cambia y el reenvío se guarda normalmente.
+FORMATOS_SIN_COPIA_IDENTICA = {'control_posparto'}
 
 _RE_CARACTERES_INVALIDOS = re.compile(r'[\\/:*?"<>|\s]')
 _RE_IGNORAR_AL_COMPARAR = re.compile(r'[\s.\-_]')
@@ -716,6 +725,8 @@ def _enviar_manual(pdf, *, cedula, numero_ingreso, formato, atencion, referencia
 
     huella = huella_contenido(pdf)
     cedula_l, ingreso_l = _limpiar(cedula), _limpiar(numero_ingreso)
+    if formato in FORMATOS_SIN_COPIA_IDENTICA:
+        forzar = False
     with bloqueo_envio(f'manual|{formato}|{cedula_l}|{ingreso_l}|{referencia}'):
         if huella and not forzar:
             ultimo = (
@@ -918,6 +929,47 @@ def _archivos_del_formato(archivos, formato, cedula_l):
         re.IGNORECASE,
     )
     return {int(m.group(1)): m.group(0) for m in map(patron.match, archivos) if m}
+
+
+# 2026-10-14: formatos que se reenvían por registro ("Reenviar a repositorio",
+# "Finalizar" de nuevo): cada reenvío corregido deja un archivo nuevo (_2,
+# _3...) y el anterior se conserva. En la lista de documentos del ingreso se
+# marca cuál es la versión VIGENTE y cuáles fueron reemplazadas.
+FORMATOS_CON_VERSIONES = ('control_posparto', 'trabajo_parto')
+
+
+def versiones_de_documentos(cedula, numero_ingreso, archivos):
+    """
+    {nombre: {'vigente': bool, 'reemplazado_por': nombre | ''}} para los PDF
+    de FORMATOS_CON_VERSIONES que tienen más de una versión del MISMO registro.
+    Las versiones se agrupan por registro (referencia en la bitácora), así dos
+    registros distintos en un mismo ingreso no se mezclan; un archivo que no
+    está en la bitácora se agrupa por formato. La vigente es la de mayor
+    consecutivo. Los archivos con una sola versión no aparecen.
+    """
+    from .models import DocumentoRepositorio
+
+    cedula_l, ingreso_l = _limpiar(cedula), _limpiar(numero_ingreso)
+    referencias = dict(
+        DocumentoRepositorio.objects.filter(
+            cedula=cedula_l[:50], numero_ingreso=ingreso_l[:30], formato__in=FORMATOS_CON_VERSIONES,
+            estado=DocumentoRepositorio.ESTADO_ENVIADO,
+        ).exclude(nombre_archivo='').values_list('nombre_archivo', 'referencia')
+    )
+    grupos = {}
+    for formato in FORMATOS_CON_VERSIONES:
+        for consecutivo, nombre in _archivos_del_formato(archivos, formato, cedula_l).items():
+            clave = (formato, referencias.get(nombre, ''))
+            grupos.setdefault(clave, []).append((consecutivo, nombre))
+    versiones = {}
+    for lista in grupos.values():
+        if len(lista) < 2:
+            continue
+        lista.sort()
+        vigente = lista[-1][1]
+        for _, nombre in lista:
+            versiones[nombre] = {'vigente': nombre == vigente, 'reemplazado_por': '' if nombre == vigente else vigente}
+    return versiones
 
 
 def confirmar_envios_grupo(cedula, numero_ingreso, formato, antes_de=None):
