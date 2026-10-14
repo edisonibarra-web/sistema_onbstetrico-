@@ -859,7 +859,8 @@ def api_enviar_repositorio(request):
       {"formato": "control_posparto", "registro_id": "<uuid>"}   (reintento;
           normalmente se envía solo al "Guardar Registro Completo")
       + "forzar": true para guardar otra copia aunque el contenido no haya
-        cambiado desde el último envío (sin él, eso responde 409 sin_cambios).
+        cambiado desde el último envío (sin él, eso responde 200 con
+        sin_cambios: true y ok: false). En control posparto "forzar" se ignora.
     """
     import json
     from sistema_obstetrico.auth_utils import nombre_profesional_sesion
@@ -891,11 +892,14 @@ def api_enviar_repositorio(request):
         else:
             return JsonResponse({"ok": False, "mensaje": f"Formato no válido: {formato!r}"}, status=400)
     except SinCambiosError as exc:
+        # 2026-10-14: 200 (antes 409). Es un resultado normal -- el formato ya
+        # está en el repositorio --, no un error; con 409 el navegador lo
+        # pintaba en rojo en la consola. Las pantallas miran "sin_cambios".
         return JsonResponse({
             "ok": False, "sin_cambios": True, "mensaje": str(exc),
             "nombre_archivo": exc.documento.nombre_archivo,
             "numero_ingreso": exc.documento.numero_ingreso,
-        }, status=409)
+        })
     except RepositorioError as exc:
         return JsonResponse({"ok": False, "mensaje": str(exc)}, status=400)
 

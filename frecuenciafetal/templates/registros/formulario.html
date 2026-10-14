@@ -1767,6 +1767,14 @@
       justify-content: flex-end;
     }
 
+    /* 2026-10-14: aviso del guardado único de la vista previa. */
+    .vp-pendientes {
+      margin-right: auto; align-self: center;
+      font-size: .8rem; font-weight: 700; color: #92400e;
+      background: #fef3c7; border: 1px solid #fcd34d; border-radius: 999px; padding: 3px 10px;
+    }
+    .vp-pendientes[hidden] { display: none; }
+
     .preview-loading {
       text-align: center;
       padding: 2rem;
@@ -5094,15 +5102,21 @@
         </div>
 
         <div id="fc-trace-modal-overlay" class="preview-modal-overlay"
-          onclick="if(event.target===this) cerrarVistaPreviaFetocardia()">
+          onclick="if(event.target===this) salirVistaPrevia()">
           <div class="preview-modal" style="max-width:820px;">
             <div class="preview-modal-header">
               <span><i data-lucide="line-chart" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"></i>Vista previa: Fetocardia y Control Posparto Inmediato</span>
-              <span class="preview-modal-close" onclick="cerrarVistaPreviaFetocardia()" title="Cerrar">&times;</span>
+              <span class="preview-modal-close" onclick="salirVistaPrevia()" title="Cerrar">&times;</span>
             </div>
             <div class="preview-modal-body" id="fc-trace-modal-body"></div>
+            {# 2026-10-14: un solo "Guardar cambios" para toda la vista previa #}
+            {# (antes uno por sección y un ✓ por fila de fetocardia). #}
             <div class="preview-modal-footer">
-              <button type="button" class="btn btn-secondary btn-sm" onclick="cerrarVistaPreviaFetocardia()">Cerrar</button>
+              <span id="vp-pendientes" class="vp-pendientes" hidden>Hay cambios sin guardar</span>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="salirVistaPrevia()">Cerrar</button>
+              <button type="button" class="btn btn-primary btn-sm" id="vp-btn-guardar" onclick="guardarVistaPrevia()">
+                <i data-lucide="save" style="width:14px;height:14px;vertical-align:-2px;"></i> Guardar cambios
+              </button>
             </div>
           </div>
         </div>
@@ -7579,13 +7593,84 @@
             const body = document.getElementById('fc-trace-modal-body');
             // 2026-10-05: + datos de la paciente, desgarro y Control del recién
             // nacido (con glucometrías): antes no se podían corregir aquí.
-            body.innerHTML = renderPreviewDatosPaciente()
-              + renderTrazoFetocardia(fcPreviewRegistros) + renderResumenPospartoMeows()
-              + renderPreviewCaracteristicasParto() + renderPreviewVigilanciaPosparto()
-              + renderPreviewRecienNacido();
+            // 2026-10-14: cada sección editable lleva data-vp-seccion para el
+            // guardado único (guardarVistaPrevia), que solo procesa las que cambiaron.
+            const seccion = (nombre, html) => html ? `<div data-vp-seccion="${nombre}">${html}</div>` : '';
+            body.innerHTML = seccion('datos', renderPreviewDatosPaciente())
+              + seccion('fetocardia', renderTrazoFetocardia(fcPreviewRegistros)) + renderResumenPospartoMeows()
+              + seccion('parto', renderPreviewCaracteristicasParto()) + renderPreviewVigilanciaPosparto()
+              + seccion('rn', renderPreviewRecienNacido());
             llenarPreviewRecienNacido();
+            vpFotoInicial = fotosVistaPrevia();
+            actualizarAvisoVistaPrevia();
             document.getElementById('fc-trace-modal-overlay').classList.add('show');
             if (typeof lucide !== 'undefined') lucide.createIcons();
+          }
+
+          // --- 2026-10-14: guardado ÚNICO de la vista previa ----------------
+          // Antes cada sección tenía su "Guardar cambios" y cada fila de
+          // fetocardia su ✓: se corregía un dato y se pulsaba el botón de OTRA
+          // sección, y la corrección no se guardaba. Ahora un solo botón (pie
+          // de la ventana) detecta qué secciones cambiaron, las valida, copia
+          // los valores al formulario y guarda todo con submitForm(), que ya
+          // envía los campos del registro y las correcciones de fetocardia
+          // que cambiaron.
+          let vpFotoInicial = {};
+
+          function fotosVistaPrevia() {
+            const fotos = {};
+            document.querySelectorAll('#fc-trace-modal-body [data-vp-seccion]').forEach(sec => {
+              fotos[sec.dataset.vpSeccion] = JSON.stringify(Array.from(sec.querySelectorAll('input, select, textarea'))
+                .map(el => (el.type === 'radio' || el.type === 'checkbox') ? el.checked : el.value));
+            });
+            return fotos;
+          }
+
+          function seccionesCambiadasVistaPrevia() {
+            const ahora = fotosVistaPrevia();
+            return Object.keys(ahora).filter(k => ahora[k] !== vpFotoInicial[k]);
+          }
+
+          function actualizarAvisoVistaPrevia() {
+            const aviso = document.getElementById('vp-pendientes');
+            if (aviso) aviso.hidden = !seccionesCambiadasVistaPrevia().length;
+          }
+          ['input', 'change', 'click'].forEach(ev => document.getElementById('fc-trace-modal-body')
+            ?.addEventListener(ev, () => setTimeout(actualizarAvisoVistaPrevia, 0)));
+
+          // Cerrar / ir a otra ventana desde la vista previa: si hay cambios
+          // sin guardar, se pregunta antes. Devuelve true si se cerró.
+          function salirVistaPrevia() {
+            if (seccionesCambiadasVistaPrevia().length
+                && !confirm('Hay cambios sin guardar en la vista previa.\n\n¿Salir sin guardarlos? (Para guardarlos use "Guardar cambios".)')) {
+              return false;
+            }
+            cerrarVistaPreviaFetocardia();
+            return true;
+          }
+
+          async function guardarVistaPrevia() {
+            const cambiadas = seccionesCambiadasVistaPrevia();
+            if (!cambiadas.length) {
+              showToast('No hay cambios para guardar.', 'info');
+              return;
+            }
+            // 1. Validar todo lo que cambió ANTES de tocar el formulario.
+            const validaciones = { datos: validarDatosPacientePreview, fetocardia: validarFetocardiaPreview, rn: validarRecienNacidoPreview };
+            for (const sec of cambiadas) {
+              const error = validaciones[sec] && validaciones[sec]();
+              if (error) { showToast(error, 'error'); return; }
+            }
+            // 2. Copiar al formulario.
+            const aplicar = { datos: aplicarDatosPacientePreview, fetocardia: aplicarFetocardiaPreview,
+                              parto: aplicarCaracteristicasPartoPreview, rn: aplicarRecienNacidoPreview };
+            cambiadas.forEach(sec => aplicar[sec] && aplicar[sec]());
+            // 3. Guardar todo de una vez y volver a pintar con lo guardado.
+            const ok = await submitForm('vp-btn-guardar');
+            if (ok) {
+              refrescarResponsables();
+              abrirVistaPreviaFetocardia();
+            }
           }
 
           // 2026-10-05: escapa texto para meterlo en atributos/HTML de la vista previa.
@@ -7623,24 +7708,21 @@
                     </tr>
                   </tbody>
                 </table>
-                <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;" onclick="guardarEdicionDatosPaciente()"><i data-lucide="check" style="width:14px;height:14px;vertical-align:-2px;"></i> Guardar cambios</button>
               </div>`;
           }
 
-          function guardarEdicionDatosPaciente() {
-            const acompanante = document.getElementById('fc-preview-nombre_acompanante').value.trim();
-            if (!acompanante) {
-              showToast('El nombre del acompañante en el parto es requerido.', 'error');
-              return;
+          // 2026-10-14: validar / aplicar por separado (ver guardarVistaPrevia).
+          function validarDatosPacientePreview() {
+            if (!document.getElementById('fc-preview-nombre_acompanante').value.trim()) {
+              return 'Datos de la paciente: el nombre del acompañante en el parto es requerido.';
             }
+            return null;
+          }
+
+          function aplicarDatosPacientePreview() {
             document.getElementById('edad_gestacional').value = document.getElementById('fc-preview-edad_gestacional').value;
             document.getElementById('gestas').value = document.getElementById('fc-preview-gestas').value;
-            document.getElementById('nombre_acompanante').value = acompanante;
-            if (savedRegistroId) {
-              submitForm();
-            } else {
-              showToast('Cambios aplicados. Guarde el registro para persistirlos.', 'success');
-            }
+            document.getElementById('nombre_acompanante').value = document.getElementById('fc-preview-nombre_acompanante').value.trim();
           }
 
           // Vista previa editable del "Control del recién nacido": se copia
@@ -7649,7 +7731,12 @@
           // su diseño sin duplicarlos a mano. Los valores los pone
           // llenarPreviewRecienNacido() (outerHTML no lleva lo digitado).
           function renderPreviewRecienNacido() {
-            const fuente = document.querySelector('.rn-card-body .rn-datos');
+            // 2026-10-14: :not(.rn-preview) -- el modal está ANTES que el
+            // formulario en el HTML, así que al reabrir la vista previa (p. ej.
+            // tras corregir fetocardia) se copiaba la copia anterior, con ids
+            // ya prefijados: los campos del RN salían vacíos y "Guardar
+            // cambios" decía "no se pueden dejar vacíos: género, peso...".
+            const fuente = document.querySelector('.rn-card-body:not(.rn-preview) .rn-datos');
             if (!fuente) return '';
             const copia = fuente.cloneNode(true);
             copia.querySelectorAll('[id]').forEach(el => { el.id = 'fc-preview-' + el.id; });
@@ -7678,7 +7765,6 @@
                   <thead><tr><th>Hora</th><th>Resultado (mg/dL)</th><th></th></tr></thead>
                   <tbody id="fc-preview-gluco-lista"></tbody>
                 </table>
-                <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;" onclick="guardarEdicionRecienNacido()"><i data-lucide="check" style="width:14px;height:14px;vertical-align:-2px;"></i> Guardar cambios</button>
               </div>`;
           }
 
@@ -7701,43 +7787,39 @@
             document.getElementById('fc-preview-gluco-lista').appendChild(fila);
           }
 
-          function guardarEdicionRecienNacido() {
-            const lee = (id, tipo) => leerCampoRN('fc-preview-' + id, tipo);
-            const faltan = RN_OBLIGATORIOS_CIERRE.filter(([id, tipo]) => lee(id, tipo) === null).map(([, , etq]) => etq);
-            if (faltan.length) {
-              showToast('Recién nacido: no se pueden dejar vacíos: ' + faltan.join(', ') + '.', 'error');
-              return;
-            }
-            for (const id of ['rn_apgar_1min', 'rn_apgar_5min', 'rn_apgar_10min']) {
-              const v = lee(id, 'ent');
-              if (v !== null && (v < 0 || v > 10)) {
-                showToast('Recién nacido: el APGAR debe estar entre 0 y 10.', 'error');
-                return;
-              }
-            }
-            // 2026-10-06: con "No aplica" no viajan glucometrías.
-            const glucoNoAplica = !!lee('rn_glucometrias_no_aplica', 'check');
-            const glucos = glucoNoAplica ? [] : Array.from(document.querySelectorAll('#fc-preview-gluco-lista tr')).map(fila => ({
+          // 2026-10-14: validar / aplicar por separado (ver guardarVistaPrevia).
+          const leeRNPreview = (id, tipo) => leerCampoRN('fc-preview-' + id, tipo);
+
+          // 2026-10-06: con "No aplica" no viajan glucometrías.
+          function glucometriasRNPreview() {
+            if (leeRNPreview('rn_glucometrias_no_aplica', 'check')) return [];
+            return Array.from(document.querySelectorAll('#fc-preview-gluco-lista tr')).map(fila => ({
               hora: fila.querySelector('[data-g="hora"]').value,
               resultado: fila.querySelector('[data-g="resultado"]').value,
             })).filter(g => g.hora || g.resultado);
-            if (glucos.some(g => !g.hora || !g.resultado)) {
-              showToast('Recién nacido: complete hora y resultado de cada glucometría, o quite la fila.', 'error');
-              return;
-            }
+          }
 
-            RN_CAMPOS.forEach(([, id, tipo]) => escribirCampoRN(id, tipo, lee(id, tipo)));
+          function validarRecienNacidoPreview() {
+            const faltan = RN_OBLIGATORIOS_CIERRE.filter(([id, tipo]) => leeRNPreview(id, tipo) === null).map(([, , etq]) => etq);
+            if (faltan.length) return 'Recién nacido: no se pueden dejar vacíos: ' + faltan.join(', ') + '.';
+            for (const id of ['rn_apgar_1min', 'rn_apgar_5min', 'rn_apgar_10min']) {
+              const v = leeRNPreview(id, 'ent');
+              if (v !== null && (v < 0 || v > 10)) return 'Recién nacido: el APGAR debe estar entre 0 y 10.';
+            }
+            if (glucometriasRNPreview().some(g => !g.hora || !g.resultado)) {
+              return 'Recién nacido: complete hora y resultado de cada glucometría, o quite la fila.';
+            }
+            return null;
+          }
+
+          function aplicarRecienNacidoPreview() {
+            const glucos = glucometriasRNPreview();
+            RN_CAMPOS.forEach(([, id, tipo]) => escribirCampoRN(id, tipo, leeRNPreview(id, tipo)));
             document.getElementById('rn-gluco-lista').innerHTML = '';
             glucos.forEach(g => agregarGlucometriaRN(g.hora, g.resultado));
             actualizarVacioGlucoRN();
             if (registroCerrado) {
               document.querySelectorAll('#rn-gluco-lista input, #rn-gluco-lista button').forEach(el => { el.disabled = true; });
-            }
-
-            if (savedRegistroId) {
-              submitForm();
-            } else {
-              showToast('Cambios aplicados. Guarde el registro para persistirlos.', 'success');
             }
           }
 
@@ -7746,7 +7828,7 @@
           // hora_parto) con ids propios (fc-preview-*) para no chocar con los
           // del formulario real, y al guardar copia los valores de vuelta a los
           // campos reales antes de invocar el guardado normal (submitForm),
-          // igual que hace guardarEdicionFetocardiaPreview con la fetocardia.
+          // (2026-10-14: desde guardarVistaPrevia, el guardado único).
           function renderPreviewCaracteristicasParto() {
             const tipoParto = document.getElementById('tipo_parto')?.value || '';
             const episiotomia = valorRadioEpisiotomia(getEpisiotomia());
@@ -7816,11 +7898,11 @@
                     </tr>
                   </tbody>
                 </table>
-                <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;" onclick="guardarEdicionCaracteristicasParto()"><i data-lucide="check" style="width:14px;height:14px;vertical-align:-2px;"></i> Guardar cambios</button>
               </div>`;
           }
 
-          function guardarEdicionCaracteristicasParto() {
+          // 2026-10-14: solo aplica al formulario (ver guardarVistaPrevia).
+          function aplicarCaracteristicasPartoPreview() {
             const tipoParto = document.getElementById('fc-preview-tipo_parto').value;
             const episiotomia = document.querySelector('input[name="fc-preview-episiotomia"]:checked')?.value || 'false';
             const alumbramiento = document.getElementById('fc-preview-tipo_alumbramiento').value;
@@ -7842,12 +7924,6 @@
             }
 
             actualizarSemaforoSangrado();
-
-            if (savedRegistroId) {
-              submitForm();
-            } else {
-              showToast('Cambios aplicados. Guarde el registro para persistirlos.', 'success');
-            }
           }
 
           // Vista previa editable de "Vigilancia Posparto Inmediato" (semáforo de
@@ -7875,7 +7951,7 @@
                     </h3>
                     <div class="buttons-container centered vp-semaforo">
                       ${resumenSemaforoPreview('globo')}
-                      <button type="button" class="btn btn-secondary btn-sm vp-corregir" onclick="cerrarVistaPreviaFetocardia(); abrirModalSemaforo('globo', { correccion: true });">
+                      <button type="button" class="btn btn-secondary btn-sm vp-corregir" onclick="salirVistaPrevia() && abrirModalSemaforo('globo', { correccion: true });">
                         <i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Corregir controles
                       </button>
                     </div>
@@ -7886,7 +7962,7 @@
                       <span class="category-title-text">Sangrado cuantificado</span>
                     </h3>
                     <div class="buttons-container centered">
-                      <div class="sangrado-trigger" onclick="cerrarVistaPreviaFetocardia(); abrirModalSangrado({ correccion: true });" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();cerrarVistaPreviaFetocardia();abrirModalSangrado({ correccion: true });}">
+                      <div class="sangrado-trigger" onclick="salirVistaPrevia() && abrirModalSangrado({ correccion: true });" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();salirVistaPrevia() && abrirModalSangrado({ correccion: true });}">
                         <div class="sangrado-trigger-icon"><i data-lucide="scale"></i></div>
                         <div class="sangrado-trigger-body">
                           <input type="number" class="sangrado-trigger-value" value="${sangradoCC}" placeholder="0" readonly tabindex="-1">
@@ -7904,13 +7980,13 @@
                     </h3>
                     <div class="buttons-container centered vp-semaforo">
                       ${resumenSemaforoPreview('sutura')}
-                      <button type="button" class="btn btn-secondary btn-sm vp-corregir" onclick="cerrarVistaPreviaFetocardia(); abrirModalSemaforo('sutura', { correccion: true });">
+                      <button type="button" class="btn btn-secondary btn-sm vp-corregir" onclick="salirVistaPrevia() && abrirModalSemaforo('sutura', { correccion: true });">
                         <i data-lucide="pencil" style="width:14px;height:14px;vertical-align:-2px;"></i> Corregir controles
                       </button>
                     </div>
                   </div>
                 </div>
-                <p class="vp-nota-correccion">Cada corrección se guarda al momento y queda en la bitácora del registro.</p>
+                <p class="vp-nota-correccion">Globo, sangrado y sutura se corrigen en su propia ventana; cada corrección se guarda al momento y queda en la bitácora del registro.</p>
               </div>`;
           }
 
@@ -8013,7 +8089,7 @@
                   <thead><tr><th>Parámetro</th><th>Valor</th><th>Puntaje</th></tr></thead>
                   <tbody>${filasHtml}</tbody>
                 </table>
-                <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;" onclick="cerrarVistaPreviaFetocardia(); abrirMeowsTimeline();">Ver línea de tiempo completa</button>
+                <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;" onclick="salirVistaPrevia() && abrirMeowsTimeline();">Ver línea de tiempo completa</button>
               </div>`;
           }
 
@@ -8021,55 +8097,34 @@
             document.getElementById('fc-trace-modal-overlay').classList.remove('show');
           }
 
-          // Corrige, desde la propia vista previa, un control ya diligenciado:
-          // sincroniza el cambio con la fila real del formulario (misma fuente
-          // de datos que usa "Guardar") y, si el control ya estaba persistido
-          // en el backend, lo actualiza de inmediato por PATCH.
-          async function guardarEdicionFetocardiaPreview(idx) {
-            const registro = fcPreviewRegistros[idx];
-            if (!registro) return;
+          // 2026-10-14: la corrección de fetocardia desde la vista previa ya no
+          // tiene ✓ por fila: guardarVistaPrevia valida las filas, las copia a
+          // la fila real del formulario y submitForm() envía por PATCH las
+          // que cambiaron frente a lo guardado (baseServidor).
+          function valoresFetocardiaPreview(idx) {
             const wrap = document.getElementById('fc-trace-modal-body');
-            const fecha = wrap.querySelector(`[data-idx="${idx}"][data-param="fecha"]`).value;
-            const hora = wrap.querySelector(`[data-idx="${idx}"][data-param="hora"]`).value;
-            const fcVal = wrap.querySelector(`[data-idx="${idx}"][data-param="fetocardia"]`).value;
-            if (!fecha || !hora || fcVal === '') {
-              showToast('Complete fecha, hora y lpm antes de guardar la corrección.', 'error');
-              return;
-            }
-            const fetocardia = parseInt(fcVal);
-            if (fetocardia < 0 || fetocardia > 300) {
-              showToast('El valor de fetocardia debe estar entre 0 y 300 lpm.', 'error');
-              return;
-            }
+            const leer = p => wrap.querySelector(`[data-idx="${idx}"][data-param="${p}"]`)?.value ?? '';
+            return { fecha: leer('fecha'), hora: String(leer('hora')).substring(0, 5), fcVal: leer('fetocardia') };
+          }
 
-            registro.row.querySelector('[data-param="fecha"]').value = fecha;
-            registro.row.querySelector('[data-param="hora"]').value = hora;
-            registro.row.querySelector('[data-param="fetocardia"]').value = fetocardia;
+          function validarFetocardiaPreview() {
+            for (let i = 0; i < fcPreviewRegistros.length; i++) {
+              const { fecha, hora, fcVal } = valoresFetocardiaPreview(i);
+              if (!fecha || !hora || fcVal === '') return 'Fetocardia: complete fecha, hora y lpm de cada control.';
+              const fetocardia = parseInt(fcVal, 10);
+              if (isNaN(fetocardia) || fetocardia < 0 || fetocardia > 300) return 'Fetocardia: el valor debe estar entre 0 y 300 lpm.';
+            }
+            return null;
+          }
+
+          function aplicarFetocardiaPreview() {
+            fcPreviewRegistros.forEach((registro, i) => {
+              const { fecha, hora, fcVal } = valoresFetocardiaPreview(i);
+              registro.row.querySelector('[data-param="fecha"]').value = fecha;
+              registro.row.querySelector('[data-param="hora"]').value = hora;
+              registro.row.querySelector('[data-param="fetocardia"]').value = parseInt(fcVal, 10);
+            });
             actualizarFetocardiaUI();
-
-            if (registro.fcId && savedRegistroId) {
-              try {
-                const res = await fetch(`${API_BASE}/registros/${savedRegistroId}/fetocardia/${registro.fcId}/`, {
-                  method: 'PATCH',
-                  headers: getHeaders(),
-                  body: JSON.stringify({ fecha, hora, fetocardia }),
-                });
-                if (!res.ok) {
-                  showToast('No se pudo guardar la corrección en el servidor; quedará pendiente hasta el próximo "Guardar".', 'error');
-                } else {
-                  showToast('Control de fetocardia corregido.', 'success');
-                  refrescarResponsables();
-                  const fila = buildFetocardiaEdits().find(f => String(f.id) === String(registro.fcId));
-                  if (fila && baseServidor) baseServidor.fc[String(registro.fcId)] = JSON.parse(JSON.stringify(fila));
-                }
-              } catch (err) {
-                showToast('Error al guardar la corrección: ' + err.message, 'error');
-              }
-            } else {
-              showToast('Corrección aplicada. Guarde el registro para persistirla.', 'success');
-            }
-
-            abrirVistaPreviaFetocardia();
           }
 
           // 2026-10-06: elimina un control de fetocardia desde la vista previa:
@@ -8079,7 +8134,11 @@
             const registro = fcPreviewRegistros[idx];
             if (!registro) return;
             const etiqueta = `${registro.hora || ''} — ${registro.fc ?? ''} lpm`;
-            if (!confirm(`¿Eliminar el control de fetocardia ${etiqueta}?\n\nEsta acción no se puede deshacer.`)) return;
+            // 2026-10-14: al eliminar se vuelve a pintar la vista previa.
+            const pendientes = seccionesCambiadasVistaPrevia().length
+              ? '\n\nOjo: hay otros cambios sin guardar en la vista previa y se perderán. Para conservarlos, cancele y use primero "Guardar cambios".'
+              : '';
+            if (!confirm(`¿Eliminar el control de fetocardia ${etiqueta}?\n\nEsta acción no se puede deshacer.${pendientes}`)) return;
 
             if (registro.fcId && savedRegistroId) {
               try {
@@ -8122,7 +8181,6 @@
                   <td><input type="number" class="fc-trace-input" data-idx="${i}" data-param="fetocardia" min="0" max="300" value="${r.fc}"></td>
                   <td><span class="fc-trace-badge ${normal ? 'normal' : 'anormal'}">${normal ? 'Normal' : 'Fuera de rango'}</span></td>
                   <td><span class="fc-trace-acciones">
-                    <button type="button" class="fc-trace-save-btn" onclick="guardarEdicionFetocardiaPreview(${i})" title="Guardar corrección"><i data-lucide="check" style="width:14px;height:14px;"></i></button>
                     <button type="button" class="fc-trace-del-btn" onclick="eliminarFetocardiaPreview(${i})" title="Eliminar control" aria-label="Eliminar control"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
                   </span></td>
                 </tr>`;
@@ -8135,7 +8193,7 @@
                 <span><span class="dot" style="background:#bbf7d0"></span>Rango normal 110–160 lpm</span>
                 <span><span class="dot" style="background:#dc2626"></span>Fuera de rango</span>
               </div>
-              <div class="fc-trace-hint">Puede corregir un dato erróneo directamente aquí y guardar el cambio con <i data-lucide="check" style="width:11px;height:11px;vertical-align:-1px;"></i>.</div>
+              <div class="fc-trace-hint">Puede corregir un dato erróneo directamente aquí; los cambios se guardan con "Guardar cambios", al final de la ventana.</div>
               <table class="fc-trace-table">
                 <thead><tr><th>Fecha</th><th>Hora</th><th>Fetocardia</th><th>Estado</th><th></th></tr></thead>
                 <tbody>${filas}</tbody>
@@ -10084,7 +10142,7 @@
               fila.remove();
               actualizarVacioGlucoRN();
               // quitar una fila también es un cambio: que lo vea el autoguardado
-              document.querySelector('.rn-card-body')?.dispatchEvent(new Event('change', { bubbles: true }));
+              document.querySelector('.rn-card-body:not(.rn-preview)')?.dispatchEvent(new Event('change', { bubbles: true }));
             });
             fila.querySelector('[data-g="resultado"]').addEventListener('input', actualizarVacioGlucoRN);
             document.getElementById('rn-gluco-lista').appendChild(fila);
@@ -12042,7 +12100,7 @@
               if (e.key === 'Escape') {
                 if (document.getElementById('preview-modal-overlay').classList.contains('show')) cerrarVistaPrevia();
                 if (document.getElementById('sangrado-panal-modal-overlay')?.classList.contains('show')) cerrarPanalPesajesModal();
-                if (document.getElementById('fc-trace-modal-overlay').classList.contains('show')) cerrarVistaPreviaFetocardia();
+                if (document.getElementById('fc-trace-modal-overlay').classList.contains('show')) salirVistaPrevia();
               }
             });
 
