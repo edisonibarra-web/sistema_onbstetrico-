@@ -268,6 +268,12 @@ def generar_pdf_registro(registro, es_plantilla=False):
         _fila_booleana_na('Episiotomía:', registro.episiotomia),
         ['Alumbramiento:', '', '', '', '', ''],
         _fila_booleana('   Activo', registro.tipo_alumbramiento in ('DIRIGIDO', 'MANUAL')),
+    ]
+    # 2026-10-14: la fila "Embarazo gemelar" solo cuando lo es (el formato de
+    # un embarazo único queda igual que antes).
+    if (getattr(registro, 'numero_fetos', 1) or 1) > 1:
+        data_part.append(_fila_booleana('Embarazo gemelar:', True))
+    data_part += [
         ['Hora de parto:', hora_parto_str, '', '', '', ''],
         ['Desgarro:', desgarro_str, '', '', '', ''],
     ]
@@ -311,9 +317,18 @@ def generar_pdf_registro(registro, es_plantilla=False):
 
     # ========== CONTROL DEL RECIÉN NACIDO ==========
     # 2026-09-30: a pedido, justo debajo de "Características del parto".
+    # 2026-10-14: embarazo gemelar -- una tabla (con su huella) por feto.
+    gemelar = not es_plantilla and (getattr(registro, 'numero_fetos', 1) or 1) > 1
     rn = _recien_nacido(registro, es_plantilla)
     ubicacion_huella = {}  # la llena _TablaConHuella al dibujarse
-    elements.append(KeepTogether(_tabla_recien_nacido(registro, rn, es_plantilla, ubicacion_huella)))
+    titulo_rn = 'CONTROL DEL RECIÉN NACIDO' + (' — FETO A' if gemelar else '')
+    elements.append(KeepTogether(_tabla_recien_nacido(registro, rn, es_plantilla, ubicacion_huella, titulo=titulo_rn)))
+    rn_b, ubicacion_huella_b = None, {}
+    if gemelar:
+        rn_b = _recien_nacido(registro, es_plantilla, feto=2)
+        elements.append(Spacer(1, 0.2*cm))
+        elements.append(KeepTogether(_tabla_recien_nacido(
+            registro, rn_b, es_plantilla, ubicacion_huella_b, titulo='CONTROL DEL RECIÉN NACIDO — FETO B')))
     _agregar_responsables(elements, resp_pasos, 'recien_nacido')
     elements.append(Spacer(1, 0.28*cm))
 
@@ -322,69 +337,81 @@ def generar_pdf_registro(registro, es_plantilla=False):
     # a como está diagramado el formato físico del hospital: FECHA / HORA /
     # FETOCARDIA por columna, y RESPONSABLE como campo único al final.
     NUM_CONTROLES_FC = 14
-    fcs = [] if es_plantilla else list(registro.controles_fetocardia.all().order_by('fecha', 'hora'))
-    fcs_pad = (fcs + [None]*NUM_CONTROLES_FC)[:NUM_CONTROLES_FC]
 
-    def _campo_fc(fc, attr):
-        if fc is None:
-            return '' if es_plantilla else '—'
-        valor = getattr(fc, attr)
-        if valor is None or valor == '':
-            return '—'
-        if attr == 'fecha' and hasattr(valor, 'strftime'):
-            return valor.strftime('%d/%m/%y')
-        if attr == 'hora' and hasattr(valor, 'strftime'):
-            return valor.strftime('%H:%M')
-        return _safe_str(valor) or '—'
+    # 2026-10-14: embarazo gemelar -- una tabla de fetocardia por feto.
+    def _tabla_fetocardia(fcs, titulo_fc):
+        fcs_pad = (fcs + [None]*NUM_CONTROLES_FC)[:NUM_CONTROLES_FC]
 
-    # Responsable(s) del apartado (no por cada columna de control). 2026-09-28:
-    # si varias personas tomaron fetocardia, van todas (firma automática).
-    responsable_fc = ''
-    if not es_plantilla:
-        nombres_fc = []
-        for fc in fcs:
-            nombre = _safe_str(getattr(fc, 'registrado_por', '') or fc.responsable).strip()
-            if nombre and nombre not in nombres_fc:
-                nombres_fc.append(nombre)
-        responsable_fc = ', '.join(nombres_fc) or '—'
+        def _campo_fc(fc, attr):
+            if fc is None:
+                return '' if es_plantilla else '—'
+            valor = getattr(fc, attr)
+            if valor is None or valor == '':
+                return '—'
+            if attr == 'fecha' and hasattr(valor, 'strftime'):
+                return valor.strftime('%d/%m/%y')
+            if attr == 'hora' and hasattr(valor, 'strftime'):
+                return valor.strftime('%H:%M')
+            return _safe_str(valor) or '—'
 
-    data_fc = [
-        ['FECHA'] + [_campo_fc(fc, 'fecha') for fc in fcs_pad],
-        ['HORA'] + [_campo_fc(fc, 'hora') for fc in fcs_pad],
-        ['FETOCARDIA (lpm)'] + [_campo_fc(fc, 'fetocardia') for fc in fcs_pad],
-        ['RESPONSABLE'] + [responsable_fc] + ['']*(NUM_CONTROLES_FC - 1),
-    ]
-    fila_responsable_fc = len(data_fc) - 1
+        # Responsable(s) del apartado (no por cada columna de control). 2026-09-28:
+        # si varias personas tomaron fetocardia, van todas (firma automática).
+        responsable_fc = ''
+        if not es_plantilla:
+            nombres_fc = []
+            for fc in fcs:
+                nombre = _safe_str(getattr(fc, 'registrado_por', '') or fc.responsable).strip()
+                if nombre and nombre not in nombres_fc:
+                    nombres_fc.append(nombre)
+            responsable_fc = ', '.join(nombres_fc) or '—'
 
-    ancho_label_fc = 2.6*cm
-    ancho_dato_fc = (ANCHO_UTIL - ancho_label_fc) / NUM_CONTROLES_FC
-    cw_fc = [ancho_label_fc] + [ancho_dato_fc]*NUM_CONTROLES_FC
-    fila_tit_fc = ['CONTROL DE FETOCARDIA DURANTE EL EXPULSIVO'] + ['']*NUM_CONTROLES_FC
-    tbl_fc = Table([fila_tit_fc] + data_fc, colWidths=cw_fc, repeatRows=1)
-    tbl_fc.setStyle(TableStyle([
-        ('SPAN', (0, 0), (-1, 0)),
-        ('BACKGROUND', (0, 0), (-1, 0), COLOR_HEADER),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 9),
-        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-        ('BACKGROUND', (0, 1), (0, -1), COLOR_LABEL),
-        ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
-        ('ALIGN', (0, 1), (0, -1), 'LEFT'),
-        ('FONTSIZE', (0, 1), (0, -1), 7),
-        ('ALIGN', (1, 1), (-1, -1), 'CENTER'),
-        ('FONTSIZE', (1, 1), (-1, -1), 6),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-        ('LEFTPADDING', (0, 0), (-1, -1), 2),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 2),
-        ('BOX', (0, 0), (-1, -1), BORDE, COLOR_BORDE),
-        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
-        ('SPAN', (1, fila_responsable_fc + 1), (-1, fila_responsable_fc + 1)),
-        ('ALIGN', (1, fila_responsable_fc + 1), (-1, fila_responsable_fc + 1), 'LEFT'),
-    ]))
-    elements.append(tbl_fc)
+        data_fc = [
+            ['FECHA'] + [_campo_fc(fc, 'fecha') for fc in fcs_pad],
+            ['HORA'] + [_campo_fc(fc, 'hora') for fc in fcs_pad],
+            ['FETOCARDIA (lpm)'] + [_campo_fc(fc, 'fetocardia') for fc in fcs_pad],
+            ['RESPONSABLE'] + [responsable_fc] + ['']*(NUM_CONTROLES_FC - 1),
+        ]
+        fila_responsable_fc = len(data_fc) - 1
+
+        ancho_label_fc = 2.6*cm
+        ancho_dato_fc = (ANCHO_UTIL - ancho_label_fc) / NUM_CONTROLES_FC
+        cw_fc = [ancho_label_fc] + [ancho_dato_fc]*NUM_CONTROLES_FC
+        fila_tit_fc = [titulo_fc] + ['']*NUM_CONTROLES_FC
+        tbl_fc = Table([fila_tit_fc] + data_fc, colWidths=cw_fc, repeatRows=1)
+        tbl_fc.setStyle(TableStyle([
+            ('SPAN', (0, 0), (-1, 0)),
+            ('BACKGROUND', (0, 0), (-1, 0), COLOR_HEADER),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('BACKGROUND', (0, 1), (0, -1), COLOR_LABEL),
+            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+            ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+            ('FONTSIZE', (0, 1), (0, -1), 7),
+            ('ALIGN', (1, 1), (-1, -1), 'CENTER'),
+            ('FONTSIZE', (1, 1), (-1, -1), 6),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 2),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+            ('BOX', (0, 0), (-1, -1), BORDE, COLOR_BORDE),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+            ('SPAN', (1, fila_responsable_fc + 1), (-1, fila_responsable_fc + 1)),
+            ('ALIGN', (1, fila_responsable_fc + 1), (-1, fila_responsable_fc + 1), 'LEFT'),
+        ]))
+        elements.append(tbl_fc)
+
+    todas_fc = [] if es_plantilla else list(registro.controles_fetocardia.all().order_by('fecha', 'hora'))
+    if not es_plantilla and (getattr(registro, 'numero_fetos', 1) or 1) > 1:
+        for feto_fc, letra_fc in ((1, 'A'), (2, 'B')):
+            if feto_fc > 1:
+                elements.append(Spacer(1, 0.15*cm))
+            _tabla_fetocardia([fc for fc in todas_fc if (fc.feto or 1) == feto_fc],
+                              f'CONTROL DE FETOCARDIA DURANTE EL EXPULSIVO — FETO {letra_fc}')
+    else:
+        _tabla_fetocardia(todas_fc, 'CONTROL DE FETOCARDIA DURANTE EL EXPULSIVO')
     _agregar_responsables(elements, resp_pasos, 'fetocardia')
     elements.append(Spacer(1, 0.28*cm))
 
@@ -774,6 +801,8 @@ def generar_pdf_registro(registro, es_plantilla=False):
     pdf_bytes = buffer.getvalue()
     if rn is not None and rn.huella_pdf:
         pdf_bytes = _incrustar_huella(pdf_bytes, registro, rn, ubicacion_huella)
+    if rn_b is not None and rn_b.huella_pdf:
+        pdf_bytes = _incrustar_huella(pdf_bytes, registro, rn_b, ubicacion_huella_b)
     return pdf_bytes
 
 
@@ -973,11 +1002,11 @@ ANCHO_HUELLA = 5.4 * cm
 MARGEN_HUELLA = 0.18 * cm
 
 
-def _recien_nacido(registro, es_plantilla):
+def _recien_nacido(registro, es_plantilla, feto=1):
     if es_plantilla or getattr(registro, 'pk', None) is None:
         return None
     from .models import ControlRecienNacido
-    return ControlRecienNacido.objects.filter(registro_id=registro.pk).first()
+    return ControlRecienNacido.objects.filter(registro_id=registro.pk, feto=feto).first()
 
 
 def _hora_nacimiento(registro, rn):
@@ -1008,7 +1037,7 @@ class _TablaConHuella(Table):
         })
 
 
-def _tabla_recien_nacido(registro, rn, es_plantilla, ubicacion):
+def _tabla_recien_nacido(registro, rn, es_plantilla, ubicacion, titulo='CONTROL DEL RECIÉN NACIDO'):
     estilo_lbl = ParagraphStyle(name='RNLbl', fontName='Helvetica-Bold', fontSize=7, leading=8.6,
                                 textColor=colors.HexColor('#334155'))
     estilo_val = ParagraphStyle(name='RNVal', fontName='Helvetica', fontSize=7.5, leading=9.2,
@@ -1090,7 +1119,7 @@ def _tabla_recien_nacido(registro, rn, es_plantilla, ubicacion):
     else:
         celda_huella = Paragraph('Sin huella cargada', estilo_huella)
 
-    filas = [['CONTROL DEL RECIÉN NACIDO', '', '', '', 'HUELLA PLANTAR']]
+    filas = [[titulo, '', '', '', 'HUELLA PLANTAR']]
     estilos = [
         ('SPAN', (0, 0), (3, 0)),
         ('BACKGROUND', (0, 0), (-1, 0), COLOR_HEADER),

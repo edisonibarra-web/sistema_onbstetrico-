@@ -17,6 +17,7 @@ class ControlFetocardiaInline(admin.TabularInline):
 class ControlRecienNacidoInline(admin.StackedInline):
     model = ControlRecienNacido
     extra = 0
+    max_num = 2  # 2026-10-14: uno por feto (embarazo gemelar)
     # 2026-09-30: la huella solo se sube desde el formulario (valida el PDF).
     readonly_fields = ('huella_pdf', 'huella_subida_por', 'huella_subida_en')
 
@@ -48,13 +49,13 @@ class RegistroPartoAdmin(admin.ModelAdmin):
 
 @admin.register(ControlFetocardia)
 class ControlFetocardiaAdmin(admin.ModelAdmin):
-    list_display = ('registro', 'fecha', 'hora', 'fetocardia', 'responsable')
+    list_display = ('registro', 'feto', 'fecha', 'hora', 'fetocardia', 'responsable')
     list_filter = ('fecha',)
 
 
 @admin.register(ControlRecienNacido)
 class ControlRecienNacidoAdmin(admin.ModelAdmin):
-    list_display = ('registro', 'hora_nacimiento', 'genero', 'peso', 'talla', 'apgar_1min', 'apgar_5min')
+    list_display = ('registro', 'feto', 'hora_nacimiento', 'genero', 'peso', 'talla', 'apgar_1min', 'apgar_5min')
     readonly_fields = ('huella_pdf', 'huella_subida_por', 'huella_subida_en')
     inlines = [GlucometriaRecienNacidoInline]
 

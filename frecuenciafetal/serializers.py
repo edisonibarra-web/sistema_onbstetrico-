@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import (
     RegistroParto, ControlFetocardia, ControlRecienNacido,
     GlucometriaRecienNacido, ControlPostpartoInmediato, ControlSangrado,
-    ControlGlobo, ControlSutura, recalcular_estados_sangrado,
+    ControlGlobo, ControlSutura, recalcular_estados_sangrado, MAX_FETOS,
 )
 from obstetriciaunificador.models import AtencionParto
 
@@ -37,6 +37,16 @@ class AtencionToleranteField(serializers.PrimaryKeyRelatedField):
 # 2026-09-28: los campos de firma (quién registró) los pone SOLO el servidor
 # con el profesional en sesión -- nunca se aceptan del cliente.
 CAMPOS_FIRMA = ['registrado_por', 'registrado_en']
+
+
+def feto_valido(registro, feto):
+    """2026-10-14: embarazo gemelar -- feto 2 (B) solo si el registro es
+    gemelar; cualquier otro valor queda como 1 (A)."""
+    try:
+        feto = int(feto or 1)
+    except (TypeError, ValueError):
+        return 1
+    return feto if 1 <= feto <= (getattr(registro, 'numero_fetos', 1) or 1) else 1
 
 
 class ControlFetocardiaSerializer(serializers.ModelSerializer):
@@ -81,7 +91,7 @@ class ControlRecienNacidoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ControlRecienNacido
         exclude = ['huella_pdf']
-        read_only_fields = ['registro', 'huella_subida_por', 'huella_subida_en'] + CAMPOS_FIRMA
+        read_only_fields = ['registro', 'feto', 'huella_subida_por', 'huella_subida_en'] + CAMPOS_FIRMA
 
     def get_tiene_huella(self, obj):
         return bool(obj.huella_pdf)
@@ -209,6 +219,8 @@ CAMPOS_EDITABLES_POST_CIERRE = {
     # 2026-10-05: la Vista Previa ahora también corrige estos (datos de la
     # paciente y desgarro). Nombre e identificación NO: vienen de Dinámica.
     'desgarro', 'desgarro_subgrado', 'edad_gestacional', 'gestas', 'nombre_acompanante',
+    # 2026-10-14: embarazo gemelar (si se olvidó marcar antes de cerrar).
+    'numero_fetos',
 }
 # 2026-10-05: el Control del recién nacido también se corrige desde la Vista
 # Previa con el registro cerrado, pero estos campos (obligatorios para cerrar,
@@ -223,6 +235,8 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
     )
     controles_fetocardia = ControlFetocardiaSerializer(many=True, required=False)
     control_recien_nacido = ControlRecienNacidoSerializer(required=False)
+    # 2026-10-14: recién nacido del feto B (embarazo gemelar).
+    control_recien_nacido_b = ControlRecienNacidoSerializer(required=False)
     controles_postparto = ControlPostpartoSerializer(many=True, required=False)
     controles_sangrado = ControlSangradoSerializer(many=True, required=False)
     controles_globo = ControlGloboSerializer(many=True, required=False)
@@ -242,6 +256,21 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
         # servidor (creado_por + participaciones, ver responsables.py).
         read_only_fields = ['completado_en', 'completado_por', 'creado_por', 'nombre_firma_paciente']
 
+    def validate_numero_fetos(self, valor):
+        if valor is None:
+            return 1
+        if not 1 <= valor <= MAX_FETOS:
+            raise serializers.ValidationError(f'El número de fetos debe estar entre 1 y {MAX_FETOS}.')
+        # 2026-10-14: quitar el embarazo gemelar con datos del feto B ya
+        # guardados los dejaría ocultos (no se verían ni se imprimirían).
+        if self.instance is not None and valor < (self.instance.numero_fetos or 1):
+            if (self.instance.recien_nacidos.filter(feto__gt=valor).exists()
+                    or self.instance.controles_fetocardia.filter(feto__gt=valor).exists()):
+                raise serializers.ValidationError(
+                    'No se puede quitar el embarazo gemelar: ya hay datos guardados del Feto B.'
+                )
+        return valor
+
     def get_responsables(self, obj):
         from .responsables import responsables_para_api
         return responsables_para_api(obj)
@@ -257,6 +286,7 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         fetocardia_data = validated_data.pop('controles_fetocardia', []) or []
         rn_data = validated_data.pop('control_recien_nacido', None)
+        rn_b_data = validated_data.pop('control_recien_nacido_b', None)
         postparto_data = validated_data.pop('controles_postparto', []) or []
         sangrado_data = validated_data.pop('controles_sangrado', []) or []
         globo_data = validated_data.pop('controles_globo', []) or []
@@ -272,15 +302,19 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
                 'fecha': fc_dict.get('fecha'),
                 'hora': fc_dict.get('hora'),
                 'fetocardia': fc_dict.get('fetocardia'),
+                # 2026-10-14: feto B solo si el registro es gemelar.
+                'feto': feto_valido(registro, fc_dict.get('feto')),
             }
             if fc_clean['fecha'] is not None and fc_clean['hora'] is not None and fc_clean['fetocardia'] is not None:
                 ControlFetocardia.objects.create(registro=registro, **fc_clean, **self._firma(con_responsable=True))
 
-        if rn_data:
-            glucometrias = rn_data.pop('glucometrias', [])
-            agregar = rn_data.pop('glucometrias_agregar', None)
-            quitar = rn_data.pop('glucometrias_quitar', None)
-            rn = ControlRecienNacido.objects.create(registro=registro, **rn_data, **firma)
+        for feto, datos_rn in ((1, rn_data), (2, rn_b_data)):
+            if not datos_rn or feto > (registro.numero_fetos or 1):
+                continue
+            glucometrias = datos_rn.pop('glucometrias', [])
+            agregar = datos_rn.pop('glucometrias_agregar', None)
+            quitar = datos_rn.pop('glucometrias_quitar', None)
+            rn = ControlRecienNacido.objects.create(registro=registro, feto=feto, **datos_rn, **firma)
             for g in glucometrias:
                 GlucometriaRecienNacido.objects.create(control_rn=rn, **g)
             aplicar_delta_glucometrias(rn, agregar, quitar)
@@ -302,12 +336,15 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
 
         return registro
 
-    def _guardar_recien_nacido(self, instance, rn_data):
+    def _guardar_recien_nacido(self, instance, rn_data, feto=1):
+        # 2026-10-14: el del feto B solo si el registro es gemelar.
+        if feto > (instance.numero_fetos or 1):
+            return
         glucometrias = rn_data.pop('glucometrias', None)
         agregar = rn_data.pop('glucometrias_agregar', None)
         quitar = rn_data.pop('glucometrias_quitar', None)
         rn, creado = ControlRecienNacido.objects.update_or_create(
-            registro=instance, defaults=rn_data
+            registro=instance, feto=feto, defaults=rn_data
         )
         if creado or not rn.registrado_por:
             firma = self._firma()
@@ -335,20 +372,24 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
             # sangrado/globo/sutura) desde aquí; el recién nacido sí
             # (2026-10-05), sin vaciar sus obligatorios de cierre.
             rn_data = validated_data.pop('control_recien_nacido', None)
+            rn_b_data = validated_data.pop('control_recien_nacido_b', None)
             for attr, value in validated_data.items():
                 if attr in CAMPOS_EDITABLES_POST_CIERRE:
                     setattr(instance, attr, value)
             instance.save()
-            if rn_data is not None:
-                rn_data = {
-                    k: v for k, v in rn_data.items()
+            for feto, datos_rn in ((1, rn_data), (2, rn_b_data)):
+                if datos_rn is None:
+                    continue
+                datos_rn = {
+                    k: v for k, v in datos_rn.items()
                     if not (k in CAMPOS_RN_NO_VACIAR_POST_CIERRE and v in (None, ''))
                 }
-                self._guardar_recien_nacido(instance, rn_data)
+                self._guardar_recien_nacido(instance, datos_rn, feto=feto)
             return instance
 
         fetocardia_data = validated_data.pop('controles_fetocardia', None)
         rn_data = validated_data.pop('control_recien_nacido', None)
+        rn_b_data = validated_data.pop('control_recien_nacido_b', None)
         postparto_data = validated_data.pop('controles_postparto', None)
         sangrado_data = validated_data.pop('controles_sangrado', None)
         globo_data = validated_data.pop('controles_globo', None)
@@ -365,6 +406,8 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
             pass
         if rn_data is not None:
             self._guardar_recien_nacido(instance, rn_data)
+        if rn_b_data is not None:
+            self._guardar_recien_nacido(instance, rn_b_data, feto=2)
 
         if postparto_data is not None:
             # El PUT principal del registro nunca reemplaza los controles

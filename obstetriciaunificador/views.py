@@ -310,9 +310,13 @@ def get_fetal_trazabilidad(documento):
         info = puntos_por_parametro.setdefault(nombre, {"unidad": unidad, "puntos": []})
         info["puntos"].append((momento, float(valor)))
 
-    fetocardias = ControlFetocardia.objects.filter(registro__in=registros).order_by("fecha", "hora")
+    fetocardias = ControlFetocardia.objects.filter(registro__in=registros).select_related("registro").order_by("fecha", "hora")
     for c in fetocardias:
-        agregar("Frecuencia Cardiaca Fetal", "lpm", datetime.combine(c.fecha, c.hora), c.fetocardia)
+        # 2026-10-14: embarazo gemelar -- una serie por feto.
+        nombre_fc = "Frecuencia Cardiaca Fetal"
+        if (c.registro.numero_fetos or 1) > 1:
+            nombre_fc += " (Feto B)" if c.feto == 2 else " (Feto A)"
+        agregar(nombre_fc, "lpm", datetime.combine(c.fecha, c.hora), c.fetocardia)
 
     postparto = ControlPostpartoInmediato.objects.filter(registro__in=registros).order_by("fecha", "hora")
     for c in postparto:

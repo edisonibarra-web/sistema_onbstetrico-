@@ -133,10 +133,13 @@ def resumen_responsables(registro):
     agregar(registro.controles_sutura.all(), 'Sutura y heridas')
     try:
         rn = registro.control_recien_nacido
+        rn_b = registro.control_recien_nacido_b  # 2026-10-14: gemelar
     except Exception:
-        rn = None
+        rn = rn_b = None
     if rn is not None:
         agregar([rn], 'Recién nacido', con_minuto=False)
+    if rn_b is not None:
+        agregar([rn_b], 'Recién nacido (Feto B)', con_minuto=False)
 
     p = persona(registro.creado_por)
     if p is not None:
@@ -201,11 +204,13 @@ CAMPOS_PARTO = [
     ('tipo_alumbramiento', 'Alumbramiento'),
     ('desgarro', 'Desgarro'),
     ('desgarro_subgrado', 'Subclasificación del desgarro'),
+    ('numero_fetos', 'Embarazo gemelar'),
 ]
 # Del registro, pero se diligencia en la tarjeta del recién nacido.
 CAMPOS_REGISTRO_EN_RN = [('parto_atendido_por', 'Parto atendido por')]
 
 ETIQUETAS_RN = {
+    'hora_nacimiento': 'Hora de nacimiento',  # 2026-10-14: por feto (gemelar)
     'genero': 'Género', 'pasa_uci_neonatal': 'Pasa a UCI neonatal', 'causa_uci': 'Causa de UCI',
     'peso': 'Peso', 'talla': 'Talla', 'pc': 'Perímetro cefálico', 'pt': 'Perímetro torácico',
     'p_abd': 'Perímetro abdominal', 'apgar_1min': "APGAR 1'", 'apgar_5min': "APGAR 5'",
@@ -225,7 +230,7 @@ for _pref, _txt in (('tanac', 'TA al nacer'), ('tanac12', 'Al nacimiento: TA 12 
     for _miembro in ('msd', 'msi', 'mid', 'miiz'):
         ETIQUETAS_RN[f'{_pref}_{_miembro}'] = f'{_txt} {_miembro.upper()}'
 # Campos del RN que no son datos clínicos diligenciados (la huella va aparte).
-_RN_NO_BITACORA = {'id', 'registro_id', 'huella_pdf', 'huella_subida_por', 'huella_subida_en'}
+_RN_NO_BITACORA = {'id', 'registro_id', 'feto', 'huella_pdf', 'huella_subida_por', 'huella_subida_en'}
 
 
 def registrar_cambios(registro, request, seccion, cambios):
@@ -287,16 +292,27 @@ def bitacora_registro_y_rn(registro, request, antes, despues):
     bitácora los campos de Parto y Recién nacido que cambiaron."""
     from .models import ControlRecienNacido, RegistroParto
 
-    reg_a, rn_a, glu_a = antes if antes else (None, None, [])
-    reg_d, rn_d, glu_d = despues
+    # 2026-10-14: las fotos traen además el recién nacido del feto B
+    # (rn_b, glucometrías_b); fotos antiguas de 3 elementos siguen sirviendo.
+    def completar(foto):
+        foto = tuple(foto) if foto else (None, None, [])
+        return foto + ((None, []) if len(foto) == 3 else ())
+
+    reg_a, rn_a, glu_a, rn_b_a, glu_b_a = completar(antes)
+    reg_d, rn_d, glu_d, rn_b_d, glu_b_d = completar(despues)
     registrar_cambios(registro, request, 'parto', _diferencias(CAMPOS_PARTO, reg_a, reg_d, RegistroParto))
 
+    def cambios_de_rn(rn_antes, rn_despues, glu_antes, glu_despues, sufijo=''):
+        campos_rn = [(c, (ETIQUETAS_RN.get(c) or c.replace('_', ' ').capitalize()) + sufijo)
+                     for c in (rn_despues or {}) if c not in _RN_NO_BITACORA]
+        cambios = _diferencias(campos_rn, rn_antes, rn_despues, ControlRecienNacido)
+        if glu_antes != glu_despues:
+            cambios.append(('registro' if not glu_antes else 'correccion', 'Glucometrías' + sufijo))
+        return cambios
+
     cambios_rn = _diferencias(CAMPOS_REGISTRO_EN_RN, reg_a, reg_d, RegistroParto)
-    campos_rn = [(c, ETIQUETAS_RN.get(c) or c.replace('_', ' ').capitalize())
-                 for c in (rn_d or {}) if c not in _RN_NO_BITACORA]
-    cambios_rn += _diferencias(campos_rn, rn_a, rn_d, ControlRecienNacido)
-    if glu_a != glu_d:
-        cambios_rn.append(('registro' if not glu_a else 'correccion', 'Glucometrías'))
+    cambios_rn += cambios_de_rn(rn_a, rn_d, glu_a, glu_d)
+    cambios_rn += cambios_de_rn(rn_b_a, rn_b_d, glu_b_a, glu_b_d, sufijo=' (Feto B)')
     registrar_cambios(registro, request, 'recien_nacido', cambios_rn)
 
 

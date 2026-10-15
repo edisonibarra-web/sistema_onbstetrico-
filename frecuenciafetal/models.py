@@ -2,6 +2,10 @@ from django.db import models
 import uuid
 from obstetriciaunificador.models import AtencionParto
 
+# 2026-10-14: embarazo gemelar (por ahora solo gemelos).
+MAX_FETOS = 2
+LETRAS_FETO = {1: 'A', 2: 'B'}
+
 class RegistroParto(models.Model):
     """Modelo principal del formato FRSPA-007"""
     atencion = models.ForeignKey(
@@ -132,6 +136,9 @@ class RegistroParto(models.Model):
     )
     # 2026-09-28: profesional en sesión que CREÓ el registro (automático).
     creado_por = models.CharField(max_length=255, blank=True, default='', verbose_name="Creado por")
+    # 2026-10-14: 1 = embarazo único; 2 = gemelar (fetocardia del expulsivo y
+    # recién nacido por feto: ControlFetocardia.feto / ControlRecienNacido.feto).
+    numero_fetos = models.PositiveSmallIntegerField(default=1, verbose_name="Número de fetos")
 
     class Meta:
         verbose_name = "Registro de Parto"
@@ -140,6 +147,23 @@ class RegistroParto(models.Model):
 
     def __str__(self):
         return f"{self.nombre_paciente} - {self.identificacion}"
+
+    # 2026-10-14: antes el recién nacido era uno solo (OneToOne con
+    # related_name='control_recien_nacido'). Ahora hay uno por feto; este
+    # acceso conserva el comportamiento de siempre (el RN del feto A, o
+    # None si no hay) para todo el código que ya lo usaba.
+    def recien_nacido(self, feto=1):
+        if self.pk is None:
+            return None
+        return self.recien_nacidos.filter(feto=feto).first()
+
+    @property
+    def control_recien_nacido(self):
+        return self.recien_nacido(1)
+
+    @property
+    def control_recien_nacido_b(self):
+        return self.recien_nacido(2)
 
 
 class ControlFetocardia(models.Model):
@@ -154,6 +178,8 @@ class ControlFetocardia(models.Model):
     fetocardia = models.SmallIntegerField(
         verbose_name="Fetocardia (lpm)"
     )
+    # 2026-10-14: embarazo gemelar -- feto de la toma (1 = A, 2 = B).
+    feto = models.PositiveSmallIntegerField(default=1, verbose_name="Feto")
     responsable = models.CharField(max_length=200, blank=True, default='', verbose_name="Responsable")
 
     # 2026-09-28: firma AUTOMÁTICA -- profesional en sesión que guardó este
@@ -336,11 +362,15 @@ class ControlRecienNacido(models.Model):
     """Datos del recién nacido"""
     GENERO_CHOICES = [('M', 'Masculino'), ('F', 'Femenino'), ('I', 'Indeterminado')]
 
-    registro = models.OneToOneField(
+    # 2026-10-14: antes OneToOne (un solo recién nacido); ahora uno por feto
+    # (unique registro + feto). RegistroParto.control_recien_nacido sigue
+    # devolviendo el del feto A.
+    registro = models.ForeignKey(
         RegistroParto,
         on_delete=models.CASCADE,
-        related_name='control_recien_nacido'
+        related_name='recien_nacidos'
     )
+    feto = models.PositiveSmallIntegerField(default=1, verbose_name="Feto")
     # 2026-09-30: card "Control del recién nacido" en el formulario. Los
     # campos que antes eran obligatorios quedan opcionales: el formulario se
     # autoguarda mientras se diligencia, y el recién nacido se va llenando
@@ -494,9 +524,11 @@ class ControlRecienNacido(models.Model):
 
     class Meta:
         verbose_name = "Control del Recién Nacido"
+        unique_together = ("registro", "feto")
 
     def __str__(self):
-        return f"RN de {self.registro.nombre_paciente}"
+        sufijo = f" (feto {LETRAS_FETO.get(self.feto, self.feto)})" if self.feto != 1 else ""
+        return f"RN de {self.registro.nombre_paciente}{sufijo}"
 
 
 class GlucometriaRecienNacido(models.Model):

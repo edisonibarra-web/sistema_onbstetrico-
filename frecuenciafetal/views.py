@@ -22,13 +22,13 @@ from .models import (
     ControlRecienNacido, GlucometriaRecienNacido,
     ControlPostpartoInmediato, ControlSangrado,
     ControlGlobo, ControlSutura, recalcular_estados_sangrado,
-    IntentoLoginFallido
+    IntentoLoginFallido, LETRAS_FETO,
 )
 from .serializers import (
     RegistroPartoSerializer, RegistroPartoListSerializer,
     ControlFetocardiaSerializer, ControlRecienNacidoSerializer,
     ControlPostpartoSerializer, ControlSangradoSerializer, GlucometriaSerializer,
-    ControlGloboSerializer, ControlSuturaSerializer,
+    ControlGloboSerializer, ControlSuturaSerializer, feto_valido,
 )
 from .pdf_generator import generar_pdf_registro
 from .responsables import (
@@ -98,13 +98,24 @@ CAMPOS_RN_OBLIGATORIOS_CIERRE = [
 
 
 def _faltantes_recien_nacido(registro):
-    rn = ControlRecienNacido.objects.filter(registro=registro).first()
-    faltan = [
-        etiqueta for campo, etiqueta in CAMPOS_RN_OBLIGATORIOS_CIERRE
-        if rn is None or getattr(rn, campo) in (None, '')
-    ]
-    if rn is None or not rn.huella_pdf:
-        faltan.append('huella plantar (PDF)')
+    # 2026-10-14: en un embarazo gemelar se exige el recién nacido (y su
+    # huella) de CADA feto; los faltantes del B van con su prefijo.
+    numero_fetos = registro.numero_fetos or 1
+    faltan = []
+    for feto in range(1, numero_fetos + 1):
+        rn = registro.recien_nacido(feto)
+        del_feto = [
+            etiqueta for campo, etiqueta in CAMPOS_RN_OBLIGATORIOS_CIERRE
+            if rn is None or getattr(rn, campo) in (None, '')
+        ]
+        if rn is None or not rn.huella_pdf:
+            del_feto.append('huella plantar (PDF)')
+        # Gemelos: cada uno con su hora de nacimiento (nacen con minutos de diferencia).
+        if numero_fetos > 1 and (rn is None or rn.hora_nacimiento is None):
+            del_feto.insert(0, 'hora de nacimiento')
+        if numero_fetos > 1:
+            del_feto = [f'{etiqueta} (Feto {LETRAS_FETO.get(feto, feto)})' for etiqueta in del_feto]
+        faltan += del_feto
     return faltan
 
 
@@ -468,9 +479,12 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     def _foto_registro(registro):
         # 2026-09-30: el recién nacido viaja dentro del PUT del registro
         # (autoguardado), así que también cuenta para saber si hubo cambios.
-        rn = ControlRecienNacido.objects.filter(registro_id=registro.pk).first()
+        rn = ControlRecienNacido.objects.filter(registro_id=registro.pk, feto=1).first()
         glucos = list(rn.glucometrias.values_list('hora', 'resultado').order_by('hora', 'id')) if rn else []
-        return valores_modelo(registro), valores_modelo(rn), glucos
+        # 2026-10-14: + recién nacido del feto B (embarazo gemelar).
+        rn_b = ControlRecienNacido.objects.filter(registro_id=registro.pk, feto=2).first()
+        glucos_b = list(rn_b.glucometrias.values_list('hora', 'resultado').order_by('hora', 'id')) if rn_b else []
+        return valores_modelo(registro), valores_modelo(rn), glucos, valores_modelo(rn_b), glucos_b
 
     def perform_update(self, serializer):
         antes = self._foto_registro(serializer.instance)
@@ -508,7 +522,10 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
         from django.utils import timezone
 
         registro = self.get_object()
-        rn = ControlRecienNacido.objects.filter(registro=registro).first()
+        # 2026-10-14: ?feto=2 = huella del recién nacido del feto B.
+        feto = feto_valido(registro, request.query_params.get('feto') or request.data.get('feto'))
+        etiqueta_huella = 'Huella plantar' + (f' (Feto {LETRAS_FETO.get(feto, feto)})' if feto > 1 else '')
+        rn = registro.recien_nacido(feto)
 
         if request.method == 'GET':
             if rn is None or not rn.huella_pdf:
@@ -540,7 +557,7 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
                 rn.huella_subida_en = None
                 rn.save(update_fields=['huella_pdf', 'huella_subida_por', 'huella_subida_en'])
                 registrar_participacion(registro, request)
-                registrar_cambios(registro, request, 'recien_nacido', [('eliminacion', 'Huella plantar')])
+                registrar_cambios(registro, request, 'recien_nacido', [('eliminacion', etiqueta_huella)])
             return Response({'tiene_huella': False})
 
         archivo, error = _foto_a_pdf_huella(request.FILES.get('archivo'))
@@ -549,7 +566,7 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
             return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
 
         if rn is None:
-            rn = ControlRecienNacido.objects.create(registro=registro, **firma_sesion(request))
+            rn = ControlRecienNacido.objects.create(registro=registro, feto=feto, **firma_sesion(request))
         anterior = rn.huella_pdf.name if rn.huella_pdf else None
         rn.huella_pdf.save('huella.pdf', archivo, save=False)
         rn.huella_subida_por = nombre_profesional_sesion(request)[:255]
@@ -559,7 +576,7 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
             rn.huella_pdf.storage.delete(anterior)
         registrar_participacion(registro, request)
         registrar_cambios(registro, request, 'recien_nacido',
-                          [('correccion' if anterior else 'registro', 'Huella plantar')])
+                          [('correccion' if anterior else 'registro', etiqueta_huella)])
         return Response({
             'tiene_huella': True,
             'huella_subida_por': rn.huella_subida_por,
@@ -751,7 +768,9 @@ class ControlFetocardiaViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerrad
                     registro.save(update_fields=["atencion"])
             except Exception:
                 pass
-        serializer.save(registro=registro, **firma_sesion(self.request, con_responsable=True))
+        # 2026-10-14: feto B solo si el registro es gemelar.
+        feto = feto_valido(registro, serializer.validated_data.get('feto'))
+        serializer.save(registro=registro, feto=feto, **firma_sesion(self.request, con_responsable=True))
         registrar_participacion(registro, self.request)
 
     def create(self, request, *args, **kwargs):
@@ -765,6 +784,12 @@ class ControlFetocardiaViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerrad
         if atencion_id.isdigit() and isinstance(response.data, dict):
             response.data["redirect_url"] = f"/atencion/{atencion_id}/"
         return response
+
+    def perform_update(self, serializer):
+        # 2026-10-14: una corrección no puede llevar la toma a un feto inválido.
+        if 'feto' in serializer.validated_data:
+            serializer.validated_data['feto'] = feto_valido(serializer.instance.registro, serializer.validated_data['feto'])
+        super().perform_update(serializer)
 
     # Nota: antes esta vista bloqueaba update/partial_update con un 405
     # ("solo se puede agregar nuevos"). Se permite editar deliberadamente

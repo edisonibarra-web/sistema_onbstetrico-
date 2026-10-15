@@ -5066,6 +5066,40 @@
       background: #dcfce7;
       color: #166534;
     }
+
+    /* 2026-10-14: embarazo gemelar -- barra con el interruptor y el selector
+       "Feto A | Feto B" (fetocardia del expulsivo y recién nacido por feto).
+       Ver cambiarFetoActivoPP / cambiarEmbarazoGemelarPP. */
+    .pp-gemelar {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      margin: 14px 0 4px; padding: 12px 18px; border-radius: 14px;
+      background: #fff; border: 1.5px solid #e2e8f0; box-shadow: 0 4px 18px rgba(15,23,42,0.05);
+    }
+    .pp-gemelar.es-gemelar { background: #fdf2f8; border-color: #f9a8d4; }
+    .pp-gem-switch { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; color: #0f172a; cursor: pointer; }
+    .pp-gem-switch input { width: 20px; height: 20px; accent-color: #be185d; cursor: pointer; }
+    .pp-gem-ayuda { font-size: .82rem; color: #64748b; }
+    .pp-gem-ayuda[hidden], .pp-feto-selector[hidden], .pp-feto-banner[hidden] { display: none !important; }
+    .pp-feto-selector { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .pp-feto-texto { font-size: .85rem; font-weight: 700; color: #831843; }
+    .pp-feto-tab {
+      border: 2px solid #f9a8d4; background: #fff; color: #9d174d; font-weight: 800;
+      border-radius: 999px; padding: 6px 18px; cursor: pointer; font-size: .92rem;
+    }
+    .pp-feto-tab.activo { background: #be185d; border-color: #be185d; color: #fff; box-shadow: 0 3px 10px rgba(190,24,93,.3); }
+    .pp-feto-banner {
+      margin: 0 0 12px; padding: 8px 14px; border-radius: 12px; text-align: center;
+      background: #fdf2f8; border: 2px solid #f9a8d4; color: #9d174d; font-weight: 800;
+    }
+    #fc-table-body .fc-row[hidden] { display: none !important; }
+    /* Faltantes de cada feto en su pestaña (el paso muestra los del feto elegido). */
+    .pp-feto-falta {
+      display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 6px; border-radius: 999px;
+      background: #dc2626; color: #fff; font-size: .72rem; line-height: 18px; text-align: center;
+    }
+    .pp-feto-falta.completo { background: #16a34a; }
+    .pp-feto-banner.pp-madre-banner { background: #eff6ff; border-color: #93c5fd; color: #1e3a8a; }
+    .pp-feto-falta[hidden], .rn-hora-nac [hidden] { display: none !important; }
   </style>
 </head>
 
@@ -6601,10 +6635,30 @@
                       {# 2026-10-08: hora de nacimiento = hora de parto de "Características del parto" #}
                       {# (solo lectura; se cambia en Parto). La pinta pintarHoraNacimientoRN(). #}
                       <div class="rn-campo rn-ancho rn-hora-nac">
-                        <span class="rn-etq"><i data-lucide="clock"></i> Hora de nacimiento</span>
-                        <div class="rn-hora-nac-fila">
+                        <span class="rn-etq" id="rn_hora_nacimiento_etq"><i data-lucide="clock"></i> Hora de nacimiento <b class="rn-obl" id="rn-hora-nac-obl" hidden>*</b></span>
+                        <div class="rn-hora-nac-fila" id="rn-hora-nac-unico">
                           <span class="rn-hora-nac-valor" id="rn-hora-nac-vista">Sin registrar</span>
                           <span class="rn-hora-nac-origen">Tomada de la hora de parto en "Características del parto".</span>
+                        </div>
+                        {# 2026-10-14: embarazo gemelar -- cada feto con su hora de nacimiento #}
+                        {# (nacen con minutos de diferencia). Embarazo único: la de arriba. #}
+                        <div class="rn-hora-nac-gemelar" id="rn-hora-nac-gemelar" hidden>
+                          <input type="time" id="rn_hora_nacimiento" class="hp-real" tabindex="-1" aria-hidden="true">
+                          <div class="hora-picker" data-hora-para="rn_hora_nacimiento" role="group" aria-labelledby="rn_hora_nacimiento_etq">
+                            <div class="hp-reloj">
+                              <input type="text" class="hp-num hp-h" inputmode="numeric" maxlength="2" placeholder="--" aria-label="Hora (1 a 12)" autocomplete="off">
+                              <span class="hp-sep">:</span>
+                              <input type="text" class="hp-num hp-m" inputmode="numeric" maxlength="2" placeholder="--" aria-label="Minutos (00 a 59)" autocomplete="off">
+                            </div>
+                            <div class="hp-ampm" role="radiogroup" aria-label="a. m. o p. m.">
+                              <button type="button" class="hp-ampm-btn" data-ampm="AM" role="radio" aria-checked="false">a. m.</button>
+                              <button type="button" class="hp-ampm-btn" data-ampm="PM" role="radio" aria-checked="false">p. m.</button>
+                            </div>
+                            <button type="button" class="hp-ahora" title="Poner la hora actual"><i data-lucide="clock-arrow-down"></i> Ahora</button>
+                            <button type="button" class="hp-limpiar" title="Borrar la hora" aria-label="Borrar la hora">&times;</button>
+                          </div>
+                          <span class="hp-ayuda" aria-live="polite"></span>
+                          <span class="rn-hora-nac-origen">Embarazo gemelar: se toma sola de la hora de parto ("Características del parto"); ajústela si este feto nació a otra hora.</span>
                         </div>
                       </div>
                       <div class="rn-campo">
@@ -7278,10 +7332,13 @@
           // Las filas ya guardadas quedan editables (no "disabled"): se marcan
           // con data-fc-saved/data-fc-id para poder corregirlas por PATCH en
           // vez de reenviarlas como filas nuevas al guardar.
-          function crearFilaFetocardia(fecha, hora, fetocardia, saved, fcId) {
+          function crearFilaFetocardia(fecha, hora, fetocardia, saved, fcId, feto = fetoActivoPP) {
             const tbody = document.getElementById('fc-table-body');
             const tr = document.createElement('tr');
             tr.className = saved ? 'fc-row fc-row-guardada' : 'fc-row';
+            // 2026-10-14: embarazo gemelar -- feto de la toma (solo se ve el elegido).
+            tr.dataset.feto = String(feto || 1);
+            tr.hidden = !filaEsDelFeto(tr, fetoActivoPP);
             tr.innerHTML = `
               <td class="fc-col-num"><span class="fc-num"></span></td>
               <td><input type="date" class="form-control" data-param="fecha" value="${fecha || ''}" aria-label="Fecha del control"></td>
@@ -7347,7 +7404,7 @@
           }
 
           function actualizarFetocardiaUI() {
-            const filas = document.querySelectorAll('#fc-table-body .fc-row');
+            const filas = filasFetocardiaFeto();  // 2026-10-14: las del feto mostrado
             let total = 0, alertas = 0, ultimo = null;
             filas.forEach(fila => {
               const raw = fila.querySelector('[data-param="fetocardia"]').value;
@@ -7382,7 +7439,7 @@
             // badge "fc-intervalo-badge" en el toolbar) -- antes era un input
             // numérico libre.
             const intervalo = 5;
-            const rows = document.querySelectorAll('#fc-table-body .fc-row');
+            const rows = filasFetocardiaFeto();  // 2026-10-14: las del feto mostrado
             const now = new Date();
             let fecha = '';
             let hora = '';
@@ -7398,8 +7455,7 @@
           }
 
           function eliminarFilaFetocardia(btn) {
-            const tbody = document.getElementById('fc-table-body');
-            if (tbody.querySelectorAll('.fc-row').length <= 1) {
+            if (filasFetocardiaFeto().length <= 1) {
               showToast('Debe existir al menos un control de fetocardia.', 'error');
               return;
             }
@@ -7418,7 +7474,7 @@
               const hora = row.querySelector('[data-param="hora"]').value;
               const fetoVal = row.querySelector('[data-param="fetocardia"]').value;
               if (!fecha || !hora || !fetoVal) return;
-              filas.push({ row, datos: { fecha, hora, fetocardia: parseInt(fetoVal), responsable: '' } });
+              filas.push({ row, datos: { fecha, hora, fetocardia: parseInt(fetoVal), responsable: '', feto: parseInt(row.dataset.feto || '1', 10) } });
             });
             return filas;
           }
@@ -7515,6 +7571,7 @@
                 const fila = filas.find(row => {
                   const fechaEl = row.querySelector('[data-param="fecha"]');
                   if (fechaEl.getAttribute('data-fc-id')) return false; // ya enlazada
+                  if (!filaEsDelFeto(row, fc.feto || 1)) return false;  // 2026-10-14: gemelar
                   const horaEl = row.querySelector('[data-param="hora"]');
                   const fcEl = row.querySelector('[data-param="fetocardia"]');
                   return fechaEl.value === fd && horaEl.value === ho && String(fcEl.value) === String(fc.fetocardia);
@@ -7563,7 +7620,7 @@
 
           function recolectarFetocardiaCronologica() {
             const registros = [];
-            document.querySelectorAll('#fc-table-body .fc-row').forEach(row => {
+            filasFetocardiaFeto().forEach(row => {  // 2026-10-14: las del feto mostrado
               const fechaEl = row.querySelector('[data-param="fecha"]');
               const fecha = fechaEl.value;
               const hora = row.querySelector('[data-param="hora"]').value;
@@ -7749,10 +7806,15 @@
             });
             // "Parto atendido por" es del registro (no del RN): solo lectura.
             copia.querySelector('#fc-preview-rn_parto_atendido_por')?.setAttribute('readonly', '');
+            // 2026-10-14: hora de nacimiento por feto (gemelar) con input de hora nativo.
+            const horaNacPreview = copia.querySelector('#fc-preview-rn-hora-nac-gemelar');
+            if (horaNacPreview) {
+              horaNacPreview.innerHTML = '<input type="time" id="fc-preview-rn_hora_nacimiento" class="doc-input" style="max-width:160px">';
+            }
             return `
               <div class="pp-resumen-section">
                 <div class="pp-resumen-header">
-                  <span class="pp-resumen-title">Control del recién nacido</span>
+                  <span class="pp-resumen-title">Control del recién nacido${numeroFetosPP > 1 ? ` — Feto ${LETRAS_FETO_PP[fetoActivoPP]}` : ''}</span>
                   <span class="pp-resumen-meta">Los campos con * no se pueden dejar vacíos.</span>
                 </div>
                 <div class="fc-card-body rn-card-body rn-preview">${copia.outerHTML}</div>
@@ -8158,7 +8220,8 @@
 
             registro.row?.remove();
             // El formulario siempre conserva al menos una fila (vacía) para seguir registrando.
-            if (!document.querySelector('#fc-table-body .fc-row')) agregarFilaFetocardia();
+            // 2026-10-14: del feto que se está viendo (embarazo gemelar).
+            if (!filasFetocardiaFeto().length) agregarFilaFetocardia();
             actualizarFetocardiaUI();
             showToast('Control de fetocardia eliminado.', 'success');
             refrescarResponsables();
@@ -9756,8 +9819,14 @@
             };
             // 2026-09-30: Control del recién nacido. Solo viaja si hay algo
             // diligenciado (o si ya existía), para no crear un RN vacío.
-            const rn = buildRecienNacidoData();
+            const rn = buildRecienNacidoData(1);
             if (rn) payload.control_recien_nacido = rn;
+            // 2026-10-14: embarazo gemelar -- recién nacido del feto B.
+            payload.numero_fetos = numeroFetosPP;
+            if (numeroFetosPP > 1) {
+              const rnB = buildRecienNacidoData(2);
+              if (rnB) payload.control_recien_nacido_b = rnB;
+            }
             return payload;
           }
 
@@ -9770,7 +9839,7 @@
           // guarda una foto de lo que trajo del servidor y solo envía (PATCH)
           // los campos que ella misma cambió.
           let baseServidor = null;  // { payload, rn, fc } -- null = no se cargó bien: no se guarda
-          const CAMPOS_SOLO_CREACION = ['controles_postparto', 'controles_fetocardia', 'controles_sangrado', 'controles_globo', 'controles_sutura', 'control_recien_nacido', 'completar'];
+          const CAMPOS_SOLO_CREACION = ['controles_postparto', 'controles_fetocardia', 'controles_sangrado', 'controles_globo', 'controles_sutura', 'control_recien_nacido', 'control_recien_nacido_b', 'completar'];
           const igualValor = (a, b) => JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b);
 
           function fotoPantalla() {
@@ -9778,7 +9847,9 @@
             CAMPOS_SOLO_CREACION.forEach(k => delete payload[k]);
             return {
               payload,
-              rn: datosRecienNacidoPantalla(),
+              // 2026-10-14: recién nacido de cada feto (rn = A, rn_b = B).
+              rn: datosRNDeFeto(1),
+              rn_b: datosRNDeFeto(2),
               fc: Object.fromEntries(buildFetocardiaEdits().map(f => [String(f.id), f])),
             };
           }
@@ -9795,14 +9866,23 @@
             Object.entries(foto.payload).forEach(([k, v]) => {
               if (!igualValor(v, baseServidor.payload[k])) cambios[k] = v;
             });
-            const rn = {};
-            Object.entries(foto.rn).forEach(([k, v]) => {
-              if (k !== 'glucometrias' && !igualValor(v, baseServidor.rn[k])) rn[k] = v;
-            });
-            const { agregar, quitar } = diferenciaGlucometrias(baseServidor.rn.glucometrias || [], foto.rn.glucometrias || []);
-            if (agregar.length) rn.glucometrias_agregar = agregar;
-            if (quitar.length) rn.glucometrias_quitar = quitar;
+            // 2026-10-14: un diff por recién nacido (el B solo en gemelar).
+            const diferenciaRN = (actual, base) => {
+              const rn = {};
+              Object.entries(actual).forEach(([k, v]) => {
+                if (k !== 'glucometrias' && !igualValor(v, base[k])) rn[k] = v;
+              });
+              const { agregar, quitar } = diferenciaGlucometrias(base.glucometrias || [], actual.glucometrias || []);
+              if (agregar.length) rn.glucometrias_agregar = agregar;
+              if (quitar.length) rn.glucometrias_quitar = quitar;
+              return rn;
+            };
+            const rn = diferenciaRN(foto.rn, baseServidor.rn);
             if (Object.keys(rn).length) cambios.control_recien_nacido = rn;
+            if (numeroFetosPP > 1 && foto.rn_b) {
+              const rnB = diferenciaRN(foto.rn_b, baseRNDeFeto(2));
+              if (Object.keys(rnB).length) cambios.control_recien_nacido_b = rnB;
+            }
             return cambios;
           }
 
@@ -9832,6 +9912,12 @@
                 const { glucometrias_agregar, glucometrias_quitar, ...campos } = v;
                 Object.assign(baseServidor.rn, JSON.parse(JSON.stringify(campos)));
                 if (glucometrias_agregar || glucometrias_quitar) baseServidor.rn.glucometrias = JSON.parse(JSON.stringify(foto.rn.glucometrias));
+              } else if (k === 'control_recien_nacido_b') {
+                // 2026-10-14: recién nacido del feto B.
+                const { glucometrias_agregar, glucometrias_quitar, ...campos } = v;
+                const baseB = baseRNDeFeto(2);
+                Object.assign(baseB, JSON.parse(JSON.stringify(campos)));
+                if (glucometrias_agregar || glucometrias_quitar) baseB.glucometrias = JSON.parse(JSON.stringify(foto.rn_b.glucometrias));
               } else if (k !== 'completar') {
                 baseServidor.payload[k] = JSON.parse(JSON.stringify(v));
               }
@@ -9844,7 +9930,8 @@
           function refrescarDesdeServidor(data) {
             if (!data || !baseServidor) return;
             let cambio = refrescarGeneralesDesdeServidor(data);
-            cambio = refrescarRNDesdeServidor(data.control_recien_nacido) || cambio;
+            cambio = refrescarRNDesdeServidor(data.control_recien_nacido, 1) || cambio;
+            if (numeroFetosPP > 1) cambio = refrescarRNDesdeServidor(data.control_recien_nacido_b, 2) || cambio;
             cambio = refrescarFetocardiaDesdeServidor(data.controles_fetocardia) || cambio;
             if (cambio) {
               actualizarDisponibilidadCierre();
@@ -9896,23 +9983,37 @@
           // Campos del recién nacido que ESTA pantalla no está editando: se
           // ponen al día con lo que respondió el servidor (lo que guardó otra
           // persona aparece aquí sin recargar).
-          function refrescarRNDesdeServidor(rnServidor) {
+          function refrescarRNDesdeServidor(rnServidor, feto = 1) {
             if (!rnServidor || !baseServidor) return false;
+            const base = baseRNDeFeto(feto);
+            // 2026-10-14: feto que no se está mostrando -- se actualiza su copia
+            // en memoria solo si aquí no tiene cambios sin enviar.
+            if (feto !== fetoActivoPP) {
+              const guardado = datosRNDeFeto(feto);
+              if (!igualValor(guardado, base)) return false;
+              const nuevo = normalizarRNServidor(rnServidor);
+              rnExistePorFeto[feto] = true;
+              if (igualValor(nuevo, guardado)) return false;
+              rnPorFeto[feto] = nuevo;
+              if (feto === 2) baseServidor.rn_b = JSON.parse(JSON.stringify(nuevo));
+              else baseServidor.rn = JSON.parse(JSON.stringify(nuevo));
+              return true;
+            }
             const actual = datosRecienNacidoPantalla();
             let cambio = false;
             RN_CAMPOS.forEach(([campo, id, tipo]) => {
-              if (!igualValor(actual[campo], baseServidor.rn[campo])) return;  // la está editando esta pantalla
+              if (!igualValor(actual[campo], base[campo])) return;  // la está editando esta pantalla
               escribirCampoRN(id, tipo, rnServidor[campo]);
               const v = leerCampoRN(id, tipo);
               const nuevo = tipo === 'check' ? !!v : v;
               if (!igualValor(nuevo, actual[campo])) cambio = true;
-              baseServidor.rn[campo] = nuevo;
+              base[campo] = nuevo;
             });
             // Glucometrías: solo si esta pantalla no tiene cambios sin enviar
             // ni una fila a medio diligenciar o con el cursor dentro.
             const delServidor = normalizarGlucometrias(rnServidor.glucometrias);
             const enPantalla = normalizarGlucometrias(actual.glucometrias);
-            const sinTocar = igualValor(enPantalla, normalizarGlucometrias(baseServidor.rn.glucometrias));
+            const sinTocar = igualValor(enPantalla, normalizarGlucometrias(base.glucometrias));
             const aMedias = leerGlucometriasRN({ incluirIncompletas: true }).length !== actual.glucometrias.length;
             const editando = !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#rn-gluco-lista'));
             if (sinTocar && !aMedias && !editando) {
@@ -9922,7 +10023,7 @@
                 actualizarVacioGlucoRN();
                 cambio = true;
               }
-              baseServidor.rn.glucometrias = leerGlucometriasRN();
+              base.glucometrias = leerGlucometriasRN();
             }
             if (cambio) rnExiste = true;
             return cambio;
@@ -9941,7 +10042,7 @@
               const fecha = fc.fecha ? String(fc.fecha).split('T')[0] : null;
               const hora = fc.hora ? String(fc.hora).substring(0, 5) : null;
               if (!filas[id]) {
-                crearFilaFetocardia(fecha, hora, fc.fetocardia, true, fc.id);
+                crearFilaFetocardia(fecha, hora, fc.fetocardia, true, fc.id, fc.feto || 1);
                 baseServidor.fc[id] = JSON.parse(JSON.stringify(filaDe(id)));
                 cambio = true;
                 return;
@@ -9963,6 +10064,9 @@
           // --- 2026-09-30: Control del recién nacido ----------------------
           // [campo del modelo, id del elemento / name del radio, tipo]
           const RN_CAMPOS = [
+            // 2026-10-14: hora de nacimiento propia de cada feto (solo se
+            // muestra y se pide en embarazo gemelar; vacía = hora de parto).
+            ['hora_nacimiento', 'rn_hora_nacimiento', 'hora'],
             // 2026-09-30: "Hora de nacimiento" se quitó de la card (es la
             // misma "Hora de parto"); el PDF usa esa hora.
             ['genero', 'rn_genero', 'radio'],
@@ -10011,11 +10115,314 @@
               .filter(([id, tipo]) => leerCampoRN(id, tipo) === null)
               .map(([, , etiqueta]) => etiqueta);
             if (!rnHuella.tiene) faltan.push('foto de la huella plantar');
+            // 2026-10-14: embarazo gemelar -- hora de nacimiento y los del otro feto.
+            if (numeroFetosPP > 1) {
+              if (leerCampoRN('rn_hora_nacimiento', 'hora') === null) faltan.unshift('hora de nacimiento');
+              const sufijo = ` (Feto ${LETRAS_FETO_PP[fetoActivoPP]})`;
+              const otro = fetoActivoPP === 1 ? 2 : 1;
+              const datosOtro = datosRNDeFeto(otro);
+              const campoDe = id => (RN_CAMPOS.find(([, idCampo]) => idCampo === id) || [])[0];
+              const delOtro = RN_OBLIGATORIOS_CIERRE
+                .filter(([id]) => { const c = campoDe(id); return c && (datosOtro[c] === null || datosOtro[c] === undefined); })
+                .map(([, , etiqueta]) => `${etiqueta} (Feto ${LETRAS_FETO_PP[otro]})`);
+              if (!(rnHuellaPorFeto[otro] && rnHuellaPorFeto[otro].tiene)) delOtro.push(`foto de la huella plantar (Feto ${LETRAS_FETO_PP[otro]})`);
+              if (datosOtro.hora_nacimiento === null || datosOtro.hora_nacimiento === undefined) delOtro.unshift(`hora de nacimiento (Feto ${LETRAS_FETO_PP[otro]})`);
+              return faltan.map(f => f + sufijo).concat(delOtro);
+            }
             return faltan;
           }
 
           let rnExiste = false;          // ya hay ControlRecienNacido en el servidor
           let rnHuella = { tiene: false, por: '', en: null };
+
+          // --- 2026-10-14: embarazo gemelar --------------------------------
+          // La fetocardia del expulsivo y el recién nacido se registran por
+          // feto (1 = A, 2 = B). La tarjeta del recién nacido muestra el feto
+          // elegido en "Feto A | Feto B"; el otro queda en rnPorFeto (y su
+          // huella en rnHuellaPorFeto) hasta volver a él. rnExiste / rnHuella
+          // siguen siendo los del feto mostrado. Embarazo único: todo es feto 1.
+          let numeroFetosPP = 1;
+          let fetoActivoPP = 1;
+          const LETRAS_FETO_PP = { 1: 'A', 2: 'B' };
+          const rnPorFeto = { 1: null, 2: null };
+          const rnHuellaPorFeto = { 1: null, 2: null };
+          const rnExistePorFeto = { 1: false, 2: false };
+
+          function rnVacio() {
+            const datos = {};
+            RN_CAMPOS.forEach(([campo, , tipo]) => { datos[campo] = tipo === 'check' ? false : null; });
+            datos.glucometrias = [];
+            return datos;
+          }
+
+          // Datos del servidor con la misma forma que datosRecienNacidoPantalla().
+          function normalizarRNServidor(rn) {
+            const datos = rnVacio();
+            if (!rn) return datos;
+            RN_CAMPOS.forEach(([campo, , tipo]) => {
+              const v = rn[campo];
+              const vacio = v === null || v === undefined || v === '';
+              if (tipo === 'check') datos[campo] = !!v;
+              else if (vacio) datos[campo] = null;
+              else if (tipo === 'sino') datos[campo] = v === true || v === 'true';
+              else if (tipo === 'num') { const n = parseFloat(v); datos[campo] = isNaN(n) ? null : n; }
+              else if (tipo === 'ent') { const n = parseInt(v, 10); datos[campo] = isNaN(n) ? null : n; }
+              else if (tipo === 'hora') datos[campo] = String(v).substring(0, 5);
+              else datos[campo] = String(v).trim() || null;
+            });
+            datos.glucometrias = (rn.glucometrias || [])
+              .filter(g => g.hora && g.resultado !== null && g.resultado !== undefined && g.resultado !== '')
+              .map(g => ({ hora: String(g.hora).substring(0, 5), resultado: parseFloat(g.resultado) }));
+            return datos;
+          }
+
+          function datosRNDeFeto(feto) {
+            if (feto === fetoActivoPP) return datosRecienNacidoPantalla();
+            return rnPorFeto[feto] ? JSON.parse(JSON.stringify(rnPorFeto[feto])) : rnVacio();
+          }
+
+          function baseRNDeFeto(feto) {
+            if (!baseServidor) return null;
+            if (feto === 2) {
+              if (!baseServidor.rn_b) baseServidor.rn_b = rnVacio();
+              return baseServidor.rn_b;
+            }
+            return baseServidor.rn;
+          }
+
+          function escribirRNEnPantalla(datos) {
+            RN_CAMPOS.forEach(([campo, id, tipo]) => escribirCampoRN(id, tipo, datos ? datos[campo] : null));
+            document.getElementById('rn-gluco-lista').innerHTML = '';
+            ((datos && datos.glucometrias) || []).forEach(g => agregarGlucometriaRN(g.hora, g.resultado));
+            actualizarVacioGlucoRN();
+            if (registroCerrado || window.MODO_SOLO_CONSULTA) {
+              document.querySelectorAll('#rn-gluco-lista input, #rn-gluco-lista button').forEach(el => { el.disabled = true; });
+            }
+          }
+
+          function filaEsDelFeto(row, feto) {
+            return String(row.dataset.feto || 1) === String(feto);
+          }
+          function filasFetocardiaFeto(feto = fetoActivoPP) {
+            return Array.from(document.querySelectorAll('#fc-table-body .fc-row')).filter(r => filaEsDelFeto(r, feto));
+          }
+          function aplicarFiltroFetocardia() {
+            document.querySelectorAll('#fc-table-body .fc-row').forEach(r => { r.hidden = !filaEsDelFeto(r, fetoActivoPP); });
+          }
+          function asegurarFilaFetocardiaFeto() {
+            if (!filasFetocardiaFeto().length && !registroCerrado && !window.MODO_SOLO_CONSULTA) agregarFilaFetocardia();
+          }
+
+          function pintarBarraGemelarPP() {
+            const gemelar = numeroFetosPP > 1;
+            const letra = LETRAS_FETO_PP[fetoActivoPP];
+            const chk = document.getElementById('embarazo_gemelar');
+            if (chk) chk.checked = gemelar;
+            const selector = document.getElementById('pp-feto-selector');
+            if (selector) selector.hidden = !gemelar;
+            const ayuda = document.getElementById('pp-gem-ayuda');
+            if (ayuda) ayuda.hidden = gemelar;
+            document.getElementById('pp-gemelar')?.classList.toggle('es-gemelar', gemelar);
+            pintarHoraNacimientoRN();
+            document.querySelectorAll('#pp-feto-selector .pp-feto-tab').forEach(tab => {
+              const activo = String(tab.dataset.feto) === String(fetoActivoPP);
+              tab.classList.toggle('activo', activo);
+              tab.setAttribute('aria-selected', activo ? 'true' : 'false');
+            });
+            // Aviso en los pasos que se registran por feto.
+            // 2026-10-14: y en los pasos de la madre, que se registran una sola vez.
+            const PASOS_POR_FETO = ['fetocardia', 'recien-nacido'];
+            const PASOS_DE_LA_MADRE = ['meows', 'parto', 'vigilancia'];
+            (typeof ppwPasos !== 'undefined' ? ppwPasos : []).forEach(paso => {
+              const porFeto = PASOS_POR_FETO.includes(paso.id);
+              if (!porFeto && !PASOS_DE_LA_MADRE.includes(paso.id)) return;
+              let banner = paso.panel.querySelector(':scope > .pp-feto-banner');
+              if (!banner) {
+                banner = document.createElement('div');
+                banner.className = 'pp-feto-banner' + (porFeto ? '' : ' pp-madre-banner');
+                paso.panel.prepend(banner);
+              }
+              banner.hidden = !gemelar;
+              banner.textContent = porFeto
+                ? `Embarazo gemelar · registrando datos del FETO ${letra}`
+                : 'Embarazo gemelar · datos de la madre: se registran UNA sola vez para los dos fetos (no cambian con Feto A / Feto B).';
+            });
+          }
+
+          function cambiarFetoActivoPP(feto) {
+            feto = numeroFetosPP > 1 && feto === 2 ? 2 : 1;
+            if (feto !== fetoActivoPP) {
+              rnPorFeto[fetoActivoPP] = datosRecienNacidoPantalla();
+              rnHuellaPorFeto[fetoActivoPP] = rnHuella;
+              rnExistePorFeto[fetoActivoPP] = rnExiste;
+              fetoActivoPP = feto;
+              escribirRNEnPantalla(rnPorFeto[feto]);
+              rnHuella = rnHuellaPorFeto[feto] || { tiene: false, por: '', en: null };
+              rnExiste = !!rnExistePorFeto[feto];
+              pintarHuellaRN();
+              aplicarFiltroFetocardia();
+              asegurarFilaFetocardiaFeto();
+              actualizarFetocardiaUI();
+              completarHorasNacimientoPP();
+            }
+            pintarBarraGemelarPP();
+            if (typeof actualizarPasosPosparto === 'function') actualizarPasosPosparto();
+          }
+
+          function hayDatosFetoB() {
+            if (rnExistePorFeto[2] || (fetoActivoPP === 2 && rnExiste)) return true;
+            if (!igualValor(datosRNDeFeto(2), rnVacio())) return true;
+            return filasFetocardiaFeto(2).some(r => r.querySelector('[data-param="fetocardia"]').value);
+          }
+
+          function cambiarEmbarazoGemelarPP(chk) {
+            if (registroCerrado || window.MODO_SOLO_CONSULTA) {
+              chk.checked = numeroFetosPP > 1;
+              return;
+            }
+            if (chk.checked) {
+              if (!confirm('¿Marcar este registro como EMBARAZO GEMELAR?\n\n'
+                + 'POR CADA FETO (elija "Feto A" o "Feto B" antes de registrar): fetocardia del expulsivo y '
+                + 'control del recién nacido con su huella plantar y hora de nacimiento.\n\n'
+                + 'UNA SOLA VEZ (son de la madre, iguales para los dos fetos): datos de la paciente y acompañante · características del parto (tipo de parto, hora de parto, episiotomía, alumbramiento y desgarro) · puntaje MEOWS · sangrado, involución uterina y herida (control de 6 h) · parto atendido por.')) {
+                chk.checked = false;
+                return;
+              }
+              numeroFetosPP = 2;
+              ultimaHoraPartoPP = horaPartoActualPP();
+              completarHorasNacimientoPP();
+            } else {
+              // El servidor tampoco lo acepta (los datos del Feto B quedarían ocultos).
+              if (hayDatosFetoB()) {
+                showToast('No se puede quitar el embarazo gemelar: ya hay datos registrados del Feto B.', 'error');
+                chk.checked = true;
+                return;
+              }
+              if (!confirm('¿Quitar el embarazo gemelar de este registro?')) {
+                chk.checked = true;
+                return;
+              }
+              if (fetoActivoPP !== 1) cambiarFetoActivoPP(1);
+              numeroFetosPP = 1;
+              filasFetocardiaFeto(2).forEach(r => r.remove());  // solo filas vacías (ver hayDatosFetoB)
+            }
+            pintarBarraGemelarPP();
+            if (typeof actualizarPasosPosparto === 'function') actualizarPasosPosparto();
+            programarAutoguardado();
+          }
+
+          // 2026-10-14: la hora de nacimiento de cada feto se toma sola de la hora
+          // de parto ("Características del parto"). Si luego cambia la hora de
+          // parto, se actualiza en los fetos que aún tenían la anterior (no se
+          // pisa una hora ajustada a mano, p. ej. la del Feto B).
+          let ultimaHoraPartoPP = '';
+          function horaPartoActualPP() {
+            return (document.getElementById('hora_parto')?.value || '').trim().substring(0, 5);
+          }
+          function completarHorasNacimientoPP(horaAnterior = '') {
+            if (numeroFetosPP < 2 || registroCerrado || window.MODO_SOLO_CONSULTA) return false;
+            const hora = horaPartoActualPP();
+            if (!hora) return false;
+            const tomarHoraParto = v => !v || (horaAnterior && String(v).substring(0, 5) === horaAnterior);
+            let cambio = false;
+            const actual = leerCampoRN('rn_hora_nacimiento', 'hora');
+            if (tomarHoraParto(actual) && String(actual || '').substring(0, 5) !== hora) {
+              escribirCampoRN('rn_hora_nacimiento', 'hora', hora);
+              cambio = true;
+            }
+            const otro = fetoActivoPP === 1 ? 2 : 1;
+            const datosOtro = rnPorFeto[otro] || rnVacio();
+            if (tomarHoraParto(datosOtro.hora_nacimiento) && datosOtro.hora_nacimiento !== hora) {
+              datosOtro.hora_nacimiento = hora;
+              rnPorFeto[otro] = datosOtro;
+              cambio = true;
+            }
+            if (cambio) {
+              programarAutoguardado();
+              if (typeof actualizarPasosPosparto === 'function') actualizarPasosPosparto();
+            }
+            return cambio;
+          }
+          function alCambiarHoraPartoPP() {
+            const hora = horaPartoActualPP();
+            if (hora === ultimaHoraPartoPP) return;
+            const anterior = ultimaHoraPartoPP;
+            ultimaHoraPartoPP = hora;
+            completarHorasNacimientoPP(anterior);
+          }
+
+          // Al cargar un registro (siempre se abre en el Feto A).
+          function prepararGemelarDesdeServidor(data) {
+            numeroFetosPP = data && data.numero_fetos >= 2 ? 2 : 1;
+            fetoActivoPP = 1;
+            const b = data ? data.control_recien_nacido_b : null;
+            rnPorFeto[1] = null;
+            rnPorFeto[2] = b ? normalizarRNServidor(b) : null;
+            rnExistePorFeto[1] = false;
+            rnExistePorFeto[2] = !!b;
+            rnHuellaPorFeto[1] = null;
+            rnHuellaPorFeto[2] = { tiene: !!(b && b.tiene_huella), por: (b && b.huella_subida_por) || '', en: (b && b.huella_subida_en) || null };
+            ultimaHoraPartoPP = String((data && data.hora_parto) || '').substring(0, 5);
+            pintarBarraGemelarPP();
+          }
+
+          // Pestañas "Feto A | Feto B": cuántos datos le faltan a cada uno
+          // (recién nacido + fetocardia). `faltanMostrado` = faltantesPorPaso({ soloFetoMostrado: true }).
+          function pintarFaltantesFetosPP(faltanMostrado, apagado) {
+            const gemelar = numeroFetosPP > 1 && !apagado;
+            const otro = fetoActivoPP === 1 ? 2 : 1;
+            const cuantos = {};
+            if (gemelar) {
+              cuantos[fetoActivoPP] = (faltanMostrado['recien-nacido'] || []).length + (faltanMostrado.fetocardia || []).length;
+              const sinFetocardia = !filasFetocardiaFeto(otro).some(row => row.querySelector('[data-param="fetocardia"]').value);
+              cuantos[otro] = faltantesRNFetoOculto({ incluirCompartidos: true }).length + (sinFetocardia ? 1 : 0);
+            }
+            document.querySelectorAll('#pp-feto-selector .pp-feto-tab').forEach(tab => {
+              let chip = tab.querySelector('.pp-feto-falta');
+              if (!chip) {
+                chip = document.createElement('span');
+                chip.className = 'pp-feto-falta';
+                tab.appendChild(chip);
+              }
+              const n = cuantos[Number(tab.dataset.feto)];
+              chip.hidden = !gemelar;
+              chip.classList.toggle('completo', n === 0);
+              chip.textContent = n === 0 ? '✓' : String(n ?? '');
+              chip.title = n === 0 ? 'Completo' : `Faltan ${n} dato(s) de este feto`;
+            });
+          }
+
+          // Faltantes del recién nacido del feto que NO se está mostrando.
+          // incluirCompartidos: cuenta también los campos del registro que se
+          // muestran en la tarjeta (p. ej. "Parto atendido por"), comunes a los
+          // dos fetos: sí para el contador de la pestaña, no para la lista de
+          // cierre (ahí ya aparecen una vez, con el feto mostrado).
+          function faltantesRNFetoOculto({ incluirCompartidos = false } = {}) {
+            if (numeroFetosPP < 2) return [];
+            const feto = fetoActivoPP === 1 ? 2 : 1;
+            const datos = datosRNDeFeto(feto);
+            const campoDe = id => (RN_CAMPOS.find(([, idCampo]) => idCampo === id) || [])[0];
+            const sufijo = ` (Feto ${LETRAS_FETO_PP[feto]})`;
+            const faltan = [];
+            // Condicionales de FALTA_RN, evaluados con los datos guardados del feto.
+            const CONDICIONALES = {
+              rn_causa_uci: d => d.pasa_uci_neonatal === true,
+              rn_lavado_elimina: d => d.lavado_gastrico === true,
+            };
+            if (datos.hora_nacimiento === null || datos.hora_nacimiento === undefined) faltan.push('Hora de nacimiento' + sufijo);
+            FALTA_RN.forEach(([id, tipo, etq, aplica]) => {
+              if (aplica && !(CONDICIONALES[id] && CONDICIONALES[id](datos))) return;
+              const campo = campoDe(id);
+              if (campo) {
+                if (datos[campo] === null || datos[campo] === undefined) faltan.push(etq + sufijo);
+              } else if (incluirCompartidos && leerCampoRN(id, tipo) === null) {
+                faltan.push(etq);
+              }
+            });
+            if (!datos.glucometrias_no_aplica && !(datos.glucometrias || []).length) faltan.push('Glucometrías (o marque "No aplica")' + sufijo);
+            if (!(rnHuellaPorFeto[feto] && rnHuellaPorFeto[feto].tiene)) faltan.push('Huella plantar' + sufijo);
+            return faltan;
+          }
 
           function leerCampoRN(id, tipo) {
             if (tipo === 'radio' || tipo === 'sino') {
@@ -10071,11 +10478,13 @@
             return datos;
           }
 
-          function buildRecienNacidoData() {
-            const datos = datosRecienNacidoPantalla();
+          function buildRecienNacidoData(feto = 1) {
+            // 2026-10-14: de un feto (el mostrado se lee de la tarjeta).
+            const datos = datosRNDeFeto(feto);
+            const existe = feto === fetoActivoPP ? rnExiste : rnExistePorFeto[feto];
             const hayAlgo = datos.glucometrias.length > 0 || RN_CAMPOS.some(([campo, , tipo]) =>
               tipo === 'check' ? datos[campo] : datos[campo] !== null);
-            return (hayAlgo || rnExiste) ? datos : null;
+            return (hayAlgo || existe) ? datos : null;
           }
 
           function validarRecienNacido(silencioso) {
@@ -10218,7 +10627,7 @@
             const bloqueada = huellaRNBloqueada();
 
             if (rnHuella.tiene && savedRegistroId) {
-              const url = `${API_BASE}/registros/${savedRegistroId}/huella-rn/?t=${Date.now()}`;
+              const url = `${API_BASE}/registros/${savedRegistroId}/huella-rn/?feto=${fetoActivoPP}&t=${Date.now()}`;
               const iframe = document.createElement('iframe');
               iframe.title = 'Huella plantar del recién nacido';
               iframe.src = url + '#toolbar=0&navpanes=0&view=FitH';
@@ -10311,7 +10720,7 @@
               const headers = {};
               const csrf = getCookie('csrftoken');
               if (csrf) headers['X-CSRFToken'] = csrf;
-              const res = await fetch(`${API_BASE}/registros/${savedRegistroId}/huella-rn/`, {
+              const res = await fetch(`${API_BASE}/registros/${savedRegistroId}/huella-rn/?feto=${fetoActivoPP}`, {
                 method: 'POST', headers, body: datos, credentials: 'same-origin',
               });
               const resp = await res.json().catch(() => ({}));
@@ -10333,7 +10742,7 @@
             if (!savedRegistroId || !rnHuella.tiene || huellaRNBloqueada()) return;
             if (!confirm('¿Quitar la huella cargada? Tendrá que subirla de nuevo.')) return;
             try {
-              const res = await fetch(`${API_BASE}/registros/${savedRegistroId}/huella-rn/`, {
+              const res = await fetch(`${API_BASE}/registros/${savedRegistroId}/huella-rn/?feto=${fetoActivoPP}`, {
                 method: 'DELETE', headers: getHeaders(), credentials: 'same-origin',
               });
               const resp = await res.json().catch(() => ({}));
@@ -10672,6 +11081,15 @@
                 </div>
                 <div class="pcard-section ppw-datos" id="ppw-datos"></div>
               </div>
+              <div class="pp-gemelar" id="pp-gemelar">
+                <label class="pp-gem-switch"><input type="checkbox" id="embarazo_gemelar" onchange="cambiarEmbarazoGemelarPP(this)"> Embarazo gemelar</label>
+                <span class="pp-gem-ayuda" id="pp-gem-ayuda">Actívelo si la paciente tuvo gemelos: la fetocardia y el recién nacido se registran por cada feto.</span>
+                <div class="pp-feto-selector" id="pp-feto-selector" role="tablist" aria-label="Feto que se está registrando" hidden>
+                  <span class="pp-feto-texto">Registrando datos fetales de:</span>
+                  <button type="button" class="pp-feto-tab ppw-ctrl activo" role="tab" data-feto="1" onclick="cambiarFetoActivoPP(1)">Feto A</button>
+                  <button type="button" class="pp-feto-tab ppw-ctrl" role="tab" data-feto="2" onclick="cambiarFetoActivoPP(2)">Feto B</button>
+                </div>
+              </div>
               <div class="ppw-steps" role="tablist" aria-label="Pasos del formato">
                 ${ppwPasos.map((p, i) => `<button type="button" class="ppw-step ppw-ctrl" role="tab" data-i="${i}" data-paso="${p.id}" data-color="${(i % 6) + 1}" title="Ir al paso ${i + 1}: ${p.titulo}">`
                   + `<span class="snum">${i + 1}</span>`
@@ -10838,13 +11256,22 @@
             ['rn_neonato_atendido_por', 'texto', 'Neonato atendido por'],
           ];
 
-          function faltantesPorPaso() {
+          // 2026-10-14: soloFetoMostrado = lo que pinta "Faltan N" en el paso
+          // (solo el feto elegido); sin él (cierre del registro), los dos fetos.
+          function faltantesPorPaso({ soloFetoMostrado = false } = {}) {
             const v = id => (document.getElementById(id)?.value || '').trim();
             const r = { paciente: [], fetocardia: [], parto: [], vigilancia: [], 'recien-nacido': [] };
             // 2026-10-06: obligatorio para cerrar (ver actualizarDisponibilidadCierre).
             if (!v('nombre_acompanante')) r.paciente.push({ etq: 'Nombre del acompañante', el: document.getElementById('nombre_acompanante') });
-            if (!Array.from(document.querySelectorAll('#fc-table-body [data-param="fetocardia"]')).some(i => i.value)) {
-              r.fetocardia.push({ etq: 'Al menos un control de fetocardia', el: document.getElementById('fc-table-body') });
+            // 2026-10-14: en gemelar, al menos una toma de cada feto.
+            for (let feto = 1; feto <= numeroFetosPP; feto++) {
+              if (soloFetoMostrado && feto !== fetoActivoPP) continue;
+              if (!filasFetocardiaFeto(feto).some(row => row.querySelector('[data-param="fetocardia"]').value)) {
+                r.fetocardia.push({
+                  etq: 'Al menos un control de fetocardia' + (numeroFetosPP > 1 ? ` (Feto ${LETRAS_FETO_PP[feto]})` : ''),
+                  el: document.getElementById('fc-table-body'),
+                });
+              }
             }
             [['tipo_parto', 'Tipo de parto'], ['hora_parto', 'Hora de parto'], ['tipo_alumbramiento', 'Alumbramiento'], ['desgarro', 'Desgarro']]
               .forEach(([id, etq]) => { if (!v(id)) r.parto.push({ etq, el: document.getElementById(id) }); });
@@ -10869,6 +11296,19 @@
               r['recien-nacido'].push({ etq: 'Glucometrías (o marque "No aplica")', el: document.querySelector('.rn-grupo-gluco') });
             }
             if (!rnHuella.tiene) r['recien-nacido'].push({ etq: 'Huella plantar', el: document.getElementById('rn-huella') });
+            // 2026-10-14: embarazo gemelar -- hora de nacimiento de cada feto;
+            // los del feto mostrado llevan su letra y (salvo soloFetoMostrado)
+            // se suman los del otro feto.
+            if (numeroFetosPP > 1) {
+              if (leerCampoRN('rn_hora_nacimiento', 'hora') === null) {
+                r['recien-nacido'].unshift({ etq: 'Hora de nacimiento', el: document.getElementById('rn-hora-nac-gemelar') });
+              }
+              const sufijo = ` (Feto ${LETRAS_FETO_PP[fetoActivoPP]})`;
+              r['recien-nacido'].forEach(f => { f.etq += sufijo; });
+              if (!soloFetoMostrado) {
+                faltantesRNFetoOculto().forEach(etq => r['recien-nacido'].push({ etq, el: document.getElementById('pp-feto-selector') }));
+              }
+            }
             return r;
           }
 
@@ -10926,7 +11366,11 @@
           function pintarFaltantesPosparto() {
             document.querySelectorAll('.campo-falta').forEach(el => el.classList.remove('campo-falta'));
             const apagado = registroCerrado || window.MODO_SOLO_CONSULTA;
-            const faltan = apagado ? {} : faltantesPorPaso();
+            // 2026-10-14: "Faltan N" = solo el feto elegido (antes, en gemelar,
+            // sumaba los dos: el Feto A casi completo marcaba "Faltan 23").
+            // Cada pestaña "Feto A | Feto B" muestra lo suyo.
+            const faltan = apagado ? {} : faltantesPorPaso({ soloFetoMostrado: true });
+            pintarFaltantesFetosPP(faltan, apagado);
             document.querySelectorAll('#ppw .ppw-step').forEach((b, j) => {
               const paso = ppwPasos[j];
               const lista = faltan[paso.id] || [];
@@ -10953,6 +11397,14 @@
 
           // 2026-10-08: "Hora de nacimiento" del recién nacido = hora de parto.
           function pintarHoraNacimientoRN() {
+            // 2026-10-14: en gemelar, cada feto registra la suya.
+            const gemelar = typeof numeroFetosPP !== 'undefined' && numeroFetosPP > 1;
+            const unico = document.getElementById('rn-hora-nac-unico');
+            const porFeto = document.getElementById('rn-hora-nac-gemelar');
+            const obl = document.getElementById('rn-hora-nac-obl');
+            if (unico) unico.hidden = gemelar;
+            if (porFeto) porFeto.hidden = !gemelar;
+            if (obl) obl.hidden = !gemelar;
             const el = document.getElementById('rn-hora-nac-vista');
             if (!el) return;
             const v = (document.getElementById('hora_parto')?.value || '').trim();
@@ -10969,7 +11421,9 @@
             const v = id => (document.getElementById(id)?.value || '').trim();
             const hecho = {
               paciente: !!(v('nombre_paciente') && v('identificacion') && v('edad_gestacional') && v('nombre_acompanante')),
-              fetocardia: Array.from(document.querySelectorAll('#fc-table-body [data-param="fetocardia"]')).some(i => i.value),
+              // 2026-10-14: en gemelar, de cada feto.
+              fetocardia: [1, 2].slice(0, numeroFetosPP).every(feto =>
+                filasFetocardiaFeto(feto).some(row => row.querySelector('[data-param="fetocardia"]').value)),
               meows: !!document.querySelector('.meows-grid-table th.grid-th-columna'),
               parto: !!(v('tipo_parto') && v('hora_parto')),
               vigilancia: progresoVigilancia().faltan === 0,  // 2026-10-07: las 13 tomas (6 h)
@@ -10983,7 +11437,7 @@
               parto: lleno(['tipo_parto', 'hora_parto', 'tipo_alumbramiento']),
               // Avance total de las tres tarjetas (no solo la más atrasada).
               vigilancia: (() => { const p = progresoVigilancia(); return p.detalle.reduce((s, d) => s + d.hechas, 0) / (p.total * p.detalle.length); })(),
-              'recien-nacido': (RN_OBLIGATORIOS_CIERRE.length + 1 - faltantesRecienNacido().length) / (RN_OBLIGATORIOS_CIERRE.length + 1),
+              'recien-nacido': Math.max(0, ((RN_OBLIGATORIOS_CIERRE.length + 1) * numeroFetosPP - faltantesRecienNacido().length) / ((RN_OBLIGATORIOS_CIERRE.length + 1) * numeroFetosPP)),
               finalizacion: registroCerrado ? 1 : 0,
             };
             // 2026-10-07: un paso con datos faltantes ("Faltan N") nunca se marca
@@ -11207,7 +11661,9 @@
 
               const data = await res.json();
               savedRegistroId = data.id;
-              if (data.control_recien_nacido) rnExiste = true;
+              // 2026-10-14: rnExiste es el del feto mostrado; el otro va aparte.
+              if (data.control_recien_nacido) { if (fetoActivoPP === 1) rnExiste = true; else rnExistePorFeto[1] = true; }
+              if (data.control_recien_nacido_b) { if (fetoActivoPP === 2) rnExiste = true; else rnExistePorFeto[2] = true; }
               // Lo enviado ya es lo que hay en el servidor; lo que no se tocó
               // aquí se pone al día con la respuesta.
               if (isUpdate) {
@@ -11757,6 +12213,8 @@
               savedRegistroId = data.id;
               renderResponsables(data.responsables || []);
               renderResponsablesSecciones(data.responsables_secciones || {});
+              // 2026-10-14: embarazo gemelar (se abre en el Feto A).
+              prepararGemelarDesdeServidor(data);
               cargarRecienNacido(data.control_recien_nacido, data.parto_atendido_por);
 
               // Actualizar campos para polling y Android
@@ -11800,9 +12258,13 @@
                 data.controles_fetocardia.forEach((fc) => {
                   const fd = fc.fecha ? String(fc.fecha).split('T')[0] : '';
                   const ho = fc.hora ? (String(fc.hora).length > 5 ? String(fc.hora).substring(0, 5) : fc.hora) : '';
-                  crearFilaFetocardia(fd, ho, fc.fetocardia, true, fc.id);
+                  crearFilaFetocardia(fd, ho, fc.fetocardia, true, fc.id, fc.feto || 1);
                 });
               }
+              // 2026-10-14: solo las tomas del feto mostrado; en gemelar, una
+              // fila para empezar a registrar el feto B si aún no tiene.
+              aplicarFiltroFetocardia();
+              if (numeroFetosPP > 1 && !data.completado_en) asegurarFilaFetocardiaFeto();
 
               // 2026-09-22: si este registro ya se cerró con "Guardar
               // Registro Completo" (en esta sesión o en cualquier otra --
@@ -11818,6 +12280,9 @@
 
               // 2026-10-06: foto de lo que hay en el servidor (todo ya pintado).
               tomarBaseServidor();
+              // 2026-10-14: gemelar -- horas de nacimiento vacías = hora de parto
+              // (después de la foto, así el autoguardado las envía).
+              if (!data.completado_en) completarHorasNacimientoPP();
 
               if (!silencioso) {
                 switchTab('paciente');
@@ -11987,9 +12452,12 @@
 
             iniciarHuellaRN();
             iniciarSelectorHora('hora_parto');
+            iniciarSelectorHora('rn_hora_nacimiento');  // 2026-10-14: gemelar
+            ['input', 'change'].forEach(ev => document.getElementById('hora_parto')?.addEventListener(ev, alCambiarHoraPartoPP));
             iniciarTarjetasTipoParto();
             // 2026-10-05: formato por pasos (una tarjeta a la vez).
             iniciarPasosPosparto();
+            pintarBarraGemelarPP();  // 2026-10-14: embarazo gemelar
             // 2026-10-06: calculadora de sangrado fija (el borrador se recupera
             // al cargar el registro, o aquí abajo si no hay registro previo).
             prepararPanelSangrado();
