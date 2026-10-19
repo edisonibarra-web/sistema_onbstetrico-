@@ -5,6 +5,10 @@ from .models import (
     ControlGlobo, ControlSutura, recalcular_estados_sangrado, MAX_FETOS,
 )
 from obstetriciaunificador.models import AtencionParto
+from .propiedad import (
+    CAMPOS_REGISTRO_CON_DUENO, DatoAjenoError, asignar_duenos, campos_rn_con_dueno, datos_ajenos,
+    glucometrias_ajenas, usuario_y_nombre, valores,
+)
 
 
 class AtencionToleranteField(serializers.PrimaryKeyRelatedField):
@@ -36,7 +40,7 @@ class AtencionToleranteField(serializers.PrimaryKeyRelatedField):
 
 # 2026-09-28: los campos de firma (quién registró) los pone SOLO el servidor
 # con el profesional en sesión -- nunca se aceptan del cliente.
-CAMPOS_FIRMA = ['registrado_por', 'registrado_en']
+CAMPOS_FIRMA = ['registrado_por', 'registrado_en', 'registrado_usuario']
 
 
 def feto_valido(registro, feto):
@@ -60,22 +64,50 @@ class GlucometriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = GlucometriaRecienNacido
         fields = '__all__'
-        read_only_fields = ['control_rn']
+        read_only_fields = ['control_rn', 'registrado_por', 'registrado_usuario']
 
 
-def aplicar_delta_glucometrias(rn, agregar, quitar):
+def firma_glucometria(request):
+    """2026-10-19: quién registra la glucometría (solo esa persona la quita)."""
+    from .responsables import firma_sesion
+    firma = firma_sesion(request)
+    return {'registrado_por': firma['registrado_por'], 'registrado_usuario': firma['registrado_usuario']}
+
+
+def aplicar_delta_glucometrias(rn, agregar, quitar, firma=None):
     """2026-10-06: el formulario ya no manda la lista completa de
     glucometrías (reemplazarla borraba las que otra pantalla había agregado
     mientras tanto): manda solo las que agregó y las que quitó. Agregar una
     que ya existe (misma hora y resultado) no la duplica, así un reintento o
-    dos pantallas registrando la misma toma no crean copias."""
+    dos pantallas registrando la misma toma no crean copias.
+    2026-10-19: las ajenas no se quitan (propiedad.py lo rechaza antes); ante
+    una repetida, se quita primero la propia."""
+    firma = firma or {}
+    usuario = firma.get('registrado_usuario') or ''
     for g in quitar or []:
-        existente = rn.glucometrias.filter(hora=g['hora'], resultado=g['resultado']).order_by('id').first()
+        iguales = rn.glucometrias.filter(hora=g['hora'], resultado=g['resultado'])
+        existente = (iguales.filter(registrado_usuario__in=[usuario, '']).order_by('id').first()
+                     or (None if usuario else iguales.order_by('id').first()))
         if existente is not None:
             existente.delete()
     for g in agregar or []:
         if not rn.glucometrias.filter(hora=g['hora'], resultado=g['resultado']).exists():
-            GlucometriaRecienNacido.objects.create(control_rn=rn, hora=g['hora'], resultado=g['resultado'])
+            GlucometriaRecienNacido.objects.create(control_rn=rn, hora=g['hora'], resultado=g['resultado'], **firma)
+
+
+def reemplazar_glucometrias(rn, lista, firma=None):
+    """Deja en el recién nacido exactamente las glucometrías de `lista`, sin
+    borrar y recrear las que ya estaban (así conservan quién las registró)."""
+    from decimal import Decimal
+    clave = lambda h, r: (str(h)[:5], Decimal(str(r)).normalize())
+    nuevas = {clave(g['hora'], g['resultado']): g for g in lista}
+    for g in rn.glucometrias.all():
+        if clave(g.hora, g.resultado) in nuevas:
+            nuevas.pop(clave(g.hora, g.resultado))
+        else:
+            g.delete()
+    for g in nuevas.values():
+        GlucometriaRecienNacido.objects.create(control_rn=rn, hora=g['hora'], resultado=g['resultado'], **(firma or {}))
 
 
 class ControlRecienNacidoSerializer(serializers.ModelSerializer):
@@ -91,7 +123,8 @@ class ControlRecienNacidoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ControlRecienNacido
         exclude = ['huella_pdf']
-        read_only_fields = ['registro', 'feto', 'huella_subida_por', 'huella_subida_en'] + CAMPOS_FIRMA
+        read_only_fields = ['registro', 'feto', 'huella_subida_por', 'huella_subida_en', 'huella_subida_usuario',
+                            'duenos_campos'] + CAMPOS_FIRMA
 
     def get_tiene_huella(self, obj):
         return bool(obj.huella_pdf)
@@ -108,9 +141,10 @@ class ControlRecienNacidoSerializer(serializers.ModelSerializer):
         agregar = validated_data.pop('glucometrias_agregar', None)
         quitar = validated_data.pop('glucometrias_quitar', None)
         control_rn = ControlRecienNacido.objects.create(**validated_data)
+        firma = firma_glucometria(self.context.get('request'))
         for glucometria_data in glucometrias_data:
-            GlucometriaRecienNacido.objects.create(control_rn=control_rn, **glucometria_data)
-        aplicar_delta_glucometrias(control_rn, agregar, quitar)
+            GlucometriaRecienNacido.objects.create(control_rn=control_rn, **glucometria_data, **firma)
+        aplicar_delta_glucometrias(control_rn, agregar, quitar, firma)
         return control_rn
 
     def update(self, instance, validated_data):
@@ -120,11 +154,10 @@ class ControlRecienNacidoSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+        firma = firma_glucometria(self.context.get('request'))
         if glucometrias_data is not None:
-            instance.glucometrias.all().delete()
-            for glucometria_data in glucometrias_data:
-                GlucometriaRecienNacido.objects.create(control_rn=instance, **glucometria_data)
-        aplicar_delta_glucometrias(instance, agregar, quitar)
+            reemplazar_glucometrias(instance, glucometrias_data, firma)
+        aplicar_delta_glucometrias(instance, agregar, quitar, firma)
         return instance
 
 
@@ -221,6 +254,8 @@ CAMPOS_EDITABLES_POST_CIERRE = {
     'desgarro', 'desgarro_subgrado', 'edad_gestacional', 'gestas', 'nombre_acompanante',
     # 2026-10-14: embarazo gemelar (si se olvidó marcar antes de cerrar).
     'numero_fetos',
+    # 2026-10-19: hora de parto del Feto B.
+    'hora_parto_b',
 }
 # 2026-10-05: el Control del recién nacido también se corrige desde la Vista
 # Previa con el registro cerrado, pero estos campos (obligatorios para cerrar,
@@ -254,7 +289,8 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
         # nunca directo desde el payload de un guardado normal.
         # 2026-09-28: el responsable ya no se escribe a mano: lo pone el
         # servidor (creado_por + participaciones, ver responsables.py).
-        read_only_fields = ['completado_en', 'completado_por', 'creado_por', 'nombre_firma_paciente']
+        read_only_fields = ['completado_en', 'completado_por', 'creado_por', 'nombre_firma_paciente',
+                            'duenos_campos']  # 2026-10-19: lo pone solo el servidor (propiedad.py)
 
     def validate_numero_fetos(self, valor):
         if valor is None:
@@ -278,6 +314,9 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
     def get_responsables_secciones(self, obj):
         from .responsables import responsables_por_seccion
         return responsables_por_seccion(obj)
+
+    def _usuario(self):
+        return usuario_y_nombre(self.context.get('request'))
 
     def _firma(self, con_responsable=False):
         from .responsables import firma_sesion
@@ -315,9 +354,11 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
             agregar = datos_rn.pop('glucometrias_agregar', None)
             quitar = datos_rn.pop('glucometrias_quitar', None)
             rn = ControlRecienNacido.objects.create(registro=registro, feto=feto, **datos_rn, **firma)
+            firma_g = firma_glucometria(self.context.get('request'))
             for g in glucometrias:
-                GlucometriaRecienNacido.objects.create(control_rn=rn, **g)
-            aplicar_delta_glucometrias(rn, agregar, quitar)
+                GlucometriaRecienNacido.objects.create(control_rn=rn, **g, **firma_g)
+            aplicar_delta_glucometrias(rn, agregar, quitar, firma_g)
+            asignar_duenos(rn, list(datos_rn), {}, campos_rn_con_dueno(), *self._usuario())  # 2026-10-19
 
         for cp in postparto_data:
             cp = {k: v for k, v in dict(cp).items() if k != 'responsable'}
@@ -334,6 +375,9 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
         for cs in sutura_data:
             ControlSutura.objects.create(registro=registro, **cs, **firma)
 
+        registro.sincronizar_horas_nacimiento()  # 2026-10-19
+        # 2026-10-19: quien crea el registro queda como dueño de lo que llenó.
+        asignar_duenos(registro, list(validated_data), {}, CAMPOS_REGISTRO_CON_DUENO, *self._usuario())
         return registro
 
     def _guardar_recien_nacido(self, instance, rn_data, feto=1):
@@ -343,6 +387,8 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
         glucometrias = rn_data.pop('glucometrias', None)
         agregar = rn_data.pop('glucometrias_agregar', None)
         quitar = rn_data.pop('glucometrias_quitar', None)
+        campos = list(rn_data)
+        antes = valores(instance.recien_nacidos.filter(feto=feto).first(), campos)  # 2026-10-19
         rn, creado = ControlRecienNacido.objects.update_or_create(
             registro=instance, feto=feto, defaults=rn_data
         )
@@ -353,17 +399,30 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
             # esto, la respuesta salía sin la firma recién guardada.
             for campo, valor in firma.items():
                 setattr(rn, campo, valor)
-        aplicar_delta_glucometrias(rn, agregar, quitar)
-        if glucometrias is None:
-            return  # no vinieron: se conservan las que hay
+        firma_g = firma_glucometria(self.context.get('request'))
+        aplicar_delta_glucometrias(rn, agregar, quitar, firma_g)
         # 2026-09-30: el autoguardado reenvía el recién nacido completo
-        # cada vez -- las glucometrías solo se reescriben si cambiaron.
-        actuales = [(g.hora, g.resultado) for g in rn.glucometrias.order_by('hora', 'id')]
-        nuevas = sorted((g['hora'], g['resultado']) for g in glucometrias)
-        if actuales != nuevas:
-            rn.glucometrias.all().delete()
-            for g in glucometrias:
-                GlucometriaRecienNacido.objects.create(control_rn=rn, **g)
+        # cada vez -- las glucometrías solo cambian si cambiaron (2026-10-19:
+        # sin borrar y recrear las que siguen, así conservan su autora).
+        if glucometrias is not None:
+            reemplazar_glucometrias(rn, glucometrias, firma_g)
+        asignar_duenos(rn, campos, antes, campos_rn_con_dueno(), *self._usuario())  # 2026-10-19
+
+    def _exigir_autoria(self, instance, escalares, rn_por_feto):
+        """2026-10-19: ANTES de escribir nada: si el guardado cambia o borra un
+        dato registrado por otra persona, se rechaza completo (403)."""
+        usuario = self._usuario()[0]
+        bloqueados = datos_ajenos(instance, escalares, CAMPOS_REGISTRO_CON_DUENO, usuario)
+        for feto, datos_rn in rn_por_feto:
+            if datos_rn is None:
+                continue
+            rn = instance.recien_nacidos.filter(feto=feto).first()
+            sufijo = ' (Feto B)' if feto > 1 else ''
+            escalares_rn = {k: v for k, v in datos_rn.items() if not k.startswith('glucometrias')}
+            bloqueados += datos_ajenos(rn, escalares_rn, campos_rn_con_dueno(), usuario, sufijo)
+            bloqueados += glucometrias_ajenas(rn, datos_rn.get('glucometrias_quitar'), datos_rn.get('glucometrias'), usuario)
+        if bloqueados:
+            raise DatoAjenoError(bloqueados)
 
     def update(self, instance, validated_data):
         if instance.completado_en is not None:
@@ -373,18 +432,22 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
             # (2026-10-05), sin vaciar sus obligatorios de cierre.
             rn_data = validated_data.pop('control_recien_nacido', None)
             rn_b_data = validated_data.pop('control_recien_nacido_b', None)
-            for attr, value in validated_data.items():
-                if attr in CAMPOS_EDITABLES_POST_CIERRE:
-                    setattr(instance, attr, value)
+            sin_vaciar = lambda d: None if d is None else {
+                k: v for k, v in d.items() if not (k in CAMPOS_RN_NO_VACIAR_POST_CIERRE and v in (None, ''))
+            }
+            rn_data, rn_b_data = sin_vaciar(rn_data), sin_vaciar(rn_b_data)
+            escalares = {k: v for k, v in validated_data.items() if k in CAMPOS_EDITABLES_POST_CIERRE}
+            self._exigir_autoria(instance, escalares, ((1, rn_data), (2, rn_b_data)))  # 2026-10-19
+            antes = valores(instance, escalares)
+            for attr, value in escalares.items():
+                setattr(instance, attr, value)
             instance.save()
+            asignar_duenos(instance, list(escalares), antes, CAMPOS_REGISTRO_CON_DUENO, *self._usuario())
             for feto, datos_rn in ((1, rn_data), (2, rn_b_data)):
                 if datos_rn is None:
                     continue
-                datos_rn = {
-                    k: v for k, v in datos_rn.items()
-                    if not (k in CAMPOS_RN_NO_VACIAR_POST_CIERRE and v in (None, ''))
-                }
                 self._guardar_recien_nacido(instance, datos_rn, feto=feto)
+            instance.sincronizar_horas_nacimiento()  # 2026-10-19
             return instance
 
         fetocardia_data = validated_data.pop('controles_fetocardia', None)
@@ -395,9 +458,13 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
         globo_data = validated_data.pop('controles_globo', None)
         sutura_data = validated_data.pop('controles_sutura', None)
 
+        # 2026-10-19: nada de otra persona se cambia ni se borra (propiedad.py).
+        self._exigir_autoria(instance, validated_data, ((1, rn_data), (2, rn_b_data)))
+        antes = valores(instance, validated_data)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+        asignar_duenos(instance, list(validated_data), antes, CAMPOS_REGISTRO_CON_DUENO, *self._usuario())
 
         if fetocardia_data is not None:
             # El PUT principal del registro nunca reemplaza los controles de
@@ -429,6 +496,8 @@ class RegistroPartoSerializer(serializers.ModelSerializer):
             # ControlSuturaViewSet, nunca reemplazando todo el conjunto.
             pass
 
+        # 2026-10-19: la hora de nacimiento de cada gemelo = la hora de parto de su feto.
+        instance.sincronizar_horas_nacimiento()
         return instance
 
 

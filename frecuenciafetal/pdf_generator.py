@@ -247,6 +247,10 @@ def generar_pdf_registro(registro, es_plantilla=False):
     hora_parto_str = ''
     if not es_plantilla:
         hora_parto_str = registro.hora_parto.strftime('%H:%M') if registro.hora_parto else '—'
+        # 2026-10-19: gemelar -- la hora de parto de cada feto.
+        if (getattr(registro, 'numero_fetos', 1) or 1) > 1:
+            hora_b = registro.hora_parto_b.strftime('%H:%M') if registro.hora_parto_b else '—'
+            hora_parto_str = f'Feto A: {hora_parto_str}   ·   Feto B: {hora_b}'
 
     # Desgarro: registro manual igual que tipo de parto/hora de parto. Si es
     # Grado III, se agrega la subclasificación A/B/C entre paréntesis.
@@ -1011,7 +1015,11 @@ def _recien_nacido(registro, es_plantilla, feto=1):
 
 def _hora_nacimiento(registro, rn):
     """Hora de nacimiento = hora de parto. Registros anteriores al 2026-09-30
-    pudieron guardar una hora de nacimiento propia: si existe, se respeta."""
+    pudieron guardar una hora de nacimiento propia: si existe, se respeta.
+    2026-10-19: gemelar -- la hora de parto de SU feto (la del Feto B nunca
+    es la del Feto A)."""
+    if (getattr(registro, 'numero_fetos', 1) or 1) > 1 and rn is not None:
+        return registro.hora_parto_de_feto(rn.feto) or rn.hora_nacimiento
     if rn is not None and rn.hora_nacimiento:
         return rn.hora_nacimiento
     return getattr(registro, 'hora_parto', None)

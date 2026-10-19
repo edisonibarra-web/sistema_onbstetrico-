@@ -68,13 +68,9 @@ class GemelosPospartoTests(TestCase):
         self.assertIn('huella plantar (PDF) (Feto A)', faltan)
         self.assertIn('género (Feto B)', faltan)
         self.assertIn('huella plantar (PDF) (Feto B)', faltan)
-        # Gemelos: cada uno con su hora de nacimiento.
-        self.assertIn('hora de nacimiento (Feto A)', faltan)
-        self.assertIn('hora de nacimiento (Feto B)', faltan)
-        rn_a = self.registro.recien_nacido(1)
-        rn_a.hora_nacimiento = time(9, 30)
-        rn_a.save()
-        self.assertNotIn('hora de nacimiento (Feto A)', _faltantes_recien_nacido(self.registro))
+        # 2026-10-19: la hora de nacimiento ya no se pide por recién nacido
+        # (es la hora de parto de cada feto, ver test_hora_de_parto_de_cada_gemelo).
+        self.assertFalse(any('hora de nacimiento' in f for f in faltan))
 
     def test_feto_valido(self):
         self.assertEqual(feto_valido(self.registro, 2), 1)
@@ -111,3 +107,46 @@ class GemelosPospartoTests(TestCase):
         self.assertIn('CONTROL DEL RECIÉN NACIDO', texto)
         self.assertNotIn('FETO B', texto)
         self.assertNotIn('Embarazo gemelar', texto)  # la fila solo va cuando es gemelar
+
+    def test_hora_de_parto_de_cada_gemelo(self):
+        """2026-10-19: cada feto con su hora de parto en "Características del
+        parto"; la hora de nacimiento de cada recién nacido se toma de ella."""
+        from frecuenciafetal.pdf_generator import _hora_nacimiento, generar_pdf_registro
+        from frecuenciafetal.views import _intentar_cerrar_registro
+        from pypdf import PdfReader
+
+        self._actualizar({
+            'numero_fetos': 2, 'hora_parto': '14:44',
+            'control_recien_nacido': dict(RN_COMPLETO, hora_nacimiento='09:00'),   # la pantalla no manda
+            'control_recien_nacido_b': dict(RN_COMPLETO, hora_nacimiento='14:44'),  # la hora de nacimiento
+        })
+        rn_a, rn_b = self.registro.recien_nacido(1), self.registro.recien_nacido(2)
+        self.assertEqual(rn_a.hora_nacimiento, time(14, 44))  # = hora de parto del Feto A
+        self.assertIsNone(rn_b.hora_nacimiento)               # el Feto B NO hereda la del A
+        self.assertIsNone(_hora_nacimiento(self.registro, rn_b))
+        from unittest import mock
+        sin_6h = mock.patch('frecuenciafetal.views._faltantes_control_6h', return_value=[])
+        with sin_6h:
+            aviso = _intentar_cerrar_registro(self.registro, self.request)
+        self.assertIn('hora de parto del Feto B', aviso)
+
+        self._actualizar({'hora_parto_b': '14:51'})
+        rn_b.refresh_from_db()
+        self.assertEqual(rn_b.hora_nacimiento, time(14, 51))
+        self.assertEqual(_hora_nacimiento(self.registro, rn_b), time(14, 51))
+        with sin_6h:
+            self.assertNotIn('hora de parto del Feto B', _intentar_cerrar_registro(self.registro, self.request) or '')
+
+        # Al corregir la hora de parto del Feto A, su recién nacido la sigue; el B no cambia.
+        self._actualizar({'hora_parto': '14:40'})
+        rn_a.refresh_from_db(); rn_b.refresh_from_db()
+        self.assertEqual((rn_a.hora_nacimiento, rn_b.hora_nacimiento), (time(14, 40), time(14, 51)))
+        texto = '\n'.join(p.extract_text() or '' for p in PdfReader(io.BytesIO(generar_pdf_registro(self.registro))).pages)
+        self.assertIn('Feto A: 14:40', texto)
+        self.assertIn('Feto B: 14:51', texto)
+
+    def test_embarazo_unico_no_usa_la_hora_del_feto_b(self):
+        self._actualizar({'hora_parto': '10:00', 'control_recien_nacido': RN_COMPLETO})
+        self.assertIsNone(self.registro.hora_parto_b)
+        from frecuenciafetal.pdf_generator import _hora_nacimiento
+        self.assertEqual(_hora_nacimiento(self.registro, self.registro.recien_nacido(1)), time(10, 0))

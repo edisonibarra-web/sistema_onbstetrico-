@@ -2380,6 +2380,9 @@
     }
     .rn-hora-nac-valor.vacia { background: #fef2f2; border-color: #fecaca; color: #b91c1c; font-size: .95rem; }
     .rn-hora-nac-origen { font-size: .82rem; color: #64748b; }
+    /* 2026-10-19: gemelos con la misma hora de nacimiento. */
+    .rn-hora-nac-aviso { display: block; margin-top: 6px; padding: 6px 10px; border-radius: 8px; font-size: .82rem; font-weight: 700; color: #92400e; background: #fef3c7; border: 1px solid #f59e0b; }
+    .rn-hora-nac-aviso[hidden] { display: none; }
     /* 2026-10-08: pesaje del pañal dentro de su tarjeta. */
     #sangrado-modal-overlay.sg-v2 .sg-campos--panal { display: block; padding: 10px 12px; }
     .sg-campos--panal .sangrado-panal-row { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 0; background: none; border: none; }
@@ -4540,6 +4543,36 @@
     .parto-fila .hora-picker { gap: 8px; }
     .parto-fila .hp-ampm-btn { min-width: 54px; padding: 0 10px; }
     @media (max-width: 640px) { .rn-grid.parto-fila { grid-template-columns: 1fr; } }
+    /* 2026-10-19: la hora del Feto B solo existe en embarazo gemelar. Sin esto,
+       ".cp-v2 .rn-campo.cp-compacto { display: flex }" le ganaba al atributo
+       hidden y la tarjeta salía también en embarazo único. */
+    .rn-campo.cp-hora-feto-b[hidden] { display: none !important; }
+    /* 2026-10-19: dato registrado por otra persona (solo ella lo corrige). */
+    /* Campo de otra persona: en amarillo; al tocarlo se dice quién lo registró
+       (el toque pasa al contenedor: un control deshabilitado no recibe clics). */
+    .campo-ajeno { cursor: not-allowed; }
+    .campo-ajeno input:disabled, .campo-ajeno select:disabled, .campo-ajeno textarea:disabled,
+    .campo-ajeno button:disabled, .campo-ajeno label { pointer-events: none; }
+    .campo-ajeno input:disabled:not([type="radio"]):not([type="checkbox"]),
+    .campo-ajeno select:disabled, .campo-ajeno textarea:disabled,
+    .campo-ajeno .hp-reloj, .campo-ajeno .hp-ampm {
+      background: #fef9c3 !important; border-color: #facc15 !important; color: #713f12 !important;
+      -webkit-text-fill-color: #713f12; opacity: 1;
+    }
+    .campo-ajeno label:has(input:disabled) { background: #fef9c3 !important; border-color: #facc15 !important; }
+    .campo-ajeno input[type="radio"]:disabled, .campo-ajeno input[type="checkbox"]:disabled { accent-color: #ca8a04; }
+    .hs-ajeno { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; font-size: .74rem;
+      font-weight: 600; color: #64748b; white-space: nowrap; cursor: help; }
+    .hs-ajeno svg { width: 12px; height: 12px; flex: none; stroke: currentColor; }
+    .fc-row-ajena input:disabled { background: #f8fafc; cursor: not-allowed; }
+    /* 2026-10-19: gemelar -- la hora del Feto B debajo de la del Feto A (columna
+       derecha); el tipo de parto ocupa las dos filas a la izquierda. */
+    .rn-grid.parto-fila.parto-fila--gemelar > .rn-campo:first-child { grid-row: span 2; }
+    .rn-grid.parto-fila.parto-fila--gemelar > .cp-hora-feto-b { grid-column: 2; }
+    @media (max-width: 1000px) {  /* ahí la cuadrícula ya es de una sola columna */
+      .rn-grid.parto-fila.parto-fila--gemelar > .rn-campo:first-child { grid-row: auto; }
+      .rn-grid.parto-fila.parto-fila--gemelar > .cp-hora-feto-b { grid-column: auto; }
+    }
 
     /* 2026-09-30: textos más grandes en "Características del parto" (solo
        esta card; la del recién nacido comparte clases y no cambia). */
@@ -5071,22 +5104,64 @@
        "Feto A | Feto B" (fetocardia del expulsivo y recién nacido por feto).
        Ver cambiarFetoActivoPP / cambiarEmbarazoGemelarPP. */
     .pp-gemelar {
-      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap;
       margin: 14px 0 4px; padding: 12px 18px; border-radius: 14px;
-      background: #fff; border: 1.5px solid #e2e8f0; box-shadow: 0 4px 18px rgba(15,23,42,0.05);
+      background: #fff; border: 1.5px solid #e2e8f0; border-left: 5px solid #cbd5e1;
+      box-shadow: 0 4px 18px rgba(15,23,42,0.05); transition: background .2s, border-color .2s;
     }
-    .pp-gemelar.es-gemelar { background: #fdf2f8; border-color: #f9a8d4; }
-    .pp-gem-switch { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; color: #0f172a; cursor: pointer; }
-    .pp-gem-switch input { width: 20px; height: 20px; accent-color: #be185d; cursor: pointer; }
-    .pp-gem-ayuda { font-size: .82rem; color: #64748b; }
+    .pp-gemelar.es-gemelar { background: #fdf2f8; border-color: #f9a8d4; border-left-color: #be185d; }
+    .pp-gem-switch { display: flex; align-items: center; gap: 12px; cursor: pointer; flex: 1 1 320px; min-width: 0; }
+    /* Interruptor: el checkbox real queda encima (invisible) para teclado y lectores. */
+    .pp-gem-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .pp-gem-pista {
+      position: relative; flex: 0 0 auto; width: 44px; height: 24px; border-radius: 999px;
+      background: #cbd5e1; transition: background .2s;
+    }
+    .pp-gem-pista::after {
+      content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+      background: #fff; box-shadow: 0 1px 3px rgba(15,23,42,.3); transition: transform .2s;
+    }
+    .pp-gem-switch input:checked + .pp-gem-pista { background: #be185d; }
+    .pp-gem-switch input:checked + .pp-gem-pista::after { transform: translateX(20px); }
+    .pp-gem-switch input:focus-visible + .pp-gem-pista { outline: 3px solid rgba(190,24,93,.35); outline-offset: 2px; }
+    .pp-gem-textos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .pp-gem-titulo { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: #0f172a; }
+    .pp-gem-titulo svg { width: 18px; height: 18px; color: #be185d; }
+    .pp-gem-candado { display: none; color: #64748b; }
+    .pp-gem-candado svg { width: 14px; height: 14px; color: inherit; }
+    .pp-gem-ayuda { font-size: .82rem; color: #64748b; line-height: 1.35; }
+    .pp-gemelar.es-gemelar .pp-gem-ayuda { color: #9d174d; }
+    /* Registro cerrado o solo consulta: el interruptor no se puede cambiar. */
+    .pp-gemelar:has(#embarazo_gemelar:disabled) .pp-gem-switch { cursor: not-allowed; }
+    .pp-gemelar:has(#embarazo_gemelar:disabled) .pp-gem-pista { opacity: .55; }
+    .pp-gemelar:has(#embarazo_gemelar:disabled) .pp-gem-candado { display: inline-flex; }
     .pp-gem-ayuda[hidden], .pp-feto-selector[hidden], .pp-feto-banner[hidden] { display: none !important; }
-    .pp-feto-selector { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .pp-feto-texto { font-size: .85rem; font-weight: 700; color: #831843; }
-    .pp-feto-tab {
-      border: 2px solid #f9a8d4; background: #fff; color: #9d174d; font-weight: 800;
-      border-radius: 999px; padding: 6px 18px; cursor: pointer; font-size: .92rem;
+    .pp-feto-selector { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .pp-feto-texto { font-size: .82rem; font-weight: 700; color: #831843; text-transform: uppercase; letter-spacing: .03em; }
+    .pp-feto-segmento {
+      display: inline-flex; padding: 4px; gap: 4px; border-radius: 999px;
+      background: #fff; border: 1.5px solid #f9a8d4;
     }
-    .pp-feto-tab.activo { background: #be185d; border-color: #be185d; color: #fff; box-shadow: 0 3px 10px rgba(190,24,93,.3); }
+    .pp-feto-tab {
+      display: inline-flex; align-items: center; gap: 6px;
+      border: 0; background: transparent; color: #9d174d; font-weight: 800;
+      border-radius: 999px; padding: 6px 14px 6px 6px; cursor: pointer; font-size: .92rem;
+      transition: background .15s, color .15s;
+    }
+    .pp-feto-tab:hover:not(.activo) { background: #fce7f3; }
+    .pp-feto-tab:focus-visible { outline: 3px solid rgba(190,24,93,.35); outline-offset: 1px; }
+    .pp-feto-letra {
+      display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+      background: #fce7f3; color: #be185d; font-size: .8rem;
+    }
+    .pp-feto-tab.activo { background: #be185d; color: #fff; box-shadow: 0 3px 10px rgba(190,24,93,.3); }
+    .pp-feto-tab.activo .pp-feto-letra { background: #fff; color: #be185d; }
+    @media (max-width: 600px) {
+      .pp-gemelar { padding: 12px 14px; }
+      .pp-feto-selector { width: 100%; }
+      .pp-feto-segmento { flex: 1; }
+      .pp-feto-tab { flex: 1; justify-content: center; }
+    }
     .pp-feto-banner {
       margin: 0 0 12px; padding: 8px 14px; border-radius: 12px; text-align: center;
       background: #fdf2f8; border: 2px solid #f9a8d4; color: #9d174d; font-weight: 800;
@@ -5098,6 +5173,20 @@
       background: #dc2626; color: #fff; font-size: .72rem; line-height: 18px; text-align: center;
     }
     .pp-feto-falta.completo { background: #16a34a; }
+    /* 2026-10-19: feto con datos pendientes: pestaña en rojo palpitante. */
+    .pp-feto-tab.feto-pendiente { color: #b91c1c; background: #fef2f2; box-shadow: 0 0 0 2px #ef4444 inset;
+      animation: fetoPendiente 1.4s ease-in-out infinite; }
+    .pp-feto-tab.feto-pendiente .pp-feto-letra { background: #fee2e2; color: #b91c1c; }
+    .pp-feto-tab.feto-pendiente.activo { background: #dc2626; color: #fff; box-shadow: 0 0 0 2px #dc2626 inset; }
+    .pp-feto-tab.feto-pendiente.activo .pp-feto-letra { background: #fff; color: #dc2626; }
+    .pp-feto-tab.feto-pendiente .pp-feto-falta { background: #dc2626; font-weight: 800; padding: 0 8px; }
+    .pp-feto-tab.feto-pendiente.activo .pp-feto-falta { background: #fff; color: #dc2626; }
+    .pp-feto-tab.feto-completo .pp-feto-falta { box-shadow: 0 0 0 2px #fff; }
+    @keyframes fetoPendiente {
+      0%, 100% { box-shadow: 0 0 0 2px #ef4444 inset, 0 0 0 0 rgba(239, 68, 68, .55); }
+      50% { box-shadow: 0 0 0 2px #ef4444 inset, 0 0 0 7px rgba(239, 68, 68, 0); }
+    }
+    @media (prefers-reduced-motion: reduce) { .pp-feto-tab.feto-pendiente { animation: none; } }
     .pp-feto-banner.pp-madre-banner { background: #eff6ff; border-color: #93c5fd; color: #1e3a8a; }
     .pp-feto-falta[hidden], .rn-hora-nac [hidden] { display: none !important; }
   </style>
@@ -5396,7 +5485,7 @@
                     {# #hora_parto sigue siendo el valor real (HH:MM, 24 h) que leen el #}
                     {# guardado, la carga y la Vista previa; ver iniciarSelectorHora(). #}
                     <div class="rn-campo cp-compacto">
-                      <span class="rn-etq" id="hora_parto_etq"><i data-lucide="clock" class="cp-etq-ico cp-etq--azul"></i> Hora de parto <b class="rn-obl" title="Obligatoria para cerrar el registro">*</b></span>
+                      <span class="rn-etq" id="hora_parto_etq"><i data-lucide="clock" class="cp-etq-ico cp-etq--azul"></i> <span id="hora_parto_titulo">Hora de parto</span> <b class="rn-obl" title="Obligatoria para cerrar el registro">*</b></span>
                       <input type="time" id="hora_parto" class="hp-real" tabindex="-1" aria-hidden="true">
                       <div class="hora-picker" data-hora-para="hora_parto" role="group" aria-labelledby="hora_parto_etq">
                         <div class="hp-reloj">
@@ -5412,6 +5501,27 @@
                         <button type="button" class="hp-limpiar" title="Borrar la hora" aria-label="Borrar la hora">&times;</button>
                       </div>
                       <span class="hp-ayuda" aria-live="polite"></span>
+                    </div>
+                    {# 2026-10-19: embarazo gemelar -- hora de parto del Feto B (la de arriba es la del Feto A). #}
+                    {# Es la hora de nacimiento del recién nacido B (se toma sola en "Control del recién nacido"). #}
+                    <div class="rn-campo cp-compacto cp-hora-feto-b" id="cp-hora-parto-b" hidden>
+                      <span class="rn-etq" id="hora_parto_b_etq"><i data-lucide="clock" class="cp-etq-ico cp-etq--azul"></i> Hora de parto · Feto B <b class="rn-obl" title="Obligatoria para cerrar el registro">*</b></span>
+                      <input type="time" id="hora_parto_b" class="hp-real" tabindex="-1" aria-hidden="true">
+                      <div class="hora-picker" data-hora-para="hora_parto_b" role="group" aria-labelledby="hora_parto_b_etq">
+                        <div class="hp-reloj">
+                          <input type="text" class="hp-num hp-h" inputmode="numeric" maxlength="2" placeholder="--" aria-label="Hora (1 a 12)" autocomplete="off">
+                          <span class="hp-sep">:</span>
+                          <input type="text" class="hp-num hp-m" inputmode="numeric" maxlength="2" placeholder="--" aria-label="Minutos (00 a 59)" autocomplete="off">
+                        </div>
+                        <div class="hp-ampm" role="radiogroup" aria-label="a. m. o p. m.">
+                          <button type="button" class="hp-ampm-btn" data-ampm="AM" role="radio" aria-checked="false">a. m.</button>
+                          <button type="button" class="hp-ampm-btn" data-ampm="PM" role="radio" aria-checked="false">p. m.</button>
+                        </div>
+                        <button type="button" class="hp-ahora" title="Poner la hora actual"><i data-lucide="clock-arrow-down"></i> Ahora</button>
+                        <button type="button" class="hp-limpiar" title="Borrar la hora" aria-label="Borrar la hora">&times;</button>
+                      </div>
+                      <span class="hp-ayuda" aria-live="polite"></span>
+                      <span class="rn-hora-nac-aviso" id="hora-parto-b-aviso" hidden></span>
                     </div>
                     <div class="rn-campo rn-ancho cp-compacto cp-sin-caja">
                       <span class="rn-etq" id="episiotomia_etq"><i data-lucide="scissors" class="cp-etq-ico cp-etq--azul"></i> Episiotomía</span>
@@ -6636,30 +6746,14 @@
                       {# (solo lectura; se cambia en Parto). La pinta pintarHoraNacimientoRN(). #}
                       <div class="rn-campo rn-ancho rn-hora-nac">
                         <span class="rn-etq" id="rn_hora_nacimiento_etq"><i data-lucide="clock"></i> Hora de nacimiento <b class="rn-obl" id="rn-hora-nac-obl" hidden>*</b></span>
+                        {# 2026-10-19: también en gemelar: la de cada feto sale de su hora de parto. #}
                         <div class="rn-hora-nac-fila" id="rn-hora-nac-unico">
                           <span class="rn-hora-nac-valor" id="rn-hora-nac-vista">Sin registrar</span>
-                          <span class="rn-hora-nac-origen">Tomada de la hora de parto en "Características del parto".</span>
+                          <span class="rn-hora-nac-origen" id="rn-hora-nac-origen">Tomada de la hora de parto en "Características del parto".</span>
                         </div>
-                        {# 2026-10-14: embarazo gemelar -- cada feto con su hora de nacimiento #}
-                        {# (nacen con minutos de diferencia). Embarazo único: la de arriba. #}
-                        <div class="rn-hora-nac-gemelar" id="rn-hora-nac-gemelar" hidden>
-                          <input type="time" id="rn_hora_nacimiento" class="hp-real" tabindex="-1" aria-hidden="true">
-                          <div class="hora-picker" data-hora-para="rn_hora_nacimiento" role="group" aria-labelledby="rn_hora_nacimiento_etq">
-                            <div class="hp-reloj">
-                              <input type="text" class="hp-num hp-h" inputmode="numeric" maxlength="2" placeholder="--" aria-label="Hora (1 a 12)" autocomplete="off">
-                              <span class="hp-sep">:</span>
-                              <input type="text" class="hp-num hp-m" inputmode="numeric" maxlength="2" placeholder="--" aria-label="Minutos (00 a 59)" autocomplete="off">
-                            </div>
-                            <div class="hp-ampm" role="radiogroup" aria-label="a. m. o p. m.">
-                              <button type="button" class="hp-ampm-btn" data-ampm="AM" role="radio" aria-checked="false">a. m.</button>
-                              <button type="button" class="hp-ampm-btn" data-ampm="PM" role="radio" aria-checked="false">p. m.</button>
-                            </div>
-                            <button type="button" class="hp-ahora" title="Poner la hora actual"><i data-lucide="clock-arrow-down"></i> Ahora</button>
-                            <button type="button" class="hp-limpiar" title="Borrar la hora" aria-label="Borrar la hora">&times;</button>
-                          </div>
-                          <span class="hp-ayuda" aria-live="polite"></span>
-                          <span class="rn-hora-nac-origen">Embarazo gemelar: se toma sola de la hora de parto ("Características del parto"); ajústela si este feto nació a otra hora.</span>
-                        </div>
+                        {# 2026-10-19: gemelar -- ya no se edita aquí: el valor real (de cada feto) #}
+                        {# lo pone sincronizarHorasNacimientoPP() con la hora de parto de su feto. #}
+                        <input type="time" id="rn_hora_nacimiento" hidden tabindex="-1" aria-hidden="true">
                       </div>
                       <div class="rn-campo">
                         <span class="rn-etq">Género <b class="rn-obl">*</b></span>
@@ -7007,6 +7101,118 @@
           // guardado con el profesional en sesión; aquí solo se muestran.
           const PROFESIONAL_SESION_FRSPA = '{{ profesional_nombre_sesion|default:""|escapejs }}';
 
+          // --- 2026-10-19: lo que registró otra persona solo ella lo corrige ---
+          // El servidor lo hace cumplir (propiedad.py); aquí solo se muestra
+          // bloqueado ("🔒 Registrado por …") para que nadie escriba en balde.
+          const USUARIO_SESION = '{{ usuario_sesion|default:""|escapejs }}';
+          let duenosRegistro = {};
+          const duenosRNPorFeto = { 1: {}, 2: {} };
+          function esDeOtra(dueno) {
+            return !!(dueno && dueno.usuario && USUARIO_SESION && dueno.usuario !== USUARIO_SESION);
+          }
+          const ICONO_CANDADO = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+          function textoAjeno(nombre) {
+            return `🔒 Registrado por ${nombre || 'otra persona'}: solo esa persona puede corregirlo o borrarlo.`;
+          }
+          // Campos del registro con dueño -> qué controles de pantalla los editan.
+          const CAMPOS_REGISTRO_PANTALLA = {
+            tipo_parto: '#tipo_parto, input[name="cp_tipo_parto"]',
+            hora_parto: '#hora_parto', hora_parto_b: '#hora_parto_b',
+            episiotomia: 'input[name="episiotomia"]',
+            tipo_alumbramiento: '#tipo_alumbramiento',
+            desgarro: '#desgarro', desgarro_subgrado: 'input[name="desgarro_subgrado"]',
+            numero_fetos: '#embarazo_gemelar',
+            nombre_acompanante: '#nombre_acompanante',
+            parto_atendido_por: '#rn_parto_atendido_por',
+          };
+          function controlesDeCampo(selector) {
+            const lista = [];
+            document.querySelectorAll(selector).forEach(el => {
+              lista.push(el);
+              // Selector de hora: el valor real va oculto; se bloquean sus botones.
+              if (el.classList.contains('hp-real') && el.id) {
+                document.querySelectorAll(`.hora-picker[data-hora-para="${el.id}"] input, .hora-picker[data-hora-para="${el.id}"] button`)
+                  .forEach(b => lista.push(b));
+              }
+            });
+            return lista;
+          }
+          function bloquearCampoAjeno(selector, dueno) {
+            const controles = controlesDeCampo(selector);
+            if (!controles.length) return;
+            const ajeno = esDeOtra(dueno);
+            // El campo completo (p. ej. todas las opciones Sí / No), no solo la primera etiqueta.
+            const cont = controles[0].closest('.rn-campo') || controles[0].closest('.pcard-field, .rn-grupo-campo, td, label')
+              || controles[0].parentElement;
+            controles.forEach(el => {
+              if (ajeno) {
+                if (!el.disabled) { el.disabled = true; el.dataset.bloqueoAjeno = '1'; }
+              } else if (el.dataset.bloqueoAjeno) {
+                delete el.dataset.bloqueoAjeno;
+                if (!registroCerrado && !window.MODO_SOLO_CONSULTA) el.disabled = false;
+              }
+            });
+            if (!cont) return;
+            // 2026-10-19: sin texto debajo (se desbordaba en los campos angostos):
+            // el campo queda en amarillo y, al tocarlo, dice quién lo registró.
+            cont.classList.toggle('campo-ajeno', ajeno);
+            cont.title = ajeno ? textoAjeno(dueno.nombre) : '';
+            cont.dataset.ajenoTexto = ajeno ? textoAjeno(dueno.nombre) : '';
+            if (!cont.dataset.ajenoClic) {
+              cont.dataset.ajenoClic = '1';
+              cont.addEventListener('click', () => {
+                if (cont.classList.contains('campo-ajeno') && cont.dataset.ajenoTexto) showToast(cont.dataset.ajenoTexto, 'warning');
+              });
+            }
+          }
+          function aplicarBloqueosAjenos() {
+            Object.entries(CAMPOS_REGISTRO_PANTALLA).forEach(([campo, sel]) => bloquearCampoAjeno(sel, duenosRegistro[campo]));
+            const duenosRN = duenosRNPorFeto[typeof fetoActivoPP !== 'undefined' ? fetoActivoPP : 1] || {};
+            (typeof RN_CAMPOS !== 'undefined' ? RN_CAMPOS : []).forEach(([campo, id, tipo]) => {
+              if (campo === 'hora_nacimiento') return;
+              bloquearCampoAjeno((tipo === 'radio' || tipo === 'sino') ? `input[name="${id}"]` : `#${id}`, duenosRN[campo]);
+            });
+          }
+          // Fila (control) de otra persona: en vez de editar / eliminar, un candado.
+          function candadoAjeno(r) {
+            return `<span class="hs-ajeno" title="${escaparHtml(textoAjeno(r.por))}">${ICONO_CANDADO}${escaparHtml(r.por || 'Otra persona')}</span>`;
+          }
+          function revertirCamposAjenos(lista) {
+            if (!baseServidor) return;
+            lista.forEach(({ campo }) => {
+              const esB = / \(Feto B\)$/.test(campo);
+              const nombre = campo.replace(/ \(Feto B\)$/, '');
+              const feto = esB ? 2 : 1;
+              const rnCampo = (typeof RN_CAMPOS !== 'undefined' ? RN_CAMPOS : []).find(([c]) => c === nombre);
+              if (nombre === 'glucometrias' || rnCampo) {
+                const base = baseRNDeFeto(feto) || {};
+                if (feto === fetoActivoPP) {
+                  if (rnCampo) escribirCampoRN(rnCampo[1], rnCampo[2], base[nombre]);
+                  else {
+                    document.getElementById('rn-gluco-lista').innerHTML = '';
+                    (base.glucometrias || []).forEach(g => agregarGlucometriaRN(g.hora, g.resultado, { usuario: g.usuario, nombre: g.por }));
+                    actualizarVacioGlucoRN();
+                  }
+                } else if (rnPorFeto[feto]) {
+                  rnPorFeto[feto][nombre] = JSON.parse(JSON.stringify(base[nombre] ?? null));
+                }
+              } else if (typeof CAMPOS_GENERALES_REFRESCO !== 'undefined' && CAMPOS_GENERALES_REFRESCO[nombre]) {
+                escribirCampoGeneral(nombre, CAMPOS_GENERALES_REFRESCO[nombre], baseServidor.payload[nombre]);
+              } else if (nombre === 'numero_fetos') {
+                const chk = document.getElementById('embarazo_gemelar');
+                if (chk) chk.checked = (baseServidor.payload.numero_fetos || 1) > 1;
+              }
+            });
+            aplicarBloqueosAjenos();
+          }
+          function guardarDuenosDesdeServidor(data) {
+            if (!data) return;
+            duenosRegistro = data.duenos_campos || {};
+            duenosRNPorFeto[1] = (data.control_recien_nacido && data.control_recien_nacido.duenos_campos) || {};
+            duenosRNPorFeto[2] = (data.control_recien_nacido_b && data.control_recien_nacido_b.duenos_campos) || {};
+            aplicarBloqueosAjenos();
+          }
+
           function escaparHtml(texto) {
             return String(texto == null ? '' : texto).replace(/[&<>"']/g, c => ({
               '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -7332,7 +7538,7 @@
           // Las filas ya guardadas quedan editables (no "disabled"): se marcan
           // con data-fc-saved/data-fc-id para poder corregirlas por PATCH en
           // vez de reenviarlas como filas nuevas al guardar.
-          function crearFilaFetocardia(fecha, hora, fetocardia, saved, fcId, feto = fetoActivoPP) {
+          function crearFilaFetocardia(fecha, hora, fetocardia, saved, fcId, feto = fetoActivoPP, dueno = null) {
             const tbody = document.getElementById('fc-table-body');
             const tr = document.createElement('tr');
             tr.className = saved ? 'fc-row fc-row-guardada' : 'fc-row';
@@ -7369,6 +7575,12 @@
             }
             tbody.appendChild(tr);
             conectarSelectorHora(tr.querySelector('[data-param="hora"]'), tr.querySelector('.hora-picker'));
+            // 2026-10-19: toma registrada por otra persona: solo lectura, con candado.
+            if (saved && esDeOtra(dueno)) {
+              tr.classList.add('fc-row-ajena');
+              tr.querySelectorAll('input, button').forEach(el => { el.disabled = true; el.dataset.bloqueoAjeno = '1'; });
+              tr.querySelector('.fc-col-acc').innerHTML = candadoAjeno({ por: dueno.nombre });
+            }
             if (saved && typeof lucide !== 'undefined') lucide.createIcons();
             actualizarFetocardiaUI();
           }
@@ -7806,11 +8018,6 @@
             });
             // "Parto atendido por" es del registro (no del RN): solo lectura.
             copia.querySelector('#fc-preview-rn_parto_atendido_por')?.setAttribute('readonly', '');
-            // 2026-10-14: hora de nacimiento por feto (gemelar) con input de hora nativo.
-            const horaNacPreview = copia.querySelector('#fc-preview-rn-hora-nac-gemelar');
-            if (horaNacPreview) {
-              horaNacPreview.innerHTML = '<input type="time" id="fc-preview-rn_hora_nacimiento" class="doc-input" style="max-width:160px">';
-            }
             return `
               <div class="pp-resumen-section">
                 <div class="pp-resumen-header">
@@ -7896,6 +8103,7 @@
             const episiotomia = valorRadioEpisiotomia(getEpisiotomia());
             const alumbramiento = document.getElementById('tipo_alumbramiento')?.value || '';
             const horaParto = document.getElementById('hora_parto')?.value || '';
+            const horaPartoB = document.getElementById('hora_parto_b')?.value || '';  // 2026-10-19
             const desgarro = document.getElementById('desgarro')?.value || '';
             const subgrado = document.querySelector('input[name="desgarro_subgrado"]:checked')?.value || '';
             const opcionDesgarro = (v, t) => `<option value="${v}" ${desgarro === v ? 'selected' : ''}>${t}</option>`;
@@ -7938,11 +8146,17 @@
                       </td>
                     </tr>
                     <tr>
-                      <td style="font-weight:700;">Hora de Parto</td>
+                      <td style="font-weight:700;">Hora de Parto${numeroFetosPP > 1 ? ' · Feto A' : ''}</td>
                       <td colspan="3">
                         <input type="time" id="fc-preview-hora_parto" class="doc-input" style="max-width:160px;display:inline-block" value="${horaParto}">
                       </td>
                     </tr>
+                    ${numeroFetosPP > 1 ? `<tr>
+                      <td style="font-weight:700;">Hora de Parto · Feto B</td>
+                      <td colspan="3">
+                        <input type="time" id="fc-preview-hora_parto_b" class="doc-input" style="max-width:160px;display:inline-block" value="${horaPartoB}">
+                      </td>
+                    </tr>` : ''}
                     <tr>
                       <td style="font-weight:700;">Desgarro</td>
                       <td colspan="3">
@@ -7975,6 +8189,9 @@
             if (radioReal) radioReal.checked = true;
             document.getElementById('tipo_alumbramiento').value = alumbramiento;
             document.getElementById('hora_parto').value = horaParto;
+            const horaPartoBPreview = document.getElementById('fc-preview-hora_parto_b');
+            if (horaPartoBPreview) document.getElementById('hora_parto_b').value = horaPartoBPreview.value;
+            alCambiarHoraPartoPP();  // 2026-10-19: hora de nacimiento de cada feto
 
             // 2026-10-05: desgarro y su subclasificación (solo en grado III).
             const desgarroReal = document.getElementById('desgarro');
@@ -8911,6 +9128,7 @@
           }
 
           function refrescarVistaVigilancia(tipo) {
+            respaldarPendientesVigilancia();  // 2026-10-19: lo que siga sin guardar, también en este navegador
             if (tipo === 'sangrado') {
               renderRegistrosSangrado();
               actualizarProximoControlSangrado();
@@ -8945,6 +9163,74 @@
             return lista;
           }
 
+          // --- 2026-10-19: respaldo local de los controles sin guardar ------
+          // Un control que el servidor no confirmó (sin red, sesión vencida)
+          // vivía solo en la memoria de la pestaña: si la tablet cerraba o
+          // descartaba la pestaña, se perdía. Ahora queda también en este
+          // navegador y, al volver a abrir el registro, se recupera y se envía.
+          const RESPALDO_VIGILANCIA_VIGENCIA_MS = 12 * 60 * 60 * 1000;
+
+          function claveRespaldoVigilancia() {
+            const doc = (document.getElementById('identificacion')?.value
+              || new URLSearchParams(window.location.search).get('doc') || '').trim();
+            return doc ? `posparto-vigilancia-pendientes:${doc}` : null;
+          }
+
+          function respaldarPendientesVigilancia() {
+            if (registroCerrado || window.MODO_SOLO_CONSULTA) return;
+            const clave = claveRespaldoVigilancia();
+            if (!clave) return;
+            const lista = controlesVigilanciaPendientes()
+              .filter(({ control }) => !/sobra/.test(control.errorSync || ''))
+              .map(({ tipo, control }) => ({
+                tipo, minuto: control.minuto, hora: control.hora,
+                estado: control.estado ?? null, cc: control.cc ?? null, detalle: control.detalle ?? null,
+              }));
+            try {
+              if (lista.length) localStorage.setItem(clave, JSON.stringify({ guardadoEn: Date.now(), controles: lista }));
+              else localStorage.removeItem(clave);
+            } catch (e) { /* sin almacenamiento local */ }
+          }
+
+          function restaurarPendientesVigilancia() {
+            const clave = claveRespaldoVigilancia();
+            if (!clave || !savedRegistroId) return;
+            let respaldo = null;
+            try { respaldo = JSON.parse(localStorage.getItem(clave) || 'null'); } catch (e) {}
+            if (!respaldo || !Array.isArray(respaldo.controles)) return;
+            if (Date.now() - (respaldo.guardadoEn || 0) > RESPALDO_VIGILANCIA_VIGENCIA_MS) {
+              try { localStorage.removeItem(clave); } catch (e) {}
+              return;
+            }
+            let recuperados = 0;
+            respaldo.controles.forEach(c => {
+              if (!VIGILANCIA_TIPOS.includes(c.tipo) || vigilanciaSoloLectura(c.tipo)) return;
+              const lista = registrosVigilancia(c.tipo);
+              // Ya está en el servidor (se guardó aunque la pantalla no lo supo),
+              // aunque haya quedado en otro minuto por estar ocupado el suyo.
+              const yaGuardado = lista.some(r => r.hora === c.hora && (c.tipo === 'sangrado'
+                ? Math.round(r.cc) === Math.round(c.cc || 0) : r.estado === c.estado));
+              if (yaGuardado) return;
+              const mio = { usuario: USUARIO_SESION, por: PROFESIONAL_SESION_FRSPA };
+              lista.push(c.tipo === 'sangrado'
+                ? { minuto: c.minuto, hora: c.hora, cc: parseFloat(c.cc) || 0, detalle: c.detalle || null, ...mio }
+                : { minuto: c.minuto, hora: c.hora, estado: c.estado, ...mio });
+              lista.sort((a, b) => a.minuto - b.minuto);
+              recuperados++;
+            });
+            if (!recuperados) {
+              try { localStorage.removeItem(clave); } catch (e) {}
+              return;
+            }
+            VIGILANCIA_TIPOS.forEach(refrescarVistaVigilancia);
+            showToast(`Se recuperaron ${recuperados} control(es) de vigilancia que no se habían guardado; enviándolos al servidor…`, 'success');
+            // Si su minuto ya lo ocupó otro control, pasan al siguiente libre (como siempre).
+            sincronizarPendientesVigilancia().then(siguen => {
+              respaldarPendientesVigilancia();
+              if (!siguen) showToast('✅ Controles recuperados guardados en el servidor.', 'success');
+            }).catch(() => {});
+          }
+
           function badgeSinGuardar(r) {
             if (r.id) return '';
             const motivo = r.enviando ? 'Guardando en el servidor…'
@@ -8961,8 +9247,9 @@
             return tipo === 'sangrado'
               // 2026-10-08: con su detalle (antes se perdía al resincronizar cada
               // 60 s: desaparecía de "Registros" y el pañal volvía al basal).
-              ? { id: c.id, minuto: c.minuto_control, hora, cc: parseFloat(c.cc) || 0, estado: c.estado || null, detalle: c.detalle || null }
-              : { id: c.id, minuto: c.minuto_control, hora, estado: c.estado };
+              ? { id: c.id, minuto: c.minuto_control, hora, cc: parseFloat(c.cc) || 0, estado: c.estado || null, detalle: c.detalle || null,
+                  usuario: c.registrado_usuario || '', por: c.registrado_por || '' }
+              : { id: c.id, minuto: c.minuto_control, hora, estado: c.estado, usuario: c.registrado_usuario || '', por: c.registrado_por || '' };
           }
 
           // Trae del servidor los controles de cada tarjeta (los que guardó
@@ -9052,6 +9339,7 @@
           // que de verdad respondió el servidor.
           async function confirmarGuardadoControl(tipo, control) {
             const nombre = VIGILANCIA_NOMBRES[tipo];
+            respaldarPendientesVigilancia();  // 2026-10-19: antes de esperar al servidor
             if (!savedRegistroId) {
               const falta = validate(buildPayload(), true);
               showToast(`⚠️ ${nombre}: control de ${control.minuto} min anotado, pero AÚN NO está guardado en el servidor` +
@@ -9216,7 +9504,8 @@
             const ahora = new Date();
             const horaAutomatica = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
             const horaGuardada = horaInput?.value || horaAutomatica;
-            const nuevoControl = { minuto: proximo, cc: total, hora: horaGuardada, detalle: construirDetalleSangrado() };
+            const nuevoControl = { minuto: proximo, cc: total, hora: horaGuardada, detalle: construirDetalleSangrado(),
+                                   usuario: USUARIO_SESION, por: PROFESIONAL_SESION_FRSPA };
             sangradoRegistros.push(nuevoControl);
             renderRegistrosSangrado();
             resetCalculadoraSangrado();
@@ -9286,6 +9575,7 @@
           async function eliminarRegistroSangrado(idx) {
             if (vigilanciaSoloLectura('sangrado') || registroCerrado) return;  // cerrado: solo se corrige
             const control = sangradoRegistros[idx];
+            if (esDeOtra(control)) { showToast(textoAjeno(control.por), 'error'); return; }  // 2026-10-19
             if (control?.id && savedRegistroId) {
               const res = await fetch(`${API_BASE}/registros/${savedRegistroId}/sangrado/${control.id}/`, {
                 method: 'DELETE',
@@ -9306,6 +9596,7 @@
 
           function editarRegistroSangrado(idx) {
             if (vigilanciaSoloLectura('sangrado')) return;
+            if (esDeOtra(sangradoRegistros[idx])) { showToast(textoAjeno(sangradoRegistros[idx].por), 'error'); return; }
             sangradoEditandoIdx = idx;
             renderRegistrosSangrado();
           }
@@ -9419,7 +9710,7 @@
                   <span class="sg-reg-cc"><strong>${r.cc.toFixed(0)} cc</strong><small>Acumulado: ${acumulado.toFixed(0)} cc</small></span>
                   <span class="sg-reg-estado">${estadoBadge}${badgeSinGuardar(r)}</span>
                   ${r.detalle ? `<span class="sg-reg-detalle" title="Materiales y pesajes de esta lectura">${escaparHtml(textoDetalleSangrado(r.detalle))}</span>` : ''}
-                  ${lectura ? '' : `<span class="sangrado-registro-actions">
+                  ${lectura ? '' : esDeOtra(r) ? candadoAjeno(r) : `<span class="sangrado-registro-actions">
                     <button type="button" class="btn-icon-editar hs-btn-editar" onclick="editarRegistroSangrado(${idx})" title="Editar control"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zm17.7-10.2a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
                     ${registroCerrado ? '' : `<button type="button" class="btn-remove-row hs-btn-eliminar" onclick="eliminarRegistroSangrado(${idx})" title="Eliminar control"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button>`}
                   </span>`}
@@ -9539,6 +9830,20 @@
           }
 
           function cerrarModalSemaforo(tipo) {
+            // 2026-10-19: HALLAZGO -- con un estado elegido y sin "Guardar
+            // control", cerrar la ventana (X, "Cerrar" o un toque fuera) lo
+            // descartaba sin aviso y el control nunca llegaba al servidor.
+            const estadoSel = document.getElementById(`${tipo}-estado-nuevo`);
+            const proximo = proximoControlSemaforo(tipo);
+            if (estadoSel?.value && proximo && !vigilanciaSoloLectura(tipo) && !registroCerrado) {
+              const texto = estadoSel.options[estadoSel.selectedIndex]?.text || estadoSel.value;
+              if (confirm(`${VIGILANCIA_NOMBRES[tipo]}: eligió "${texto}" para el control de ${proximo} min, ` +
+                  'pero NO lo ha guardado.\n\nAceptar: GUARDAR el control ahora.\nCancelar: volver a la ventana.')) {
+                guardarRegistroSemaforo(tipo);
+              } else {
+                return;
+              }
+            }
             document.getElementById(`${tipo}-modal-overlay`).classList.remove('show');
             // Al cerrar, la corrección termina: el historial vuelve a ser de consulta.
             if (semaforoModoCorreccion[tipo]) {
@@ -9566,7 +9871,7 @@
             const ahora = new Date();
             const horaAutomatica = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
             const horaGuardada = horaInput?.value || horaAutomatica;
-            const nuevoControl = { minuto: proximo, estado, hora: horaGuardada };
+            const nuevoControl = { minuto: proximo, estado, hora: horaGuardada, usuario: USUARIO_SESION, por: PROFESIONAL_SESION_FRSPA };
             SEMAFORO_TIPOS[tipo].registros.push(nuevoControl);
             renderRegistrosSemaforo(tipo);
             actualizarProximoControlSemaforo(tipo);
@@ -9626,6 +9931,7 @@
             if (vigilanciaSoloLectura(tipo) || registroCerrado) return;  // cerrado: solo se corrige
             const cfg = SEMAFORO_TIPOS[tipo];
             const control = cfg.registros[idx];
+            if (esDeOtra(control)) { showToast(textoAjeno(control.por), 'error'); return; }  // 2026-10-19
             if (control?.id && savedRegistroId) {
               const res = await fetch(`${API_BASE}/registros/${savedRegistroId}/${cfg.apiSegment}/${control.id}/`, {
                 method: 'DELETE',
@@ -9646,6 +9952,8 @@
 
           function editarRegistroSemaforo(tipo, idx) {
             if (vigilanciaSoloLectura(tipo)) return;
+            const control = SEMAFORO_TIPOS[tipo].registros[idx];
+            if (esDeOtra(control)) { showToast(textoAjeno(control.por), 'error'); return; }  // 2026-10-19
             SEMAFORO_TIPOS[tipo].editandoIdx = idx;
             renderRegistrosSemaforo(tipo);
           }
@@ -9746,7 +10054,7 @@
                   <span class="sangrado-registro-hora">${hora12(r.hora)}</span>
                   <span class="semaforo-badge ${badgeClaseEstadoSemaforo(r.estado)} hs-estado hs-estado--${clase}"><span class="hs-estado-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${icono}</svg></span>${textoEstadoSemaforo(tipo, r.estado)}</span>
                   ${badgeSinGuardar(r)}
-                  ${lectura ? '' : `<span class="sangrado-registro-actions">
+                  ${lectura ? '' : esDeOtra(r) ? candadoAjeno(r) : `<span class="sangrado-registro-actions">
                     <button type="button" class="btn-icon-editar hs-btn-editar" onclick="editarRegistroSemaforo('${tipo}', ${idx})" title="Editar control"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zm17.7-10.2a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
                     ${r.id ? '' : `<button type="button" class="btn-remove-row" onclick="eliminarRegistroSemaforo('${tipo}', ${idx})" title="Quitar este control sin guardar">&times;</button>`}
                   </span>`}
@@ -9791,6 +10099,7 @@
               nombre_acompanante: val('nombre_acompanante') || null,
               tipo_parto: val('tipo_parto') || null,
               hora_parto: val('hora_parto') || null,
+              hora_parto_b: val('hora_parto_b') || null,  // 2026-10-19: gemelar, Feto B
               episiotomia: getEpisiotomia(),
               tipo_alumbramiento: val('tipo_alumbramiento') || null,
               desgarro: val('desgarro') || null,
@@ -9933,6 +10242,7 @@
             cambio = refrescarRNDesdeServidor(data.control_recien_nacido, 1) || cambio;
             if (numeroFetosPP > 1) cambio = refrescarRNDesdeServidor(data.control_recien_nacido_b, 2) || cambio;
             cambio = refrescarFetocardiaDesdeServidor(data.controles_fetocardia) || cambio;
+            guardarDuenosDesdeServidor(data);  // 2026-10-19: lo que registró otra persona, bloqueado
             if (cambio) {
               actualizarDisponibilidadCierre();
               if (typeof actualizarPasosPosparto === 'function') actualizarPasosPosparto();
@@ -9944,7 +10254,7 @@
           // El desgarro va antes que su subclasificación (ocultarla la limpia).
           const CAMPOS_GENERALES_REFRESCO = {
             nombre_paciente: 'texto', edad_gestacional: 'texto', gestas: 'texto', nombre_acompanante: 'texto',
-            tipo_parto: 'texto', hora_parto: 'hora', tipo_alumbramiento: 'texto', desgarro: 'desgarro',
+            tipo_parto: 'texto', hora_parto: 'hora', hora_parto_b: 'hora', tipo_alumbramiento: 'texto', desgarro: 'desgarro',
             desgarro_subgrado: 'radio', episiotomia: 'episiotomia', parto_atendido_por: 'atendido',
           };
 
@@ -10019,7 +10329,7 @@
             if (sinTocar && !aMedias && !editando) {
               if (!igualValor(delServidor, enPantalla)) {
                 document.getElementById('rn-gluco-lista').innerHTML = '';
-                delServidor.forEach(g => agregarGlucometriaRN(g.hora, String(g.resultado)));
+                delServidor.forEach(g => agregarGlucometriaRN(g.hora, String(g.resultado), duenoGlucometria(rnServidor.glucometrias, g)));
                 actualizarVacioGlucoRN();
                 cambio = true;
               }
@@ -10042,7 +10352,8 @@
               const fecha = fc.fecha ? String(fc.fecha).split('T')[0] : null;
               const hora = fc.hora ? String(fc.hora).substring(0, 5) : null;
               if (!filas[id]) {
-                crearFilaFetocardia(fecha, hora, fc.fetocardia, true, fc.id, fc.feto || 1);
+                crearFilaFetocardia(fecha, hora, fc.fetocardia, true, fc.id, fc.feto || 1,
+                                    { usuario: fc.registrado_usuario, nombre: fc.registrado_por });
                 baseServidor.fc[id] = JSON.parse(JSON.stringify(filaDe(id)));
                 cambio = true;
                 return;
@@ -10117,7 +10428,6 @@
             if (!rnHuella.tiene) faltan.push('foto de la huella plantar');
             // 2026-10-14: embarazo gemelar -- hora de nacimiento y los del otro feto.
             if (numeroFetosPP > 1) {
-              if (leerCampoRN('rn_hora_nacimiento', 'hora') === null) faltan.unshift('hora de nacimiento');
               const sufijo = ` (Feto ${LETRAS_FETO_PP[fetoActivoPP]})`;
               const otro = fetoActivoPP === 1 ? 2 : 1;
               const datosOtro = datosRNDeFeto(otro);
@@ -10126,7 +10436,6 @@
                 .filter(([id]) => { const c = campoDe(id); return c && (datosOtro[c] === null || datosOtro[c] === undefined); })
                 .map(([, , etiqueta]) => `${etiqueta} (Feto ${LETRAS_FETO_PP[otro]})`);
               if (!(rnHuellaPorFeto[otro] && rnHuellaPorFeto[otro].tiene)) delOtro.push(`foto de la huella plantar (Feto ${LETRAS_FETO_PP[otro]})`);
-              if (datosOtro.hora_nacimiento === null || datosOtro.hora_nacimiento === undefined) delOtro.unshift(`hora de nacimiento (Feto ${LETRAS_FETO_PP[otro]})`);
               return faltan.map(f => f + sufijo).concat(delOtro);
             }
             return faltan;
@@ -10172,7 +10481,8 @@
             });
             datos.glucometrias = (rn.glucometrias || [])
               .filter(g => g.hora && g.resultado !== null && g.resultado !== undefined && g.resultado !== '')
-              .map(g => ({ hora: String(g.hora).substring(0, 5), resultado: parseFloat(g.resultado) }));
+              .map(g => ({ hora: String(g.hora).substring(0, 5), resultado: parseFloat(g.resultado),
+                           usuario: g.registrado_usuario || '', por: g.registrado_por || '' }));  // 2026-10-19
             return datos;
           }
 
@@ -10193,7 +10503,7 @@
           function escribirRNEnPantalla(datos) {
             RN_CAMPOS.forEach(([campo, id, tipo]) => escribirCampoRN(id, tipo, datos ? datos[campo] : null));
             document.getElementById('rn-gluco-lista').innerHTML = '';
-            ((datos && datos.glucometrias) || []).forEach(g => agregarGlucometriaRN(g.hora, g.resultado));
+            ((datos && datos.glucometrias) || []).forEach(g => agregarGlucometriaRN(g.hora, g.resultado, { usuario: g.usuario, nombre: g.por }));
             actualizarVacioGlucoRN();
             if (registroCerrado || window.MODO_SOLO_CONSULTA) {
               document.querySelectorAll('#rn-gluco-lista input, #rn-gluco-lista button').forEach(el => { el.disabled = true; });
@@ -10221,7 +10531,11 @@
             const selector = document.getElementById('pp-feto-selector');
             if (selector) selector.hidden = !gemelar;
             const ayuda = document.getElementById('pp-gem-ayuda');
-            if (ayuda) ayuda.hidden = gemelar;
+            if (ayuda) {
+              ayuda.textContent = gemelar
+                ? 'Dos fetos: elija Feto A o Feto B antes de registrar la fetocardia y el recién nacido. Los datos de la madre se registran una sola vez.'
+                : 'Actívelo si la paciente tuvo gemelos: la fetocardia y el recién nacido se registran por cada feto.';
+            }
             document.getElementById('pp-gemelar')?.classList.toggle('es-gemelar', gemelar);
             pintarHoraNacimientoRN();
             document.querySelectorAll('#pp-feto-selector .pp-feto-tab').forEach(tab => {
@@ -10263,7 +10577,8 @@
               aplicarFiltroFetocardia();
               asegurarFilaFetocardiaFeto();
               actualizarFetocardiaUI();
-              completarHorasNacimientoPP();
+              sincronizarHorasNacimientoPP();
+              aplicarBloqueosAjenos();  // 2026-10-19: los dueños del recién nacido de este feto
             }
             pintarBarraGemelarPP();
             if (typeof actualizarPasosPosparto === 'function') actualizarPasosPosparto();
@@ -10283,14 +10598,14 @@
             if (chk.checked) {
               if (!confirm('¿Marcar este registro como EMBARAZO GEMELAR?\n\n'
                 + 'POR CADA FETO (elija "Feto A" o "Feto B" antes de registrar): fetocardia del expulsivo y '
-                + 'control del recién nacido con su huella plantar y hora de nacimiento.\n\n'
-                + 'UNA SOLA VEZ (son de la madre, iguales para los dos fetos): datos de la paciente y acompañante · características del parto (tipo de parto, hora de parto, episiotomía, alumbramiento y desgarro) · puntaje MEOWS · sangrado, involución uterina y herida (control de 6 h) · parto atendido por.')) {
+                + 'control del recién nacido con su huella plantar.\n\n'
+                + 'HORA DE PARTO: una por feto, en "Características del parto" (Feto A y Feto B); es la hora de nacimiento de cada recién nacido.\n\n'
+                + 'UNA SOLA VEZ (son de la madre, iguales para los dos fetos): datos de la paciente y acompañante · características del parto (tipo de parto, episiotomía, alumbramiento y desgarro) · puntaje MEOWS · sangrado, involución uterina y herida (control de 6 h) · parto atendido por.')) {
                 chk.checked = false;
                 return;
               }
               numeroFetosPP = 2;
-              ultimaHoraPartoPP = horaPartoActualPP();
-              completarHorasNacimientoPP();
+              sincronizarHorasNacimientoPP();
             } else {
               // El servidor tampoco lo acepta (los datos del Feto B quedarían ocultos).
               if (hayDatosFetoB()) {
@@ -10311,44 +10626,39 @@
             programarAutoguardado();
           }
 
-          // 2026-10-14: la hora de nacimiento de cada feto se toma sola de la hora
-          // de parto ("Características del parto"). Si luego cambia la hora de
-          // parto, se actualiza en los fetos que aún tenían la anterior (no se
-          // pisa una hora ajustada a mano, p. ej. la del Feto B).
-          let ultimaHoraPartoPP = '';
-          function horaPartoActualPP() {
-            return (document.getElementById('hora_parto')?.value || '').trim().substring(0, 5);
+          // 2026-10-14: la hora de nacimiento de cada feto sale de la hora de parto.
+          // 2026-10-19: HALLAZGO -- la del Feto B se copiaba de la hora de parto
+          // del Feto A (los dos gemelos quedaban con la misma hora). Ahora cada
+          // feto tiene SU hora de parto en "Características del parto" (hora_parto
+          // = Feto A, hora_parto_b = Feto B) y la hora de nacimiento de su recién
+          // nacido es siempre esa (no se edita en el recién nacido; el servidor
+          // también la sincroniza al guardar).
+          function horaPartoDeFetoPP(feto) {
+            const id = feto === 2 ? 'hora_parto_b' : 'hora_parto';
+            return (document.getElementById(id)?.value || '').trim().substring(0, 5);
           }
-          function completarHorasNacimientoPP(horaAnterior = '') {
-            if (numeroFetosPP < 2 || registroCerrado || window.MODO_SOLO_CONSULTA) return false;
-            const hora = horaPartoActualPP();
-            if (!hora) return false;
-            const tomarHoraParto = v => !v || (horaAnterior && String(v).substring(0, 5) === horaAnterior);
-            let cambio = false;
-            const actual = leerCampoRN('rn_hora_nacimiento', 'hora');
-            if (tomarHoraParto(actual) && String(actual || '').substring(0, 5) !== hora) {
-              escribirCampoRN('rn_hora_nacimiento', 'hora', hora);
-              cambio = true;
+          function sincronizarHorasNacimientoPP() {
+            if (numeroFetosPP > 1 && !registroCerrado && !window.MODO_SOLO_CONSULTA) {
+              const actual = horaPartoDeFetoPP(fetoActivoPP);
+              if (String(leerCampoRN('rn_hora_nacimiento', 'hora') || '').substring(0, 5) !== actual) {
+                escribirCampoRN('rn_hora_nacimiento', 'hora', actual || null);
+              }
+              const otro = fetoActivoPP === 1 ? 2 : 1;
+              const horaOtro = horaPartoDeFetoPP(otro) || null;
+              const datosOtro = rnPorFeto[otro] || rnVacio();
+              if (String(datosOtro.hora_nacimiento || '').substring(0, 5) !== String(horaOtro || '')) {
+                rnPorFeto[otro] = { ...datosOtro, hora_nacimiento: horaOtro };
+              }
             }
-            const otro = fetoActivoPP === 1 ? 2 : 1;
-            const datosOtro = rnPorFeto[otro] || rnVacio();
-            if (tomarHoraParto(datosOtro.hora_nacimiento) && datosOtro.hora_nacimiento !== hora) {
-              datosOtro.hora_nacimiento = hora;
-              rnPorFeto[otro] = datosOtro;
-              cambio = true;
-            }
-            if (cambio) {
-              programarAutoguardado();
-              if (typeof actualizarPasosPosparto === 'function') actualizarPasosPosparto();
-            }
-            return cambio;
+            pintarHoraNacimientoRN();
+          }
+          // Hora de parto (= de nacimiento) de cada gemelo ('HH:MM' o '').
+          function horasNacimientoGemelosPP() {
+            return { a: horaPartoDeFetoPP(1), b: horaPartoDeFetoPP(2) };
           }
           function alCambiarHoraPartoPP() {
-            const hora = horaPartoActualPP();
-            if (hora === ultimaHoraPartoPP) return;
-            const anterior = ultimaHoraPartoPP;
-            ultimaHoraPartoPP = hora;
-            completarHorasNacimientoPP(anterior);
+            sincronizarHorasNacimientoPP();
+            if (typeof actualizarPasosPosparto === 'function') actualizarPasosPosparto();
           }
 
           // Al cargar un registro (siempre se abre en el Feto A).
@@ -10361,8 +10671,8 @@
             rnExistePorFeto[1] = false;
             rnExistePorFeto[2] = !!b;
             rnHuellaPorFeto[1] = null;
-            rnHuellaPorFeto[2] = { tiene: !!(b && b.tiene_huella), por: (b && b.huella_subida_por) || '', en: (b && b.huella_subida_en) || null };
-            ultimaHoraPartoPP = String((data && data.hora_parto) || '').substring(0, 5);
+            rnHuellaPorFeto[2] = { tiene: !!(b && b.tiene_huella), por: (b && b.huella_subida_por) || '', en: (b && b.huella_subida_en) || null,
+                                   usuario: (b && b.huella_subida_usuario) || '' };
             pintarBarraGemelarPP();
           }
 
@@ -10387,8 +10697,11 @@
               const n = cuantos[Number(tab.dataset.feto)];
               chip.hidden = !gemelar;
               chip.classList.toggle('completo', n === 0);
-              chip.textContent = n === 0 ? '✓' : String(n ?? '');
-              chip.title = n === 0 ? 'Completo' : `Faltan ${n} dato(s) de este feto`;
+              chip.textContent = n === 0 ? '✓' : (n == null ? '' : `Faltan ${n}`);
+              chip.title = n == null ? '' : (n === 0 ? 'Completo' : `Faltan ${n} dato(s) de este feto`);
+              // 2026-10-19: con datos pendientes la pestaña entera va en rojo palpitante.
+              tab.classList.toggle('feto-pendiente', gemelar && n > 0);
+              tab.classList.toggle('feto-completo', gemelar && n === 0);
             });
           }
 
@@ -10409,7 +10722,6 @@
               rn_causa_uci: d => d.pasa_uci_neonatal === true,
               rn_lavado_elimina: d => d.lavado_gastrico === true,
             };
-            if (datos.hora_nacimiento === null || datos.hora_nacimiento === undefined) faltan.push('Hora de nacimiento' + sufijo);
             FALTA_RN.forEach(([id, tipo, etq, aplica]) => {
               if (aplica && !(CONDICIONALES[id] && CONDICIONALES[id](datos))) return;
               const campo = campoDe(id);
@@ -10463,8 +10775,9 @@
             return Array.from(document.querySelectorAll('#rn-gluco-lista .rn-gluco-fila')).map(fila => ({
               hora: fila.querySelector('[data-g="hora"]').value || null,
               resultado: fila.querySelector('[data-g="resultado"]').value || null,
+              usuario: fila.dataset.usuario || '', por: fila.dataset.por || '',  // 2026-10-19
             })).filter(g => incluirIncompletas ? (g.hora || g.resultado) : (g.hora && g.resultado))
-              .map(g => incluirIncompletas ? g : ({ hora: g.hora, resultado: parseFloat(g.resultado) }));
+              .map(g => incluirIncompletas ? g : ({ hora: g.hora, resultado: parseFloat(g.resultado), usuario: g.usuario, por: g.por }));
           }
 
           // Todo lo que hay en pantalla del recién nacido (aunque esté vacío).
@@ -10516,7 +10829,14 @@
           }
 
           // Sin hora: la del momento (se toma en el momento del control).
-          function agregarGlucometriaRN(hora, resultado = '') {
+          // 2026-10-19: dueño de una glucometría (lista del servidor o de pantalla).
+          function duenoGlucometria(lista, g) {
+            const x = (lista || []).find(s => String(s.hora || '').substring(0, 5) === String(g.hora || '').substring(0, 5)
+              && Number(s.resultado) === Number(g.resultado));
+            return x ? { usuario: x.registrado_usuario || x.usuario || '', nombre: x.registrado_por || x.por || '' } : null;
+          }
+
+          function agregarGlucometriaRN(hora, resultado = '', dueno = null) {
             const nueva = hora === undefined;
             if (nueva && document.getElementById('rn_glucometrias_no_aplica')?.checked) return;
             if (nueva) {
@@ -10556,6 +10876,15 @@
             fila.querySelector('[data-g="resultado"]').addEventListener('input', actualizarVacioGlucoRN);
             document.getElementById('rn-gluco-lista').appendChild(fila);
             conectarSelectorHora(real, fila.querySelector('.hora-picker'));
+            // 2026-10-19: la de otra persona no se edita ni se quita.
+            const duenoNueva = nueva ? { usuario: USUARIO_SESION, nombre: PROFESIONAL_SESION_FRSPA } : (dueno || {});
+            fila.dataset.usuario = duenoNueva.usuario || '';
+            fila.dataset.por = duenoNueva.nombre || '';
+            if (esDeOtra(duenoNueva)) {
+              fila.classList.add('fc-row-ajena');
+              fila.querySelectorAll('input, button').forEach(el => { el.disabled = true; el.dataset.bloqueoAjeno = '1'; });
+              fila.querySelector('.fc-col-acc').innerHTML = candadoAjeno({ por: duenoNueva.nombre });
+            }
             actualizarVacioGlucoRN();
             if (nueva) fila.querySelector('[data-g="resultado"]').focus();
           }
@@ -10597,12 +10926,14 @@
             rnExiste = !!rn;
             RN_CAMPOS.forEach(([campo, id, tipo]) => escribirCampoRN(id, tipo, rn ? rn[campo] : null));
             document.getElementById('rn-gluco-lista').innerHTML = '';
-            ((rn && rn.glucometrias) || []).forEach(g => agregarGlucometriaRN(g.hora, g.resultado));
+            ((rn && rn.glucometrias) || []).forEach(g => agregarGlucometriaRN(g.hora, g.resultado,
+              { usuario: g.registrado_usuario, nombre: g.registrado_por }));
             actualizarVacioGlucoRN();
             rnHuella = {
               tiene: !!(rn && rn.tiene_huella),
               por: (rn && rn.huella_subida_por) || '',
               en: (rn && rn.huella_subida_en) || null,
+              usuario: (rn && rn.huella_subida_usuario) || '',  // 2026-10-19
             };
             pintarHuellaRN();
           }
@@ -10612,6 +10943,10 @@
 
           function huellaRNBloqueada() {
             return registroCerrado || !!window.MODO_SOLO_CONSULTA;
+          }
+          // 2026-10-19: la huella cargada por otra persona solo esa persona la cambia.
+          function huellaRNAjena() {
+            return !!(rnHuella.tiene && esDeOtra({ usuario: rnHuella.usuario }));
           }
 
           function pintarHuellaRN() {
@@ -10639,9 +10974,10 @@
               estado.classList.remove('pendiente');
               const fecha = rnHuella.en ? new Date(rnHuella.en).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' }) : '';
               meta.textContent = rnHuella.por || fecha ? `Cargada${rnHuella.por ? ' por ' + rnHuella.por : ''}${fecha ? ' · ' + fecha : ''}` : '';
+              if (huellaRNAjena()) meta.textContent += ' · 🔒 solo esa persona puede cambiarla o quitarla';
               abrir.href = url;
               abrir.hidden = false;
-              btnQuitar.hidden = bloqueada;
+              btnQuitar.hidden = bloqueada || huellaRNAjena();
               document.getElementById('rn-huella-btn-texto').textContent = 'Tomar otra foto';
             } else {
               visor.classList.remove('con-huella');
@@ -10657,7 +10993,7 @@
             }
             // Sin huella, la foto se toma con "Tomar foto" (dentro del
             // recuadro); el botón de abajo queda solo para "Tomar otra foto".
-            btnSubir.hidden = bloqueada || !(rnHuella.tiene && savedRegistroId);
+            btnSubir.hidden = bloqueada || huellaRNAjena() || !(rnHuella.tiene && savedRegistroId);
             const btnFoto = document.getElementById('rn-huella-btn-foto');
             if (btnFoto) btnFoto.hidden = bloqueada;
             // Cerrado / solo consulta: la zona vacía deja de invitar a subir.
@@ -10694,6 +11030,7 @@
 
           async function subirHuellaRN(archivo) {
             if (!archivo || huellaRNBloqueada()) return;
+            if (huellaRNAjena()) { showToast(textoAjeno(rnHuella.por), 'error'); return; }  // 2026-10-19
             const esFoto = /^image\//.test(archivo.type || '') || /\.(jpe?g|png|webp|heic|heif)$/i.test(archivo.name || '');
             if (!esFoto) { showToast('La huella debe ser una foto tomada con la cámara.', 'error'); return; }
             archivo = await reducirFotoHuellaRN(archivo);
@@ -10726,7 +11063,8 @@
               const resp = await res.json().catch(() => ({}));
               if (!res.ok) throw new Error(resp.error || resp.detail || `Error ${res.status}`);
               rnExiste = true;
-              rnHuella = { tiene: true, por: resp.huella_subida_por || '', en: resp.huella_subida_en || null };
+              rnHuella = { tiene: true, por: resp.huella_subida_por || '', en: resp.huella_subida_en || null,
+                           usuario: resp.huella_subida_usuario || USUARIO_SESION };
               pintarHuellaRN();
               actualizarDisponibilidadCierre();
               refrescarResponsables();
@@ -10960,7 +11298,7 @@
             nombre_paciente: 'nombre_paciente', identificacion: 'identificacion',
             edad_gestacional: 'edad_gestacional', gestas: 'gestas',
             nombre_acompanante: 'nombre_acompanante', tipo_parto: 'tipo_parto',
-            hora_parto: 'hora_parto', tipo_alumbramiento: 'tipo_alumbramiento',
+            hora_parto: 'hora_parto', hora_parto_b: 'hora_parto_b', tipo_alumbramiento: 'tipo_alumbramiento',
           };
           const CAMPO_MAP_PP = {
             fecha: 'fecha', hora: 'hora', tension_arterial: 'ta', temperatura: 'temp',
@@ -11082,12 +11420,20 @@
                 <div class="pcard-section ppw-datos" id="ppw-datos"></div>
               </div>
               <div class="pp-gemelar" id="pp-gemelar">
-                <label class="pp-gem-switch"><input type="checkbox" id="embarazo_gemelar" onchange="cambiarEmbarazoGemelarPP(this)"> Embarazo gemelar</label>
-                <span class="pp-gem-ayuda" id="pp-gem-ayuda">Actívelo si la paciente tuvo gemelos: la fetocardia y el recién nacido se registran por cada feto.</span>
-                <div class="pp-feto-selector" id="pp-feto-selector" role="tablist" aria-label="Feto que se está registrando" hidden>
-                  <span class="pp-feto-texto">Registrando datos fetales de:</span>
-                  <button type="button" class="pp-feto-tab ppw-ctrl activo" role="tab" data-feto="1" onclick="cambiarFetoActivoPP(1)">Feto A</button>
-                  <button type="button" class="pp-feto-tab ppw-ctrl" role="tab" data-feto="2" onclick="cambiarFetoActivoPP(2)">Feto B</button>
+                <label class="pp-gem-switch">
+                  <input type="checkbox" id="embarazo_gemelar" role="switch" aria-describedby="pp-gem-ayuda" onchange="cambiarEmbarazoGemelarPP(this)">
+                  <span class="pp-gem-pista" aria-hidden="true"></span>
+                  <span class="pp-gem-textos">
+                    <span class="pp-gem-titulo"><i data-lucide="baby" size="18"></i> Embarazo gemelar <span class="pp-gem-candado" title="Registro en solo lectura"><i data-lucide="lock" size="14"></i></span></span>
+                    <span class="pp-gem-ayuda" id="pp-gem-ayuda">Actívelo si la paciente tuvo gemelos: la fetocardia y el recién nacido se registran por cada feto.</span>
+                  </span>
+                </label>
+                <div class="pp-feto-selector" id="pp-feto-selector" hidden>
+                  <span class="pp-feto-texto">Registrando datos de:</span>
+                  <div class="pp-feto-segmento" role="tablist" aria-label="Feto que se está registrando">
+                    <button type="button" class="pp-feto-tab ppw-ctrl activo" role="tab" aria-selected="true" data-feto="1" onclick="cambiarFetoActivoPP(1)"><span class="pp-feto-letra">A</span> Feto A</button>
+                    <button type="button" class="pp-feto-tab ppw-ctrl" role="tab" aria-selected="false" data-feto="2" onclick="cambiarFetoActivoPP(2)"><span class="pp-feto-letra">B</span> Feto B</button>
+                  </div>
                 </div>
               </div>
               <div class="ppw-steps" role="tablist" aria-label="Pasos del formato">
@@ -11273,7 +11619,9 @@
                 });
               }
             }
-            [['tipo_parto', 'Tipo de parto'], ['hora_parto', 'Hora de parto'], ['tipo_alumbramiento', 'Alumbramiento'], ['desgarro', 'Desgarro']]
+            [['tipo_parto', 'Tipo de parto'], ['hora_parto', numeroFetosPP > 1 ? 'Hora de parto (Feto A)' : 'Hora de parto'],
+             ...(numeroFetosPP > 1 ? [['hora_parto_b', 'Hora de parto (Feto B)']] : []),  // 2026-10-19
+             ['tipo_alumbramiento', 'Alumbramiento'], ['desgarro', 'Desgarro']]
               .forEach(([id, etq]) => { if (!v(id)) r.parto.push({ etq, el: document.getElementById(id) }); });
             if (v('desgarro') === 'GRADO_III' && !document.querySelector('input[name="desgarro_subgrado"]:checked')) {
               r.parto.push({ etq: 'Subclasificación del desgarro III', el: document.getElementById('desgarro-subgrado-group') });
@@ -11296,13 +11644,11 @@
               r['recien-nacido'].push({ etq: 'Glucometrías (o marque "No aplica")', el: document.querySelector('.rn-grupo-gluco') });
             }
             if (!rnHuella.tiene) r['recien-nacido'].push({ etq: 'Huella plantar', el: document.getElementById('rn-huella') });
-            // 2026-10-14: embarazo gemelar -- hora de nacimiento de cada feto;
-            // los del feto mostrado llevan su letra y (salvo soloFetoMostrado)
-            // se suman los del otro feto.
+            // 2026-10-14: embarazo gemelar -- los del feto mostrado llevan su
+            // letra y (salvo soloFetoMostrado) se suman los del otro feto.
+            // 2026-10-19: la hora de nacimiento ya no se pide aquí: es la hora de
+            // parto de cada feto (paso "Características del parto").
             if (numeroFetosPP > 1) {
-              if (leerCampoRN('rn_hora_nacimiento', 'hora') === null) {
-                r['recien-nacido'].unshift({ etq: 'Hora de nacimiento', el: document.getElementById('rn-hora-nac-gemelar') });
-              }
               const sufijo = ` (Feto ${LETRAS_FETO_PP[fetoActivoPP]})`;
               r['recien-nacido'].forEach(f => { f.etq += sufijo; });
               if (!soloFetoMostrado) {
@@ -11397,18 +11743,40 @@
 
           // 2026-10-08: "Hora de nacimiento" del recién nacido = hora de parto.
           function pintarHoraNacimientoRN() {
-            // 2026-10-14: en gemelar, cada feto registra la suya.
+            // 2026-10-19: siempre de solo lectura: la hora de parto del feto
+            // mostrado (gemelar: Feto A = hora_parto, Feto B = hora_parto_b).
             const gemelar = typeof numeroFetosPP !== 'undefined' && numeroFetosPP > 1;
-            const unico = document.getElementById('rn-hora-nac-unico');
-            const porFeto = document.getElementById('rn-hora-nac-gemelar');
+            const feto = gemelar ? fetoActivoPP : 1;
+            const letra = gemelar ? LETRAS_FETO_PP[feto] : '';
             const obl = document.getElementById('rn-hora-nac-obl');
-            if (unico) unico.hidden = gemelar;
-            if (porFeto) porFeto.hidden = !gemelar;
             if (obl) obl.hidden = !gemelar;
+            const origen = document.getElementById('rn-hora-nac-origen');
+            if (origen) {
+              origen.textContent = gemelar
+                ? `Tomada de la hora de parto del Feto ${letra} en "Características del parto".`
+                : 'Tomada de la hora de parto en "Características del parto".';
+            }
+            // Características del parto: en gemelar, una hora de parto por feto.
+            const titulo = document.getElementById('hora_parto_titulo');
+            if (titulo) titulo.textContent = gemelar ? 'Hora de parto · Feto A' : 'Hora de parto';
+            const cardB = document.getElementById('cp-hora-parto-b');
+            if (cardB) {
+              cardB.hidden = !gemelar;
+              cardB.parentElement?.classList.toggle('parto-fila--gemelar', gemelar);  // Feto B debajo del Feto A
+            }
+            const horas = gemelar ? horasNacimientoGemelosPP() : {};
+            const iguales = !!(horas.a && horas.b && horas.a === horas.b);
+            const aviso = document.getElementById('hora-parto-b-aviso');
+            if (aviso) {
+              aviso.hidden = !iguales;
+              aviso.textContent = iguales
+                ? `⚠ Igual a la hora de parto del Feto A (${hora12(horas.a)}). Verifique la hora real de cada feto.`
+                : '';
+            }
             const el = document.getElementById('rn-hora-nac-vista');
             if (!el) return;
-            const v = (document.getElementById('hora_parto')?.value || '').trim();
-            el.textContent = v ? hora12(v) : 'Sin registrar';
+            const v = horaPartoDeFetoPP(feto);
+            el.textContent = v ? hora12(v) : (gemelar ? `Sin registrar: registre la hora de parto del Feto ${letra}` : 'Sin registrar');
             el.classList.toggle('vacia', !v);
           }
 
@@ -11425,7 +11793,7 @@
               fetocardia: [1, 2].slice(0, numeroFetosPP).every(feto =>
                 filasFetocardiaFeto(feto).some(row => row.querySelector('[data-param="fetocardia"]').value)),
               meows: !!document.querySelector('.meows-grid-table th.grid-th-columna'),
-              parto: !!(v('tipo_parto') && v('hora_parto')),
+              parto: !!(v('tipo_parto') && v('hora_parto') && (numeroFetosPP < 2 || v('hora_parto_b'))),
               vigilancia: progresoVigilancia().faltan === 0,  // 2026-10-07: las 13 tomas (6 h)
               'recien-nacido': faltantesRecienNacido().length === 0,
               finalizacion: !!registroCerrado,
@@ -11434,7 +11802,7 @@
             const avance = {
               fetocardia: hecho.fetocardia ? 1 : 0,
               meows: hecho.meows ? 1 : 0,
-              parto: lleno(['tipo_parto', 'hora_parto', 'tipo_alumbramiento']),
+              parto: lleno(['tipo_parto', 'hora_parto', ...(numeroFetosPP > 1 ? ['hora_parto_b'] : []), 'tipo_alumbramiento']),
               // Avance total de las tres tarjetas (no solo la más atrasada).
               vigilancia: (() => { const p = progresoVigilancia(); return p.detalle.reduce((s, d) => s + d.hechas, 0) / (p.total * p.detalle.length); })(),
               'recien-nacido': Math.max(0, ((RN_OBLIGATORIOS_CIERRE.length + 1) * numeroFetosPP - faltantesRecienNacido().length) / ((RN_OBLIGATORIOS_CIERRE.length + 1) * numeroFetosPP)),
@@ -11478,7 +11846,11 @@
             pon('ppw-res-ingreso', v('numero_ingreso_vista'));
             pon('ppw-res-eg', v('edad_gestacional') ? v('edad_gestacional') + ' semanas' : '');
             const hora = v('hora_parto');
-            if (hora) {
+            if (numeroFetosPP > 1) {
+              // 2026-10-19: gemelar -- la hora de parto de cada feto.
+              const b = v('hora_parto_b');
+              pon('ppw-res-hora', `A: ${hora ? hora12(hora) : '—'} · B: ${b ? hora12(b) : '—'}`);
+            } else if (hora) {
               const [hh, mm] = hora.split(':').map(Number);
               pon('ppw-res-hora', `${hh % 12 || 12}:${String(mm).padStart(2, '0')} ${hh >= 12 ? 'p. m.' : 'a. m.'}`);
             } else {
@@ -11622,6 +11994,9 @@
                 let errMsg = '';
                 try {
                   const errData = JSON.parse(text);
+                  // 2026-10-19: datos de otra persona: vuelven a su valor guardado
+                  // (si no, cada autoguardado los reenviaría y fallaría igual).
+                  if (res.status === 403 && Array.isArray(errData.campos_ajenos)) revertirCamposAjenos(errData.campos_ajenos);
                   resaltarErroresServidor(errData);
                   let raw = errData.detail || errData.error || errData.message || errData.msg;
                   if (raw != null) {
@@ -11660,6 +12035,22 @@
               }
 
               const data = await res.json();
+              // 2026-10-19: la paciente ya tenía registro en este ingreso (esta
+              // pantalla no lo había podido cargar): el servidor agregó ahí lo
+              // de esta pantalla en vez de crear un duplicado. Se abre ese
+              // registro, que ya trae todo (lo de antes y lo de ahora).
+              if (!isUpdate && data.registro_existente) {
+                savedRegistroId = data.id;
+                const cargado = await cargarRegistro(data.id, { silencioso: true });
+                (data.avisos || []).forEach(aviso => showToast('⚠️ ' + aviso, 'error'));
+                showToast('Esta paciente ya tenía un registro en este ingreso: lo que registró se agregó a ese registro.', 'success');
+                if (!silencioso && btn) { btn.innerHTML = labelOriginal; btn.disabled = false; }
+                if (silencioso) {
+                  actualizarEstadoAutoguardado(cargado ? 'ok' : 'error',
+                    cargado ? '' : 'Se guardó, pero no se pudo mostrar el registro: recargue la página (F5)');
+                }
+                return true;
+              }
               savedRegistroId = data.id;
               // 2026-10-14: rnExiste es el del feto mostrado; el otro va aparte.
               if (data.control_recien_nacido) { if (fetoActivoPP === 1) rnExiste = true; else rnExistePorFeto[1] = true; }
@@ -11764,6 +12155,7 @@
               // (marcarControlesGuardados), antes de refrescar desde el servidor.
 
               refrescarResponsables();
+              respaldarCambiosPendientes();  // 2026-10-19: lo enviado ya no hace falta respaldarlo
               // 2026-10-06: "Guardado" solo si TODO quedó en el servidor; antes
               // salía en verde aunque hubiera controles de vigilancia sin guardar.
               const sinGuardar = controlesVigilanciaPendientes().length;
@@ -11829,6 +12221,7 @@
                 if (m && m !== '{}' && m !== '[object Object]') msg = m;
               }
               console.error('submitForm error:', err);
+              respaldarCambiosPendientes();  // 2026-10-19: no llegó: queda en la tablet
               if (silencioso) {
                 // 2026-10-06: con el motivo real (antes siempre "revise la
                 // conexión", aunque fuera un dato inválido o un 403).
@@ -11931,6 +12324,142 @@
             if (registroCerrado || window.MODO_SOLO_CONSULTA) return;
             if (autosaveTimer) clearTimeout(autosaveTimer);
             autosaveTimer = setTimeout(autoguardarSilencioso, AUTOSAVE_DEBOUNCE_MS);
+            respaldarCambiosPendientes();  // 2026-10-19: copia en la tablet mientras no llegue al servidor
+          }
+
+          // --- 2026-10-19: respaldo local de lo que aún no llega al servidor --
+          // HALLAZGO (prueba): sin red (o con el servidor rechazando) y la
+          // pestaña recargada o cerrada antes de reconectar, se perdía lo
+          // digitado en el parto, el recién nacido, la fetocardia y las
+          // glucometrías (solo los controles de vigilancia tenían respaldo).
+          // Ahora todo cambio sin confirmar queda también en este navegador y,
+          // al volver a abrir el registro, se recupera y se envía. Solo se
+          // reaplica un dato si en el servidor nadie lo cambió entretanto.
+          const RESPALDO_CAMBIOS_VIGENCIA_MS = 12 * 60 * 60 * 1000;
+
+          function claveRespaldoCambios() {
+            return savedRegistroId ? `posparto-cambios-pendientes:${savedRegistroId}` : null;
+          }
+
+          // Lo de esta pantalla que el servidor aún no tiene (sin los
+          // obligatorios vaciados, que a propósito nunca se envían).
+          function cambiosSinEnviarPP() {
+            if (!baseServidor || !savedRegistroId) return null;
+            const foto = fotoPantalla();
+            const cambios = cambiosDesdeBase(foto);
+            OBLIGATORIOS_PACIENTE.forEach(([campo]) => { if (cambios[campo] === null || cambios[campo] === '') delete cambios[campo]; });
+            const fcEditadas = {};
+            Object.entries(foto.fc).forEach(([id, fc]) => {
+              if (baseServidor.fc[id] && !igualValor(fc, baseServidor.fc[id])) fcEditadas[id] = fc;
+            });
+            const fcNuevas = filasFetocardiaNuevas().map(f => f.datos);
+            const hay = Object.keys(cambios).length || Object.keys(fcEditadas).length || fcNuevas.length;
+            return hay ? { cambios, fcEditadas, fcNuevas } : null;
+          }
+
+          function respaldarCambiosPendientes() {
+            if (registroCerrado || window.MODO_SOLO_CONSULTA) return;
+            const clave = claveRespaldoCambios();
+            if (!clave || !baseServidor) return;
+            try {
+              const pendientes = cambiosSinEnviarPP();
+              if (!pendientes) { localStorage.removeItem(clave); return; }
+              // Con qué valor estaba cada dato en el servidor (para no pisar uno más nuevo).
+              const base = { payload: {}, rn: {}, rn_b: {}, fc: {} };
+              Object.keys(pendientes.cambios).forEach(k => {
+                if (k === 'control_recien_nacido') Object.keys(pendientes.cambios[k]).forEach(c => { base.rn[c] = baseServidor.rn[c]; });
+                else if (k === 'control_recien_nacido_b') Object.keys(pendientes.cambios[k]).forEach(c => { base.rn_b[c] = (baseRNDeFeto(2) || {})[c]; });
+                else base.payload[k] = baseServidor.payload[k];
+              });
+              Object.keys(pendientes.fcEditadas).forEach(id => { base.fc[id] = baseServidor.fc[id]; });
+              localStorage.setItem(clave, JSON.stringify({ guardadoEn: Date.now(), ...pendientes, base }));
+            } catch (e) { /* sin almacenamiento local */ }
+          }
+
+          // Al abrir el registro (ya con los datos del servidor en pantalla).
+          function restaurarCambiosPendientes() {
+            const clave = claveRespaldoCambios();
+            if (!clave || !baseServidor || registroCerrado || window.MODO_SOLO_CONSULTA) return;
+            let r = null;
+            try { r = JSON.parse(localStorage.getItem(clave) || 'null'); } catch (e) {}
+            if (!r) return;
+            if (Date.now() - (r.guardadoEn || 0) > RESPALDO_CAMBIOS_VIGENCIA_MS) {
+              try { localStorage.removeItem(clave); } catch (e) {}
+              return;
+            }
+            const sinCambioEnServidor = (actual, antes) => igualValor(actual === undefined ? null : actual, antes === undefined ? null : antes);
+            const base = r.base || {};
+            let recuperados = 0;
+            Object.entries(r.cambios || {}).forEach(([k, v]) => {
+              if (k === 'control_recien_nacido' || k === 'control_recien_nacido_b') {
+                const feto = k === 'control_recien_nacido' ? 1 : 2;
+                const baseRN = (feto === 1 ? baseServidor.rn : baseRNDeFeto(2)) || {};
+                const antes = (feto === 1 ? base.rn : base.rn_b) || {};
+                Object.entries(v).forEach(([campo, valor]) => {
+                  if (campo === 'glucometrias_agregar' || campo === 'glucometrias_quitar') {
+                    if (feto !== fetoActivoPP) return;
+                    if (campo === 'glucometrias_agregar') {
+                      const enPantalla = leerGlucometriasRN().map(claveGluco);
+                      valor.forEach(g => { if (!enPantalla.includes(claveGluco(g))) { agregarGlucometriaRN(g.hora, g.resultado); recuperados++; } });
+                    } else {
+                      valor.forEach(g => {
+                        const fila = [...document.querySelectorAll('#rn-gluco-lista .rn-gluco-fila')].find(fl =>
+                          claveGluco({ hora: fl.querySelector('[data-g="hora"]').value, resultado: fl.querySelector('[data-g="resultado"]').value }) === claveGluco(g)
+                          && !esDeOtra({ usuario: fl.dataset.usuario }));
+                        if (fila) { fila.remove(); recuperados++; }
+                      });
+                    }
+                    actualizarVacioGlucoRN();
+                    return;
+                  }
+                  if (!sinCambioEnServidor(baseRN[campo], antes[campo])) return;  // alguien lo cambió: gana el servidor
+                  const def = RN_CAMPOS.find(([c]) => c === campo);
+                  if (!def) return;
+                  if (feto === fetoActivoPP) escribirCampoRN(def[1], def[2], valor);
+                  else rnPorFeto[feto] = { ...(rnPorFeto[feto] || rnVacio()), [campo]: valor };
+                  recuperados++;
+                });
+              } else if (CAMPOS_GENERALES_REFRESCO[k] && sinCambioEnServidor(baseServidor.payload[k], (base.payload || {})[k])) {
+                escribirCampoGeneral(k, CAMPOS_GENERALES_REFRESCO[k], v);
+                recuperados++;
+              }
+            });
+            Object.entries(r.fcEditadas || {}).forEach(([id, fc]) => {
+              if (!sinCambioEnServidor(baseServidor.fc[id], (base.fc || {})[id])) return;
+              const fila = document.querySelector(`#fc-table-body [data-fc-id="${id}"]`)?.closest('.fc-row');
+              if (!fila || fila.classList.contains('fc-row-ajena')) return;
+              fila.querySelector('[data-param="fecha"]').value = fc.fecha || '';
+              fila.querySelector('[data-param="hora"]').value = fc.hora || '';
+              fila.querySelector('[data-param="fetocardia"]').value = fc.fetocardia ?? '';
+              recuperados++;
+            });
+            const clavFc = (fecha, hora, valor, feto) => [fecha, String(hora || '').substring(0, 5), String(valor), String(feto || 1)].join('|');
+            const yaEstan = [...document.querySelectorAll('#fc-table-body .fc-row')].map(fl =>
+              clavFc(fl.querySelector('[data-param="fecha"]').value, fl.querySelector('[data-param="hora"]').value,
+                     fl.querySelector('[data-param="fetocardia"]').value, fl.dataset.feto));
+            (r.fcNuevas || []).forEach(fc => {
+              if (yaEstan.includes(clavFc(fc.fecha, fc.hora, fc.fetocardia, fc.feto))) return;
+              crearFilaFetocardia(fc.fecha, fc.hora, fc.fetocardia, false, null, fc.feto || 1);
+              recuperados++;
+            });
+            if (!recuperados) {
+              try { localStorage.removeItem(clave); } catch (e) {}
+              return;
+            }
+            aplicarFiltroFetocardia();
+            actualizarFetocardiaUI();
+            aplicarBloqueosAjenos();
+            if (typeof actualizarPasosPosparto === 'function') actualizarPasosPosparto();
+            showToast(`Se recuperaron ${recuperados} dato(s) que no se habían guardado en el servidor; guardándolos…`, 'success');
+            programarAutoguardado();
+          }
+
+          // 2026-10-19: con cambios sin guardar se reintenta cada 15 s (antes solo
+          // cada 60 s) y apenas vuelve la red.
+          const REINTENTO_PENDIENTES_MS = 15000;
+          function reintentarSiHayPendientes() {
+            if (registroCerrado || window.MODO_SOLO_CONSULTA || autoguardadoEnCurso) return;
+            try { if (cambiosSinEnviarPP()) autoguardarSilencioso(); } catch (e) {}
           }
 
           // 2026-09-22: bloquea el formulario principal cuando el registro
@@ -12146,6 +12675,7 @@
               document.getElementById('nombre_acompanante').value = (data.nombre_acompanante != null && data.nombre_acompanante !== '') ? String(data.nombre_acompanante) : '';
               document.getElementById('tipo_parto').value = data.tipo_parto || '';
               document.getElementById('hora_parto').value = data.hora_parto || '';
+              document.getElementById('hora_parto_b').value = data.hora_parto_b || '';
               document.querySelector(`input[name="episiotomia"][value="${valorRadioEpisiotomia(data.episiotomia)}"]`)?.click();
               document.getElementById('tipo_alumbramiento').value = data.tipo_alumbramiento || '';
               const desgarroSel = document.getElementById('desgarro');
@@ -12176,6 +12706,7 @@
                   cc: parseFloat(sc.cc) || 0,
                   estado: sc.estado || null,
                   detalle: sc.detalle || null,
+                  usuario: sc.registrado_usuario || '', por: sc.registrado_por || '',
                 })).sort((a, b) => a.minuto - b.minuto);
                 sangradoBaseAnterior = 0;
               } else {
@@ -12189,12 +12720,14 @@
                 minuto: cg.minuto_control,
                 hora: String(cg.hora || '').length > 5 ? String(cg.hora).substring(0, 5) : (cg.hora || ''),
                 estado: cg.estado,
+                usuario: cg.registrado_usuario || '', por: cg.registrado_por || '',
               })).sort((a, b) => a.minuto - b.minuto);
               SEMAFORO_TIPOS.sutura.registros = (data.controles_sutura || []).map(cs => ({
                 id: cs.id,
                 minuto: cs.minuto_control,
                 hora: String(cs.hora || '').length > 5 ? String(cs.hora).substring(0, 5) : (cs.hora || ''),
                 estado: cs.estado,
+                usuario: cs.registrado_usuario || '', por: cs.registrado_por || '',
               })).sort((a, b) => a.minuto - b.minuto);
               SEMAFORO_TIPOS.globo.editandoIdx = null;
               SEMAFORO_TIPOS.sutura.editandoIdx = null;
@@ -12258,7 +12791,8 @@
                 data.controles_fetocardia.forEach((fc) => {
                   const fd = fc.fecha ? String(fc.fecha).split('T')[0] : '';
                   const ho = fc.hora ? (String(fc.hora).length > 5 ? String(fc.hora).substring(0, 5) : fc.hora) : '';
-                  crearFilaFetocardia(fd, ho, fc.fetocardia, true, fc.id, fc.feto || 1);
+                  crearFilaFetocardia(fd, ho, fc.fetocardia, true, fc.id, fc.feto || 1,
+                                      { usuario: fc.registrado_usuario, nombre: fc.registrado_por });
                 });
               }
               // 2026-10-14: solo las tomas del feto mostrado; en gemelar, una
@@ -12282,7 +12816,7 @@
               tomarBaseServidor();
               // 2026-10-14: gemelar -- horas de nacimiento vacías = hora de parto
               // (después de la foto, así el autoguardado las envía).
-              if (!data.completado_en) completarHorasNacimientoPP();
+              if (!data.completado_en) sincronizarHorasNacimientoPP();
 
               if (!silencioso) {
                 switchTab('paciente');
@@ -12292,9 +12826,18 @@
               } else if (!data.completado_en) {
                 showToast('Se recuperó el registro guardado de esta atención.', 'success');
               }
+              // 2026-10-19: lo que registró otra persona queda bloqueado en pantalla.
+              guardarDuenosDesdeServidor(data);
+              // 2026-10-19: lo que esta tablet no alcanzó a enviar (sin red / recarga).
+              if (!data.completado_en) restaurarCambiosPendientes();
+              // 2026-10-19: controles que esta tablet no alcanzó a guardar
+              // (respaldo local) vuelven a la lista y se envían.
+              if (!data.completado_en) restaurarPendientesVigilancia();
+              return true;
             } catch (err) {
               if (!silencioso) showToast('Error al cargar: ' + err.message, 'error');
               else console.error('Auto-carga de registro por atención falló:', err);
+              return false;
             }
           }
 
@@ -12452,8 +12995,9 @@
 
             iniciarHuellaRN();
             iniciarSelectorHora('hora_parto');
-            iniciarSelectorHora('rn_hora_nacimiento');  // 2026-10-14: gemelar
-            ['input', 'change'].forEach(ev => document.getElementById('hora_parto')?.addEventListener(ev, alCambiarHoraPartoPP));
+            iniciarSelectorHora('hora_parto_b');  // 2026-10-19: gemelar -- hora de parto del Feto B
+            ['hora_parto', 'hora_parto_b'].forEach(id => ['input', 'change'].forEach(ev =>
+              document.getElementById(id)?.addEventListener(ev, alCambiarHoraPartoPP)));
             iniciarTarjetasTipoParto();
             // 2026-10-05: formato por pasos (una tarjeta a la vez).
             iniciarPasosPosparto();
@@ -12477,10 +13021,17 @@
                 const quien = (PROFESIONAL_SESION_FRSPA || '').trim() || 'usted';
                 const avisoCierre = `Usted (${quien}) quedará como quien CIERRA el registro: confirma que está completo ` +
                   'y se enviará al repositorio clínico.';
-                const mensaje = resumen.length
+                // 2026-10-19: gemelos con la misma hora de nacimiento (casi siempre
+                // es que no se registró la hora real del Feto B).
+                const horasGem = numeroFetosPP > 1 ? horasNacimientoGemelosPP() : {};
+                const avisoHoras = horasGem.a && horasGem.a === horasGem.b
+                  ? `⚠ El Feto A y el Feto B tienen la MISMA hora de nacimiento (${hora12(horasGem.a)}). ` +
+                    'Si no es correcto, cancele y registre la hora real de cada feto.\n\n'
+                  : '';
+                const mensaje = avisoHoras + (resumen.length
                   ? 'Hay datos sin diligenciar (los pasos en rojo):\n\n' + resumen.join('\n') +
                     '\n\n' + avisoCierre + '\n\n¿Cerrar el registro de todas formas?'
-                  : avisoCierre + '\n\n¿Cerrar el registro?';
+                  : avisoCierre + '\n\n¿Cerrar el registro?');
                 if (!confirm(mensaje)) return;
                 if (typeof submitForm === 'function') {
                   // 2026-09-22: "completar=true" -- este es el único punto
@@ -12508,6 +13059,11 @@
             // Respaldo: si por lo que sea no llegó ningún evento capturado
             // arriba, igual se reintenta cada AUTOSAVE_INTERVALO_MS.
             setInterval(autoguardarSilencioso, AUTOSAVE_INTERVALO_MS);
+            // 2026-10-19: con cambios pendientes, cada 15 s; y apenas vuelve la red.
+            setInterval(reintentarSiHayPendientes, REINTENTO_PENDIENTES_MS);
+            window.addEventListener('online', () => { reintentarSiHayPendientes(); resincronizarVigilancia().then(avisarReasignados).catch(() => {}); });
+            window.addEventListener('pagehide', respaldarCambiosPendientes);
+            document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') respaldarCambiosPendientes(); });
 
             // 2026-10-06: los controles de vigilancia que registró otra persona
             // (otra tablet/pestaña) aparecen aquí sin recargar, así el próximo
@@ -12593,20 +13149,53 @@
               // 2026-09-24: registro del ingreso elegido en el selector de ingresos.
               const ingresoUrl = "{{ ingreso_param|default:''|escapejs }}".trim();
               if (ingresoUrl) params.set('ingreso', ingresoUrl);
-              fetch(`${API_BASE}/registros/por-atencion/?${params.toString()}`, { headers: getHeaders() })
-                .then(r => r.json())
-                .then(data => {
+              // 2026-10-19: HALLAZGO -- si esta consulta (o la carga del
+              // registro) fallaba, la pantalla quedaba en blanco como si la
+              // paciente no tuviera registro y el autoguardado creaba un
+              // DUPLICADO; desde ahí se abría el duplicado vacío y los
+              // controles ya guardados "desaparecían". Ahora se avisa y se
+              // reintenta; y si alguien alcanza a registrar algo, el servidor
+              // lo agrega al registro existente (registro_existente).
+              let edicionSinRegistro = false;
+              document.querySelector('main.main-content')?.addEventListener('input', () => {
+                if (!savedRegistroId) edicionSinRegistro = true;
+              });
+              const sinRegistroPrevio = () => {
+                prepararPanelSangrado({ restaurar: true });
+                if (docFromUrl) precargarDatosPacienteUnificado(docFromUrl);
+              };
+              const cargarRegistroInicial = async (intento = 1) => {
+                if (savedRegistroId) return;  // ya se enlazó por otro camino (p. ej. el autoguardado)
+                try {
+                  const r = await fetch(`${API_BASE}/registros/por-atencion/?${params.toString()}`, { headers: getHeaders() });
+                  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                  const data = await r.json();  // sesión vencida = página de login: no es JSON
+                  if (savedRegistroId) return;
                   if (data && data.encontrado && data.id) {
-                    cargarRegistro(data.id, { silencioso: true });
-                  } else {
-                    prepararPanelSangrado({ restaurar: true });
-                    if (docFromUrl) precargarDatosPacienteUnificado(docFromUrl);
+                    // Lo que se alcanzó a digitar en blanco se guarda primero
+                    // (el servidor lo suma al registro existente), así cargarlo
+                    // no lo borra de la pantalla.
+                    if (edicionSinRegistro && await submitForm('autoguardado', true, true) && savedRegistroId) return;
+                    if (!await cargarRegistro(data.id, { silencioso: true })) throw new Error('No se pudo cargar el registro');
+                  } else if (intento === 1) {
+                    sinRegistroPrevio();
                   }
-                })
-                .catch(() => {
-                  prepararPanelSangrado({ restaurar: true });
-                  if (docFromUrl) precargarDatosPacienteUnificado(docFromUrl);
-                });
+                  if (intento > 1 && !savedRegistroId) {
+                    // Se recuperó la conexión y la paciente no tenía registro: se quita el aviso.
+                    const estado = document.getElementById('autosave-status');
+                    if (estado) { estado.className = 'autosave-status'; estado.innerHTML = ''; }
+                  }
+                } catch (err) {
+                  console.error('No se pudo consultar el registro guardado de la paciente:', err);
+                  if (intento === 1) sinRegistroPrevio();
+                  if (savedRegistroId) return;
+                  actualizarEstadoAutoguardado('error', 'No se pudo cargar el registro guardado de esta paciente; ' +
+                    'reintentando… Si ya tenía datos, NO los vuelva a digitar: aparecerán al conectar.');
+                  if (intento === 1) showToast('⚠️ No se pudo cargar el registro guardado de esta paciente. Se reintentará solo.', 'error');
+                  setTimeout(() => cargarRegistroInicial(intento + 1), Math.min(30000, 5000 * intento));
+                }
+              };
+              cargarRegistroInicial();
             } else {
               prepararPanelSangrado({ restaurar: true });
             }

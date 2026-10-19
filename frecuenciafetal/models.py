@@ -139,6 +139,26 @@ class RegistroParto(models.Model):
     # 2026-10-14: 1 = embarazo único; 2 = gemelar (fetocardia del expulsivo y
     # recién nacido por feto: ControlFetocardia.feto / ControlRecienNacido.feto).
     numero_fetos = models.PositiveSmallIntegerField(default=1, verbose_name="Número de fetos")
+    # 2026-10-19: embarazo gemelar -- hora de parto del Feto B (la del Feto A
+    # es hora_parto). La hora de nacimiento de cada recién nacido se toma de
+    # la de su feto (ver sincronizar_horas_nacimiento).
+    hora_parto_b = models.TimeField(blank=True, null=True, verbose_name="Hora de parto (Feto B)")
+    # 2026-10-19: dueño de cada dato del registro: {campo: {"usuario", "nombre"}}.
+    # Solo quien lo registró puede cambiarlo o borrarlo (ver propiedad.py).
+    duenos_campos = models.JSONField(default=dict, blank=True)
+
+    def hora_parto_de_feto(self, feto):
+        return self.hora_parto_b if (feto or 1) > 1 else self.hora_parto
+
+    def sincronizar_horas_nacimiento(self):
+        """Gemelar: la hora de nacimiento de cada recién nacido = la hora de
+        parto de su feto (se registra una sola vez, en Características del parto)."""
+        if (self.numero_fetos or 1) < 2:
+            return
+        for feto in (1, 2):
+            ControlRecienNacido.objects.filter(registro_id=self.pk, feto=feto).exclude(
+                hora_nacimiento=self.hora_parto_de_feto(feto)
+            ).update(hora_nacimiento=self.hora_parto_de_feto(feto))
 
     class Meta:
         verbose_name = "Registro de Parto"
@@ -187,6 +207,9 @@ class ControlFetocardia(models.Model):
     # la pone el servidor (ver frecuenciafetal/responsables.py).
     registrado_por = models.CharField(max_length=255, blank=True, default='')
     registrado_en = models.DateTimeField(null=True, blank=True)
+    # 2026-10-19: usuario (login) que lo registró: solo esa persona puede
+    # corregirlo o eliminarlo (ver frecuenciafetal/propiedad.py).
+    registrado_usuario = models.CharField(max_length=150, blank=True, default='')
 
     class Meta:
         verbose_name = "Control de Fetocardia"
@@ -274,6 +297,9 @@ class ControlSangrado(models.Model):
     # la pone el servidor (ver frecuenciafetal/responsables.py).
     registrado_por = models.CharField(max_length=255, blank=True, default='')
     registrado_en = models.DateTimeField(null=True, blank=True)
+    # 2026-10-19: usuario (login) que lo registró: solo esa persona puede
+    # corregirlo o eliminarlo (ver frecuenciafetal/propiedad.py).
+    registrado_usuario = models.CharField(max_length=150, blank=True, default='')
 
     class Meta:
         verbose_name = "Control de Sangrado"
@@ -307,6 +333,9 @@ class ControlGlobo(models.Model):
     # la pone el servidor (ver frecuenciafetal/responsables.py).
     registrado_por = models.CharField(max_length=255, blank=True, default='')
     registrado_en = models.DateTimeField(null=True, blank=True)
+    # 2026-10-19: usuario (login) que lo registró: solo esa persona puede
+    # corregirlo o eliminarlo (ver frecuenciafetal/propiedad.py).
+    registrado_usuario = models.CharField(max_length=150, blank=True, default='')
 
     class Meta:
         verbose_name = "Control de Globo de Seguridad"
@@ -340,6 +369,9 @@ class ControlSutura(models.Model):
     # la pone el servidor (ver frecuenciafetal/responsables.py).
     registrado_por = models.CharField(max_length=255, blank=True, default='')
     registrado_en = models.DateTimeField(null=True, blank=True)
+    # 2026-10-19: usuario (login) que lo registró: solo esa persona puede
+    # corregirlo o eliminarlo (ver frecuenciafetal/propiedad.py).
+    registrado_usuario = models.CharField(max_length=150, blank=True, default='')
 
     class Meta:
         verbose_name = "Control de Sutura y Heridas"
@@ -514,6 +546,10 @@ class ControlRecienNacido(models.Model):
         verbose_name="Huella plantar (PDF)",
     )
     huella_subida_por = models.CharField(max_length=255, blank=True, default='')
+    # 2026-10-19: usuario que cargó la huella: solo esa persona puede reemplazarla o quitarla.
+    huella_subida_usuario = models.CharField(max_length=150, blank=True, default='')
+    # 2026-10-19: dueño de cada dato del recién nacido: {campo: {"usuario", "nombre"}}.
+    duenos_campos = models.JSONField(default=dict, blank=True)
     huella_subida_en = models.DateTimeField(null=True, blank=True)
 
     # 2026-09-28: firma AUTOMÁTICA -- profesional en sesión que guardó este
@@ -521,6 +557,9 @@ class ControlRecienNacido(models.Model):
     # la pone el servidor (ver frecuenciafetal/responsables.py).
     registrado_por = models.CharField(max_length=255, blank=True, default='')
     registrado_en = models.DateTimeField(null=True, blank=True)
+    # 2026-10-19: usuario (login) que lo registró: solo esa persona puede
+    # corregirlo o eliminarlo (ver frecuenciafetal/propiedad.py).
+    registrado_usuario = models.CharField(max_length=150, blank=True, default='')
 
     class Meta:
         verbose_name = "Control del Recién Nacido"
@@ -543,6 +582,9 @@ class GlucometriaRecienNacido(models.Model):
         max_digits=10, decimal_places=2,
         verbose_name="Resultado (mg/dL)"
     )
+    # 2026-10-19: quién la registró (solo esa persona puede quitarla).
+    registrado_por = models.CharField(max_length=255, blank=True, default='')
+    registrado_usuario = models.CharField(max_length=150, blank=True, default='')
 
     class Meta:
         verbose_name = "Glucometría"
@@ -606,6 +648,9 @@ class ControlPostpartoInmediato(models.Model):
     # la pone el servidor (ver frecuenciafetal/responsables.py).
     registrado_por = models.CharField(max_length=255, blank=True, default='')
     registrado_en = models.DateTimeField(null=True, blank=True)
+    # 2026-10-19: usuario (login) que lo registró: solo esa persona puede
+    # corregirlo o eliminarlo (ver frecuenciafetal/propiedad.py).
+    registrado_usuario = models.CharField(max_length=150, blank=True, default='')
 
     class Meta:
         verbose_name = "Control Postparto Inmediato"

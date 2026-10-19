@@ -27,7 +27,9 @@ logger = logging.getLogger(__name__)
 def firma_sesion(request, con_responsable=False):
     """Campos de firma automática para guardar un control."""
     nombre = nombre_profesional_sesion(request)[:255] if request is not None else ''
-    datos = {'registrado_por': nombre, 'registrado_en': timezone.now()}
+    # 2026-10-19: + el usuario del login: solo esa persona puede corregirlo (propiedad.py).
+    usuario = (getattr(getattr(request, 'user', None), 'username', '') or '')[:150] if request is not None else ''
+    datos = {'registrado_por': nombre, 'registrado_en': timezone.now(), 'registrado_usuario': usuario}
     if con_responsable:
         datos['responsable'] = nombre[:200]
     return datos
@@ -200,6 +202,7 @@ VENTANA_MISMO_CAMBIO = timedelta(minutes=10)
 CAMPOS_PARTO = [
     ('tipo_parto', 'Tipo de parto'),
     ('hora_parto', 'Hora de parto'),
+    ('hora_parto_b', 'Hora de parto (Feto B)'),
     ('episiotomia', 'Episiotomía'),
     ('tipo_alumbramiento', 'Alumbramiento'),
     ('desgarro', 'Desgarro'),

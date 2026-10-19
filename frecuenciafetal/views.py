@@ -61,6 +61,8 @@ class FormularioRegistroView(TemplateView):
         # autenticado si no hay dgh_info -- ver nombre_profesional_sesion),
         # para autocompletar el responsable de la firma.
         context["profesional_nombre_sesion"] = nombre_profesional_sesion(self.request)
+        # 2026-10-19: usuario del login: lo de otra persona se muestra bloqueado (propiedad.py).
+        context["usuario_sesion"] = getattr(self.request.user, 'username', '') or ''
 
         # Línea de Tiempo Clínica MEOWS: se recalcula en cada carga de esta página, así que
         # cualquier medición nueva registrada en el módulo MEOWS aparece aquí automáticamente.
@@ -110,9 +112,8 @@ def _faltantes_recien_nacido(registro):
         ]
         if rn is None or not rn.huella_pdf:
             del_feto.append('huella plantar (PDF)')
-        # Gemelos: cada uno con su hora de nacimiento (nacen con minutos de diferencia).
-        if numero_fetos > 1 and (rn is None or rn.hora_nacimiento is None):
-            del_feto.insert(0, 'hora de nacimiento')
+        # 2026-10-19: la hora de nacimiento de cada gemelo ya no se pide aquí:
+        # es la hora de parto de su feto ("Características del parto").
         if numero_fetos > 1:
             del_feto = [f'{etiqueta} (Feto {LETRAS_FETO.get(feto, feto)})' for etiqueta in del_feto]
         faltan += del_feto
@@ -174,7 +175,11 @@ def _intentar_cerrar_registro(instance, request):
     if not (instance.nombre_acompanante or '').strip():
         pendientes.append('en "Datos de la paciente" falta el nombre del acompañante')
     if not instance.hora_parto:
-        pendientes.append('en "Características del parto" falta la hora de parto')
+        pendientes.append('en "Características del parto" falta la hora de parto'
+                          + (' del Feto A' if (instance.numero_fetos or 1) > 1 else ''))
+    # 2026-10-19: gemelar -- cada feto con su hora de parto (= su hora de nacimiento).
+    if (instance.numero_fetos or 1) > 1 and not instance.hora_parto_b:
+        pendientes.append('en "Características del parto" falta la hora de parto del Feto B')
     faltan_rn = _faltantes_recien_nacido(instance)
     if faltan_rn:
         pendientes.append(f'en "Control del recién nacido" falta {", ".join(faltan_rn)}')
@@ -345,7 +350,23 @@ class ParticipacionEnEdicionMixin:
         minuto = getattr(instance, 'minuto_control', None)
         return f'control {minuto} min' if minuto is not None else 'control'
 
+    # 2026-10-19: lo que registró una persona solo ella lo corrige o elimina
+    # (propiedad.py). Un reenvío con los mismos valores no es una corrección.
+    def exigir_autoria_al_corregir(self, serializer):
+        from .propiedad import exigir_autoria, iguales, usuario_y_nombre
+        instancia = serializer.instance
+        if any(not iguales(getattr(instancia, c, None), v) for c, v in serializer.validated_data.items()):
+            exigir_autoria(instancia, usuario_y_nombre(self.request)[0], que=self.que_es(instancia))
+
+    def exigir_autoria_al_eliminar(self, instance):
+        from .propiedad import exigir_autoria, usuario_y_nombre
+        exigir_autoria(instance, usuario_y_nombre(self.request)[0], que=self.que_es(instance))
+
+    def que_es(self, instance):
+        return 'Este control'
+
     def perform_update(self, serializer):
+        self.exigir_autoria_al_corregir(serializer)
         antes = valores_modelo(serializer.instance)
         super().perform_update(serializer)
         if valores_modelo(serializer.instance) != antes:
@@ -355,6 +376,7 @@ class ParticipacionEnEdicionMixin:
                                   [('correccion', self.bitacora_etiqueta(serializer.instance))])
 
     def perform_destroy(self, instance):
+        self.exigir_autoria_al_eliminar(instance)
         registro, etiqueta = instance.registro, self.bitacora_etiqueta(instance)
         super().perform_destroy(instance)
         registrar_participacion(registro, self.request)
@@ -391,11 +413,30 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
-        # Guardar pasando el objeto atencion explícitamente si existe
-        if atencion_obj:
-            instance = serializer.save(atencion=atencion_obj)
-        else:
-            instance = serializer.save()
+        # 2026-10-19: un solo registro por paciente e ingreso (ver
+        # unicidad.py): si ya existe, lo que trae esta pantalla se agrega a
+        # ese registro (sin pisar nada) en vez de crear un duplicado.
+        from obstetriciaunificador.repositorio import RepositorioError
+        from .unicidad import bloqueo_creacion, registro_principal, registros_del_mismo_ingreso
+        identificacion = (serializer.validated_data.get("identificacion") or "").strip()
+        ingreso_param = (request.data.get("ingreso") or request.query_params.get("ingreso") or "").strip()
+        try:
+            with bloqueo_creacion(identificacion):
+                existente = registro_principal(
+                    registros_del_mismo_ingreso(identificacion, atencion_obj, ingreso_param)
+                ) if identificacion else None
+                if existente is not None:
+                    return self._responder_registro_existente(existente, serializer.validated_data, request)
+                # Guardar pasando el objeto atencion explícitamente si existe
+                if atencion_obj:
+                    instance = serializer.save(atencion=atencion_obj)
+                else:
+                    instance = serializer.save()
+        except RepositorioError:
+            return Response(
+                {'detail': 'Otro guardado de esta paciente está en curso; se reintentará en unos segundos.'},
+                status=status.HTTP_409_CONFLICT,
+            )
 
         response_data = self.get_serializer(instance).data
 
@@ -438,6 +479,28 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
         response_data['responsables_secciones'] = responsables_por_seccion(instance)
 
         return Response(response_data)
+
+    def _responder_registro_existente(self, registro, datos, request):
+        """2026-10-19: la pantalla iba a crear un registro, pero la paciente
+        ya tiene uno en este ingreso: se le agrega lo que trae y se responde
+        con ese registro (registro_existente=True: la pantalla lo recarga)."""
+        from .responsables import firma_sesion
+        from .unicidad import fusionar_en_registro
+        antes = self._foto_registro(registro)
+        avisos = fusionar_en_registro(
+            registro, datos, firma_sesion(request), firma_sesion(request, con_responsable=True),
+        )
+        registro = RegistroParto.objects.get(pk=registro.pk)
+        registrar_participacion(registro, request)
+        bitacora_registro_y_rn(registro, request, antes, self._foto_registro(registro))
+        logger.warning('Control posparto: se evitó un registro duplicado de %s (se usó %s)',
+                       registro.identificacion, registro.pk)
+        data = self.get_serializer(registro).data
+        data['registro_existente'] = True
+        data['avisos'] = avisos
+        data['responsables'] = responsables_para_api(registro)
+        data['responsables_secciones'] = responsables_por_seccion(registro)
+        return Response(data)
 
     def update(self, request, *args, **kwargs):
         # 2026-10-06: HALLAZGO -- el formulario viejo guardaba con PUT la
@@ -549,13 +612,21 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # 2026-10-19: solo quien cargó la huella puede reemplazarla o quitarla.
+        from .propiedad import exigir_autoria, usuario_y_nombre
+        usuario = usuario_y_nombre(request)[0]
+        if rn is not None and rn.huella_pdf:
+            exigir_autoria(rn, usuario, que='La huella', campo_usuario='huella_subida_usuario',
+                           campo_nombre='huella_subida_por')
+
         if request.method == 'DELETE':
             if rn is not None and rn.huella_pdf:
                 rn.huella_pdf.delete(save=False)
                 rn.huella_pdf = None
                 rn.huella_subida_por = ''
                 rn.huella_subida_en = None
-                rn.save(update_fields=['huella_pdf', 'huella_subida_por', 'huella_subida_en'])
+                rn.huella_subida_usuario = ''
+                rn.save(update_fields=['huella_pdf', 'huella_subida_por', 'huella_subida_en', 'huella_subida_usuario'])
                 registrar_participacion(registro, request)
                 registrar_cambios(registro, request, 'recien_nacido', [('eliminacion', etiqueta_huella)])
             return Response({'tiene_huella': False})
@@ -567,11 +638,13 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
 
         if rn is None:
             rn = ControlRecienNacido.objects.create(registro=registro, feto=feto, **firma_sesion(request))
+            registro.sincronizar_horas_nacimiento()  # 2026-10-19: la hora de su feto
         anterior = rn.huella_pdf.name if rn.huella_pdf else None
         rn.huella_pdf.save('huella.pdf', archivo, save=False)
         rn.huella_subida_por = nombre_profesional_sesion(request)[:255]
         rn.huella_subida_en = timezone.now()
-        rn.save(update_fields=['huella_pdf', 'huella_subida_por', 'huella_subida_en'])
+        rn.huella_subida_usuario = usuario
+        rn.save(update_fields=['huella_pdf', 'huella_subida_por', 'huella_subida_en', 'huella_subida_usuario'])
         if anterior and anterior != rn.huella_pdf.name:
             rn.huella_pdf.storage.delete(anterior)
         registrar_participacion(registro, request)
@@ -581,6 +654,7 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
             'tiene_huella': True,
             'huella_subida_por': rn.huella_subida_por,
             'huella_subida_en': rn.huella_subida_en,
+            'huella_subida_usuario': rn.huella_subida_usuario,
         })
 
     @action(detail=True, methods=['get'], url_path='pdf')
@@ -697,7 +771,11 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
                 resumen, grupos = None, {}
             if resumen and resumen['elegido']:
                 ids = grupos.get(resumen['elegido'], [])
-                registro = self.queryset.filter(id__in=ids).order_by('-created_at').first()
+                # 2026-10-19: con duplicados en el ingreso, el principal (el
+                # cerrado o el que tiene los datos), no el más reciente: antes
+                # se abría un duplicado vacío y parecía que nada se guardó.
+                from .unicidad import registro_principal
+                registro = registro_principal(self.queryset.filter(id__in=ids))
                 if registro is None:
                     return Response({'encontrado': False, 'solo_consulta': resumen['solo_consulta']})
                 data = RegistroPartoSerializer(registro).data
@@ -705,7 +783,8 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
                 data['solo_consulta'] = resumen['solo_consulta']
                 return Response(data)
         if atencion_id.isdigit():
-            registro = self.queryset.filter(atencion_id=atencion_id).order_by('-created_at').first()
+            from .unicidad import registro_principal
+            registro = registro_principal(self.queryset.filter(atencion_id=atencion_id))
         if registro is None and documento:
             registro = self.queryset.filter(identificacion=documento).order_by('-created_at').first()
         if registro is None:
@@ -824,6 +903,42 @@ class ControlRecienNacidoViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerr
                 pass
         serializer.save(registro=registro, **firma_sesion(self.request))
         registrar_participacion(registro, self.request)
+        # 2026-10-19: quien lo crea queda como dueño de lo que llenó.
+        from .propiedad import asignar_duenos, campos_rn_con_dueno, usuario_y_nombre
+        usuario, nombre = usuario_y_nombre(self.request)
+        asignar_duenos(serializer.instance, campos_rn_con_dueno(), {}, campos_rn_con_dueno(), usuario, nombre)
+
+    # 2026-10-19: el recién nacido tiene dueño POR CAMPO (no la fila entera).
+    def exigir_autoria_al_corregir(self, serializer):
+        from .propiedad import DatoAjenoError, campos_rn_con_dueno, datos_ajenos, usuario_y_nombre
+        from .propiedad import glucometrias_ajenas
+        usuario = usuario_y_nombre(self.request)[0]
+        datos = serializer.validated_data
+        bloqueados = datos_ajenos(serializer.instance, datos, campos_rn_con_dueno(), usuario)
+        bloqueados += glucometrias_ajenas(serializer.instance, datos.get('glucometrias_quitar'),
+                                          datos.get('glucometrias'), usuario)
+        if bloqueados:
+            raise DatoAjenoError(bloqueados)
+
+    def exigir_autoria_al_eliminar(self, instance):
+        from rest_framework.exceptions import PermissionDenied
+        from .propiedad import es_ajeno, exigir_autoria, usuario_y_nombre
+        usuario = usuario_y_nombre(self.request)[0]
+        exigir_autoria(instance, usuario, que='La huella', campo_usuario='huella_subida_usuario',
+                       campo_nombre='huella_subida_por')
+        ajenos = {d.get('nombre') or d.get('usuario') for d in (instance.duenos_campos or {}).values()
+                  if es_ajeno(d.get('usuario'), usuario)}
+        if ajenos:
+            raise PermissionDenied(f'Este recién nacido tiene datos registrados por {", ".join(sorted(ajenos))}: '
+                                   'solo esa persona puede borrarlos.')
+
+    def perform_update(self, serializer):
+        from .propiedad import asignar_duenos, campos_rn_con_dueno, usuario_y_nombre, valores
+        campos = list(serializer.validated_data)
+        antes = valores(serializer.instance, campos)
+        super().perform_update(serializer)
+        usuario, nombre = usuario_y_nombre(self.request)
+        asignar_duenos(serializer.instance, campos, antes, campos_rn_con_dueno(), usuario, nombre)
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
@@ -934,6 +1049,7 @@ class ControlSangradoViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoM
         serializer.instance.refresh_from_db()
 
     def perform_update(self, serializer):
+        self.exigir_autoria_al_corregir(serializer)  # 2026-10-19
         antes = valores_modelo(serializer.instance)
         serializer.save()
         if valores_modelo(serializer.instance) != antes:
@@ -944,6 +1060,7 @@ class ControlSangradoViewSet(ParticipacionEnEdicionMixin, BloqueoIngresoCerradoM
         serializer.instance.refresh_from_db()
 
     def perform_destroy(self, instance):
+        self.exigir_autoria_al_eliminar(instance)  # 2026-10-19
         registro, etiqueta = instance.registro, self.bitacora_etiqueta(instance)
         instance.delete()
         registrar_participacion(registro, self.request)
