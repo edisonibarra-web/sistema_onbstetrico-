@@ -186,6 +186,8 @@
         .hist-doc .titulo { font-weight: 800; color: var(--h-tinta); }
         .hist-doc .archivo { color: var(--h-suave); font-size: 0.78rem; word-break: break-all; }
         .hist-doc.reemplazado { opacity: 0.6; }
+        .hist-doc.otro-aplicativo .ico { background: linear-gradient(145deg, #94a3b8, #64748b); }
+        .hist-subtitulo { margin: 14px 0 2px; padding-top: 10px; border-top: 1px dashed var(--h-borde); font-size: 0.8rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--h-suave); }
         .etq { border-radius: 6px; padding: 2px 8px; font-size: 0.72rem; font-weight: 800; margin-left: 6px; }
         .etq.vigente { background: #dcfce7; color: #166534; }
         .etq.reemplazado { background: #eef0f6; color: var(--h-suave); }
@@ -581,6 +583,11 @@
                 } else {
                     data.documentos.forEach(d => contenedor.appendChild(filaDocumento(ingreso, d)));
                 }
+                // Documentos de otros aplicativos aprobados (p. ej. CLAP): solo si hay.
+                if ((data.otros || []).length) {
+                    contenedor.appendChild(el('div', 'hist-subtitulo', 'Otros documentos del ingreso'));
+                    data.otros.forEach(d => contenedor.appendChild(filaDocumento(ingreso, d, true)));
+                }
                 lucide.createIcons();
             } catch (e) {
                 mostrarMensaje(contenedor, 'No se pudo conectar con el servidor. Intente de nuevo.', 'error');
@@ -602,8 +609,8 @@
             return caja;
         }
 
-        function filaDocumento(ingreso, d) {
-            const fila = el('div', 'hist-doc' + (d.vigente ? '' : ' reemplazado'));
+        function filaDocumento(ingreso, d, deOtroAplicativo) {
+            const fila = el('div', 'hist-doc' + (d.vigente === false ? ' reemplazado' : '') + (deOtroAplicativo ? ' otro-aplicativo' : ''));
             const ico = el('span', 'ico'); ico.appendChild(icono('file-text'));
             const info = el('div', 'info');
             const titulo = el('div', 'titulo', d.titulo);

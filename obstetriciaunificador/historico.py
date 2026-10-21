@@ -14,8 +14,9 @@ clínico (NAS) para cada ingreso ya cerrado.
   claves (el inicio de sesión se valida contra Dinámica).
 - Solo ingresos con egreso oficial en Dinámica (AINFECEGRE) y no anulados: los
   ingresos en curso se consultan en los módulos normales.
-- Solo los formatos de esta app (repositorio.FORMATOS), nunca los de otros
-  aplicativos del hospital que comparten la carpeta del ingreso.
+- Los formatos de esta app (repositorio.FORMATOS) y, de los otros aplicativos
+  del hospital que comparten la carpeta del ingreso, solo los aprobados en
+  OTROS_DOCUMENTOS_APROBADOS (2026-10-21: CLAP).
 - Solo lectura: no envía, reemplaza ni borra nada en la NAS.
 """
 import re
@@ -401,14 +402,44 @@ def es_documento_de_la_app(cedula, nombre):
     return _formato_de_archivo(nombre, _limpiar(cedula)) is not None
 
 
+# 2026-10-21: documentos de OTROS aplicativos del hospital que también se
+# muestran (lista aprobada por el administrador). Clave: el prefijo del nombre
+# del archivo antes del primer "_" (p. ej. "clap_..."). Solo PDF.
+OTROS_DOCUMENTOS_APROBADOS = {
+    'clap': 'Historia clínica perinatal (CLAP)',
+}
+
+
+def _tipo_otro_documento(nombre):
+    if not nombre.lower().endswith('.pdf'):
+        return None
+    prefijo = nombre.split('_', 1)[0].lower()
+    return prefijo if prefijo in OTROS_DOCUMENTOS_APROBADOS else None
+
+
+def otros_documentos(archivos):
+    """[{'nombre', 'titulo'}] de los PDF de otros aplicativos aprobados en la carpeta."""
+    return [
+        {'nombre': nombre, 'titulo': OTROS_DOCUMENTOS_APROBADOS[tipo]}
+        for nombre in sorted(archivos)
+        for tipo in [_tipo_otro_documento(nombre)] if tipo
+    ]
+
+
+def es_documento_consultable(cedula, nombre):
+    """Lo que se puede abrir desde la consulta histórica: PDF de esta app o de
+    un aplicativo aprobado (OTROS_DOCUMENTOS_APROBADOS)."""
+    return es_documento_de_la_app(cedula, nombre) or _tipo_otro_documento(nombre) is not None
+
+
 # ---------------------------------------------------------------------------
 # 2026-10-20 (segunda entrega): alertas de documentos que DEBERÍAN estar en
 # la NAS para un ingreso egresado y no están, con el motivo -- p. ej. un
 # Control Posparto que nunca se cerró porque faltó el acompañante.
 # ---------------------------------------------------------------------------
 def revisar_ingreso(cedula, numero):
-    """{'documentos': [...], 'alertas': [...]} de un ingreso egresado con una
-    sola lectura de la carpeta en la NAS. Lanza excepción si la NAS no responde."""
+    """{'documentos': [...], 'otros': [...], 'alertas': [...]} de un ingreso egresado
+    con una sola lectura de la carpeta en la NAS. Lanza excepción si la NAS no responde."""
     archivos = listar_documentos_ingreso(cedula, numero)
     documentos = documentos_de_la_app(cedula, numero, archivos)
     try:
@@ -420,7 +451,7 @@ def revisar_ingreso(cedula, numero):
         logging.getLogger(__name__).exception('Consulta histórica: no se pudieron calcular las alertas de %s/%s', cedula, numero)
         alertas = [{'formato': '', 'titulo': 'Revisión incompleta',
                     'mensaje': 'No se pudo revisar si faltan documentos de este ingreso.', 'detalle': []}]
-    return {'documentos': documentos, 'alertas': alertas}
+    return {'documentos': documentos, 'otros': otros_documentos(archivos), 'alertas': alertas}
 
 
 def _alerta(formato, mensaje, detalle=None):

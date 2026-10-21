@@ -515,3 +515,28 @@ class BarraUnicaTests(TestCase):
         self.assertIn('todavía no tiene egreso', self._buscar(EN_CURSO)['mensaje'])
         self.assertIn('No se encontró ninguna paciente ni ingreso', self._buscar('1234567')['mensaje'])
         self.assertIn('Escriba la cédula o el número de ingreso', self._buscar('')['mensaje'])
+
+
+class OtrosDocumentosTests(TestCase):
+    """2026-10-21: de los otros aplicativos solo se muestra lo aprobado (CLAP)."""
+    CLAP = f'clap_clap_{CEDULA}_1.pdf'
+
+    def setUp(self):
+        for p in DINAMICA + [mock.patch('obstetriciaunificador.historico.listar_documentos_ingreso',
+                                        return_value=ARCHIVOS_NAS + [self.CLAP])]:
+            p.start()
+            self.addCleanup(p.stop)
+        self.client.force_login(User.objects.create_superuser('admin', password='x'))
+
+    def test_clap_aparece_en_otros_documentos_y_lo_demas_no(self):
+        data = self.client.get('/atencion/api/historico/documentos/', {'doc': CEDULA, 'ingreso': EGRESADO}).json()
+        self.assertEqual(data['otros'], [{'nombre': self.CLAP, 'titulo': 'Historia clínica perinatal (CLAP)'}])
+        self.assertNotIn(self.CLAP, [d['nombre'] for d in data['documentos']])
+
+    @mock.patch('obstetriciaunificador.repositorio.leer_documento_ingreso', return_value=b'%PDF clap')
+    def test_se_puede_abrir_el_clap(self, _):
+        r = self.client.get('/atencion/api/historico/documento/', {'doc': CEDULA, 'ingreso': EGRESADO, 'archivo': self.CLAP})
+        self.assertEqual(r.status_code, 200)
+        r = self.client.get('/atencion/api/historico/documento/',
+                            {'doc': CEDULA, 'ingreso': EGRESADO, 'archivo': f'otros_escala_downton_{CEDULA}_535.pdf'})
+        self.assertEqual(r.status_code, 404)  # Downton no está aprobado

@@ -1330,14 +1330,14 @@ def api_historico_documentos(request):
 @_solo_consulta_historica
 def api_historico_documento(request):
     """GET /atencion/api/historico/documento/?doc=...&ingreso=...&archivo=... --
-    abre un PDF de esta app de un ingreso egresado (queda en AccesoDocumentoRepositorio)."""
-    from .historico import ConsultaError, es_documento_de_la_app, ingreso_consultable
+    abre un PDF de esta app (o de un aplicativo aprobado, p. ej. CLAP) de un ingreso egresado (queda en AccesoDocumentoRepositorio)."""
+    from .historico import ConsultaError, es_documento_consultable, ingreso_consultable
     from .ingresos import limpiar_numero_ingreso
 
     doc = (request.GET.get("doc") or "").strip()
     ingreso = limpiar_numero_ingreso(request.GET.get("ingreso"))
     archivo = (request.GET.get("archivo") or "").strip()
-    if not doc or not ingreso.isdigit() or not es_documento_de_la_app(doc, archivo):
+    if not doc or not ingreso.isdigit() or not es_documento_consultable(doc, archivo):
         return HttpResponse("Documento no encontrado.", status=404, content_type="text/plain; charset=utf-8")
     try:
         consultable = ingreso_consultable(doc, ingreso)
