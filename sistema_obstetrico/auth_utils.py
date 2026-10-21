@@ -55,6 +55,21 @@ def nombre_profesional_sesion(request):
         return ''
 
 
+def ip_cliente(request):
+    """
+    2026-10-20: IP del equipo del usuario para las auditorías. En producción
+    waitress escucha solo en 127.0.0.1 detrás de IIS (ARR), así que
+    REMOTE_ADDR siempre es la del propio servidor; la del usuario llega en
+    X-Forwarded-For. Esa cabecera solo se cree cuando la conexión viene del
+    propio equipo (IIS): desde cualquier otro origen se podría falsear.
+    """
+    remota = request.META.get('REMOTE_ADDR') or ''
+    reenviada = request.META.get('HTTP_X_FORWARDED_FOR') or ''
+    if reenviada and remota in ('127.0.0.1', '::1'):
+        return reenviada.split(',')[0].strip()[:64]
+    return remota[:64]
+
+
 def profesional_actual_context(request):
     """
     Context processor: expone 'profesional_nombre_sesion' en TODOS los
@@ -64,4 +79,9 @@ def profesional_actual_context(request):
     frecuenciafetal) no se ven afectadas: ese valor explícito sigue ganando
     igual, este solo cubre las páginas que no lo pasaban.
     """
-    return {'profesional_nombre_sesion': nombre_profesional_sesion(request)}
+    from obstetriciaunificador.historico import es_solo_historico
+    return {
+        'profesional_nombre_sesion': nombre_profesional_sesion(request),
+        # 2026-10-20: oculta menú y campanas clínicas al personal de "solo consulta histórica".
+        'solo_historico': es_solo_historico(getattr(request, 'user', None)),
+    }

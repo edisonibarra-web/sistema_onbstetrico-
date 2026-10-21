@@ -382,7 +382,8 @@
     {# 2026-09-28: campana "NAS" (confirma cada registro guardado en el repositorio #}
     {# clínico) -- sola en el extremo IZQUIERDO del encabezado, a pedido. #}
     <div class="header-formatos-izquierda">
-        {% include 'obstetricia/_campana_nas.html' %}
+        {# 2026-10-20: el personal de "solo consulta histórica" no recibe avisos clínicos. #}
+        {% if not solo_historico %}{% include 'obstetricia/_campana_nas.html' %}{% endif %}
     </div>
     <div class="header-formatos-institucional">
         <img src="{% static 'img/logo_hospital.png' %}" alt="Logo Hospital">
@@ -413,6 +414,7 @@
              (/meows/api/alertas-pendientes-triaje/), JS propio
              (toggleMeowsPanelAlertasTriaje en sidebar.html). Nunca mezcla
              sus alertas con las de Dinámica. -->
+        {% if not solo_historico %}
         <div class="meows-campana-grupo">
             <button type="button" class="meows-campana-btn" id="meows-campana-triaje-btn" title="Alertas de Triaje" onclick="toggleMeowsPanelAlertasTriaje()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
@@ -427,13 +429,14 @@
             </button>
             <span class="meows-campana-etiqueta meows-campana-etiqueta-dinamica">Dinámica</span>
         </div>
+        {% endif %}
         <form method="post" action="/logout/" class="header-logout-form" onsubmit="return confirm('¿Seguro que desea cerrar la sesión?');">
             {% csrf_token %}
             <button type="submit" class="header-logout-btn" title="Cerrar Sesión">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></svg>
             </button>
         </form>
-        {% if not ocultar_btn_regresar %}
+        {% if not ocultar_btn_regresar and not solo_historico %}
         <a href="/atencion/sala-de-partos/{% if documento %}?num_identificacion={{ documento|urlencode }}{% elif atencion and atencion.paciente %}?num_identificacion={{ atencion.paciente|urlencode }}{% endif %}" class="btn-back-modules" title="Volver a los Módulos">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-grid"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
             REGRESA A LOS MÓDULOS

@@ -204,3 +204,16 @@ class DatosAnterioresTests(TestCase):
         self.assertEqual(sin.registrado_usuario, '')                    # no se sabe: queda libre
         self.assertEqual(r.duenos_campos['tipo_parto']['usuario'], 'ana')  # quien lo registró primero
         self.assertNotIn('tipo_alumbramiento', r.duenos_campos)         # sin bitácora: libre
+
+
+@SIN_DINAMICA
+class PacienteEnCirugiaTests(TestCase):
+    """2026-10-21: "Paciente en cirugía" en Globo de seguridad y Sutura y heridas."""
+    setUp = SoloLaAutoraTests.setUp
+
+    def test_globo_y_sutura_aceptan_paciente_en_cirugia(self, _):
+        from frecuenciafetal.models import ControlSutura
+        for tipo, modelo in (('globo', ControlGlobo), ('sutura', ControlSutura)):
+            r = self.a.post(f'{self.url}{tipo}/', {'minuto_control': 15, 'hora': '10:15', 'estado': 'EN_CIRUGIA'}, format='json')
+            self.assertEqual(r.status_code, 201, r.data)
+            self.assertEqual(modelo.objects.get().get_estado_display(), 'Paciente en cirugía')

@@ -6184,7 +6184,8 @@
                 .vg-v2 .category-card:has(.semaforo-select[data-val="ALERTA"]) .vg-pill-t[data-e="alerta"],
                 .vg-v2 .category-card:has(.semaforo-select[data-val="HEMATOMA"]) .vg-pill-t[data-e="alerta"],
                 .vg-v2 .category-card:has(.semaforo-select[data-val="INFECCION"]) .vg-pill-t[data-e="alerta"],
-                .vg-v2 .category-card:has(.semaforo-select[data-val="NO_APLICA"]) .vg-pill-t[data-e="na"] { display: inline; }
+                .vg-v2 .category-card:has(.semaforo-select[data-val="NO_APLICA"]) .vg-pill-t[data-e="na"],
+                .vg-v2 .category-card:has(.semaforo-select[data-val="EN_CIRUGIA"]) .vg-pill-t[data-e="cirugia"] { display: inline; }
                 .vg-v2 .category-card:has(.semaforo-select[data-val="NORMAL"]) .vg-pill { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 6px 16px rgba(16, 185, 129, .35); }
                 .vg-v2 .category-card:has(.semaforo-select[data-val="ALERTA"]) .vg-pill,
                 .vg-v2 .category-card:has(.semaforo-select[data-val="HEMATOMA"]) .vg-pill,
@@ -6554,6 +6555,7 @@
                             <span class="vg-pill-t" data-e="normal">Estado normal</span>
                             <span class="vg-pill-t" data-e="alerta">Alerta activa</span>
                             <span class="vg-pill-t" data-e="na">No aplica</span>
+                            <span class="vg-pill-t" data-e="cirugia">En cirugía</span>
                         </span>
                     </h3>
                     <div class="buttons-container">
@@ -6571,6 +6573,7 @@
                                 <option value="NORMAL">Normal: útero firme y contraído</option>
                                 <option value="ALERTA">Alerta: útero blando, relajado, atonía</option>
                                 <option value="NO_APLICA">No aplica</option>
+                                <option value="EN_CIRUGIA">Paciente en cirugía</option>
                             </select>
                             <button type="button" class="vg-ver-detalle" onclick="abrirModalSemaforo('globo')">Ver detalle <i data-lucide="chevron-right"></i></button>
                         </div>
@@ -6595,6 +6598,7 @@
                             <span class="vg-pill-t" data-e="normal">Estado normal</span>
                             <span class="vg-pill-t" data-e="alerta">Alerta activa</span>
                             <span class="vg-pill-t" data-e="na">No aplica</span>
+                            <span class="vg-pill-t" data-e="cirugia">En cirugía</span>
                         </span>
                     </h3>
                     <div class="buttons-container">
@@ -6613,6 +6617,7 @@
                                 <option value="HEMATOMA">Alerta: hematoma (masa violácea, tensa, dolor intenso)</option>
                                 <option value="INFECCION">Alerta: (eritema, calor local, edema, secreción purulenta)</option>
                                 <option value="NO_APLICA">No aplica</option>
+                                <option value="EN_CIRUGIA">Paciente en cirugía</option>
                             </select>
                             <button type="button" class="vg-ver-detalle" onclick="abrirModalSemaforo('sutura')">Ver detalle <i data-lucide="chevron-right"></i></button>
                         </div>
@@ -6649,6 +6654,7 @@
                     <option value="NORMAL">Normal: útero firme y contraído</option>
                     <option value="ALERTA">Alerta: útero blando, relajado, atonía</option>
                     <option value="NO_APLICA">No aplica</option>
+                    <option value="EN_CIRUGIA">Paciente en cirugía</option>
                   </select>
                     <i data-lucide="chevron-down" class="hs-select-chev"></i>
                   </div>
@@ -6695,6 +6701,7 @@
                     <option value="HEMATOMA">Alerta: hematoma (masa violácea, tensa, dolor intenso)</option>
                     <option value="INFECCION">Alerta: (eritema, calor local, edema, secreción purulenta)</option>
                     <option value="NO_APLICA">No aplica</option>
+                    <option value="EN_CIRUGIA">Paciente en cirugía</option>
                   </select>
                     <i data-lucide="chevron-down" class="hs-select-chev"></i>
                   </div>
@@ -10045,7 +10052,7 @@
                   </div>
                 `;
               }
-              const clase = r.estado === 'NORMAL' ? 'normal' : r.estado === 'NO_APLICA' ? 'na' : 'alerta';
+              const clase = r.estado === 'NORMAL' ? 'normal' : (r.estado === 'NO_APLICA' || r.estado === 'EN_CIRUGIA') ? 'na' : 'alerta';
               const icono = clase === 'normal' ? '<path d="M5 12.5l4.2 4L19 7"/>' : clase === 'na' ? '<path d="M6 12h12"/>' : '<path d="M12 6v7M12 17.5v.01"/>';
               return `
                 <div class="sangrado-registro-row semaforo-registro-row hs-fila hs-fila--${clase}" data-tipo="${tipo}" data-idx="${idx}">

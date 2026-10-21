@@ -541,8 +541,9 @@
                         <a href="#sec-pdf"><span class="dot" style="background:var(--c-sala)"></span>7. PDF unificado</a>
                         <a href="#sec-repositorio"><span class="dot" style="background:#0f766e"></span>8. Repositorio clínico (NAS)</a>
                         <a href="#sec-ingresos"><span class="dot" style="background:#475569"></span>9. Consultar registros por ingreso</a>
-                        <a href="#sec-faq"><span class="dot" style="background:var(--c-manual)"></span>10. Preguntas frecuentes</a>
-                        <a href="#sec-seguridad"><span class="dot" style="background:#0f172a"></span>11. Seguridad, permisos y roles</a>
+                        <a href="#sec-historico"><span class="dot" style="background:#6366f1"></span>10. Consulta histórica de egresadas</a>
+                        <a href="#sec-faq"><span class="dot" style="background:var(--c-manual)"></span>11. Preguntas frecuentes</a>
+                        <a href="#sec-seguridad"><span class="dot" style="background:#0f172a"></span>12. Seguridad, permisos y roles</a>
                     </div>
                 </div>
 
@@ -2034,11 +2035,83 @@
                     </p>
                 </section>
 
-                <!-- 9. FAQ -->
+                <!-- 10. Consulta histórica (2026-10-20, ver obstetriciaunificador/historico.py) -->
+                <section class="section-card c-repo" id="sec-historico">
+                    <div class="section-head">
+                        <div class="section-icon"><i data-lucide="archive"></i></div>
+                        <h2>10. Consulta histórica de pacientes egresadas <span class="badge-nuevo">Nuevo</span></h2>
+                    </div>
+                    <p class="section-sub">
+                        Permite consultar <b>en cualquier momento</b> los documentos que este sistema generó para una
+                        paciente que <b>ya tiene egreso</b>: triaje, MEOWS, trabajo de parto y control posparto. Solo
+                        muestra los documentos de esta app, no los de otros aplicativos del hospital, y es <b>solo de
+                        lectura</b>: no cambia nada en la NAS.
+                    </p>
+
+                    <h3 class="step-title">Quién puede usarla</h3>
+                    <ul class="plain">
+                        <li>Solo el <b>administrador</b> y las personas a las que él les dé acceso. A los demás no les
+                            aparece en el menú, y si intentan entrar por la dirección el sistema lo rechaza.</li>
+                        <li>El administrador asigna a cada persona uno de cuatro tipos de acceso:
+                            <ul class="plain">
+                                <li><b>Módulos clínicos + Histórico egresadas</b>: por ejemplo enfermería; conserva
+                                    todo lo de siempre y además ve esta consulta.</li>
+                                <li><b>Solo Histórico egresadas</b>: por ejemplo archivo; al iniciar sesión entra directo
+                                    a esta consulta y no puede abrir ningún módulo clínico ni ve alertas de pacientes.</li>
+                                <li><b>Solo módulos clínicos</b>: lo normal de cualquier usuario, sin esta consulta.</li>
+                                <li><b>Sin acceso a la aplicación</b>: no puede iniciar sesión; si tenía la sesión
+                                    abierta, se le cierra.</li>
+                            </ul>
+                        </li>
+                        <li>Si necesita acceso, solicítelo al administrador del sistema.</li>
+                    </ul>
+
+                    <h3 class="step-title">Buscar una paciente</h3>
+                    <ol class="steps">
+                        <li>En el menú lateral, entre a <b>Histórico egresadas</b>.</li>
+                        <li>Escriba en la barra la <b>cédula</b> o el <b>número de ingreso</b>: el sistema reconoce
+                            cuál es. Si el número coincide con los dos (hay cédulas antiguas con los mismos dígitos
+                            que un número de ingreso), le muestra ambas opciones para que elija; nunca escoge por usted.</li>
+                        <li>Pulse <code class="btnname">Buscar</code>. Aparecen el nombre de la paciente y sus
+                            <b>ingresos con egreso</b>, con fecha de ingreso, fecha de egreso y tipo. Los ingresos en curso
+                            se consultan en los módulos normales; los anulados no aparecen.</li>
+                        <li>Clic en un ingreso para ver sus documentos y <code class="btnname">Abrir</code> para ver el PDF.
+                            Si un formato tiene varias versiones (_1, _2…), se marca la <b>vigente</b> y las <b>reemplazadas</b>.</li>
+                    </ol>
+
+                    <h3 class="step-title">Avisos de documentos que faltan</h3>
+                    <p class="txt">
+                        Si un ingreso tiene registros en la app pero su documento <b>no está en la NAS</b>, aparece un
+                        aviso naranja <b>"Falta: …"</b> que explica el motivo:
+                    </p>
+                    <table class="info-table">
+                        <thead><tr><th>Aviso</th><th>Qué significa y qué hacer</th></tr></thead>
+                        <tbody>
+                            <tr><td><b>Control posparto: el registro nunca se cerró</b></td>
+                                <td>Nadie completó <b>"Guardar Registro Completo"</b>. El aviso lista lo que faltaba (por
+                                    ejemplo, el nombre del acompañante o la huella plantar). Como el ingreso ya egresó, la
+                                    corrección la hace el administrador.</td></tr>
+                            <tr><td><b>Control posparto: cerrado pero no está en la NAS</b></td>
+                                <td>El registro se cerró, pero el envío no llegó a la NAS. El administrador lo sube de nuevo.</td></tr>
+                            <tr><td><b>Trabajo de parto: hoja sin documento</b></td>
+                                <td>La hoja tiene controles, pero nadie pulsó <b>"Finalizar"</b> (o el envío falló).</td></tr>
+                            <tr><td><b>Triaje / MEOWS: hay tomas pero no está el documento</b></td>
+                                <td>Estos se envían solos. Si el último intento falló, el aviso muestra el error.</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3 class="step-title">Registro de consultas</h3>
+                    <p class="txt" style="margin:0;">
+                        Por tratarse de historias clínicas, <b>cada búsqueda</b> y <b>cada documento abierto</b> quedan
+                        registrados con el usuario, la fecha y hora y el equipo desde el que se hizo.
+                    </p>
+                </section>
+
+                <!-- 11. FAQ -->
                 <section class="section-card c-manual" id="sec-faq">
                     <div class="section-head">
                         <div class="section-icon"><i data-lucide="help-circle"></i></div>
-                        <h2>10. Preguntas frecuentes</h2>
+                        <h2>11. Preguntas frecuentes</h2>
                     </div>
 
                     <h3 class="step-title">¿Cómo sé que un registro quedó guardado en la NAS? <span class="badge-nuevo">Nuevo</span></h3>
@@ -2170,7 +2243,7 @@
                 <section class="section-card c-manual" id="sec-seguridad" style="--section-accent:#0f172a;">
                     <div class="section-head">
                         <div class="section-icon" style="background:linear-gradient(135deg,#475569,#0f172a);"><i data-lucide="shield-check"></i></div>
-                        <h2>11. Seguridad, permisos y roles</h2>
+                        <h2>12. Seguridad, permisos y roles</h2>
                     </div>
                     <p class="section-sub">
                         Qué puede hacer cada tipo de cuenta dentro del sistema, y buenas prácticas para el manejo de
@@ -2187,7 +2260,10 @@
                         <li>Cualquier usuario que inicie sesión correctamente con su cuenta de Dinámica Gerencial
                             tiene acceso completo a los tres módulos clínicos: MEOWS, Control Posparto Inmediato y
                             Trabajo de Parto, para cualquier paciente en Sala de Partos.</li>
-                        <li>No hay pantallas ni acciones que se oculten u oscurezcan según el cargo del usuario.</li>
+                        <li>No hay pantallas ni acciones que se oculten u oscurezcan según el cargo del usuario,
+                            con dos excepciones: la <b>Consulta histórica de pacientes egresadas</b> solo la ven el
+                            administrador y las personas que él autoriza, y el personal autorizado con
+                            <b>"Solo Histórico egresadas"</b> (archivo) no ve los módulos clínicos (ver sección 10).</li>
                         <li>Este sistema no crea usuarios: las cuentas se crean únicamente en Dinámica Gerencial,
                             a través del área de Sistemas.</li>
                         <li>El panel de administración de Django (<code class="btnname">/admin/</code>) es aparte y

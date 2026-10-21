@@ -842,6 +842,81 @@ def consultar_estado_ingreso(numero_ingreso):
     }
 
 
+def consultar_usuario_dinamica(usuario):
+    """
+    2026-10-20: {'usuario', 'nombre', 'activo'} de un usuario de Dinámica
+    (GENUSUARIO), {} si no existe, o None si no hay conexión. Para que el
+    administrador confirme a quién le da el permiso de la consulta histórica.
+    Nunca lee ni devuelve la clave (USUCLAVE).
+    """
+    usuario = (usuario or '').strip()
+    if not usuario or not dinamica_disponible():
+        return None
+    sql = """
+    SELECT TOP 1 USUNOMBRE, USUDESCRI, USUESTADO
+    FROM GENUSUARIO
+    WHERE USUNOMBRE = %s
+    """
+    try:
+        with connections['readonly'].cursor() as cursor:
+            cursor.execute(sql, [usuario])
+            row = cursor.fetchone()
+    except Exception as exc:
+        _marcar_dinamica_caida(exc)
+        return None
+    if not row:
+        return {}
+    return {
+        'usuario': (row[0] or '').strip(),
+        'nombre': ' '.join((row[1] or '').split()),
+        'activo': row[2] == 1,
+    }
+
+
+def consultar_paciente_de_ingreso(numero_ingreso):
+    """
+    2026-10-20: paciente y estado de un ingreso (ADNINGRESO.AINCONSEC), para
+    buscar por número de ingreso en la consulta histórica. Devuelve
+    {'cedula', 'nombre', 'fecha_ingreso', 'fecha_egreso', 'anulado', 'tipo'},
+    {} si el ingreso no existe, o None si no hay conexión con Dinámica.
+    """
+    numero_ingreso = str(numero_ingreso or '').strip()
+    if not numero_ingreso.isdigit() or not dinamica_disponible():
+        return None
+    sql = """
+    SELECT TOP 1
+        PAC.PACNUMDOC,
+        RTRIM(LTRIM(ISNULL(PAC.PACPRINOM,'') + ' ' + ISNULL(PAC.PACSEGNOM,'') + ' '
+                    + ISNULL(PAC.PACPRIAPE,'') + ' ' + ISNULL(PAC.PACSEGAPE,''))),
+        ING.AINFECING,
+        ING.AINFECEGRE,
+        ING.AINESTADO,
+        ING.AINTIPING,
+        ING.AINURGCON
+    FROM ADNINGRESO AS ING
+    INNER JOIN GENPACIEN AS PAC ON ING.GENPACIEN = PAC.OID
+    WHERE ING.AINCONSEC = %s
+    """
+    try:
+        with connections['readonly'].cursor() as cursor:
+            cursor.execute(sql, [numero_ingreso])
+            row = cursor.fetchone()
+    except Exception as exc:
+        _marcar_dinamica_caida(exc)
+        return None
+    if not row:
+        return {}
+    cedula, nombre, fecha_ingreso, fecha_egreso, estado, tipo_ing, urg_con = row
+    return {
+        'cedula': (cedula or '').strip(),
+        'nombre': ' '.join((nombre or '').split()),
+        'fecha_ingreso': fecha_ingreso,
+        'fecha_egreso': fecha_egreso,
+        'anulado': estado == AINESTADO_ANULADO,
+        'tipo': _tipo_ingreso(tipo_ing, urg_con),
+    }
+
+
 def consultar_ingresos_paciente(cedula):
     """
     TODOS los ingresos de la paciente en Dinámica, del más reciente al más

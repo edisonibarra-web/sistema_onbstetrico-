@@ -77,6 +77,8 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         // el sondeo corresponde a esta misma paciente (ver iniciarSondeoAlertasMeows
         // más abajo, y window.MEOWS_AUTO_REFRESH_GRID en historial.html).
         window.MEOWS_PACIENTE_DOC = "{{ documento|default:""|escapejs }}";
+        // 2026-10-20: personal de "solo consulta histórica": sin sondeos de alertas clínicas.
+        window.SOLO_HISTORICO = {% if solo_historico %}true{% else %}false{% endif %};
     </script>
     <style>
         .meows-alerta-toast-stack {
@@ -208,6 +210,14 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         .sidebar-module-header:hover .icon-container.icon-container-triaje {
             box-shadow: 0 4px 14px rgba(245, 158, 11, 0.6);
         }
+        .sidebar-module-header .icon-container.icon-container-historico {
+            background: linear-gradient(135deg, #a5b4fc, #6366f1);
+            box-shadow: 0 3px 10px rgba(99, 102, 241, 0.45);
+            color: #ffffff;
+        }
+        .sidebar-module-header:hover .icon-container.icon-container-historico {
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.6);
+        }
     </style>
 
     <!-- Navegación de Módulos -->
@@ -237,6 +247,8 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
     </div>
 
     <!-- Navegación de Módulos Clínicos -->
+    {# 2026-10-20: oculto para el personal de "solo consulta histórica" (archivo). #}
+    {% if not solo_historico %}
     <div class="sidebar-module">
         {% if atencion_id %}
         <a href="#" id="modulo-clinico-header" class="sidebar-module-header" style="text-decoration: none; color: inherit; cursor: pointer;" onclick="toggleModuloClinicoDropdown(event)" title="Sala de Partos">
@@ -298,6 +310,24 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             </div>
         </a>
     </div>
+    {% endif %}
+
+    <!-- 2026-10-20: Consulta histórica de pacientes egresadas -- solo el
+         superusuario y los usuarios que él autoriza (permiso
+         obstetricia.consultar_historico, ver obstetriciaunificador/historico.py). -->
+    {% if user.is_superuser or perms.obstetricia.consultar_historico %}
+    <div class="sidebar-module">
+        <a href="/atencion/historico/" class="sidebar-module-header {% if is_historico %}active{% endif %}" style="text-decoration: none; color: inherit;" title="Consulta histórica">
+            <div class="icon-container icon-container-historico">
+                <i data-lucide="archive" class="nav-icon"></i>
+            </div>
+            <div class="sidebar-module-info">
+                <div class="sidebar-module-title">Consulta</div>
+                <div class="sidebar-module-name">Histórico egresadas</div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
 
     <div class="sidebar-watermark" aria-hidden="true">
         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -466,6 +496,7 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
      * meows/management/commands/sincronizar_signos_vitales_dinamica.py.
      */
     (function iniciarSondeoAlertasMeows() {
+        if (window.SOLO_HISTORICO) return;
         // 2026-09-08: ya en uso normal (no en pruebas de cerca) — la tarea
         // La sincronización automática de signos vitales se ejecutará
         // independientemente de este sondeo del navegador. La campana
@@ -837,6 +868,7 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
      * Ver también el segundo botón de campana en header_formatos.html.
      */
     (function iniciarSondeoAlertasTriaje() {
+        if (window.SOLO_HISTORICO) return;
         var INTERVALO_MS = 5000;
 
         var CLAVE_IDS_MOSTRADOS = 'meows_triaje_ids_ya_mostrados';
@@ -1084,6 +1116,7 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
      * iniciarSondeoAlertasTriaje -- no toca ni depende de esos dos.
      */
     (function iniciarSondeoCorreccionesDinamica() {
+        if (window.SOLO_HISTORICO) return;
         var INTERVALO_MS = 5000;
         var CLAVE_IDS_VISTOS = 'meows_correcciones_ya_vistas';
 

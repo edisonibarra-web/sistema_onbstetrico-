@@ -35,12 +35,15 @@ class RegistroParto(models.Model):
         ('ALERTA', 'Alerta: útero blando, relajado, atonía'),
         # 2026-10-02: p. ej. cesárea / no se valora. Sin semáforo (gris).
         ('NO_APLICA', 'No aplica'),
+        # 2026-10-21: la paciente está en cirugía y no se puede valorar. Sin semáforo (gris).
+        ('EN_CIRUGIA', 'Paciente en cirugía'),
     ]
     SUTURA_HERIDAS_CHOICES = [
         ('NORMAL', 'Normal: bordes afrontados, dolor tolerable, sin cambios de coloración'),
         ('HEMATOMA', 'Alerta: hematoma (masa violácea, tensa, dolor intenso)'),
         ('INFECCION', 'Alerta: (eritema, calor local, edema, secreción purulenta)'),
         ('NO_APLICA', 'No aplica'),
+        ('EN_CIRUGIA', 'Paciente en cirugía'),
     ]
     DESGARRO_CHOICES = [
         ('GRADO_I', 'Grado I'),

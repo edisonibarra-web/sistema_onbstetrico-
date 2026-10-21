@@ -146,6 +146,29 @@ def _faltantes_control_6h(registro):
     return faltan
 
 
+def pendientes_datos_cierre(instance):
+    """Datos que faltan para cerrar el registro, aparte del control de las
+    6 h (_faltantes_control_6h). También los muestra la consulta histórica
+    (obstetriciaunificador/historico.py) cuando un registro quedó sin cerrar."""
+    # 2026-09-30: la hora de parto también es obligatoria (es además la hora
+    # de nacimiento que imprime el PDF en "Control del recién nacido").
+    pendientes = []
+    # 2026-10-06: el nombre del acompañante es obligatorio para cerrar (el
+    # formulario lo marca con * y no habilita el botón sin él).
+    if not (instance.nombre_acompanante or '').strip():
+        pendientes.append('en "Datos de la paciente" falta el nombre del acompañante')
+    if not instance.hora_parto:
+        pendientes.append('en "Características del parto" falta la hora de parto'
+                          + (' del Feto A' if (instance.numero_fetos or 1) > 1 else ''))
+    # 2026-10-19: gemelar -- cada feto con su hora de parto (= su hora de nacimiento).
+    if (instance.numero_fetos or 1) > 1 and not instance.hora_parto_b:
+        pendientes.append('en "Características del parto" falta la hora de parto del Feto B')
+    faltan_rn = _faltantes_recien_nacido(instance)
+    if faltan_rn:
+        pendientes.append(f'en "Control del recién nacido" falta {", ".join(faltan_rn)}')
+    return pendientes
+
+
 def _intentar_cerrar_registro(instance, request):
     """
     Cierra el ciclo (completado_en/completado_por) si ya está registrado el
@@ -167,22 +190,7 @@ def _intentar_cerrar_registro(instance, request):
             f'{"; ".join(faltan_6h)}.'
         )
 
-    # 2026-09-30: la hora de parto también es obligatoria (es además la hora
-    # de nacimiento que imprime el PDF en "Control del recién nacido").
-    pendientes = []
-    # 2026-10-06: el nombre del acompañante es obligatorio para cerrar (el
-    # formulario lo marca con * y no habilita el botón sin él).
-    if not (instance.nombre_acompanante or '').strip():
-        pendientes.append('en "Datos de la paciente" falta el nombre del acompañante')
-    if not instance.hora_parto:
-        pendientes.append('en "Características del parto" falta la hora de parto'
-                          + (' del Feto A' if (instance.numero_fetos or 1) > 1 else ''))
-    # 2026-10-19: gemelar -- cada feto con su hora de parto (= su hora de nacimiento).
-    if (instance.numero_fetos or 1) > 1 and not instance.hora_parto_b:
-        pendientes.append('en "Características del parto" falta la hora de parto del Feto B')
-    faltan_rn = _faltantes_recien_nacido(instance)
-    if faltan_rn:
-        pendientes.append(f'en "Control del recién nacido" falta {", ".join(faltan_rn)}')
+    pendientes = pendientes_datos_cierre(instance)
     if pendientes:
         return f'Aún no se puede cerrar el registro: {"; ".join(pendientes)}.'
 
@@ -1166,8 +1174,14 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect('/atencion/sala-de-partos/')
 
+    from obstetriciaunificador.historico import MENSAJE_SIN_ACCESO, es_sin_acceso
+
     error = None
     next_url = request.GET.get('next', '/atencion/sala-de-partos/')
+    # 2026-10-21: la sesión se cerró porque el administrador le quitó el acceso
+    # (ver sistema_obstetrico/middleware.py).
+    if request.GET.get('sin_acceso') == '1':
+        error = MENSAJE_SIN_ACCESO
 
     if request.method == 'POST':
         u = request.POST.get('username')
@@ -1211,7 +1225,12 @@ def login_view(request):
             # del input "si queda vacío, diligéncielo manualmente").
             request.session.pop('dgh_info', None)
             user = authenticate(request, username=u, password=p)
-            if user:
+            if user and es_sin_acceso(user):
+                # 2026-10-21: credenciales correctas, pero el administrador le
+                # quitó el acceso a la aplicación: no se inicia la sesión.
+                error = MENSAJE_SIN_ACCESO
+                logger.info("Inicio de sesión rechazado: '%s' no tiene acceso a la aplicación.", u)
+            elif user:
                 login(request, user)
                 return redirect(next_url)
             elif getattr(request, 'dgh_connection_error', False):

@@ -857,10 +857,11 @@ MINUTOS_VIGILANCIA = [15, 30, 45, 60, 75, 90, 105, 120, 150, 180, 240, 300, 360]
 ESTADO_CORTO = {
     'NORMAL': 'Normal', 'ALERTA': 'Alerta', 'VIGILAR': 'Vigilar',
     'HEMATOMA': 'Alerta: hematoma', 'INFECCION': 'Alerta: infección', 'NO_APLICA': 'No aplica',
+    'EN_CIRUGIA': 'Paciente en cirugía',
 }
 COLOR_ESTADO_VIGILANCIA = {
     'NORMAL': '#059669', 'VIGILAR': '#d97706', 'ALERTA': '#dc2626',
-    'HEMATOMA': '#dc2626', 'INFECCION': '#dc2626', 'NO_APLICA': '#64748b',
+    'HEMATOMA': '#dc2626', 'INFECCION': '#dc2626', 'NO_APLICA': '#64748b', 'EN_CIRUGIA': '#64748b',
 }
 
 

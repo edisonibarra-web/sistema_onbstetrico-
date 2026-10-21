@@ -180,6 +180,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # 2026-10-20: el personal de "solo consulta histórica" (archivo) no entra a los módulos clínicos.
+    'sistema_obstetrico.middleware.RestriccionSoloHistoricoMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

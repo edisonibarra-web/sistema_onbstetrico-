@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import AccesoDocumentoRepositorio, AtencionParto, DocumentoRepositorio
+from .models import (
+    AccesoDocumentoRepositorio, AtencionParto, CambioPermisoHistorico, ConsultaHistorico, DocumentoRepositorio,
+)
 
 
 @admin.register(AtencionParto)
@@ -22,3 +24,17 @@ class AccesoDocumentoRepositorioAdmin(admin.ModelAdmin):
     list_display = ('creado_en', 'usuario', 'cedula', 'numero_ingreso', 'nombre_archivo', 'ip')
     search_fields = ('usuario', 'cedula', 'numero_ingreso', 'nombre_archivo')
     readonly_fields = [f.name for f in AccesoDocumentoRepositorio._meta.fields]
+
+
+@admin.register(ConsultaHistorico)
+class ConsultaHistoricoAdmin(admin.ModelAdmin):
+    list_display = ('creado_en', 'usuario', 'busqueda', 'cedula', 'ingresos_encontrados', 'ip')
+    search_fields = ('usuario', 'username', 'busqueda', 'cedula')
+    readonly_fields = [f.name for f in ConsultaHistorico._meta.fields]
+
+
+@admin.register(CambioPermisoHistorico)
+class CambioPermisoHistoricoAdmin(admin.ModelAdmin):
+    list_display = ('creado_en', 'accion', 'acceso', 'username', 'nombre', 'realizado_por')
+    search_fields = ('username', 'nombre', 'realizado_por')
+    readonly_fields = [f.name for f in CambioPermisoHistorico._meta.fields]

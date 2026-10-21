@@ -22,7 +22,7 @@ from reportlab.lib.pagesizes import letter
 from meows.models import Medicion, Paciente as MeowsPaciente  # noqa: F401
 from frecuenciafetal.models import ControlFetocardia, ControlPostpartoInmediato, RegistroParto
 from trabajoparto.models import Formulario, Paciente as TrabajoPartoPaciente
-from sistema_obstetrico.auth_utils import login_required_if_enabled
+from sistema_obstetrico.auth_utils import ip_cliente, login_required_if_enabled
 from datetime import datetime
 
 
@@ -1121,17 +1121,24 @@ def api_documento_ingreso(request):
     """GET /atencion/api/ingresos/documento/?doc=...&ingreso=...&archivo=... --
     entrega el archivo pasando por la app (las credenciales de la NAS nunca
     llegan al navegador) y deja constancia de quién lo abrió."""
-    import mimetypes
-    from sistema_obstetrico.auth_utils import nombre_profesional_sesion
     from .ingresos import limpiar_numero_ingreso
-    from .models import AccesoDocumentoRepositorio
-    from .repositorio import leer_documento_ingreso
 
     doc = (request.GET.get("doc") or "").strip()
     ingreso = limpiar_numero_ingreso(request.GET.get("ingreso"))
     archivo = (request.GET.get("archivo") or "").strip()
     if not doc or not ingreso.isdigit() or not archivo:
         return HttpResponse("Parámetros incompletos.", status=400, content_type="text/plain; charset=utf-8")
+    return _entregar_documento_repositorio(request, doc, ingreso, archivo)
+
+
+def _entregar_documento_repositorio(request, doc, ingreso, archivo):
+    """Lee el archivo de <doc>/<ingreso> en el repositorio (validado contra el
+    listado de la carpeta), deja constancia del acceso y lo entrega."""
+    import mimetypes
+    from sistema_obstetrico.auth_utils import nombre_profesional_sesion
+    from .models import AccesoDocumentoRepositorio
+    from .repositorio import leer_documento_ingreso
+
     try:
         contenido = leer_documento_ingreso(doc, ingreso, archivo)
     except RepositorioError:
@@ -1143,7 +1150,7 @@ def api_documento_ingreso(request):
     AccesoDocumentoRepositorio.objects.create(
         usuario=(nombre_profesional_sesion(request) or getattr(request.user, "username", "") or "anónimo")[:255],
         cedula=doc[:50], numero_ingreso=ingreso[:30], nombre_archivo=archivo[:255],
-        ip=(request.META.get("REMOTE_ADDR") or "")[:64],
+        ip=ip_cliente(request),
     )
     tipo = mimetypes.guess_type(archivo)[0] or "application/octet-stream"
     respuesta = HttpResponse(contenido, content_type=tipo)
@@ -1233,3 +1240,171 @@ def api_notificaciones_repositorio(request):
             ),
         })
     return JsonResponse({"ok": True, "items": items, "modo": settings.REPOSITORIO_MODO, "alcance": alcance})
+
+
+# ---------------------------------------------------------------------------
+# 2026-10-20: Consulta histórica de pacientes egresadas (ver historico.py).
+# Solo administradores y usuarios con el permiso obstetricia.consultar_historico.
+# ---------------------------------------------------------------------------
+def _solo_consulta_historica(vista):
+    from functools import wraps
+    from .historico import puede_consultar
+
+    @wraps(vista)
+    def envoltura(request, *args, **kwargs):
+        if not puede_consultar(request.user):
+            if request.path.startswith("/atencion/api/"):
+                return JsonResponse({"ok": False, "mensaje": "No tiene permiso para la consulta histórica."}, status=403)
+            return HttpResponse(
+                "No tiene permiso para la consulta histórica de pacientes. Solicítelo al administrador.",
+                status=403, content_type="text/plain; charset=utf-8",
+            )
+        return vista(request, *args, **kwargs)
+    return login_required_if_enabled(envoltura)
+
+
+@require_http_methods(["GET"])
+@_solo_consulta_historica
+def historico(request):
+    return render(request, "obstetricia/historico.html", {"title": "Consulta histórica", "is_historico": True})
+
+
+@require_http_methods(["GET"])
+@_solo_consulta_historica
+def api_historico_buscar(request):
+    """GET /atencion/api/historico/buscar/?q=...[&tipo=cedula|ingreso] -- paciente e
+    ingresos egresados. Cada búsqueda queda en ConsultaHistorico."""
+    from sistema_obstetrico.auth_utils import nombre_profesional_sesion
+    from .historico import ConsultaError, buscar
+    from .models import ConsultaHistorico
+
+    tipo = (request.GET.get("tipo") or "auto").strip()
+    texto = (request.GET.get("q") or "").strip()
+    try:
+        resultado = buscar(texto, tipo)
+    except ConsultaError as exc:
+        resultado, error = None, str(exc)
+    else:
+        error = ""
+    ConsultaHistorico.objects.create(
+        usuario=(nombre_profesional_sesion(request) or request.user.get_username() or "anónimo")[:255],
+        username=request.user.get_username()[:150],
+        busqueda=f"{tipo}:{texto}"[:60],
+        cedula=(resultado or {}).get("cedula", "")[:50],
+        ingresos_encontrados=len((resultado or {}).get("ingresos", [])),
+        ip=ip_cliente(request),
+    )
+    if error:
+        return JsonResponse({"ok": False, "mensaje": error})
+    return JsonResponse({"ok": True, **resultado})
+
+
+@require_http_methods(["GET"])
+@_solo_consulta_historica
+def api_historico_documentos(request):
+    """GET /atencion/api/historico/documentos/?doc=...&ingreso=... -- PDF de esta
+    app en la carpeta del ingreso (solo si el ingreso es de esa paciente y ya egresó)
+    y alertas de los que deberían estar y no están."""
+    from .historico import ConsultaError, ingreso_consultable, revisar_ingreso
+    from .ingresos import limpiar_numero_ingreso
+
+    doc = (request.GET.get("doc") or "").strip()
+    ingreso = limpiar_numero_ingreso(request.GET.get("ingreso"))
+    if not doc or not ingreso.isdigit():
+        return JsonResponse({"ok": False, "mensaje": "Parámetros doc e ingreso requeridos."}, status=400)
+    try:
+        if not ingreso_consultable(doc, ingreso):
+            return JsonResponse({"ok": False, "mensaje": "Ese ingreso no es de la paciente o no tiene egreso."}, status=404)
+    except ConsultaError as exc:
+        return JsonResponse({"ok": False, "mensaje": str(exc)}, status=502)
+    destino = "la carpeta local de pruebas" if settings.REPOSITORIO_MODO == "local" else "la NAS"
+    try:
+        revision = revisar_ingreso(doc, ingreso)
+    except Exception as exc:
+        logger.warning("Consulta histórica: no se pudo leer el repositorio (%s/%s): %s", doc, ingreso, exc)
+        return JsonResponse({"ok": False, "mensaje": f"No se pudo consultar {destino} en este momento."}, status=502)
+    return JsonResponse({"ok": True, "destino": destino, **revision})
+
+
+@require_http_methods(["GET"])
+@_solo_consulta_historica
+def api_historico_documento(request):
+    """GET /atencion/api/historico/documento/?doc=...&ingreso=...&archivo=... --
+    abre un PDF de esta app de un ingreso egresado (queda en AccesoDocumentoRepositorio)."""
+    from .historico import ConsultaError, es_documento_de_la_app, ingreso_consultable
+    from .ingresos import limpiar_numero_ingreso
+
+    doc = (request.GET.get("doc") or "").strip()
+    ingreso = limpiar_numero_ingreso(request.GET.get("ingreso"))
+    archivo = (request.GET.get("archivo") or "").strip()
+    if not doc or not ingreso.isdigit() or not es_documento_de_la_app(doc, archivo):
+        return HttpResponse("Documento no encontrado.", status=404, content_type="text/plain; charset=utf-8")
+    try:
+        consultable = ingreso_consultable(doc, ingreso)
+    except ConsultaError as exc:
+        return HttpResponse(str(exc), status=502, content_type="text/plain; charset=utf-8")
+    if not consultable:
+        return HttpResponse("Documento no encontrado.", status=404, content_type="text/plain; charset=utf-8")
+    # Mismo camino que la pestaña de documentos del selector de ingresos:
+    # lectura validada contra el listado de la carpeta + registro del acceso.
+    return _entregar_documento_repositorio(request, doc, ingreso, archivo)
+
+
+def _solo_superusuario(vista):
+    """Sección "Usuarios autorizados": solo el superusuario da o quita permisos."""
+    from functools import wraps
+    from .historico import puede_administrar_permisos
+
+    @wraps(vista)
+    def envoltura(request, *args, **kwargs):
+        if not puede_administrar_permisos(request.user):
+            return JsonResponse({"ok": False, "mensaje": "Solo el administrador puede gestionar los permisos."}, status=403)
+        return vista(request, *args, **kwargs)
+    return login_required_if_enabled(envoltura)
+
+
+@require_http_methods(["GET"])
+@_solo_superusuario
+def api_historico_verificar_usuario(request):
+    """GET /atencion/api/historico/permisos/verificar/?usuario=... -- nombre y estado en Dinámica."""
+    from .historico import ConsultaError, verificar_usuario
+
+    try:
+        return JsonResponse({"ok": True, **verificar_usuario(request.GET.get("usuario"))})
+    except ConsultaError as exc:
+        return JsonResponse({"ok": False, "mensaje": str(exc)})
+
+
+@require_http_methods(["GET", "POST"])
+@_solo_superusuario
+def api_historico_permisos(request):
+    """GET: usuarios autorizados y últimos cambios.
+    POST {"accion": "autorizar", "usuario": "...", "acceso": <tipo de historico.ACCESOS>}: deja al
+    usuario con ese tipo de acceso. POST {"accion": "quitar", "usuario": "...",
+    "dejar": "solo_clinicos"|"sin_acceso"}: botón "Quitar" de la lista."""
+    import json
+    from .historico import ACCESOS, ConsultaError, autorizar, cambios_recientes, quitar, usuarios_autorizados
+
+    if request.method == "POST":
+        try:
+            datos = json.loads(request.body or b"{}")
+        except ValueError:
+            return JsonResponse({"ok": False, "mensaje": "Solicitud inválida."}, status=400)
+        accion, usuario = datos.get("accion"), (datos.get("usuario") or "").strip()
+        realizado_por = request.user.get_username()
+        try:
+            if accion == "autorizar":
+                autorizado = autorizar(usuario, realizado_por, datos.get("acceso") or "completo")
+                mensaje = (f"{autorizado['nombre'] or autorizado['username']} quedó con acceso: "
+                           f"{ACCESOS[autorizado['acceso']]}.")
+            elif accion == "quitar":
+                dejar = datos.get("dejar") or "solo_clinicos"
+                quitar(usuario, realizado_por, dejar)
+                mensaje = f"{usuario} quedó con acceso: {ACCESOS.get(dejar, dejar)}."
+            else:
+                return JsonResponse({"ok": False, "mensaje": "Acción no válida."}, status=400)
+        except ConsultaError as exc:
+            return JsonResponse({"ok": False, "mensaje": str(exc)})
+        return JsonResponse({"ok": True, "mensaje": mensaje,
+                             "usuarios": usuarios_autorizados(), "cambios": cambios_recientes()})
+    return JsonResponse({"ok": True, "usuarios": usuarios_autorizados(), "cambios": cambios_recientes()})

@@ -1,0 +1,824 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} | Sistema Obstétrico Unificado</title>
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
+    <style>
+        /* 2026-10-20: Consulta histórica de pacientes egresadas (ver obstetriciaunificador/historico.py).
+           Diseño: tarjetas con degradado suave, ilustraciones SVG propias (sin recursos externos). */
+        :root {
+            --h-violeta: #6d3df5;
+            --h-violeta-2: #8b5cf6;
+            --h-indigo: #4f46e5;
+            --h-azul: #1d6ff2;
+            --h-azul-2: #2f8bff;
+            --h-naranja: #f59e0b;
+            --h-naranja-2: #f97316;
+            --h-tinta: #15224a;
+            --h-texto: #3b4668;
+            --h-suave: #6b7593;
+            --h-borde: #dfe3f1;
+            --h-fondo: #f3f2fb;
+        }
+        body {
+            margin: 0;
+            font-family: 'Nunito', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--h-fondo);
+            color: var(--h-tinta);
+        }
+        .app-layout { display: flex; min-height: 100vh; }
+        .main-content {
+            flex: 1; padding: 28px 40px 48px; box-sizing: border-box; min-width: 0;
+            position: relative; overflow: hidden;
+            background:
+                radial-gradient(circle at 8% 12%, rgba(167, 139, 250, 0.16) 0, transparent 26%),
+                radial-gradient(circle at 96% 70%, rgba(147, 197, 253, 0.18) 0, transparent 24%),
+                radial-gradient(circle at 2% 88%, rgba(196, 181, 253, 0.2) 0, transparent 22%),
+                linear-gradient(180deg, #f6f5fd 0%, #eeedf9 100%);
+        }
+        /* Corazones y destellos de fondo */
+        .fondo-deco { position: absolute; pointer-events: none; color: #c7c3f5; opacity: 0.55; }
+        .fondo-deco.c1 { left: 14px; top: 120px; width: 26px; }
+        .fondo-deco.c2 { left: 10px; bottom: 120px; width: 46px; opacity: 0.35; }
+        .fondo-deco.c3 { right: 18px; top: 360px; width: 22px; }
+        .fondo-deco.d1 { right: 26px; bottom: 60px; width: 14px; opacity: 0.6; }
+        .fondo-deco.d2 { left: 30px; top: 300px; width: 10px; opacity: 0.5; }
+
+        .hist-wrap { width: 100%; position: relative; z-index: 1; }
+
+        /* ---------- Tarjetas ---------- */
+        .h-card {
+            position: relative; overflow: hidden;
+            border-radius: 16px; border: 1px solid #ffffff;
+            box-shadow: 0 10px 28px rgba(76, 63, 160, 0.10), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+            padding: 22px 26px 22px; margin-bottom: 18px;
+        }
+        .h-card.violeta { background: linear-gradient(100deg, #ffffff 0%, #fbfaff 45%, #efeafe 100%); }
+        .h-card.crema { background: linear-gradient(100deg, #fffdf6 0%, #fff8e6 55%, #fff1d6 100%); }
+        .h-card.blanca { background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(250,249,255,0.9)); padding: 12px; }
+        /* Onda decorativa arriba a la derecha */
+        .h-card .onda { position: absolute; top: 0; right: 0; width: 46%; height: 100%; pointer-events: none; }
+        .h-card .ilustracion { position: absolute; right: 26px; top: 14px; pointer-events: none; }
+        .h-card .puntos { position: absolute; pointer-events: none; }
+
+        .h-cab { display: flex; align-items: flex-start; gap: 18px; position: relative; padding-right: 170px; }
+        .h-icono {
+            width: 70px; height: 70px; border-radius: 16px; flex-shrink: 0;
+            display: grid; place-items: center; color: #fff;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255,255,255,0.35);
+        }
+        .h-icono svg { width: 34px; height: 34px; stroke-width: 2.2; }
+        .h-icono.violeta { background: linear-gradient(145deg, #8f6bff 0%, #6a35f2 55%, #5b2be0 100%); box-shadow: 0 10px 22px rgba(109, 61, 245, 0.35), inset 0 1px 0 rgba(255,255,255,0.35); }
+        .h-icono.naranja { background: linear-gradient(145deg, #ffc93d 0%, #ffa712 55%, #f28a06 100%); box-shadow: 0 10px 22px rgba(245, 158, 11, 0.38), inset 0 1px 0 rgba(255,255,255,0.4); }
+        .h-cab h1 { margin: 2px 0 6px; font-size: 1.42rem; font-weight: 800; color: var(--h-tinta); letter-spacing: -0.01em; }
+        .h-cab h1 .acento {
+            background: linear-gradient(90deg, #6d3df5, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .h-cab p { margin: 0; color: var(--h-texto); font-size: 0.86rem; line-height: 1.5; max-width: 700px; }
+
+        .h-cuerpo { position: relative; margin-top: 18px; padding-left: 88px; }
+
+        /* ---------- Selector Cédula / Número de ingreso ---------- */
+        .h-tipo { display: flex; gap: 8px; margin-bottom: 12px; }
+        .h-tipo label { cursor: pointer; position: relative; }
+        .h-tipo input { position: absolute; opacity: 0; pointer-events: none; }
+        .h-tipo span {
+            display: inline-flex; align-items: center; gap: 10px; min-width: 112px; justify-content: center;
+            padding: 8px 22px; border-radius: 8px; font-weight: 700; font-size: 0.88rem;
+            background: #eceef6; color: var(--h-texto); border: 1px solid #e3e6f2; transition: all 0.15s;
+        }
+        .h-tipo span svg { width: 18px; height: 18px; }
+        .h-tipo input:checked + span {
+            background: linear-gradient(135deg, #7b4dff, #6234ee); color: #fff; border-color: transparent;
+            box-shadow: 0 6px 14px rgba(109, 61, 245, 0.3);
+        }
+        .h-tipo input:focus-visible + span { outline: 2px solid var(--h-violeta); outline-offset: 2px; }
+
+        /* ---------- Campo + botón ---------- */
+        .h-fila { display: flex; gap: 10px; flex-wrap: wrap; }
+        .h-campo { position: relative; flex: 1; min-width: 220px; }
+        .h-campo .ico-campo { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #5d6a91; display: flex; }
+        .h-campo .ico-campo svg { width: 20px; height: 20px; }
+        .h-campo input {
+            width: 100%; box-sizing: border-box; height: 42px; padding: 0 14px 0 50px;
+            font: inherit; font-size: 0.95rem; color: var(--h-tinta);
+            background: #fff; border: 1px solid #c9cfe3; border-radius: 6px;
+        }
+        .h-campo input::placeholder { color: #6b7593; }
+        .h-campo input:focus { outline: none; border-color: var(--h-violeta-2); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18); }
+
+        .h-btn {
+            display: inline-flex; align-items: center; justify-content: space-between; gap: 12px;
+            height: 42px; min-width: 168px; padding: 0 18px 0 22px; border: none; border-radius: 6px; cursor: pointer;
+            font: inherit; font-weight: 800; font-size: 1rem; color: #fff; text-decoration: none;
+        }
+        .h-btn .txt { display: inline-flex; align-items: center; gap: 12px; }
+        .h-btn svg { width: 22px; height: 22px; }
+        .h-btn .flecha svg { width: 18px; height: 18px; }
+        .h-btn.violeta { background: linear-gradient(135deg, #7d4cff 0%, #6a35f2 55%, #5726dd 100%); box-shadow: 0 8px 18px rgba(109, 61, 245, 0.32); }
+        .h-btn.violeta:hover { filter: brightness(1.06); }
+        .h-btn.azul { background: linear-gradient(135deg, #2f8bff 0%, #1d6ff2 55%, #1559d6 100%); box-shadow: 0 8px 18px rgba(29, 111, 242, 0.3); }
+        .h-btn.azul:hover { filter: brightness(1.06); }
+        .h-btn.verde { background: linear-gradient(135deg, #22c55e, #15803d); box-shadow: 0 8px 18px rgba(22, 163, 74, 0.28); min-width: 0; }
+        .h-btn:disabled { opacity: 0.65; cursor: wait; }
+        .h-btn.chico { height: 34px; min-width: 0; padding: 0 14px; font-size: 0.85rem; gap: 6px; box-shadow: none; }
+        .h-btn.chico svg { width: 16px; height: 16px; }
+        .h-btn.suave { background: #efeafe; color: #5b2be0; }
+        .h-btn.suave:hover { background: #e4dcfd; }
+        .h-btn.peligro { background: #fff1f1; color: #c81e1e; }
+        .h-btn.peligro:hover { background: #ffe2e2; }
+
+        .hist-elegir { margin-top: 12px; padding: 12px 16px; border-radius: 8px; background: #fff6e5; border: 1px solid #fcd9a0; color: #8a4b00; }
+        .hist-elegir p { margin: 0 0 10px; font-weight: 700; font-size: 0.9rem; }
+        .hist-elegir .opciones { display: flex; gap: 10px; flex-wrap: wrap; }
+        .hist-elegir .h-btn { min-width: 0; }
+
+        /* ---------- Mensajes ---------- */
+        .hist-mensaje {
+            display: flex; align-items: center; gap: 14px; margin-top: 12px;
+            padding: 10px 16px; border-radius: 6px; font-size: 0.9rem;
+        }
+        .hist-mensaje .ico-msg { flex-shrink: 0; display: flex; }
+        .hist-mensaje .ico-msg svg { width: 26px; height: 26px; }
+        .hist-mensaje.error { background: #fdecef; color: #c4141f; border: 1px solid #f7b9c2; }
+        .hist-mensaje.error .ico-msg { color: #e11d2a; }
+        .hist-mensaje.aviso { background: #fff6e5; color: #9a5a00; border: 1px solid #fcd9a0; }
+        .hist-mensaje.aviso .ico-msg { color: #f59e0b; }
+        .hist-mensaje.info { background: #f1f2fa; color: var(--h-texto); border: 1px solid #e3e6f2; }
+        .hist-mensaje.info .ico-msg { color: #7c83a5; }
+        .hist-mensaje.ok { background: #ecfdf3; color: #166534; border: 1px solid #bbf7d0; }
+        .hist-mensaje.ok .ico-msg { color: #16a34a; }
+
+        /* ---------- Resultado: paciente, ingresos, documentos ---------- */
+        .h-paciente { display: flex; align-items: center; gap: 16px; position: relative; }
+        .h-paciente .nombre { font-size: 1.2rem; font-weight: 800; color: var(--h-tinta); }
+        .h-paciente .cedula { color: var(--h-suave); font-size: 0.9rem; margin-top: 2px; }
+        .h-paciente .h-icono { width: 54px; height: 54px; border-radius: 14px; }
+        .h-paciente .h-icono svg { width: 26px; height: 26px; }
+
+        .hist-ingreso { background: #fff; border: 1px solid var(--h-borde); border-radius: 12px; margin-top: 12px; overflow: hidden; }
+        .hist-ingreso-cab {
+            width: 100%; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+            padding: 12px 16px; background: linear-gradient(90deg, #f6f3ff, #fbfaff); border: none; cursor: pointer; text-align: left; font: inherit;
+        }
+        .hist-ingreso-cab:hover { background: linear-gradient(90deg, #efe9ff, #f8f6ff); }
+        .hist-ingreso-cab .num { font-weight: 800; color: #5b2be0; font-size: 1rem; }
+        .hist-ingreso-cab .fechas { color: var(--h-texto); font-size: 0.86rem; flex: 1; min-width: 220px; }
+        .hist-ingreso-cab .tipo { background: #e9e3ff; color: #4c1fd1; border-radius: 999px; padding: 3px 10px; font-size: 0.76rem; font-weight: 800; }
+        .chev-circulo {
+            width: 32px; height: 32px; border-radius: 50%; background: #fff; display: grid; place-items: center;
+            box-shadow: 0 2px 6px rgba(30, 41, 99, 0.14); color: var(--h-azul); flex-shrink: 0; transition: transform 0.2s;
+        }
+        .chev-circulo svg { width: 18px; height: 18px; stroke-width: 2.6; }
+        .hist-ingreso.abierto .chev-circulo, .h-acordeon.abierto .chev-circulo { transform: rotate(180deg); }
+        .hist-docs { padding: 4px 16px 14px; display: none; }
+        .hist-ingreso.abierto .hist-docs { display: block; }
+
+        .hist-doc { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid #f0f1f8; flex-wrap: wrap; }
+        .hist-doc:last-child { border-bottom: none; }
+        .hist-doc .ico { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; background: linear-gradient(145deg, #3b8cff, #1d6ff2); color: #fff; }
+        .hist-doc .ico svg { width: 20px; height: 20px; }
+        .hist-doc .info { flex: 1; min-width: 200px; }
+        .hist-doc .titulo { font-weight: 800; color: var(--h-tinta); }
+        .hist-doc .archivo { color: var(--h-suave); font-size: 0.78rem; word-break: break-all; }
+        .hist-doc.reemplazado { opacity: 0.6; }
+        .etq { border-radius: 6px; padding: 2px 8px; font-size: 0.72rem; font-weight: 800; margin-left: 6px; }
+        .etq.vigente { background: #dcfce7; color: #166534; }
+        .etq.reemplazado { background: #eef0f6; color: var(--h-suave); }
+
+        .hist-alerta {
+            display: flex; gap: 12px; margin: 12px 0 4px; padding: 12px 14px; border-radius: 10px;
+            background: #fff6e5; border: 1px solid #fcd9a0; color: #8a4b00;
+        }
+        .hist-alerta .ico { flex-shrink: 0; color: #f59e0b; padding-top: 1px; }
+        .hist-alerta .titulo { font-weight: 800; }
+        .hist-alerta .mensaje { font-size: 0.88rem; margin-top: 2px; }
+        .hist-alerta ul { margin: 6px 0 0; padding-left: 18px; font-size: 0.84rem; }
+        .hist-alerta li { margin: 2px 0; word-break: break-word; }
+
+        /* ---------- Acordeones de la sección de permisos ---------- */
+        .h-acordeon { border-radius: 10px; margin: 0 0 10px; overflow: hidden; }
+        .h-acordeon:last-child { margin-bottom: 0; }
+        .h-acordeon.azul { background: linear-gradient(90deg, #e3efff 0%, #edf4ff 100%); }
+        .h-acordeon.lila { background: linear-gradient(90deg, #ece6ff 0%, #f3efff 100%); }
+        .h-acordeon-cab {
+            width: 100%; display: flex; align-items: center; gap: 16px; padding: 8px 18px 8px 12px;
+            background: none; border: none; cursor: pointer; text-align: left; font: inherit;
+        }
+        .h-acordeon-cab .ico-acordeon {
+            width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;
+        }
+        .h-acordeon.azul .ico-acordeon { background: #d3e5ff; color: #1d6ff2; }
+        .h-acordeon.lila .ico-acordeon { background: #ddd3ff; color: #6d3df5; }
+        .h-acordeon-cab .ico-acordeon svg { width: 24px; height: 24px; stroke-width: 2.2; }
+        .h-acordeon-cab .texto { flex: 1; font-weight: 800; font-size: 0.98rem; color: var(--h-tinta); }
+        .h-acordeon.lila .chev-circulo { color: #6d3df5; }
+        .h-acordeon-cuerpo { display: none; padding: 4px 18px 14px 70px; }
+        .h-acordeon.abierto .h-acordeon-cuerpo { display: block; }
+
+        .perm-fila { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(21, 34, 74, 0.08); flex-wrap: wrap; }
+        .perm-fila:last-child { border-bottom: none; }
+        .perm-fila .info { flex: 1; min-width: 180px; }
+        .perm-fila .usuario { font-weight: 800; color: var(--h-tinta); }
+        .perm-fila .detalle { color: var(--h-suave); font-size: 0.82rem; }
+        .perm-verificado {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px;
+            padding: 12px 16px; border-radius: 8px; background: #f0fdf4; border: 1px solid #bbf7d0;
+        }
+        .perm-verificado .info { flex: 1; min-width: 180px; }
+        .perm-verificado .usuario { font-weight: 800; }
+        .perm-verificado .detalle { color: var(--h-suave); font-size: 0.82rem; }
+
+        .perm-acceso { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; width: 100%; margin-top: 10px; }
+        .perm-acceso label { cursor: pointer; position: relative; }
+        .perm-acceso input { position: absolute; opacity: 0; pointer-events: none; }
+        .perm-acceso .opcion {
+            display: flex; gap: 12px; align-items: flex-start; height: 100%; box-sizing: border-box;
+            padding: 12px 14px; border-radius: 10px; background: #fff; border: 2px solid #e3e6f2; transition: all 0.15s;
+        }
+        .perm-acceso .opcion .ico-op { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
+        .perm-acceso .opcion .ico-op svg { width: 20px; height: 20px; }
+        .perm-acceso .op-completo .ico-op { background: #e0ecff; color: #1d6ff2; }
+        .perm-acceso .op-solo .ico-op { background: #ece6ff; color: #6d3df5; }
+        .perm-acceso .opcion b { display: block; color: var(--h-tinta); font-size: 0.92rem; }
+        .perm-acceso .opcion small { display: block; color: var(--h-suave); font-size: 0.8rem; margin-top: 2px; line-height: 1.35; }
+        .perm-acceso input:checked + .opcion { border-color: var(--h-violeta); box-shadow: 0 6px 14px rgba(109, 61, 245, 0.16); }
+        .perm-acceso input:focus-visible + .opcion { outline: 2px solid var(--h-violeta); outline-offset: 2px; }
+        .perm-acciones { display: flex; justify-content: flex-end; width: 100%; margin-top: 10px; }
+        .perm-acceso .op-clinicos .ico-op { background: #dcfce7; color: #15803d; }
+        .perm-acceso .op-sin .ico-op { background: #fee2e2; color: #dc2626; }
+        .perm-acceso .op-sin b { color: #b91c1c; }
+        .perm-acceso .opcion .actual { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 6px; background: #eef0f6; color: var(--h-suave); font-size: 0.7rem; font-weight: 800; vertical-align: middle; }
+        .etq.acceso-completo { background: #e0ecff; color: #1559d6; }
+        .etq.acceso-solo_historico { background: #ece6ff; color: #5b2be0; }
+        .etq.acceso-sin_acceso { background: #fee2e2; color: #b91c1c; }
+        .etq.acceso-solo_clinicos { background: #dcfce7; color: #15803d; }
+        .perm-quitar-opciones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; font-size: 0.85rem; }
+        .perm-quitar-opciones span { flex: 1; min-width: 200px; font-weight: 700; }
+
+        @media (max-width: 900px) {
+            .h-card .ilustracion, .h-card .puntos { display: none; }
+            .h-cab { padding-right: 0; }
+            .h-cuerpo { padding-left: 0; }
+        }
+        @media (max-width: 640px) {
+            .main-content { padding: 18px 16px 32px; }
+            .h-card { padding: 18px 16px; }
+            .h-icono { width: 54px; height: 54px; }
+            .h-icono svg { width: 26px; height: 26px; }
+            .h-btn { width: 100%; }
+            .h-tipo span { min-width: 0; padding: 8px 14px; }
+            .h-acordeon-cuerpo { padding-left: 18px; }
+        }
+    </style>
+</head>
+<body>
+    {% include "obstetricia/header_formatos.html" with current_module='' documento='' modulo_titulo='Hospital Universitario Departamental' modulo_subtitulo='Sistema Unificado de Obstetricia' ocultar_btn_regresar=True %}
+    <div class="app-layout">
+        {% include "obstetricia/sidebar.html" %}
+
+        <main class="main-content">
+            <!-- Corazones y destellos del fondo -->
+            <svg class="fondo-deco c1" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 5 6.5 5c2 0 3.6 1.1 4.5 2.6C11.9 6.1 13.5 5 15.5 5 19 5 21.1 8.4 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg>
+            <svg class="fondo-deco c2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 5 6.5 5c2 0 3.6 1.1 4.5 2.6C11.9 6.1 13.5 5 15.5 5 19 5 21.1 8.4 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg>
+            <svg class="fondo-deco c3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 5 6.5 5c2 0 3.6 1.1 4.5 2.6C11.9 6.1 13.5 5 15.5 5 19 5 21.1 8.4 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg>
+            <svg class="fondo-deco d1" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0l2.6 9.4L24 12l-9.4 2.6L12 24l-2.6-9.4L0 12l9.4-2.6z"/></svg>
+            <svg class="fondo-deco d2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0l2.6 9.4L24 12l-9.4 2.6L12 24l-2.6-9.4L0 12l9.4-2.6z"/></svg>
+
+            <div class="hist-wrap">
+                <!-- ===== Búsqueda ===== -->
+                <section class="h-card violeta">
+                    <svg class="onda" viewBox="0 0 500 200" preserveAspectRatio="none" aria-hidden="true">
+                        <path d="M120 0 C 200 40, 260 10, 330 50 S 450 120, 500 90 L 500 0 Z" fill="#e7defe" opacity="0.65"/>
+                        <path d="M220 0 C 290 30, 340 0, 400 30 S 470 70, 500 55 L 500 0 Z" fill="#ddd0fd" opacity="0.55"/>
+                        <path d="M0 200 C 120 170, 220 190, 320 150 S 460 110, 500 140 L 500 200 Z" fill="#f1ecff" opacity="0.7"/>
+                    </svg>
+                    <svg class="puntos" style="right: 200px; bottom: 70px;" width="52" height="20" viewBox="0 0 52 20" aria-hidden="true">
+                        <g fill="#b9a8f5"><circle cx="3" cy="3" r="2"/><circle cx="16" cy="3" r="2"/><circle cx="29" cy="3" r="2"/><circle cx="42" cy="3" r="2"/><circle cx="3" cy="16" r="2"/><circle cx="16" cy="16" r="2"/><circle cx="29" cy="16" r="2"/><circle cx="42" cy="16" r="2"/></g>
+                    </svg>
+                    <!-- Ilustración: portapapeles con hoja y corazón -->
+                    <svg class="ilustracion" width="150" height="127" viewBox="0 0 132 112" aria-hidden="true" style="top: 8px; right: 30px;">
+                        <defs>
+                            <linearGradient id="ilu-hoja" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ece6ff"/></linearGradient>
+                            <linearGradient id="ilu-tabla" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9b8ff"/><stop offset="1" stop-color="#9d83f7"/></linearGradient>
+                            <linearGradient id="ilu-corazon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#5b2be0"/></linearGradient>
+                        </defs>
+                        <g transform="rotate(-10 40 60)">
+                            <rect x="14" y="20" width="56" height="74" rx="7" fill="url(#ilu-hoja)" stroke="#c9b8ff" stroke-width="1.5"/>
+                            <rect x="23" y="36" width="34" height="4" rx="2" fill="#cfc2fb"/>
+                            <rect x="23" y="47" width="28" height="4" rx="2" fill="#dcd2fc"/>
+                            <rect x="23" y="58" width="32" height="4" rx="2" fill="#dcd2fc"/>
+                        </g>
+                        <rect x="40" y="16" width="62" height="84" rx="8" fill="url(#ilu-tabla)"/>
+                        <rect x="46" y="24" width="50" height="70" rx="5" fill="url(#ilu-hoja)"/>
+                        <rect x="58" y="8" width="26" height="14" rx="5" fill="#7a5af0"/>
+                        <circle cx="71" cy="12" r="3" fill="#ece6ff"/>
+                        <rect x="54" y="36" width="34" height="4" rx="2" fill="#c9b8ff"/>
+                        <rect x="54" y="47" width="28" height="4" rx="2" fill="#dcd2fc"/>
+                        <rect x="54" y="58" width="32" height="4" rx="2" fill="#dcd2fc"/>
+                        <rect x="54" y="69" width="22" height="4" rx="2" fill="#dcd2fc"/>
+                        <circle cx="104" cy="82" r="18" fill="#ffffff" stroke="#c9b8ff" stroke-width="2"/>
+                        <circle cx="104" cy="82" r="14" fill="url(#ilu-corazon)"/>
+                        <path d="M104 90s-6.5-3.9-8.3-7.9c-1.3-2.9.5-5.9 3.5-5.9 1.7 0 3.1 1 3.9 2.2.8-1.3 2.2-2.2 3.9-2.2 3 0 4.8 3 3.5 5.9-1.8 4-8.5 7.9-8.5 7.9z" fill="#ffffff"/>
+                    </svg>
+
+                    <div class="h-cab">
+                        <div class="h-icono violeta"><i data-lucide="archive"></i></div>
+                        <div>
+                            <h1>Consulta histórica de pacientes <span class="acento">egresadas</span></h1>
+                            <p>Documentos generados por esta aplicación (triaje, MEOWS, trabajo de parto y control posparto) para ingresos que ya tienen egreso. Cada búsqueda y cada documento abierto quedan registrados.</p>
+                        </div>
+                    </div>
+
+                    <form id="hist-form" class="h-cuerpo" autocomplete="off">
+                        <div class="h-fila">
+                            <div class="h-campo">
+                                <span class="ico-campo" id="hist-q-ico"><i data-lucide="scan-search"></i></span>
+                                <input type="text" id="hist-q" inputmode="numeric" maxlength="20" placeholder="Escriba la cédula o el número de ingreso de la paciente" aria-label="Cédula o número de ingreso" required>
+                            </div>
+                            <button type="submit" class="h-btn violeta" id="hist-btn">
+                                <span class="txt"><i data-lucide="search"></i> Buscar</span>
+                                <span class="flecha"><i data-lucide="chevron-right"></i></span>
+                            </button>
+                        </div>
+                        <div id="hist-mensaje"></div>
+                    </form>
+                </section>
+
+                <!-- ===== Resultado ===== -->
+                <section class="h-card violeta" id="hist-resultado" hidden>
+                    <div class="h-paciente">
+                        <div class="h-icono violeta"><i data-lucide="user-round"></i></div>
+                        <div>
+                            <div class="nombre" id="hist-nombre"></div>
+                            <div class="cedula" id="hist-cedula"></div>
+                        </div>
+                    </div>
+                    <div id="hist-aviso"></div>
+                    <div id="hist-ingresos"></div>
+                </section>
+
+                {% if user.is_superuser %}
+                <!-- ===== Usuarios autorizados (solo superusuario) ===== -->
+                <div id="perm-seccion">
+                    <section class="h-card crema">
+                        <svg class="onda" viewBox="0 0 500 200" preserveAspectRatio="none" aria-hidden="true">
+                            <path d="M140 0 C 220 40, 280 10, 350 45 S 460 110, 500 85 L 500 0 Z" fill="#ffefc7" opacity="0.7"/>
+                            <path d="M0 200 C 140 175, 240 195, 340 160 S 460 125, 500 150 L 500 200 Z" fill="#fff4dc" opacity="0.8"/>
+                        </svg>
+                        <svg class="puntos" style="right: 210px; top: 50px;" width="34" height="22" viewBox="0 0 34 22" aria-hidden="true">
+                            <g fill="#f5c97a"><circle cx="3" cy="3" r="1.8"/><circle cx="14" cy="3" r="1.8"/><circle cx="25" cy="3" r="1.8"/><circle cx="3" cy="14" r="1.8"/><circle cx="14" cy="14" r="1.8"/><circle cx="25" cy="14" r="1.8"/></g>
+                        </svg>
+                        <svg class="puntos" style="right: 30px; bottom: 34px;" width="34" height="22" viewBox="0 0 34 22" aria-hidden="true">
+                            <g fill="#f5c97a"><circle cx="3" cy="3" r="1.8"/><circle cx="14" cy="3" r="1.8"/><circle cx="25" cy="3" r="1.8"/><circle cx="3" cy="14" r="1.8"/><circle cx="14" cy="14" r="1.8"/><circle cx="25" cy="14" r="1.8"/></g>
+                        </svg>
+                        <!-- Ilustración: grupo de personas con escudo -->
+                        <svg class="ilustracion" width="96" height="76" viewBox="0 0 96 76" aria-hidden="true" style="top: 12px; right: 40px;">
+                            <defs>
+                                <linearGradient id="ilu-persona" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffc24d"/><stop offset="1" stop-color="#f59e0b"/></linearGradient>
+                                <linearGradient id="ilu-persona-2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd98a"/><stop offset="1" stop-color="#fbbf4b"/></linearGradient>
+                                <linearGradient id="ilu-escudo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb02e"/><stop offset="1" stop-color="#f07b05"/></linearGradient>
+                            </defs>
+                            <circle cx="18" cy="24" r="9" fill="url(#ilu-persona-2)"/>
+                            <path d="M3 58c0-11 7-18 15-18s15 7 15 18z" fill="url(#ilu-persona-2)"/>
+                            <circle cx="70" cy="24" r="9" fill="url(#ilu-persona-2)"/>
+                            <path d="M55 58c0-11 7-18 15-18s15 7 15 18z" fill="url(#ilu-persona-2)"/>
+                            <circle cx="44" cy="17" r="12" fill="url(#ilu-persona)"/>
+                            <path d="M23 62c0-14 9-23 21-23s21 9 21 23z" fill="url(#ilu-persona)"/>
+                            <path d="M74 40l14 5v10c0 9-6 15-14 18-8-3-14-9-14-18V45z" fill="url(#ilu-escudo)" stroke="#fff" stroke-width="2.5"/>
+                            <path d="M68 56l4.5 4.5L81 52" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+
+                        <div class="h-cab">
+                            <div class="h-icono naranja"><i data-lucide="shield-user"></i></div>
+                            <div>
+                                <h1>Usuarios autorizados</h1>
+                                <p>Solo usted, como administrador, ve esta sección. Escriba el usuario de Dinámica de la persona y verifique que el nombre sea el correcto antes de guardar. No se pide su contraseña: cada persona entra con la suya de Dinámica.</p>
+                            </div>
+                        </div>
+
+                        <form id="perm-form" class="h-cuerpo" autocomplete="off">
+                            <div class="h-fila">
+                                <div class="h-campo">
+                                    <span class="ico-campo"><i data-lucide="user-round"></i></span>
+                                    <input type="text" id="perm-usuario" maxlength="150" placeholder="Usuario de Dinámica (ej. RDELGADO)" aria-label="Usuario de Dinámica" required>
+                                </div>
+                                <button type="submit" class="h-btn azul" id="perm-verificar">
+                                    <span class="txt"><i data-lucide="user-search"></i> Verificar</span>
+                                    <span class="flecha"><i data-lucide="chevron-right"></i></span>
+                                </button>
+                            </div>
+                            <div id="perm-verificado"></div>
+                            <div id="perm-mensaje"></div>
+                        </form>
+                    </section>
+
+                    <section class="h-card blanca">
+                        <div class="h-acordeon azul">
+                            <button type="button" class="h-acordeon-cab" aria-expanded="false" aria-controls="perm-lista">
+                                <span class="ico-acordeon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" style="stroke:none">
+                                        <path d="M6.5 2h7.6c.5 0 1 .2 1.4.6l4.9 4.9c.4.4.6.9.6 1.4V20a2 2 0 0 1-2 2h-12.5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#1d6ff2"/>
+                                        <path d="M14 2.2V7a1.5 1.5 0 0 0 1.5 1.5h4.8z" fill="#7fb2ff"/>
+                                        <rect x="7.5" y="11.5" width="9" height="1.8" rx=".9" fill="#fff"/>
+                                        <rect x="7.5" y="15" width="9" height="1.8" rx=".9" fill="#fff"/>
+                                        <rect x="7.5" y="8" width="4" height="1.8" rx=".9" fill="#fff"/>
+                                    </svg>
+                                </span>
+                                <span class="texto">Usuarios con acceso especial</span>
+                                <span class="chev-circulo"><i data-lucide="chevron-down"></i></span>
+                            </button>
+                            <div class="h-acordeon-cuerpo" id="perm-lista"></div>
+                        </div>
+                        <div class="h-acordeon lila">
+                            <button type="button" class="h-acordeon-cab" aria-expanded="false" aria-controls="perm-cambios">
+                                <span class="ico-acordeon"><i data-lucide="clock"></i></span>
+                                <span class="texto">Últimos cambios</span>
+                                <span class="chev-circulo"><i data-lucide="chevron-down"></i></span>
+                            </button>
+                            <div class="h-acordeon-cuerpo" id="perm-cambios"></div>
+                        </div>
+                    </section>
+                </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+
+    <script>
+    (function () {
+        const form = document.getElementById('hist-form');
+        const campo = document.getElementById('hist-q');
+        const boton = document.getElementById('hist-btn');
+        const mensaje = document.getElementById('hist-mensaje');
+        const resultado = document.getElementById('hist-resultado');
+        let cedulaActual = '';
+
+        const ICONO_MENSAJE = { error: 'circle-alert', aviso: 'triangle-alert', info: 'info', ok: 'circle-check' };
+
+        function el(tag, clase, texto) {
+            const n = document.createElement(tag);
+            if (clase) n.className = clase;
+            if (texto !== undefined) n.textContent = texto;
+            return n;
+        }
+        function icono(nombre, tam) {
+            const i = document.createElement('i');
+            i.setAttribute('data-lucide', nombre);
+            if (tam) i.setAttribute('size', tam);
+            return i;
+        }
+        function cajaMensaje(texto, tipo) {
+            const caja = el('div', 'hist-mensaje ' + tipo);
+            const ico = el('span', 'ico-msg');
+            ico.appendChild(icono(ICONO_MENSAJE[tipo] || 'info'));
+            caja.append(ico, el('span', '', texto));
+            return caja;
+        }
+        function mostrarMensaje(contenedor, texto, tipo) {
+            contenedor.replaceChildren();
+            if (texto) {
+                contenedor.appendChild(cajaMensaje(texto, tipo));
+                lucide.createIcons();
+            }
+        }
+
+        // Acordeones de la sección de permisos
+        document.querySelectorAll('.h-acordeon-cab').forEach(cab => cab.addEventListener('click', () => {
+            const abierto = cab.parentElement.classList.toggle('abierto');
+            cab.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+        }));
+
+        // Una sola barra: el servidor busca el número como cédula y como ingreso.
+        // Si coincide con los dos (cédulas antiguas), pide elegir: nunca adivina.
+        async function buscar(q, tipo) {
+            boton.disabled = true;
+            mostrarMensaje(mensaje, 'Buscando…', 'info');
+            resultado.hidden = true;
+            try {
+                const r = await fetch(`/atencion/api/historico/buscar/?tipo=${encodeURIComponent(tipo)}&q=${encodeURIComponent(q)}`);
+                const data = await r.json();
+                if (!data.ok) { mostrarMensaje(mensaje, data.mensaje || 'No se pudo hacer la búsqueda.', 'error'); return; }
+                if (data.ambiguo) { pintarEleccion(q, data); return; }
+                mostrarMensaje(mensaje, '', '');
+                pintarResultado(data);
+            } catch (e) {
+                mostrarMensaje(mensaje, 'No se pudo conectar con el servidor. Intente de nuevo.', 'error');
+            } finally {
+                boton.disabled = false;
+            }
+        }
+
+        function pintarEleccion(q, data) {
+            const caja = el('div', 'hist-elegir');
+            caja.appendChild(el('p', '', data.mensaje));
+            const opciones = el('div', 'opciones');
+            data.opciones.forEach(op => {
+                const b = el('button', 'h-btn chico suave');
+                b.type = 'button';
+                b.append(icono(op.tipo === 'ingreso' ? 'id-card' : 'user-round'), document.createTextNode(' ' + op.texto));
+                b.addEventListener('click', () => buscar(q, op.tipo));
+                opciones.appendChild(b);
+            });
+            caja.appendChild(opciones);
+            mensaje.replaceChildren(caja);
+            lucide.createIcons();
+        }
+
+        form.addEventListener('submit', (ev) => {
+            ev.preventDefault();
+            const q = campo.value.trim();
+            if (q) buscar(q, 'auto');
+        });
+
+        function pintarResultado(data) {
+            cedulaActual = data.cedula;
+            document.getElementById('hist-nombre').textContent = data.nombre || 'Paciente';
+            document.getElementById('hist-cedula').textContent = 'Cédula ' + data.cedula;
+            mostrarMensaje(document.getElementById('hist-aviso'), data.aviso, 'aviso');
+            const lista = document.getElementById('hist-ingresos');
+            lista.replaceChildren();
+            data.ingresos.forEach((ing, i) => lista.appendChild(tarjetaIngreso(ing, data.ingresos.length === 1 || i === 0)));
+            resultado.hidden = false;
+            lucide.createIcons();
+        }
+
+        function tarjetaIngreso(ing, abrir) {
+            const caja = el('div', 'hist-ingreso');
+            const cab = el('button', 'hist-ingreso-cab');
+            cab.type = 'button';
+            cab.setAttribute('aria-expanded', 'false');
+            cab.appendChild(el('span', 'num', 'Ingreso ' + ing.numero));
+            cab.appendChild(el('span', 'fechas', `Ingreso: ${ing.fecha_ingreso || '—'}  ·  Egreso: ${ing.fecha_egreso || '—'}`));
+            if (ing.tipo) cab.appendChild(el('span', 'tipo', ing.tipo));
+            const chev = el('span', 'chev-circulo'); chev.appendChild(icono('chevron-down')); cab.appendChild(chev);
+            const docs = el('div', 'hist-docs');
+            caja.append(cab, docs);
+            let cargado = false;
+            cab.addEventListener('click', () => {
+                const abierto = caja.classList.toggle('abierto');
+                cab.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+                if (abierto && !cargado) { cargado = true; cargarDocumentos(ing.numero, docs); }
+            });
+            if (abrir) setTimeout(() => cab.click(), 0);
+            return caja;
+        }
+
+        async function cargarDocumentos(ingreso, contenedor) {
+            mostrarMensaje(contenedor, 'Consultando documentos…', 'info');
+            try {
+                const r = await fetch(`/atencion/api/historico/documentos/?doc=${encodeURIComponent(cedulaActual)}&ingreso=${encodeURIComponent(ingreso)}`);
+                const data = await r.json();
+                if (!data.ok) { mostrarMensaje(contenedor, data.mensaje || 'No se pudieron consultar los documentos.', 'error'); return; }
+                contenedor.replaceChildren();
+                (data.alertas || []).forEach(a => contenedor.appendChild(cajaAlerta(a)));
+                if (!data.documentos.length) {
+                    contenedor.appendChild(cajaMensaje(`Este ingreso no tiene documentos de la aplicación en ${data.destino}.`, 'info'));
+                } else {
+                    data.documentos.forEach(d => contenedor.appendChild(filaDocumento(ingreso, d)));
+                }
+                lucide.createIcons();
+            } catch (e) {
+                mostrarMensaje(contenedor, 'No se pudo conectar con el servidor. Intente de nuevo.', 'error');
+            }
+        }
+
+        function cajaAlerta(a) {
+            const caja = el('div', 'hist-alerta');
+            const ico = el('span', 'ico'); ico.appendChild(icono('triangle-alert', 20));
+            const info = el('div', 'info');
+            info.appendChild(el('div', 'titulo', `Falta: ${a.titulo}`));
+            info.appendChild(el('div', 'mensaje', a.mensaje));
+            if (a.detalle && a.detalle.length) {
+                const ul = el('ul');
+                a.detalle.forEach(t => ul.appendChild(el('li', '', t)));
+                info.appendChild(ul);
+            }
+            caja.append(ico, info);
+            return caja;
+        }
+
+        function filaDocumento(ingreso, d) {
+            const fila = el('div', 'hist-doc' + (d.vigente ? '' : ' reemplazado'));
+            const ico = el('span', 'ico'); ico.appendChild(icono('file-text'));
+            const info = el('div', 'info');
+            const titulo = el('div', 'titulo', d.titulo);
+            if (d.reemplazado_por) titulo.appendChild(el('span', 'etq reemplazado', 'Versión reemplazada'));
+            else if (d.con_versiones) titulo.appendChild(el('span', 'etq vigente', 'Versión vigente'));
+            info.append(titulo, el('div', 'archivo', d.nombre));
+            const abrir = el('a', 'h-btn chico suave');
+            abrir.href = `/atencion/api/historico/documento/?doc=${encodeURIComponent(cedulaActual)}&ingreso=${encodeURIComponent(ingreso)}&archivo=${encodeURIComponent(d.nombre)}`;
+            abrir.target = '_blank';
+            abrir.rel = 'noopener';
+            abrir.append(icono('external-link'), document.createTextNode(' Abrir'));
+            fila.append(ico, info, abrir);
+            return fila;
+        }
+
+        lucide.createIcons();
+        campo.focus();
+
+        // --- Usuarios autorizados (solo superusuario) ---------------------
+        const permSeccion = document.getElementById('perm-seccion');
+        if (!permSeccion) return;
+        const CSRF = '{{ csrf_token }}';
+        const permForm = document.getElementById('perm-form');
+        const permUsuario = document.getElementById('perm-usuario');
+        const permVerificar = document.getElementById('perm-verificar');
+        const permVerificado = document.getElementById('perm-verificado');
+        const permMensaje = document.getElementById('perm-mensaje');
+
+        async function enviarPermiso(accion, usuario, acceso) {
+            const r = await fetch('/atencion/api/historico/permisos/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ accion, usuario, acceso }),
+            });
+            return r.json();
+        }
+
+        async function enviarQuitar(usuario, dejar) {
+            const r = await fetch('/atencion/api/historico/permisos/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ accion: 'quitar', usuario, dejar }),
+            });
+            return r.json();
+        }
+
+        function pintarPermisos(data) {
+            const lista = document.getElementById('perm-lista');
+            lista.replaceChildren();
+            if (!data.usuarios.length) lista.appendChild(cajaMensaje('Todavía no hay usuarios con un acceso especial asignado.', 'info'));
+            data.usuarios.forEach(u => {
+                const fila = el('div', 'perm-fila');
+                const info = el('div', 'info');
+                const nombre = el('div', 'usuario', u.nombre || u.username);
+                nombre.appendChild(el('span', 'etq acceso-' + u.acceso, u.acceso_texto));
+                info.append(nombre, el('div', 'detalle', 'Usuario: ' + u.username));
+                const quien = u.nombre || u.username;
+                async function dejarComo(dejar, boton) {
+                    boton.disabled = true;
+                    const res = await enviarQuitar(u.username, dejar);
+                    mostrarMensaje(permMensaje, res.mensaje, res.ok ? 'ok' : 'error');
+                    if (res.ok) pintarPermisos(res); else boton.disabled = false;
+                }
+                const quitar = el('button', 'h-btn chico peligro');
+                quitar.type = 'button';
+                if (u.acceso === 'sin_acceso') {
+                    quitar.append(icono('user-check'), document.createTextNode(' Devolver acceso'));
+                    quitar.className = 'h-btn chico suave';
+                    quitar.addEventListener('click', () => {
+                        if (confirm(`¿Devolverle a ${quien} el acceso a los módulos clínicos?`)) dejarComo('solo_clinicos', quitar);
+                    });
+                } else if (u.acceso === 'solo_historico') {
+                    // Archivo: al quitarle el histórico vería los módulos clínicos; se pregunta qué hacer.
+                    quitar.append(icono('user-x'), document.createTextNode(' Quitar'));
+                    quitar.addEventListener('click', () => {
+                        if (fila.querySelector('.perm-quitar-opciones')) return;
+                        const opciones = el('div', 'perm-quitar-opciones');
+                        opciones.appendChild(el('span', '', `Al quitarle el histórico, ¿cómo queda ${quien}?`));
+                        const aClinicos = el('button', 'h-btn chico suave');
+                        aClinicos.type = 'button';
+                        aClinicos.append(icono('stethoscope'), document.createTextNode(' Con módulos clínicos'));
+                        aClinicos.addEventListener('click', () => dejarComo('solo_clinicos', aClinicos));
+                        const aSin = el('button', 'h-btn chico peligro');
+                        aSin.type = 'button';
+                        aSin.append(icono('ban'), document.createTextNode(' Sin acceso a la aplicación'));
+                        aSin.addEventListener('click', () => dejarComo('sin_acceso', aSin));
+                        const cancelar = el('button', 'h-btn chico suave');
+                        cancelar.type = 'button';
+                        cancelar.textContent = 'Cancelar';
+                        cancelar.addEventListener('click', () => opciones.remove());
+                        opciones.append(aClinicos, aSin, cancelar);
+                        fila.appendChild(opciones);
+                        lucide.createIcons();
+                    });
+                } else {
+                    quitar.append(icono('user-x'), document.createTextNode(' Quitar'));
+                    quitar.addEventListener('click', () => {
+                        if (confirm(`¿Quitarle el histórico a ${quien}? Quedará solo con los módulos clínicos.`)) dejarComo('solo_clinicos', quitar);
+                    });
+                }
+                fila.append(info, quitar);
+                lista.appendChild(fila);
+            });
+            const cambios = document.getElementById('perm-cambios');
+            cambios.replaceChildren();
+            if (!data.cambios.length) cambios.appendChild(cajaMensaje('Sin cambios registrados.', 'info'));
+            data.cambios.forEach(c => {
+                const fila = el('div', 'perm-fila');
+                const info = el('div', 'info');
+                info.append(
+                    el('div', 'usuario', `${c.accion} acceso a ${c.nombre || c.username}${c.acceso_texto ? ' · ' + c.acceso_texto : ''}`),
+                    el('div', 'detalle', `${c.fecha} · por ${c.realizado_por}`),
+                );
+                fila.appendChild(info);
+                cambios.appendChild(fila);
+            });
+            lucide.createIcons();
+        }
+
+        const OPCIONES_ACCESO = [
+            { valor: 'completo', clase: 'op-completo', icono: 'stethoscope', titulo: 'Módulos clínicos + Histórico egresadas',
+              texto: 'Para enfermería y médicos: todo lo de hoy (Sala de Partos, Triaje, MEOWS, Posparto, Trabajo de Parto) y además la consulta histórica.' },
+            { valor: 'solo_historico', clase: 'op-solo', icono: 'archive', titulo: 'Solo Histórico egresadas',
+              texto: 'Para archivo: solo ve la consulta histórica y el manual. No entra a ningún módulo clínico ni ve alertas de pacientes.' },
+            { valor: 'solo_clinicos', clase: 'op-clinicos', icono: 'heart-pulse', titulo: 'Solo módulos clínicos',
+              texto: 'Lo normal de cualquier usuario: todos los módulos clínicos, sin la consulta histórica.' },
+            { valor: 'sin_acceso', clase: 'op-sin', icono: 'ban', titulo: 'Sin acceso a la aplicación',
+              texto: 'No puede iniciar sesión. Si tiene la sesión abierta, se le cierra en el siguiente clic.' },
+        ];
+
+        function selectorAcceso(data) {
+            const cont = el('div');
+            cont.style.width = '100%';
+            const grupo = el('div', 'perm-acceso');
+            grupo.setAttribute('role', 'radiogroup');
+            grupo.setAttribute('aria-label', 'Tipo de acceso');
+            OPCIONES_ACCESO.forEach(op => {
+                const label = el('label');
+                const radio = el('input');
+                radio.type = 'radio'; radio.name = 'perm-tipo-acceso'; radio.value = op.valor;
+                // Usuario sin nada asignado: se propone "Módulos clínicos + Histórico".
+                radio.checked = (data.acceso || 'completo') === op.valor;
+                const caja = el('span', 'opcion ' + op.clase);
+                const ico = el('span', 'ico-op'); ico.appendChild(icono(op.icono));
+                const txt = el('span');
+                const titulo = el('b', '', op.titulo);
+                if (data.acceso_actual === op.valor) titulo.appendChild(el('span', 'actual', 'Actual'));
+                txt.append(titulo, el('small', '', op.texto));
+                caja.append(ico, txt);
+                label.append(radio, caja);
+                grupo.appendChild(label);
+            });
+            const acciones = el('div', 'perm-acciones');
+            const guardar = el('button', 'h-btn chico verde');
+            guardar.type = 'button';
+            guardar.append(icono('save'), document.createTextNode(data.acceso ? ' Actualizar acceso' : ' Guardar permiso'));
+            guardar.addEventListener('click', async () => {
+                const acceso = grupo.querySelector('input:checked').value;
+                if (acceso === 'sin_acceso' && !confirm(`${data.nombre || data.usuario} no podrá entrar a la aplicación. ¿Continuar?`)) return;
+                guardar.disabled = true;
+                const res = await enviarPermiso('autorizar', data.usuario, acceso);
+                mostrarMensaje(permMensaje, res.mensaje, res.ok ? 'ok' : 'error');
+                if (res.ok) { permVerificado.replaceChildren(); permUsuario.value = ''; pintarPermisos(res); }
+                else guardar.disabled = false;
+            });
+            acciones.appendChild(guardar);
+            cont.append(grupo, acciones);
+            return cont;
+        }
+
+        async function cargarPermisos() {
+            try {
+                const r = await fetch('/atencion/api/historico/permisos/');
+                const data = await r.json();
+                if (data.ok) pintarPermisos(data);
+            } catch (e) { /* la lista se vuelve a pedir al guardar */ }
+        }
+
+        permForm.addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const usuario = permUsuario.value.trim();
+            if (!usuario) return;
+            permVerificado.replaceChildren();
+            permVerificar.disabled = true;
+            mostrarMensaje(permMensaje, 'Verificando en Dinámica…', 'info');
+            try {
+                const r = await fetch(`/atencion/api/historico/permisos/verificar/?usuario=${encodeURIComponent(usuario)}`);
+                const data = await r.json();
+                if (!data.ok) { mostrarMensaje(permMensaje, data.mensaje, 'error'); return; }
+                mostrarMensaje(permMensaje, '', '');
+                const caja = el('div', 'perm-verificado');
+                const info = el('div', 'info');
+                info.append(
+                    el('div', 'usuario', data.nombre || data.usuario),
+                    el('div', 'detalle', `Usuario: ${data.usuario} · ${data.activo ? 'Activo en Dinámica' : 'INACTIVO en Dinámica'}`),
+                );
+                caja.appendChild(info);
+                if (data.es_superusuario) {
+                    caja.appendChild(el('span', 'etq vigente', 'Administrador: ya tiene acceso a todo'));
+                } else {
+                    caja.appendChild(el('span', 'etq acceso-' + data.acceso_actual,
+                        'Hoy: ' + (OPCIONES_ACCESO.find(o => o.valor === data.acceso_actual) || {}).titulo));
+                    caja.appendChild(selectorAcceso(data));
+                }
+                permVerificado.appendChild(caja);
+                lucide.createIcons();
+            } catch (e) {
+                mostrarMensaje(permMensaje, 'No se pudo conectar con el servidor. Intente de nuevo.', 'error');
+            } finally {
+                permVerificar.disabled = false;
+            }
+        });
+
+        cargarPermisos();
+    })();
+    </script>
+</body>
+</html>
