@@ -299,6 +299,20 @@ def _intentar(funcion, texto):
         return None, str(exc)
 
 
+def _tiene_registros_en_app(cedula):
+    """2026-10-22: True si la cédula tiene algo en esta aplicación (atención,
+    Control Posparto o documento enviado). Una cédula de Dinámica que nunca
+    pasó por Sala de Partos (p. ej. un paciente de otro servicio) no se ofrece
+    como alternativa cuando el número también es un ingreso."""
+    from frecuenciafetal.models import RegistroParto
+    from .models import AtencionParto, DocumentoRepositorio
+
+    ced = _limpiar(cedula)
+    return (AtencionParto.objects.filter(paciente=ced).exists()
+            or RegistroParto.objects.filter(identificacion=ced).exists()
+            or DocumentoRepositorio.objects.filter(cedula=ced).exists())
+
+
 def buscar(texto, tipo='auto'):
     """
     Paciente e ingresos EGRESADOS a partir de una cédula (tipo='cedula'), un
@@ -329,7 +343,7 @@ def buscar(texto, tipo='auto'):
     por_ingreso, error_ingreso = _intentar(_por_ingreso, texto) if _RE_INGRESO.match(texto) else (None, '')
     por_cedula, error_cedula = _intentar(_por_cedula, texto)
 
-    if por_ingreso and por_cedula and por_ingreso['cedula'] != texto:
+    if por_ingreso and por_cedula and por_ingreso['cedula'] != texto and _tiene_registros_en_app(texto):
         return {
             'ambiguo': True,
             'mensaje': f'El número {texto} coincide con un ingreso y con una cédula. Elija cuál busca:',

@@ -506,11 +506,20 @@ class BarraUnicaTests(TestCase):
         self.assertEqual((data['cedula'], [i['numero'] for i in data['ingresos']]), (CEDULA, [EGRESADO]))
 
     def test_numero_que_es_ingreso_y_cedula_pide_elegir(self):
+        from obstetriciaunificador.models import AtencionParto
         self.hay_cedula_antigua = True
+        AtencionParto.objects.create(paciente=self.CEDULA_ANTIGUA, numero_ingreso='1700001')  # paciente de la app
         data = self._buscar(EGRESADO)
         self.assertTrue(data['ambiguo'])
         self.assertEqual([o['tipo'] for o in data['opciones']], ['ingreso', 'cedula'])
         self.assertNotIn('ingresos', data)  # no muestra ninguna paciente hasta que se elija
+
+    def test_cedula_sin_registros_en_la_app_no_se_ofrece(self):
+        # 2026-10-22: la cédula existe en Dinámica pero nunca pasó por Sala de Partos.
+        self.hay_cedula_antigua = True
+        data = self._buscar(EGRESADO)
+        self.assertNotIn('ambiguo', data)
+        self.assertEqual((data['cedula'], [i['numero'] for i in data['ingresos']]), (CEDULA, [EGRESADO]))
 
     def test_mensajes_claros(self):
         self.assertIn('todavía no tiene egreso', self._buscar(EN_CURSO)['mensaje'])
