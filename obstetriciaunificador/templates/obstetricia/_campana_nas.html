@@ -163,6 +163,9 @@ Se incluye desde obstetricia/header_formatos.html.
             .catch(function () { /* red caída o sesión expirada: se reintenta en el próximo ciclo */ });
     }
     btn.addEventListener('click', function () {
+        // 2026-10-21: el panel de la alerta POSPARTO se abre en el mismo lugar.
+        var posparto = document.getElementById('posparto-panel');
+        if (posparto) posparto.hidden = true;
         panel.hidden = !panel.hidden;
         if (!panel.hidden) { pintar(); guardarVisto(); setTimeout(pintar, 4000); }
     });

@@ -169,6 +169,38 @@ def pendientes_datos_cierre(instance):
     return pendientes
 
 
+def requisitos_cierre(registro):
+    """2026-10-21: TODO lo que exige "Guardar Registro Completo", con su
+    estado ([{'seccion', 'texto', 'ok'}]). Mismas reglas que
+    _faltantes_control_6h + pendientes_datos_cierre; lo muestra el recuadro
+    "Para cerrar el registro" del formulario y el panel de pendientes."""
+    gemelar = (registro.numero_fetos or 1) > 1
+    req = [
+        ('paciente', 'Nombre del acompañante (o "Sin acompañante")', bool((registro.nombre_acompanante or '').strip())),
+        ('parto', 'Hora de parto' + (' del Feto A' if gemelar else ''), bool(registro.hora_parto)),
+    ]
+    if gemelar:
+        req.append(('parto', 'Hora de parto del Feto B', bool(registro.hora_parto_b)))
+    antiguo_360 = registro.controles_postparto.filter(minuto_control__gte=MINUTO_ULTIMO_CONTROL_POSPARTO).exists()
+    for relacion, etiqueta in VIGILANCIA_CIERRE:
+        ok = antiguo_360 or getattr(registro, relacion).filter(minuto_control__gte=MINUTO_ULTIMO_CONTROL_POSPARTO).exists()
+        req.append(('vigilancia', f'{etiqueta}: control de las 6 horas', ok))
+    for feto in range(1, (registro.numero_fetos or 1) + 1):
+        rn = registro.recien_nacido(feto)
+        sufijo = f' (Feto {LETRAS_FETO.get(feto, feto)})' if gemelar else ''
+        datos_ok = rn is not None and all(getattr(rn, campo) not in (None, '') for campo, _ in CAMPOS_RN_OBLIGATORIOS_CIERRE)
+        req.append(('recien_nacido', "Recién nacido: género, peso, talla y APGAR 1' y 5'" + sufijo, datos_ok))
+        req.append(('recien_nacido', 'Huella plantar del recién nacido' + sufijo, bool(rn is not None and rn.huella_pdf)))
+    return [{'seccion': s, 'texto': t, 'ok': ok} for s, t, ok in req]
+
+
+def registro_sin_datos_clinicos(registro):
+    """2026-10-21: lo que el personal (no solo el administrador) puede anular:
+    sin controles, sin recién nacido y sin datos del parto."""
+    from .unicidad import registro_vacio
+    return registro_vacio(registro) and not registro.hora_parto and not registro.tipo_parto
+
+
 def _intentar_cerrar_registro(instance, request):
     """
     Cierra el ciclo (completado_en/completado_por) si ya está registrado el
@@ -199,7 +231,9 @@ def _intentar_cerrar_registro(instance, request):
     # el formato dos veces). Solo quien lo cerró de verdad lo envía.
     completado_en = timezone.now()
     completado_por = nombre_profesional_sesion(request)
-    cerrados = RegistroParto.objects.filter(pk=instance.pk, completado_en__isnull=True).update(
+    # 2026-10-21: nunca se cierra (ni se envía) un registro anulado, ni siquiera
+    # si alguien lo anula en este mismo instante desde otra pantalla.
+    cerrados = RegistroParto.objects.filter(pk=instance.pk, completado_en__isnull=True, anulado_en__isnull=True).update(
         completado_en=completado_en, completado_por=completado_por,
     )
     if cerrados:
@@ -218,6 +252,16 @@ def _cerrar_y_enviar_a_repositorio(instance, request, data):
     DocumentoRepositorio y se informa en data['repositorio'] para reintentar
     desde /atencion/api/repositorio/enviar/.
     """
+    # 2026-10-21: un registro SIN ingreso asociado solo se cierra si se sabe con
+    # certeza en qué carpeta de la NAS va (ingreso vigente, abierto durante él);
+    # si no, no se cierra: antes se cerraba y el PDF podía ir a otro ingreso.
+    if instance.completado_en is None and not (getattr(instance.atencion, 'numero_ingreso', '') or '').strip():
+        from obstetriciaunificador.repositorio import RepositorioError, ingreso_seguro_para_envio
+        try:
+            ingreso_seguro_para_envio((instance.identificacion or '').strip(), instance.atencion, instance.created_at)
+        except RepositorioError as exc:
+            data['advertencia_cierre'] = f'No se cerró el registro: {exc}'
+            return
     advertencia_cierre = _intentar_cerrar_registro(instance, request)
     if advertencia_cierre:
         data['advertencia_cierre'] = advertencia_cierre
@@ -337,6 +381,9 @@ class BloqueoIngresoCerradoMixin:
         registro = RegistroParto.objects.select_related('atencion').filter(pk=registro_id).first()
         if registro is None:
             return
+        if registro.anulado_en is not None:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Este registro fue anulado: ya no se puede modificar.')
         from obstetriciaunificador.ingresos import motivo_bloqueo_edicion
         motivo = motivo_bloqueo_edicion(registro.atencion, request.user, creado_en=registro.created_at)
         if motivo:
@@ -460,7 +507,7 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
         identificacion = (data.get("identificacion") or "").strip()
         if identificacion:
             duplicado = RegistroParto.objects.filter(
-                identificacion=identificacion
+                identificacion=identificacion, anulado_en__isnull=True,
             ).exclude(id=instance.id).order_by('-created_at').first()
             if duplicado:
                 from django.utils import timezone
@@ -565,6 +612,92 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
         if self._hubo_cambios:
             # 2026-10-06: qué campos de Parto / Recién nacido tocó quien guarda.
             bitacora_registro_y_rn(serializer.instance, self.request, antes, despues)
+
+    @action(detail=True, methods=['get'], url_path='requisitos-cierre')
+    def requisitos_cierre_api(self, request, pk=None):
+        """2026-10-21: lo que exige "Guardar Registro Completo" y si ya está."""
+        registro = self.get_object()
+        requisitos = requisitos_cierre(registro)
+        return Response({
+            'cerrado': registro.completado_en is not None,
+            'anulado': registro.anulado_en is not None,
+            'completos': sum(1 for r in requisitos if r['ok']),
+            'total': len(requisitos),
+            'requisitos': requisitos,
+            'puede_anular': registro.completado_en is None and registro.anulado_en is None and (
+                request.user.is_superuser or registro_sin_datos_clinicos(registro)),
+        })
+
+    @action(detail=True, methods=['post'], url_path='cerrar')
+    def cerrar(self, request, pk=None):
+        """
+        2026-10-21: "Guardar y enviar a la NAS" desde el panel de pendientes para
+        un registro que YA ESTÁ COMPLETO. Respeta el mismo plazo que el resto
+        (24 h después del egreso; después solo el administrador, ver
+        BloqueoIngresoCerradoMixin). No cambia ningún dato, solo cierra, con el
+        mismo cierre del botón "Guardar Registro Completo": si falta algo no se
+        cierra, y solo quien lo cierra envía.
+        """
+        registro = self.get_object()
+        if registro.completado_en is not None:
+            return Response({'ok': True, 'mensaje': 'El registro ya estaba cerrado.'})
+        if any(not q['ok'] for q in requisitos_cierre(registro)):
+            return Response(
+                {'error': 'El registro todavía no está completo: ábralo y complete lo que falta.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        data = {}
+        _cerrar_y_enviar_a_repositorio(registro, request, data)
+        if data.get('advertencia_cierre'):
+            return Response({'error': data['advertencia_cierre']}, status=status.HTTP_400_BAD_REQUEST)
+        registrar_participacion(registro, request)
+        registrar_cambios(registro, request, 'parto', [('registro', 'Cerró el registro desde el panel de pendientes')])
+        envio = data.get('repositorio') or {}
+        return Response({
+            'ok': True,
+            'mensaje': envio.get('mensaje') or 'Registro cerrado.',
+            'enviado': bool(envio.get('ok')),
+        })
+
+    @action(detail=True, methods=['post'], url_path='anular')
+    def anular(self, request, pk=None):
+        """
+        2026-10-21: anula un registro abierto por error o de un ingreso sin
+        parto. No se borra nada: queda marcado (quién, cuándo, motivo) y en la
+        bitácora. Uno sin datos clínicos lo puede anular cualquier usuario del
+        registro; uno con datos, solo el administrador. Un cerrado, nadie.
+        (BloqueoIngresoCerradoMixin ya impide escribir en un anulado o en un
+        ingreso cerrado hace más de 24 h, salvo al administrador.)
+        """
+        from django.utils import timezone
+        registro = self.get_object()
+        if registro.completado_en is not None:
+            return Response({'error': 'Un registro cerrado no se puede anular.'}, status=status.HTTP_400_BAD_REQUEST)
+        motivos = dict(RegistroParto.MOTIVOS_ANULACION)
+        motivo = (request.data.get('motivo') or '').strip()
+        detalle = (request.data.get('detalle') or '').strip()[:255]
+        if motivo not in motivos:
+            return Response({'error': 'Elija el motivo de la anulación.'}, status=status.HTTP_400_BAD_REQUEST)
+        if motivo == 'OTRO' and not detalle:
+            return Response({'error': 'Escriba el motivo de la anulación.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not request.user.is_superuser and not registro_sin_datos_clinicos(registro):
+            return Response(
+                {'error': 'El registro tiene datos clínicos: solo el administrador puede anularlo.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        # En una sola operación: si otra pantalla lo cerró (o anuló) en este
+        # mismo instante, no se anula.
+        anulados = RegistroParto.objects.filter(pk=registro.pk, completado_en__isnull=True, anulado_en__isnull=True).update(
+            anulado_en=timezone.now(),
+            anulado_por=(nombre_profesional_sesion(request) or request.user.get_username())[:255],
+            motivo_anulacion=motivo, detalle_anulacion=detalle,
+        )
+        if not anulados:
+            return Response({'error': 'El registro acaba de cerrarse o anularse en otra pantalla.'},
+                            status=status.HTTP_409_CONFLICT)
+        texto = motivos[motivo] + (f': {detalle}' if detalle else '')
+        registrar_cambios(registro, request, 'parto', [('eliminacion', f'Anuló el registro ({texto})'[:255])])
+        return Response({'ok': True, 'mensaje': 'Registro anulado.'})
 
     @action(detail=True, methods=['get'], url_path='responsables')
     def responsables(self, request, pk=None):
@@ -783,7 +916,7 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
                 # cerrado o el que tiene los datos), no el más reciente: antes
                 # se abría un duplicado vacío y parecía que nada se guardó.
                 from .unicidad import registro_principal
-                registro = registro_principal(self.queryset.filter(id__in=ids))
+                registro = registro_principal(self.queryset.filter(id__in=ids, anulado_en__isnull=True))
                 if registro is None:
                     return Response({'encontrado': False, 'solo_consulta': resumen['solo_consulta']})
                 data = RegistroPartoSerializer(registro).data
@@ -792,9 +925,10 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
                 return Response(data)
         if atencion_id.isdigit():
             from .unicidad import registro_principal
-            registro = registro_principal(self.queryset.filter(atencion_id=atencion_id))
+            registro = registro_principal(self.queryset.filter(atencion_id=atencion_id, anulado_en__isnull=True))
         if registro is None and documento:
-            registro = self.queryset.filter(identificacion=documento).order_by('-created_at').first()
+            registro = (self.queryset.filter(identificacion=documento, anulado_en__isnull=True)
+                        .order_by('-created_at').first())
         if registro is None:
             return Response({'encontrado': False})
         data = RegistroPartoSerializer(registro).data
@@ -1271,3 +1405,57 @@ def logout_view(request):
 # 2026-09-14: se eliminaron guardar_huella(), ultima_huella() y ver_huella()
 # (captura/consulta de huella biométrica vía app Android) a pedido explícito,
 # antes de salir a producción -- frecuenciafetal.models.Huella ya no existe.
+
+
+# ---------------------------------------------------------------------------
+# 2026-10-21: panel "Posparto pendientes" (ver frecuenciafetal/pendientes.py).
+# ---------------------------------------------------------------------------
+@login_required_if_enabled
+def pendientes_posparto(request):
+    from datetime import timedelta
+    from django.shortcuts import render
+    from django.utils import timezone
+    from .pendientes import DIAS_POR_DEFECTO, registros_pendientes
+    try:
+        dias = min(60, max(1, int(request.GET.get('dias') or DIAS_POR_DEFECTO)))
+    except ValueError:
+        dias = DIAS_POR_DEFECTO
+    filas = registros_pendientes(dias)
+    # 2026-10-21: los que pasaron 24 h del egreso (gris) solo los ve el
+    # administrador: el resto del personal ya no puede completarlos.
+    if not request.user.is_superuser:
+        filas = [f for f in filas if f['categoria'] != 'bloqueado']
+    return render(request, 'registros/pendientes.html', {
+        'title': 'Posparto pendientes',
+        'filas': filas,
+        'dias': dias,
+        'urgentes': sum(1 for f in filas if f['categoria'] == 'urgente'),
+        'en_atencion': sum(1 for f in filas if f['categoria'] == 'en_atencion'),
+        'bloqueados': sum(1 for f in filas if f['categoria'] == 'bloqueado'),
+        'listos': sum(1 for f in filas if f['categoria'] == 'completo'),
+        'sin_dato': sum(1 for f in filas if f['categoria'] == 'sin_datos_ingreso'),
+        # 2026-10-21: rango que cubre el filtro "Últimos N días" (se muestra en el encabezado).
+        'rango_hasta': timezone.localdate(),
+        'rango_desde': timezone.localdate() - timedelta(days=dias),
+        'is_pendientes': True,
+    })
+
+
+@login_required_if_enabled
+def api_pendientes_resumen(request):
+    """GET /fetal/api/pendientes-resumen/ -- contador del menú y alerta del encabezado.
+    segundos_restantes se calcula AHORA (no se guarda en caché) para el
+    cronómetro: así no depende del reloj del computador de cada enfermera."""
+    import time
+    from django.http import JsonResponse
+    from .pendientes import resumen_pendientes
+    resumen = dict(resumen_pendientes())
+    total_personal = resumen.pop('total_personal', resumen['total'])
+    if not request.user.is_superuser:
+        resumen['total'] = total_personal  # sin los de más de 24 h (solo administrador)
+    ahora = time.time()
+    resumen['detalle_urgentes'] = [
+        {**p, 'segundos_restantes': max(0, int(p['limite_ts'] - ahora)) if p.get('limite_ts') else None}
+        for p in resumen.get('detalle_urgentes', [])
+    ]
+    return JsonResponse({'ok': True, **resumen})

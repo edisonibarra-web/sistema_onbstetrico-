@@ -3684,6 +3684,22 @@
     .ppw-alerta-acomp-btns { display: flex; gap: 8px; margin-left: auto; }
     .ppw-alerta-acomp button { margin-left: 0; color: #92400e; }
     .ppw-alerta-acomp #ppw-sin-acomp { background: #78350f; color: #fff; }
+    /* 2026-10-21: recuadro de requisitos de cierre. */
+    .ppw-requisitos { margin-top: 12px; border-radius: 12px; padding: 12px 16px; background: #fff7ed; border: 1px solid #fed7aa; color: #7c2d12; }
+    .ppw-requisitos.completo { background: #f0fdf4; border-color: #bbf7d0; color: #14532d; }
+    .ppw-req-cab { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ppw-req-cab svg { width: 18px; height: 18px; }
+    .ppw-req-cab span { margin-left: auto; font-size: .8rem; font-weight: 800; }
+    .ppw-requisitos ul { margin: 8px 0 0; padding-left: 20px; font-size: .86rem; }
+    .ppw-requisitos li { margin: 2px 0; }
+    .ppw-requisitos li.ok { list-style: none; margin-left: -20px; font-weight: 700; }
+    .ppw-req-anular { margin-top: 10px; padding-top: 8px; border-top: 1px dashed rgba(124, 45, 18, .25); }
+    .ppw-req-anular-btn { background: none; border: none; padding: 0; color: #64748b; font: inherit; font-size: .8rem; text-decoration: underline; cursor: pointer; }
+    .ppw-req-anular-form { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .ppw-req-anular-form[hidden] { display: none; }
+    .ppw-req-anular-form select, .ppw-req-anular-form input { padding: 6px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font: inherit; font-size: .85rem; }
+    .ppw-req-anular-form input { flex: 1; min-width: 180px; }
+    .ppw-req-anular-form button { border: none; border-radius: 6px; padding: 6px 12px; background: #475569; color: #fff; font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; }
     @keyframes ppw-latido-ambar {
       0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, .6), 0 12px 30px rgba(217, 119, 6, .38); }
       50% { box-shadow: 0 0 0 9px rgba(245, 158, 11, 0), 0 12px 30px rgba(217, 119, 6, .38); }
@@ -11472,6 +11488,24 @@
                   <button type="button" class="ppw-ctrl" id="ppw-ir-acomp">Escribir nombre</button>
                   <button type="button" class="ppw-ctrl" id="ppw-sin-acomp">Sin acompañante</button>
                 </div>
+              </div>
+              <div class="ppw-requisitos" id="ppw-requisitos" hidden>
+                <div class="ppw-req-cab"><i data-lucide="list-checks"></i><strong>Para cerrar el registro y enviarlo a la NAS</strong><span id="ppw-req-conteo"></span></div>
+                <ul id="ppw-req-lista"></ul>
+                <div class="ppw-req-anular" id="ppw-req-anular" hidden>
+                  <button type="button" class="ppw-req-anular-btn" id="ppw-req-anular-btn">¿Se abrió por error o no hubo parto? Anular registro</button>
+                  <div class="ppw-req-anular-form" id="ppw-req-anular-form" hidden>
+                    <select id="ppw-req-motivo">
+                      <option value="">Motivo de la anulación…</option>
+                      <option value="SIN_PARTO">No hubo parto en este ingreso</option>
+                      <option value="POR_ERROR">Se abrió por error</option>
+                      <option value="DUPLICADO">Registro duplicado</option>
+                      <option value="OTRO">Otro</option>
+                    </select>
+                    <input type="text" id="ppw-req-detalle" maxlength="255" placeholder="Detalle (obligatorio si es Otro)">
+                    <button type="button" id="ppw-req-confirmar">Confirmar anulación</button>
+                  </div>
+                </div>
               </div>`;
             cont.parentNode.insertBefore(shell, cont);
             shell.querySelector('.ppw-body').appendChild(cont);
@@ -11521,6 +11555,66 @@
               campo.dispatchEvent(new Event('change', { bubbles: true }));
               showToast('Se registró "SIN ACOMPAÑANTE".', 'success');
             });
+            // 2026-10-21: recuadro "Para cerrar el registro": SOLO lo que exige el
+            // cierre, calculado en el servidor con las mismas reglas del botón
+            // (los "Faltan N" de cada paso también cuentan campos opcionales).
+            async function cargarRequisitosCierre() {
+              const box = document.getElementById('ppw-requisitos');
+              if (!box) return;
+              if (!savedRegistroId || registroCerrado || window.MODO_SOLO_CONSULTA) { box.hidden = true; return; }
+              try {
+                const r = await fetch(`${API_BASE}/registros/${savedRegistroId}/requisitos-cierre/`, { headers: getHeaders() });
+                if (!r.ok) return;
+                const d = await r.json();
+                if (d.cerrado || d.anulado) { box.hidden = true; return; }
+                const faltan = d.requisitos.filter(q => !q.ok);
+                document.getElementById('ppw-req-conteo').textContent = `${d.completos} de ${d.total} listos`;
+                const lista = document.getElementById('ppw-req-lista');
+                lista.replaceChildren();
+                (faltan.length ? faltan : [{ texto: 'Todo completo: use "Guardar Registro Completo" en el paso Finalización.', ok: true }])
+                  .forEach(q => {
+                    const li = document.createElement('li');
+                    li.textContent = q.ok ? q.texto : 'Falta: ' + q.texto;
+                    li.className = q.ok ? 'ok' : '';
+                    lista.appendChild(li);
+                  });
+                box.classList.toggle('completo', !faltan.length);
+                document.getElementById('ppw-req-anular').hidden = !d.puede_anular;
+                box.hidden = false;
+              } catch (e) { /* se reintenta en el siguiente ciclo */ }
+            }
+            window.cargarRequisitosCierre = cargarRequisitosCierre;
+            setTimeout(cargarRequisitosCierre, 2500);
+            setInterval(cargarRequisitosCierre, 20000);
+
+            document.getElementById('ppw-req-anular-btn').addEventListener('click', () => {
+              const form = document.getElementById('ppw-req-anular-form');
+              form.hidden = !form.hidden;
+            });
+            document.getElementById('ppw-req-confirmar').addEventListener('click', async (ev) => {
+              const motivo = document.getElementById('ppw-req-motivo').value;
+              const detalle = document.getElementById('ppw-req-detalle').value.trim();
+              if (!motivo) { showToast('Elija el motivo de la anulación.', 'error'); return; }
+              if (motivo === 'OTRO' && !detalle) { showToast('Escriba el motivo de la anulación.', 'error'); return; }
+              if (!savedRegistroId || !confirm('¿Anular este Control Posparto? Quedará registrado quién lo anuló y el motivo, y ya no se podrá modificar.')) return;
+              ev.currentTarget.disabled = true;
+              try {
+                const r = await fetch(`${API_BASE}/registros/${savedRegistroId}/anular/`, {
+                  method: 'POST', headers: getHeaders(), body: JSON.stringify({ motivo, detalle }),
+                });
+                const data = await r.json().catch(() => ({}));
+                if (r.ok && data.ok) {
+                  showToast('Registro anulado.', 'success');
+                  setTimeout(() => window.location.reload(), 1200);
+                  return;
+                }
+                showToast(data.error || data.detail || 'No se pudo anular el registro.', 'error');
+              } catch (e) {
+                showToast('No se pudo conectar con el servidor.', 'error');
+              }
+              ev.currentTarget.disabled = false;
+            });
+
             document.getElementById('ppw-ir-guardar').addEventListener('click', () => {
               const iFin = ppwPasos.findIndex(p => p.id === 'finalizacion');
               if (iFin >= 0) ppwIrA(iFin, false);

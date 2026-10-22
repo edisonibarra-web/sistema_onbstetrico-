@@ -332,7 +332,8 @@ class TiposDeAccesoTests(TestCase):
         html = self.client.get('/atencion/historico/').content.decode()
         self.assertIn('href="/atencion/historico/"', html)
         for oculto in ('link-sala-partos-plain', 'sala-de-partos/?tab=triaje', 'id="meows-campana-btn"',
-                       'id="meows-campana-triaje-btn"', 'id="nas-campana-btn"'):
+                       'id="meows-campana-triaje-btn"', 'id="nas-campana-btn"', 'id="posparto-campana-btn"',
+                       'sidebar-pendientes-link'):
             self.assertNotIn(oculto, html, oculto)
         self.assertIn('window.SOLO_HISTORICO = true', html)
 

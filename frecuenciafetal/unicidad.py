@@ -88,12 +88,14 @@ def registros_del_mismo_ingreso(identificacion, atencion=None, ingreso=''):
         resumen, grupos = None, {}
     if resumen and resumen.get('elegido') and resumen['elegido'] != CLAVE_SIN_INGRESO \
             and not str(resumen['elegido']).startswith('triaje'):
-        return RegistroParto.objects.filter(id__in=grupos.get(resumen['elegido'], []))
+        return RegistroParto.objects.filter(id__in=grupos.get(resumen['elegido'], []), anulado_en__isnull=True)
+    # 2026-10-21: un registro anulado no impide abrir uno nuevo en el ingreso.
+    vigentes = RegistroParto.objects.filter(anulado_en__isnull=True)
     numero = (getattr(atencion, 'numero_ingreso', '') or '').strip()
     if numero:
-        return RegistroParto.objects.filter(identificacion=identificacion, atencion__numero_ingreso=numero)
+        return vigentes.filter(identificacion=identificacion, atencion__numero_ingreso=numero)
     if atencion is not None:
-        return RegistroParto.objects.filter(identificacion=identificacion, atencion=atencion)
+        return vigentes.filter(identificacion=identificacion, atencion=atencion)
     return RegistroParto.objects.none()
 
 

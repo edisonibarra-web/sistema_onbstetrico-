@@ -14,7 +14,10 @@ from django.core.management.base import BaseCommand, CommandError
 
 from frecuenciafetal.models import RegistroParto
 from obstetriciaunificador.models import DocumentoRepositorio
-from obstetriciaunificador.repositorio import _contenido_pdf, enviar_formato, ingreso_para_envio
+from obstetriciaunificador.repositorio import (
+    _archivos_del_formato, _contenido_pdf, _limpiar, bloqueo_envio, confirmar_envios_grupo, enviar_formato,
+    listar_documentos_ingreso,
+)
 
 
 class Command(BaseCommand):
@@ -49,17 +52,42 @@ class Command(BaseCommand):
             if en_nas:
                 self.stdout.write(self.style.SUCCESS(f'  Ya está en la NAS: {en_nas.ruta}'))
                 continue
-            atencion, ingreso = ingreso_para_envio(cedula, r.atencion)
+            # 2026-10-21: solo el ingreso GUARDADO en el registro (nunca se adivina:
+            # el ingreso "actual" de la paciente puede ser otro).
+            atencion = r.atencion
+            ingreso = (getattr(atencion, 'numero_ingreso', '') or '').strip()
             if not ingreso:
-                self.stdout.write(self.style.ERROR('  Sin número de ingreso: no se puede ubicar la carpeta en la NAS.'))
+                self.stdout.write(self.style.ERROR('  El registro no tiene ingreso asociado: no se puede ubicar la carpeta en la NAS.'))
                 continue
             if not aplicar:
                 self.stdout.write(f'  PRUEBA: se subiría a /{settings.REPO_FTP_BASE_PATH}/{cedula}/{ingreso}/ '
                                   '(agregue --aplicar para subirlo).')
                 continue
-            pdf = _contenido_pdf(generar_pdf_registro(r))
-            envio = enviar_formato(pdf, cedula=cedula, numero_ingreso=ingreso, formato='control_posparto',
-                                   atencion=atencion, referencia=r.pk, usuario='reenvío manual (consola)')
+            # Mismo candado que "Guardar Registro Completo" / "Reenviar": nunca dos a la vez.
+            with bloqueo_envio(f'manual|control_posparto|{_limpiar(cedula)}|{_limpiar(ingreso)}|{r.pk}'):
+                # Un envío anterior "enviando" (sin confirmar) se resuelve contra la NAS primero.
+                if DocumentoRepositorio.objects.filter(formato='control_posparto', referencia=str(r.pk)[:64],
+                                                       estado=DocumentoRepositorio.ESTADO_ENVIANDO).exists():
+                    confirmar_envios_grupo(cedula, ingreso, 'control_posparto')
+                if DocumentoRepositorio.objects.filter(formato='control_posparto', referencia=str(r.pk)[:64],
+                                                       estado=DocumentoRepositorio.ESTADO_ENVIADO, modo='nas').exists():
+                    self.stdout.write(self.style.SUCCESS('  Ya está en la NAS (se acaba de confirmar).'))
+                    continue
+                # Un PDF de posparto en la carpeta que la bitácora no atribuye a OTRO
+                # registro podría ser este (subido sin constancia): no se sube otro.
+                de_otros = set(DocumentoRepositorio.objects.filter(
+                    formato='control_posparto', cedula=_limpiar(cedula)[:50], numero_ingreso=_limpiar(ingreso)[:30],
+                    modo='nas').exclude(referencia=str(r.pk)[:64]).values_list('nombre_archivo', flat=True))
+                sueltos = [n for n in _archivos_del_formato(listar_documentos_ingreso(cedula, ingreso), 'control_posparto',
+                                                            _limpiar(cedula)).values() if n not in de_otros]
+                if sueltos:
+                    self.stdout.write(self.style.WARNING(
+                        f'  En la carpeta ya hay un PDF de Control Posparto sin constancia ({", ".join(sueltos)}): '
+                        'puede ser este. No se sube otro; revíselo en la NAS.'))
+                    continue
+                pdf = _contenido_pdf(generar_pdf_registro(r))
+                envio = enviar_formato(pdf, cedula=cedula, numero_ingreso=ingreso, formato='control_posparto',
+                                       atencion=atencion, referencia=r.pk, usuario='reenvío manual (consola)')
             if envio.estado == DocumentoRepositorio.ESTADO_ENVIADO:
                 self.stdout.write(self.style.SUCCESS(f'  Subido a la NAS: {envio.ruta}'))
             else:

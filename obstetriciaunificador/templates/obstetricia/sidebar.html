@@ -210,6 +210,44 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         .sidebar-module-header:hover .icon-container.icon-container-triaje {
             box-shadow: 0 4px 14px rgba(245, 158, 11, 0.6);
         }
+        .sidebar-module-header .icon-container.icon-container-pendientes {
+            background: linear-gradient(135deg, #f9a8d4, #db2777);
+            box-shadow: 0 3px 10px rgba(219, 39, 119, 0.45);
+            color: #ffffff;
+        }
+        .sidebar-pendientes-badge {
+            position: absolute; top: 6px; left: 40px; min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box;
+            border-radius: 999px; background: #64748b; color: #fff; font-size: 0.72rem; font-weight: 800;
+            display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #0f1f38;
+        }
+        .sidebar-pendientes-badge[hidden] { display: none; }
+        /* 2026-10-21: hay registros completos que solo falta guardar: ítem verde y
+           palpitante (las egresadas por completar las avisa la alerta POSPARTO del encabezado). */
+        .sidebar-module-header.alerta-listos {
+            background: linear-gradient(135deg, rgba(22, 163, 74, 0.55), rgba(21, 128, 61, 0.78)) !important;
+            border: 1px solid rgba(74, 222, 128, 0.9) !important;
+            animation: sidebar-pendientes-palpita 1.4s ease-in-out infinite;
+        }
+        .sidebar-module-header.alerta-listos .icon-container-pendientes {
+            background: linear-gradient(135deg, #4ade80, #16a34a);
+            box-shadow: 0 3px 10px rgba(22, 163, 74, 0.5);
+            animation: sidebar-pendientes-icono 1.4s ease-in-out infinite;
+        }
+        .sidebar-module-header.alerta-listos .sidebar-module-title,
+        .sidebar-module-header.alerta-listos .sidebar-module-name { color: #fff !important; }
+        .sidebar-module-header.alerta-listos .sidebar-pendientes-badge { background: #fff; color: #15803d; box-shadow: 0 0 0 2px #16a34a; }
+        @keyframes sidebar-pendientes-palpita {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+            50% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+        }
+        @keyframes sidebar-pendientes-icono {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .sidebar-module-header.alerta-listos,
+            .sidebar-module-header.alerta-listos .icon-container-pendientes { animation: none; }
+        }
         .sidebar-module-header .icon-container.icon-container-historico {
             background: linear-gradient(135deg, #a5b4fc, #6366f1);
             box-shadow: 0 3px 10px rgba(99, 102, 241, 0.45);
@@ -310,6 +348,46 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
             </div>
         </a>
     </div>
+
+    <!-- 2026-10-21: Control Posparto sin cerrar (ver frecuenciafetal/pendientes.py).
+         Aviso verde = registros completos a los que solo les falta "Guardar Registro
+         Completo". Las egresadas por completar las avisa la alerta POSPARTO del encabezado. -->
+    <div class="sidebar-module">
+        <a href="/fetal/pendientes/" id="sidebar-pendientes-link" class="sidebar-module-header {% if is_pendientes %}active{% endif %}" style="text-decoration: none; color: inherit; position: relative;" title="Control Posparto sin completar al egreso">
+            <div class="icon-container icon-container-pendientes">
+                <i data-lucide="clipboard-list" class="nav-icon"></i>
+            </div>
+            <div class="sidebar-module-info">
+                <div class="sidebar-module-title">Pendientes al egreso</div>
+                <div class="sidebar-module-name">Control Posparto</div>
+            </div>
+            <span class="sidebar-pendientes-badge" id="sidebar-pendientes-badge" hidden></span>
+        </a>
+    </div>
+    <script>
+        (function () {
+            const badge = document.getElementById('sidebar-pendientes-badge');
+            if (!badge) return;
+            fetch('/fetal/api/pendientes-resumen/', { credentials: 'same-origin' })
+                .then(r => r.ok ? r.json() : null)
+                .then(d => {
+                    if (!d || !d.ok) return;
+                    // 2026-10-21: el ítem avisa SOLO los registros completos a los que
+                    // solo les falta "Guardar Registro Completo" (verde y palpitante).
+                    const n = d.completos || 0;
+                    if (!n) return;
+                    badge.textContent = n;
+                    badge.title = `${n} Control Posparto completo(s): solo falta pulsar "Guardar Registro Completo"`;
+                    badge.hidden = false;
+                    const enlace = document.getElementById('sidebar-pendientes-link');
+                    if (enlace) {
+                        enlace.classList.add('alerta-listos');
+                        enlace.title = `${n} Control Posparto listo(s) para guardar: ábralos y pulse "Guardar Registro Completo" para enviarlos a la NAS`;
+                    }
+                })
+                .catch(() => {});
+        })();
+    </script>
     {% endif %}
 
     <!-- 2026-10-20: Consulta histórica de pacientes egresadas -- solo el

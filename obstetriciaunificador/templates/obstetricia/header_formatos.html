@@ -383,7 +383,9 @@
     {# clínico) -- sola en el extremo IZQUIERDO del encabezado, a pedido. #}
     <div class="header-formatos-izquierda">
         {# 2026-10-20: el personal de "solo consulta histórica" no recibe avisos clínicos. #}
-        {% if not solo_historico %}{% include 'obstetricia/_campana_nas.html' %}{% endif %}
+        {% if not solo_historico %}{% include 'obstetricia/_campana_nas.html' %}
+        {# 2026-10-21: alerta de egresadas sin Control Posparto (solo aparece si hay). #}
+        {% include 'obstetricia/_campana_posparto.html' %}{% endif %}
     </div>
     <div class="header-formatos-institucional">
         <img src="{% static 'img/logo_hospital.png' %}" alt="Logo Hospital">

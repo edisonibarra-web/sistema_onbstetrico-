@@ -1,0 +1,135 @@
+{% comment %}
+2026-10-21: alerta "POSPARTO" del encabezado, al lado de la campana NAS.
+Aparece SOLO cuando hay pacientes que ya egresaron con el Control Posparto sin
+cerrar y todavía están dentro de las 24 h en que se puede completar en
+pantalla (lo rojo del panel /fetal/pendientes/). Roja y palpitante, con el
+número de pacientes; al pulsarla muestra la lista con las horas que quedan.
+Datos: /fetal/api/pendientes-resumen/ (frecuenciafetal/pendientes.py). Se
+incluye desde obstetricia/header_formatos.html (no para "solo histórico").
+{% endcomment %}
+<style>
+#posparto-campana-grupo[hidden] { display: none; }
+#posparto-campana-btn {
+    background: linear-gradient(135deg, #fb7185 0%, #be123c 100%);
+    animation: meows-campana-pulso-rojo 1.6s ease-in-out infinite;
+}
+#posparto-campana-btn .meows-campana-badge { color: #be123c; }
+.meows-campana-etiqueta-posparto { color: #fecdd3 !important; }
+.posparto-panel {
+    position: fixed; top: 96px; left: 24px; z-index: 10040;
+    width: min(440px, calc(100vw - 32px)); max-height: min(70vh, 560px); overflow: hidden;
+    display: flex; flex-direction: column;
+    background: #ffffff; border: 1px solid #fecdd3; border-radius: 14px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28); font-family: inherit; color: #1e293b;
+}
+.posparto-panel[hidden] { display: none; }
+.posparto-panel__cab {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+    padding: 12px 16px; background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+    border-bottom: 1px solid #fecdd3; font-weight: 800; font-size: 0.92rem; color: #9f1239;
+}
+.posparto-panel__cab small { display: block; font-size: 0.76rem; font-weight: 600; color: #be123c; margin-top: 2px; }
+.posparto-panel__cerrar { background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: #9f1239; }
+.posparto-panel__lista { list-style: none; margin: 0; padding: 6px 0; overflow-y: auto; }
+.posparto-panel__item { display: flex; gap: 10px; align-items: center; padding: 10px 16px; border-bottom: 1px solid #fff1f2; font-size: 0.84rem; }
+.posparto-panel__item strong { display: block; font-weight: 800; }
+.posparto-panel__meta { color: #64748b; font-size: 0.78rem; }
+.posparto-panel__aviso { display: block; color: #be123c; font-weight: 800; font-size: 0.76rem; text-transform: uppercase; letter-spacing: .03em; margin: 1px 0 2px; }
+.posparto-panel__aviso--completo { color: #15803d; }
+.posparto-crono { margin-left: auto; flex-shrink: 0; text-align: center; background: #be123c; color: #fff; border-radius: 10px; padding: 6px 10px; min-width: 92px; }
+.posparto-crono b { display: block; font-size: 1.05rem; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.posparto-crono small { display: block; font-size: 0.66rem; font-weight: 700; opacity: .9; text-transform: uppercase; }
+.posparto-crono.critico { background: #7f1d1d; animation: posparto-crono-latido 1s ease-in-out infinite; }
+.posparto-crono.vencido { background: #475569; animation: none; }
+@keyframes posparto-crono-latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.posparto-panel__item a { color: inherit; text-decoration: none; display: flex; gap: 10px; align-items: center; width: 100%; }
+.posparto-panel__item a:hover strong { text-decoration: underline; }
+.posparto-panel__pie { padding: 10px 16px; border-top: 1px solid #fecdd3; text-align: right; }
+.posparto-panel__pie a { color: #be123c; font-weight: 800; font-size: 0.85rem; text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { #posparto-campana-btn, .posparto-crono.critico { animation: none; } }
+</style>
+<div class="meows-campana-grupo" id="posparto-campana-grupo" hidden>
+    <button type="button" class="meows-campana-btn" id="posparto-campana-btn" aria-haspopup="true" aria-controls="posparto-panel"
+            title="URGENTE: pacientes egresadas sin Control Posparto">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11v3"/><path d="M12 18h.01"/></svg>
+        <span class="meows-campana-badge" id="posparto-campana-badge">0</span>
+    </button>
+    <span class="meows-campana-etiqueta meows-campana-etiqueta-posparto">POSPARTO</span>
+</div>
+<div class="posparto-panel" id="posparto-panel" hidden role="dialog" aria-label="Pacientes egresadas sin Control Posparto">
+    <div class="posparto-panel__cab">
+        <span>⚠ URGENTE: pacientes egresadas sin Control Posparto
+            <small>Estas pacientes ya salieron del hospital. Complete (o guarde, si ya está completo) su Control Posparto antes de que el cronómetro llegue a cero: después solo el administrador puede hacerlo.</small></span>
+        <button type="button" class="posparto-panel__cerrar" id="posparto-panel-cerrar" title="Cerrar">&times;</button>
+    </div>
+    <ul class="posparto-panel__lista" id="posparto-panel-lista"></ul>
+    <div class="posparto-panel__pie"><a href="/fetal/pendientes/">Ver todos los pendientes →</a></div>
+</div>
+<script>
+(function () {
+    var grupo = document.getElementById('posparto-campana-grupo');
+    var btn = document.getElementById('posparto-campana-btn');
+    var badge = document.getElementById('posparto-campana-badge');
+    var panel = document.getElementById('posparto-panel');
+    var lista = document.getElementById('posparto-panel-lista');
+    if (!grupo || !btn) return;
+    function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+    function pintar(d) {
+        var n = (d && d.urgentes) || 0;
+        grupo.hidden = !n;
+        if (!n) { panel.hidden = true; return; }
+        badge.textContent = n;
+        btn.title = 'URGENTE: ' + n + ' paciente(s) egresaron sin Control Posparto. Regístrelo antes de 24 h del egreso';
+        recibido = performance.now();
+        lista.innerHTML = (d.detalle_urgentes || []).map(function (p) {
+            var seg = (p.segundos_restantes == null) ? '' : String(p.segundos_restantes);
+            return '<li class="posparto-panel__item"><a href="' + esc(p.url) + '">'
+                + '<span><strong>' + esc(p.paciente || 'Paciente') + '</strong>'
+                + (p.completo
+                    ? '<span class="posparto-panel__aviso posparto-panel__aviso--completo">Egresó · registro completo, falta guardar</span>'
+                    : '<span class="posparto-panel__aviso">Egresó · registre el Control Posparto YA</span>')
+                + '<span class="posparto-panel__meta">' + (p.egreso_texto ? 'Egreso: ' + esc(p.egreso_texto) + ' · ' : '')
+                + 'Cédula ' + esc(p.cedula) + (p.ingreso ? ' · Ingreso ' + esc(p.ingreso) : '') + '</span></span>'
+                + (seg !== '' ? '<span class="posparto-crono" data-seg="' + esc(seg) + '"><b>--:--:--</b><small>'
+                    + (p.completo ? 'para guardar' : 'para completar') + '</small></span>' : '')
+                + '</a></li>';
+        }).join('');
+        tic();
+    }
+    // Cronómetro: cuenta hacia atrás desde los segundos que dio el servidor.
+    var recibido = 0;
+    function dosDigitos(x) { return (x < 10 ? '0' : '') + x; }
+    function tic() {
+        var pasados = Math.floor((performance.now() - recibido) / 1000);
+        lista.querySelectorAll('.posparto-crono').forEach(function (c) {
+            var quedan = Math.max(0, parseInt(c.getAttribute('data-seg'), 10) - pasados);
+            var b = c.querySelector('b'), sm = c.querySelector('small');
+            if (quedan <= 0) {
+                b.textContent = '00:00:00';
+                sm.textContent = 'vencido: administrador';
+                c.className = 'posparto-crono vencido';
+                return;
+            }
+            var h = Math.floor(quedan / 3600), m = Math.floor((quedan % 3600) / 60), s = quedan % 60;
+            b.textContent = dosDigitos(h) + ':' + dosDigitos(m) + ':' + dosDigitos(s);
+            c.className = 'posparto-crono' + (quedan < 2 * 3600 ? ' critico' : '');  // últimas 2 h: late
+        });
+    }
+    setInterval(tic, 1000);
+    function sondear() {
+        fetch('/fetal/api/pendientes-resumen/', { credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (d) { if (d && d.ok) pintar(d); })
+            .catch(function () { /* se reintenta en el próximo ciclo */ });
+    }
+    btn.addEventListener('click', function () {
+        var nas = document.getElementById('nas-panel');
+        if (nas) nas.hidden = true;  // los dos paneles se abren en el mismo lugar
+        panel.hidden = !panel.hidden;
+    });
+    document.getElementById('posparto-panel-cerrar').addEventListener('click', function () { panel.hidden = true; });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') panel.hidden = true; });
+    sondear();
+    setInterval(sondear, 120000);  // cada 2 minutos
+})();
+</script>

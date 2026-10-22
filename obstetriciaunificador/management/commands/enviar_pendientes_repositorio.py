@@ -3,6 +3,8 @@ Envía al repositorio clínico (NAS / carpeta local de pruebas) los formatos
 automáticos pendientes:
   - Triaje de pacientes que ya recibieron ingreso.
   - MEOWS de pacientes que ya egresaron (una vez por ingreso).
+  - Trabajo de Parto de pacientes que ya egresaron, si la hoja tiene controles
+    y nunca se envió con "Finalizar" (2026-10-21).
 Normalmente no hace falta correrlo a mano: lo hace la sincronización
 periódica con Dinámica (sincronizar_signos_vitales_dinamica).
 
@@ -11,12 +13,13 @@ periódica con Dinámica (sincronizar_signos_vitales_dinamica).
 from django.core.management.base import BaseCommand
 
 from obstetriciaunificador.repositorio import (
-    DIAS_REVISION_EGRESO, confirmar_envios_pendientes, enviar_meows_egresos_pendientes, enviar_triajes_pendientes,
+    DIAS_REVISION_EGRESO, confirmar_envios_pendientes, enviar_meows_egresos_pendientes,
+    enviar_trabajo_parto_egresos_pendientes, enviar_triajes_pendientes,
 )
 
 
 class Command(BaseCommand):
-    help = 'Envía al repositorio los triajes con ingreso y los MEOWS de pacientes egresadas.'
+    help = 'Envía al repositorio los triajes con ingreso, y los MEOWS y Trabajo de Parto de pacientes egresadas.'
 
     def add_arguments(self, parser):
         parser.add_argument('--dias', type=int, default=None,
@@ -30,6 +33,8 @@ class Command(BaseCommand):
         enviados = (
             [('TRIAJE', d, e) for d, e in enviar_triajes_pendientes(dias=opts['dias'] or 7)]
             + [('MEOWS EGRESO', d, e) for d, e in enviar_meows_egresos_pendientes(dias=opts['dias'] or DIAS_REVISION_EGRESO)]
+            # 2026-10-21: hojas de Trabajo de Parto nunca enviadas de pacientes egresadas.
+            + [('TRABAJO DE PARTO EGRESO', d, e) for d, e in enviar_trabajo_parto_egresos_pendientes()]
         )
         if not enviados:
             self.stdout.write('Sin formatos pendientes de enviar.')

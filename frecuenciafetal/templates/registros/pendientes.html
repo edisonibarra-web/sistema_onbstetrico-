@@ -1,0 +1,382 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} | Sistema Obstétrico Unificado</title>
+    <link rel="stylesheet" href="{% static 'obstetriciaunificador/css/sidebar.css' %}">
+    <script src="{% static 'obstetriciaunificador/js/lucide.min.js' %}"></script>
+    <style>
+        /* 2026-10-21: Control Posparto pendientes (ver frecuenciafetal/pendientes.py). */
+        :root { --p-tinta: #15224a; --p-texto: #3b4668; --p-suave: #6b7593; --p-borde: #dfe3f1; }
+        body { margin: 0; font-family: 'Nunito', 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f3f2fb; color: var(--p-tinta); }
+        .app-layout { display: flex; min-height: 100vh; }
+        .main-content { flex: 1; padding: 28px 40px 48px; box-sizing: border-box; min-width: 0; background: linear-gradient(180deg, #f6f5fd 0%, #eeedf9 100%); }
+        /* ---------- Encabezado (diseño 2026-10-21) ---------- */
+        .p-card { position: relative; overflow: hidden; border: 1px solid #fff; border-radius: 18px; margin-bottom: 18px;
+                  background: #fff; box-shadow: 0 12px 30px rgba(76, 63, 160, 0.10); }
+        .p-hero { position: relative; display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; padding: 26px 28px 24px;
+                  background: linear-gradient(100deg, #fbf8ff 0%, #f9f2fb 45%, #f8dcea 78%, #f3d6ec 100%); }
+        .p-hero .p-ilustracion { position: absolute; right: 245px; top: 0; height: 100%; width: 280px; pointer-events: none; opacity: .95; }
+        .p-icono { width: 96px; height: 96px; border-radius: 22px; display: grid; place-items: center; color: #fff; flex-shrink: 0;
+                   background: linear-gradient(145deg, #ff5fa2 0%, #ec4899 45%, #db2777 100%);
+                   box-shadow: 0 14px 28px rgba(219, 39, 119, 0.35), inset 0 1px 0 rgba(255,255,255,.35); }
+        .p-icono svg { width: 46px; height: 46px; stroke-width: 2; }
+        .p-hero-texto { position: relative; z-index: 1; flex: 1; min-width: 260px; }
+        .p-kicker { font-size: .78rem; font-weight: 800; letter-spacing: .28em; color: #5b6488; text-transform: uppercase; }
+        .p-kicker span { margin: 0 8px; color: #a3a9c3; }
+        .p-hero h1 { margin: 4px 0 10px; font-size: 2.15rem; font-weight: 800; color: #14215a; letter-spacing: -.01em; }
+        .p-hero p { margin: 0; color: #23305e; font-size: .95rem; line-height: 1.6; max-width: 640px; }
+        .p-hero-ctrl { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; flex-shrink: 0; }
+        .p-filtro { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,.75); border: 1px solid #ece8f6;
+                    border-radius: 14px; padding: 8px 8px 8px 16px; box-shadow: 0 6px 16px rgba(76, 63, 160, .08); }
+        .p-filtro label { display: flex; align-items: center; gap: 10px; font-size: 1rem; color: #23305e; }
+        .p-filtro label svg { width: 24px; height: 24px; color: #14215a; }
+        .p-filtro select { appearance: none; -webkit-appearance: none; border: 1px solid #e5e7f0; background: #fff
+                     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2314215a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center;
+                     border-radius: 10px; padding: 10px 44px 10px 16px; font: inherit; font-weight: 800; font-size: 1rem; color: #14215a; cursor: pointer; }
+        .p-rango { display: flex; align-items: center; gap: 10px; }
+        .p-rango-fechas { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #e5e7f0; border-radius: 12px;
+                          padding: 11px 18px; font-size: .95rem; color: #14215a; box-shadow: 0 6px 16px rgba(76, 63, 160, .06); }
+        .p-rango-fechas svg { width: 22px; height: 22px; }
+        .p-recargar { width: 46px; height: 46px; border-radius: 12px; border: 1px solid #e5e7f0; background: #fff; display: grid; place-items: center;
+                      color: #14215a; cursor: pointer; box-shadow: 0 6px 16px rgba(76, 63, 160, .06); }
+        .p-recargar:hover { background: #f6f4fd; }
+        .p-recargar svg { width: 20px; height: 20px; }
+
+        /* ---------- Recuadros del resumen ---------- */
+        .p-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; padding: 16px 24px 24px; }
+        .p-chip { position: relative; overflow: hidden; border-radius: 16px; padding: 18px 18px 16px; border: 1px solid; cursor: pointer;
+                  transition: transform .15s, box-shadow .15s; text-align: left; font: inherit; }
+        .p-chip:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(15, 23, 42, .08); }
+        .p-chip.activo { box-shadow: 0 0 0 3px currentColor; }
+        .p-chip-cab { display: flex; align-items: center; gap: 16px; }
+        .p-chip-ico { width: 64px; height: 64px; border-radius: 16px; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
+        .p-chip-ico svg { width: 30px; height: 30px; }
+        .p-chip-num b { display: block; font-size: 2.6rem; font-weight: 800; line-height: 1; }
+        .p-chip-num span { display: block; margin-top: 6px; font-size: .9rem; font-weight: 800; }
+        .p-chip-flecha { position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; border-radius: 50%; background: #fff;
+                         display: grid; place-items: center; box-shadow: 0 2px 8px rgba(15, 23, 42, .12); }
+        .p-chip-flecha svg { width: 18px; height: 18px; stroke-width: 2.6; transition: transform .15s; }
+        .p-chip.activo .p-chip-flecha svg { transform: rotate(90deg); }
+        .p-chip-pie { display: flex; align-items: flex-end; gap: 10px; margin-top: 18px; }
+        .p-chip-pie > svg { width: 20px; height: 20px; flex-shrink: 0; margin-bottom: 14px; }
+        .p-chip-pie strong { display: block; font-size: .9rem; }
+        .p-chip-pie small { display: block; font-size: .78rem; color: #475569; margin-top: 2px; }
+        .p-chip-barras { margin-left: auto; display: flex; align-items: flex-end; gap: 4px; height: 52px; }
+        .p-chip-barras i { display: block; width: 12px; border-radius: 4px 4px 2px 2px; }
+        .p-chip-barras i:nth-child(1) { height: 16px; opacity: .35; } .p-chip-barras i:nth-child(2) { height: 26px; opacity: .5; }
+        .p-chip-barras i:nth-child(3) { height: 38px; opacity: .7; } .p-chip-barras i:nth-child(4) { height: 52px; opacity: .9; }
+        .p-chip.urgente { background: linear-gradient(180deg, #fff6f8, #fff0f3); border-color: #fbd0da; color: #e11d48; }
+        .p-chip.urgente .p-chip-ico { background: linear-gradient(145deg, #ff5f8f, #e11d48); box-shadow: 0 8px 18px rgba(225, 29, 72, .3); }
+        .p-chip.urgente .p-chip-barras i { background: linear-gradient(180deg, #fb7185, #f9a8d4); }
+        .p-chip.atencion { background: linear-gradient(180deg, #f5f9ff, #eef4ff); border-color: #cfe0fb; color: #2563eb; }
+        .p-chip.atencion .p-chip-ico { background: linear-gradient(145deg, #3b8cff, #1d4ed8); box-shadow: 0 8px 18px rgba(37, 99, 235, .3); }
+        .p-chip.atencion .p-chip-barras i { background: linear-gradient(180deg, #60a5fa, #bfdbfe); }
+        .p-chip.sindato { background: linear-gradient(180deg, #fbf7ff, #f6f0ff); border-color: #e6d8fb; color: #9333ea; }
+        .p-chip.sindato .p-chip-ico { background: linear-gradient(145deg, #b05cff, #7e22ce); box-shadow: 0 8px 18px rgba(147, 51, 234, .3); }
+        .p-chip.sindato .p-chip-barras i { background: linear-gradient(180deg, #c084fc, #e9d5ff); }
+        .p-chip.bloqueado { background: linear-gradient(180deg, #f8fafc, #f1f5f9); border-color: #e2e8f0; color: #475569; }
+        .p-chip.bloqueado .p-chip-ico { background: linear-gradient(145deg, #a3afc2, #64748b); box-shadow: 0 8px 18px rgba(100, 116, 139, .3); }
+        .p-chip.bloqueado .p-chip-barras i { background: linear-gradient(180deg, #94a3b8, #e2e8f0); }
+        .p-chip.listo { background: linear-gradient(180deg, #f3fdf7, #ecfbf2); border-color: #c7efd6; color: #16a34a; }
+        .p-chip.listo .p-chip-ico { background: linear-gradient(145deg, #34d27b, #15803d); box-shadow: 0 8px 18px rgba(22, 163, 74, .3); }
+        .p-chip.listo .p-chip-barras i { background: linear-gradient(180deg, #4ade80, #bbf7d0); }
+        .p-chip .p-chip-num span, .p-chip .p-chip-pie strong { color: inherit; }
+        .p-filtrando-aviso { display: none; margin: 0 0 12px; font-size: .88rem; color: #475569; }
+        .p-filtrando-aviso.visible { display: block; }
+        .p-filtrando-aviso button { background: none; border: none; padding: 0; color: #2563eb; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+        @media (max-width: 1500px) { .p-hero .p-ilustracion { display: none; } .p-hero p { max-width: 820px; } }
+        @media (max-width: 1100px) { .p-hero-ctrl { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; align-items: center; } }
+        @media (max-width: 760px) { .p-icono { width: 72px; height: 72px; } .p-hero h1 { font-size: 1.6rem; } }
+
+        .p-fila { background: #fff; border: 1px solid var(--p-borde); border-left: 6px solid #cbd5e1; border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; }
+        /* 2026-10-21: cada tarjeta con el color de su recuadro del resumen. */
+        .p-fila.cat-urgente { background: #fff1f2; border-color: #fecdd3; border-left-color: #e11d48; }
+        .p-fila.cat-en_atencion { background: #eff6ff; border-color: #bfdbfe; border-left-color: #3b82f6; }
+        .p-fila.cat-completo { background: #f0fdf4; border-color: #bbf7d0; border-left-color: #16a34a; }
+        .p-fila.cat-bloqueado { background: #f1f5f9; border-color: #e2e8f0; border-left-color: #94a3b8; }
+        .p-fila.cat-sin_datos_ingreso { background: #faf5ff; border-color: #e9d5ff; border-left-color: #a855f7; }
+        .p-fila.cat-urgente .p-barra > span { background: linear-gradient(90deg, #fb7185, #e11d48); }
+        .p-fila.cat-en_atencion .p-barra > span { background: linear-gradient(90deg, #60a5fa, #2563eb); }
+        .p-fila.cat-completo .p-barra > span { background: linear-gradient(90deg, #4ade80, #16a34a); }
+        .p-fila.cat-bloqueado .p-barra > span { background: linear-gradient(90deg, #cbd5e1, #94a3b8); }
+        .p-fila .p-barra { background: rgba(255, 255, 255, 0.85); }
+        .p-fila-cab { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .p-nombre { font-weight: 800; font-size: 1rem; }
+        .p-dato { color: var(--p-suave); font-size: 0.82rem; }
+        .p-estado { margin-left: auto; border-radius: 999px; padding: 4px 12px; font-size: 0.78rem; font-weight: 800; }
+        .p-estado.urgente { background: #ffe4e6; color: #be123c; }
+        .p-estado.en_atencion { background: #dbeafe; color: #1d4ed8; }
+        .p-estado.bloqueado { background: #f1f5f9; color: #475569; }
+        .p-estado.sin_datos_ingreso { background: #f3e8ff; color: #7e22ce; }
+        .p-barra { height: 6px; border-radius: 99px; background: #eef0f6; margin: 10px 0 8px; overflow: hidden; }
+        .p-barra > span { display: block; height: 100%; background: linear-gradient(90deg, #f472b6, #db2777); }
+        .p-faltan { margin: 0; padding-left: 18px; font-size: 0.85rem; color: var(--p-texto); }
+        .p-faltan li { margin: 2px 0; }
+        .p-listo-txt { font-size: 0.88rem; color: #15803d; font-weight: 800; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 12px; }
+        .p-acciones { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+        .p-btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 8px; padding: 7px 14px; font: inherit; font-size: 0.85rem; font-weight: 800; cursor: pointer; text-decoration: none; }
+        .p-btn svg { width: 16px; height: 16px; }
+        .p-btn.abrir { background: #fce7f3; color: #be185d; }
+        .p-btn.abrir:hover { background: #fbcfe8; }
+        .p-btn.anular { background: #f1f5f9; color: #475569; }
+        .p-btn.anular:hover { background: #e2e8f0; }
+        .p-btn.confirmar { background: #475569; color: #fff; }
+        .p-btn.guardar { background: #16a34a; color: #fff; }
+        .p-btn.guardar:hover { background: #15803d; }
+        .p-btn:disabled { opacity: .6; cursor: wait; }
+        .p-anular-form { display: none; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: #f8fafc; border: 1px dashed #cbd5e1; font-size: 0.85rem; }
+        .p-anular-form.abierto { display: flex; }
+        .p-anular-form select, .p-anular-form input { padding: 6px 8px; border-radius: 6px; border: 1px solid #c9cfe3; font: inherit; }
+        .p-anular-form input { flex: 1; min-width: 180px; }
+        .p-vacia { text-align: center; color: var(--p-suave); padding: 30px; }
+        @media (max-width: 640px) { .main-content { padding: 18px 16px 32px; } .p-filtro { margin-left: 0; } }
+    </style>
+</head>
+<body>
+    {% include "obstetricia/header_formatos.html" with current_module='' documento='' modulo_titulo='Hospital Universitario Departamental' modulo_subtitulo='Sistema Unificado de Obstetricia' ocultar_btn_regresar=True %}
+    <div class="app-layout">
+        {% include "obstetricia/sidebar.html" %}
+        <main class="main-content">
+            <section class="p-card">
+                <div class="p-hero">
+                <svg class="p-ilustracion" viewBox="0 0 330 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="pi-piel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f9c6dc"/><stop offset="1" stop-color="#e98bb7"/></linearGradient>
+                        <linearGradient id="pi-pelo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4669c"/><stop offset="1" stop-color="#b44a83"/></linearGradient>
+                        <linearGradient id="pi-manta" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbe3ef"/><stop offset="1" stop-color="#f3b9d4"/></linearGradient>
+                        <radialGradient id="pi-halo" cx="0.6" cy="0.45" r="0.6"><stop offset="0" stop-color="#ffffff" stop-opacity=".7"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+                    </defs>
+                    <circle cx="200" cy="90" r="120" fill="url(#pi-halo)"/>
+                    <!-- cruces médicas -->
+                    <path d="M52 52h10v-10h10v10h10v10h-10v10h-10v-10h-10z" fill="#f7a8c9" opacity=".7"/>
+                    <path d="M40 130h7v-7h7v7h7v7h-7v7h-7v-7h-7z" fill="#f7a8c9" opacity=".55"/>
+                    <!-- madre: cabeza, cabello y hombros -->
+                    <path d="M150 210 C 150 150, 175 128, 205 126 C 238 124, 262 150, 266 210 Z" fill="url(#pi-piel)" opacity=".9"/>
+                    <path d="M196 34 C 168 34, 152 56, 154 82 C 156 104, 168 118, 186 122 L 214 122 C 236 112, 244 92, 238 66 C 232 44, 218 34, 196 34 Z" fill="url(#pi-pelo)"/>
+                    <path d="M200 52 C 182 52, 174 66, 176 84 C 178 100, 188 110, 200 110 C 213 110, 222 98, 222 82 C 222 64, 214 52, 200 52 Z" fill="url(#pi-piel)"/>
+                    <path d="M186 84 q 6 4 12 0" stroke="#b9487f" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    <path d="M204 92 q 5 4 11 1" stroke="#c2588b" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    <!-- bebé en brazos -->
+                    <ellipse cx="160" cy="150" rx="48" ry="30" fill="url(#pi-manta)" transform="rotate(-12 160 150)"/>
+                    <circle cx="140" cy="140" r="20" fill="url(#pi-piel)"/>
+                    <path d="M132 142 q 4 3 8 0" stroke="#b9487f" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+                    <path d="M120 168 C 150 182, 196 178, 214 160" stroke="#e98bb7" stroke-width="10" fill="none" stroke-linecap="round" opacity=".8"/>
+                    <!-- corazones -->
+                    <path d="M282 46 c -6 -10 -22 -6 -20 6 c 2 10 20 20 20 20 s 18 -10 20 -20 c 2 -12 -14 -16 -20 -6 z" fill="#f472b6" opacity=".55"/>
+                    <path d="M300 104 c -4 -7 -15 -4 -14 4 c 1 7 14 14 14 14 s 13 -7 14 -14 c 1 -8 -10 -11 -14 -4 z" fill="#f472b6" opacity=".45"/>
+                    <path d="M262 150 c -5 -8 -18 -5 -16 5 c 1 8 16 16 16 16 s 15 -8 16 -16 c 2 -10 -11 -13 -16 -5 z" fill="#f472b6" opacity=".4"/>
+                    <path d="M118 30 c -3 -5 -10 -3 -9 3 c 1 5 9 9 9 9 s 8 -4 9 -9 c 1 -6 -6 -8 -9 -3 z" fill="#f9a8d4" opacity=".6"/>
+                </svg>
+                    <div class="p-icono"><i data-lucide="clipboard-list"></i></div>
+                    <div class="p-hero-texto">
+                        <div class="p-kicker">Sala de partos<span>|</span>Seguimiento clínico</div>
+                        <h1>Control Posparto pendientes</h1>
+                    </div>
+                    <div class="p-hero-ctrl">
+                        <form class="p-filtro" method="get">
+                            <label for="dias"><i data-lucide="calendar-days"></i> Últimos</label>
+                            <select id="dias" name="dias" onchange="this.form.submit()">
+                                <option value="7" {% if dias == 7 %}selected{% endif %}>7 días</option>
+                                <option value="15" {% if dias == 15 %}selected{% endif %}>15 días</option>
+                                <option value="30" {% if dias == 30 %}selected{% endif %}>30 días</option>
+                                <option value="60" {% if dias == 60 %}selected{% endif %}>60 días</option>
+                            </select>
+                        </form>
+                        <div class="p-rango">
+                            <div class="p-rango-fechas"><i data-lucide="calendar-days"></i> {{ rango_desde|date:"d/m/Y" }} &nbsp;–&nbsp; {{ rango_hasta|date:"d/m/Y" }}</div>
+                            <button type="button" class="p-recargar" title="Actualizar" onclick="window.location.reload()"><i data-lucide="refresh-cw"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-resumen">
+                    <button type="button" class="p-chip urgente" data-cat="urgente" aria-pressed="false">
+                        <span class="p-chip-flecha"><i data-lucide="chevron-right"></i></span>
+                        <div class="p-chip-cab">
+                            <span class="p-chip-ico"><i data-lucide="log-in"></i></span>
+                            <span class="p-chip-num"><b>{{ urgentes }}</b><span>Egresaron · completar ya</span></span>
+                        </div>
+                        <div class="p-chip-pie">
+                            <i data-lucide="clock-3"></i>
+                            <span><strong>Prioridad alta</strong><small>Pacientes que ya egresaron</small></span>
+                            <span class="p-chip-barras" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                        </div>
+                    </button>
+                    <button type="button" class="p-chip atencion" data-cat="en_atencion" aria-pressed="false">
+                        <span class="p-chip-flecha"><i data-lucide="chevron-right"></i></span>
+                        <div class="p-chip-cab">
+                            <span class="p-chip-ico"><i data-lucide="user-round"></i></span>
+                            <span class="p-chip-num"><b>{{ en_atencion }}</b><span>Paciente en atención</span></span>
+                        </div>
+                        <div class="p-chip-pie">
+                            <i data-lucide="clock-3"></i>
+                            <span><strong>En proceso</strong><small>Registros en diligenciamiento</small></span>
+                            <span class="p-chip-barras" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                        </div>
+                    </button>
+                    <button type="button" class="p-chip sindato" data-cat="sin_datos_ingreso" aria-pressed="false" title="Dinámica no respondió o el registro no tiene ingreso: no se sabe si la paciente ya egresó">
+                        <span class="p-chip-flecha"><i data-lucide="chevron-right"></i></span>
+                        <div class="p-chip-cab">
+                            <span class="p-chip-ico"><i data-lucide="file-text"></i></span>
+                            <span class="p-chip-num"><b>{{ sin_dato }}</b><span>Sin dato de Dinámica</span></span>
+                        </div>
+                        <div class="p-chip-pie">
+                            <i data-lucide="clock-3"></i>
+                            <span><strong>Información pendiente</strong><small>Falta completar Dinámica</small></span>
+                            <span class="p-chip-barras" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                        </div>
+                    </button>
+                    {% if user.is_superuser %}
+                    <button type="button" class="p-chip bloqueado" data-cat="bloqueado" aria-pressed="false">
+                        <span class="p-chip-flecha"><i data-lucide="chevron-right"></i></span>
+                        <div class="p-chip-cab">
+                            <span class="p-chip-ico"><i data-lucide="clock"></i></span>
+                            <span class="p-chip-num"><b>{{ bloqueados }}</b><span>Pasaron 24 h · solo administrador</span></span>
+                        </div>
+                        <div class="p-chip-pie">
+                            <i data-lucide="clock-3"></i>
+                            <span><strong>Fuera de tiempo</strong><small>Solo administrador puede completar</small></span>
+                            <span class="p-chip-barras" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                        </div>
+                    </button>
+                    {% endif %}
+                    <button type="button" class="p-chip listo" data-cat="completo" aria-pressed="false">
+                        <span class="p-chip-flecha"><i data-lucide="chevron-right"></i></span>
+                        <div class="p-chip-cab">
+                            <span class="p-chip-ico"><i data-lucide="check"></i></span>
+                            <span class="p-chip-num"><b>{{ listos }}</b><span>Completos · solo falta guardar</span></span>
+                        </div>
+                        <div class="p-chip-pie">
+                            <i data-lucide="clock-3"></i>
+                            <span><strong>Listos para guardar</strong><small>Registros completos</small></span>
+                            <span class="p-chip-barras" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                        </div>
+                    </button>
+                </div>
+            </section>
+
+            <p class="p-filtrando-aviso" id="p-filtrando-aviso">Mostrando solo: <b id="p-filtrando-nombre"></b> · <button type="button" id="p-ver-todos">Ver todos</button></p>
+
+            <section>
+                {% for f in filas %}
+                <div class="p-fila cat-{{ f.categoria }}" data-id="{{ f.id }}">
+                    <div class="p-fila-cab">
+                        <span class="p-nombre">{{ f.paciente|default:"(sin nombre)" }}</span>
+                        <span class="p-dato">Cédula {{ f.cedula }}{% if f.ingreso %} · Ingreso {{ f.ingreso }}{% endif %}</span>
+                        <span class="p-estado {{ f.situacion }}">{{ f.situacion_texto }}</span>
+                    </div>
+                    <div class="p-dato">Abierto el {{ f.creado|date:"d/m/Y h:i A" }}{% if f.creado_por %} por {{ f.creado_por }}{% endif %} · {{ f.completos }} de {{ f.total }} requisitos de cierre</div>
+                    <div class="p-barra"><span style="width: {% widthratio f.completos f.total 100 %}%"></span></div>
+                    {% if not f.faltan %}
+                    <div class="p-listo-txt">✔ Todo está completo: solo falta abrir el registro y pulsar "Guardar Registro Completo" para enviarlo a la NAS.</div>
+                    {% else %}
+                    <ul class="p-faltan">{% for x in f.faltan %}<li>Falta: {{ x }}</li>{% endfor %}</ul>
+                    {% endif %}
+                    <div class="p-acciones">
+                        {% if f.listo and f.categoria != 'bloqueado' or f.listo and user.is_superuser %}
+                        <button type="button" class="p-btn guardar" data-cerrar><i data-lucide="send"></i> Guardar y enviar a la NAS</button>
+                        {% endif %}
+                        {% if f.categoria != 'bloqueado' %}
+                        <a class="p-btn abrir" href="/fetal/?doc={{ f.cedula|urlencode }}{% if f.atencion_id %}&atencion={{ f.atencion_id }}{% endif %}{% if f.ingreso %}&ingreso={{ f.ingreso|urlencode }}{% endif %}"><i data-lucide="external-link"></i> Abrir registro</a>
+                        {% endif %}
+                        {% if user.is_superuser %}
+                        <button type="button" class="p-btn anular" data-anular><i data-lucide="ban"></i> Anular</button>
+                        {% endif %}
+                        <div class="p-anular-form">
+                            <select data-motivo>
+                                <option value="">Motivo de la anulación…</option>
+                                <option value="SIN_PARTO">No hubo parto en este ingreso</option>
+                                <option value="POR_ERROR">Se abrió por error</option>
+                                <option value="DUPLICADO">Registro duplicado</option>
+                                <option value="OTRO">Otro</option>
+                            </select>
+                            <input type="text" data-detalle maxlength="255" placeholder="Detalle (obligatorio si es Otro)">
+                            <button type="button" class="p-btn confirmar" data-confirmar>Confirmar anulación</button>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-card p-vacia">No hay registros de Control Posparto con datos pendientes de enviar a la NAS en los últimos {{ dias }} días.</div>
+                {% endfor %}
+            </section>
+        </main>
+    </div>
+    <script>
+    (function () {
+        const CSRF = '{{ csrf_token }}';
+        // 2026-10-21: pulsar un recuadro muestra solo esa categoría (otra vez: todas).
+        const aviso = document.getElementById('p-filtrando-aviso');
+        function filtrar(cat, nombre) {
+            document.querySelectorAll('.p-chip').forEach(c => {
+                const activo = !!cat && c.dataset.cat === cat;
+                c.classList.toggle('activo', activo);
+                c.setAttribute('aria-pressed', activo ? 'true' : 'false');
+            });
+            document.querySelectorAll('.p-fila').forEach(f => {
+                f.style.display = (!cat || f.classList.contains('cat-' + cat)) ? '' : 'none';
+            });
+            aviso.classList.toggle('visible', !!cat);
+            document.getElementById('p-filtrando-nombre').textContent = nombre || '';
+        }
+        document.querySelectorAll('.p-chip').forEach(c => c.addEventListener('click', () => {
+            const ya = c.classList.contains('activo');
+            filtrar(ya ? null : c.dataset.cat, c.querySelector('.p-chip-num span').textContent);
+        }));
+        document.getElementById('p-ver-todos').addEventListener('click', () => filtrar(null));
+        document.querySelectorAll('[data-anular]').forEach(btn => btn.addEventListener('click', () => {
+            btn.closest('.p-acciones').querySelector('.p-anular-form').classList.toggle('abierto');
+        }));
+        // 2026-10-21: registro completo -> cerrar y enviar a la NAS sin abrir el formulario.
+        document.querySelectorAll('[data-cerrar]').forEach(btn => btn.addEventListener('click', async () => {
+            const fila = btn.closest('.p-fila');
+            const nombre = fila.querySelector('.p-nombre').textContent;
+            if (!confirm(`¿Cerrar el Control Posparto de ${nombre} y enviarlo a la NAS?`)) return;
+            btn.disabled = true;
+            try {
+                const r = await fetch(`/fetal/api/registros/${fila.dataset.id}/cerrar/`, {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                    body: '{}',
+                });
+                const data = await r.json().catch(() => ({}));
+                if (r.ok && data.ok) {
+                    alert((data.enviado ? '✔ ' : '') + (data.mensaje || 'Registro cerrado.'));
+                    fila.remove();
+                    return;
+                }
+                alert(data.error || data.detail || 'No se pudo cerrar el registro.');
+            } catch (e) {
+                alert('No se pudo conectar con el servidor.');
+            }
+            btn.disabled = false;
+        }));
+        document.querySelectorAll('[data-confirmar]').forEach(btn => btn.addEventListener('click', async () => {
+            const fila = btn.closest('.p-fila');
+            const motivo = fila.querySelector('[data-motivo]').value;
+            const detalle = fila.querySelector('[data-detalle]').value.trim();
+            if (!motivo) { alert('Elija el motivo de la anulación.'); return; }
+            if (motivo === 'OTRO' && !detalle) { alert('Escriba el motivo de la anulación.'); return; }
+            const nombre = fila.querySelector('.p-nombre').textContent;
+            if (!confirm(`¿Anular el Control Posparto de ${nombre}? Quedará registrado quién lo anuló y el motivo.`)) return;
+            btn.disabled = true;
+            try {
+                const r = await fetch(`/fetal/api/registros/${fila.dataset.id}/anular/`, {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                    body: JSON.stringify({ motivo, detalle }),
+                });
+                const data = await r.json().catch(() => ({}));
+                if (r.ok && data.ok) { fila.remove(); return; }
+                alert(data.error || data.detail || 'No se pudo anular el registro.');
+            } catch (e) {
+                alert('No se pudo conectar con el servidor.');
+            }
+            btn.disabled = false;
+        }));
+        lucide.createIcons();
+    })();
+    </script>
+</body>
+</html>

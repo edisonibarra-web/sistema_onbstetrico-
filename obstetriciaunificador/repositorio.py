@@ -728,6 +728,14 @@ def _enviar_manual(pdf, *, cedula, numero_ingreso, formato, atencion, referencia
     if formato in FORMATOS_SIN_COPIA_IDENTICA:
         forzar = False
     with bloqueo_envio(f'manual|{formato}|{cedula_l}|{ingreso_l}|{referencia}'):
+        # 2026-10-21: si un envío anterior de este mismo registro quedó "enviando"
+        # (el PDF pudo subir sin que se confirmara), se resuelve contra la NAS
+        # ANTES de decidir: si estaba, cuenta como enviado (y una copia idéntica
+        # se rechaza abajo). Antes se ignoraba y se subía una segunda copia.
+        if DocumentoRepositorio.objects.filter(
+                cedula=cedula_l[:50], numero_ingreso=ingreso_l[:30], formato=formato,
+                referencia=str(referencia or '')[:64], estado=DocumentoRepositorio.ESTADO_ENVIANDO).exists():
+            confirmar_envios_grupo(cedula, numero_ingreso, formato)
         if huella and not forzar:
             ultimo = (
                 DocumentoRepositorio.objects.filter(
@@ -761,11 +769,37 @@ def enviar_meows(doc, usuario='', responsable=None, request=None, forzar=False):
                           atencion=atencion, referencia='', usuario=usuario, forzar=forzar)
 
 
+def ingreso_seguro_para_envio(doc, atencion_origen, creado_en):
+    """
+    2026-10-21: (atención, ingreso) donde va un formato. Con el ingreso guardado
+    en el registro, ese. SIN ingreso guardado, antes se tomaba el ingreso actual
+    o, si no había uno vigente, la atención MÁS RECIENTE de la paciente: el PDF
+    podía quedar en la carpeta de OTRO ingreso. Ahora solo se acepta el ingreso
+    VIGENTE en Dinámica y si el registro se abrió durante él (o en las 24 h
+    previas, triaje); si no, RepositorioError (hay que asociar el ingreso a mano).
+    """
+    if atencion_origen is not None and (atencion_origen.numero_ingreso or '').strip():
+        return atencion_origen, atencion_origen.numero_ingreso.strip()
+    atencion, info = resolver_atencion_ingreso(doc)
+    if not info or atencion is None or not (atencion.numero_ingreso or '').strip():
+        raise RepositorioError(
+            'El registro no tiene ingreso asociado y la paciente no tiene un ingreso vigente en Dinámica: '
+            'no se puede saber en qué carpeta va. Asocie el ingreso antes de enviarlo.'
+        )
+    fecha_ingreso = info.get('fecha_ingreso')
+    if creado_en is not None and fecha_ingreso is not None and creado_en < fecha_ingreso - MARGEN_TRIAJE_ANTES_DEL_INGRESO:
+        raise RepositorioError(
+            f'El registro no tiene ingreso asociado y se abrió antes del ingreso vigente ({atencion.numero_ingreso}): '
+            'puede ser de un ingreso anterior. Asocie el ingreso correcto antes de enviarlo.'
+        )
+    return atencion, atencion.numero_ingreso.strip()
+
+
 def enviar_trabajo_parto(formulario, usuario='', forzar=False):
     from trabajoparto.pdf_utils import generar_pdf_formulario_clinico
 
     doc = (formulario.paciente.num_identificacion or '').strip()
-    atencion, ingreso = ingreso_para_envio(doc, formulario.atencion)
+    atencion, ingreso = ingreso_seguro_para_envio(doc, formulario.atencion, formulario.created_at)
     if formulario.atencion_id is None and atencion is not None:
         formulario.atencion = atencion
         formulario.save(update_fields=['atencion'])
@@ -783,7 +817,7 @@ def enviar_control_posparto(registro, usuario='', forzar=False):
             'solo se envían formatos finales.'
         )
     doc = (registro.identificacion or '').strip()
-    atencion, ingreso = ingreso_para_envio(doc, registro.atencion)
+    atencion, ingreso = ingreso_seguro_para_envio(doc, registro.atencion, registro.created_at)
     if registro.atencion_id is None and atencion is not None:
         registro.atencion = atencion
         registro.save(update_fields=['atencion'])
@@ -1225,4 +1259,144 @@ def enviar_meows_egresos_pendientes(dias=DIAS_REVISION_EGRESO):
             continue
         if resultado is not None:
             enviados.append((atencion.paciente, resultado))
+    return enviados
+
+
+# ---------------------------------------------------------------------------
+# 2026-10-21: Trabajo de Parto automático al EGRESO -- red de seguridad para
+# las hojas que nadie envió con "Finalizar" (pasaba seguido: ANGIE, MARISOL,
+# ELIANA). El botón sigue: si la hoja ya tiene cualquier envío, aquí no se
+# hace nada (el caso "se envió y después se agregaron controles" queda
+# pendiente: no se reenvía). Barreras contra duplicados:
+#   1. ya hay un envío de esa hoja (enviado o en curso) -> nada;
+#   2. mismo candado que el botón "Finalizar" (_enviar_manual), así un clic y
+#      el automático al mismo tiempo no suben dos;
+#   3. se vuelve a revisar dentro del candado;
+#   4. si en la carpeta del ingreso ya hay un PDF de trabajo de parto de la
+#      paciente que la bitácora no le atribuye a otra hoja, no se sube otro
+#      (se deja constancia de ese archivo, como en el triaje);
+#   5. tras MAX_INTENTOS_FALLIDOS_EGRESO errores se deja de intentar.
+# Solo egresos de los últimos DIAS_EGRESO_TRABAJO_PARTO_AUTOMATICO días: lo más
+# viejo se revisa en la Consulta histórica / comando enviar_trabajo_parto_pendiente.
+# ---------------------------------------------------------------------------
+DIAS_EGRESO_TRABAJO_PARTO_AUTOMATICO = 7
+DIAS_HOJAS_TRABAJO_PARTO = 60
+USUARIO_TRABAJO_PARTO_EGRESO = 'automático (egreso)'
+
+
+def _trabajo_parto_ya_en_repositorio(doc, ingreso, hoja_pk):
+    """PDF de trabajo de parto de la paciente en la carpeta del ingreso que la
+    bitácora NO atribuye a otra hoja (podría ser de esta, sin confirmar).
+    Lanza excepción si el repositorio no responde (se reintenta después)."""
+    from .models import DocumentoRepositorio
+    cedula_l = _limpiar(doc)
+    archivos = _archivos_del_formato(listar_documentos_ingreso(doc, ingreso), 'trabajo_parto', cedula_l)
+    de_otras_hojas = set(
+        DocumentoRepositorio.objects.filter(
+            cedula=cedula_l[:50], numero_ingreso=_limpiar(ingreso)[:30], formato='trabajo_parto',
+        ).exclude(referencia=str(hoja_pk)).exclude(nombre_archivo='').values_list('nombre_archivo', flat=True)
+    )
+    return [nombre for _, nombre in sorted(archivos.items()) if nombre not in de_otras_hojas]
+
+
+def enviar_trabajo_parto_al_egreso(hoja):
+    """Envía la hoja de Trabajo de Parto si la paciente ya egresó (hace menos
+    de DIAS_EGRESO_TRABAJO_PARTO_AUTOMATICO días), tiene controles y NUNCA se
+    envió. Devuelve el DocumentoRepositorio del envío, o None si no correspondía."""
+    from frecuenciafetal.sala_partos_db import consultar_estado_ingreso
+    from trabajoparto.pdf_utils import generar_pdf_formulario_clinico
+    from .models import DocumentoRepositorio
+
+    atencion = hoja.atencion
+    ingreso = (getattr(atencion, 'numero_ingreso', '') or '').strip()
+    doc = (getattr(hoja.paciente, 'num_identificacion', '') or '').strip()
+    if not ingreso or not doc or not hoja.mediciones.exists():
+        return None
+
+    previos = DocumentoRepositorio.objects.filter(formato='trabajo_parto', referencia=str(hoja.pk))
+
+    def ya_tiene_envio():
+        if previos.filter(estado__in=[DocumentoRepositorio.ESTADO_ENVIADO, DocumentoRepositorio.ESTADO_ENVIANDO]).exists():
+            return True
+        return previos.filter(estado=DocumentoRepositorio.ESTADO_ERROR).count() >= MAX_INTENTOS_FALLIDOS_EGRESO
+
+    if ya_tiene_envio():
+        return None
+    from django.core.cache import cache
+    clave = f'tp_egreso_estado:{ingreso}'
+    estado = cache.get(clave)
+    if estado is None:
+        estado = consultar_estado_ingreso(ingreso) or {}
+        cache.set(clave, estado, 300 if estado else 60)  # la sincronización corre seguido
+    if not estado or estado.get('anulado') or not estado.get('fecha_egreso'):
+        return None  # sigue en curso, anulado o sin conexión
+    fecha_egreso = estado['fecha_egreso']
+    if timezone.is_naive(fecha_egreso):
+        fecha_egreso = timezone.make_aware(fecha_egreso, timezone.get_current_timezone())
+    if timezone.now() - fecha_egreso > timedelta(days=DIAS_EGRESO_TRABAJO_PARTO_AUTOMATICO):
+        return None
+
+    cedula_l, ingreso_l = _limpiar(doc), _limpiar(ingreso)
+    # Mismo candado que el botón "Finalizar" (_enviar_manual): nunca dos a la vez.
+    with bloqueo_envio(f'manual|trabajo_parto|{cedula_l}|{ingreso_l}|{hoja.pk}', espera_segundos=0) as obtenido:
+        if not obtenido or ya_tiene_envio():
+            return None
+        existentes = _trabajo_parto_ya_en_repositorio(doc, ingreso, hoja.pk)
+        if existentes:
+            logger.warning('Trabajo de parto de %s/%s ya estaba en el repositorio (%s) sin constancia: no se reenvía.',
+                           doc, ingreso, ', '.join(existentes[:3]))
+            # La huella del PDF que ya está: así, si después alguien pulsa
+            # "Finalizar" sin cambios, se reconoce como idéntico y no se sube otra copia.
+            try:
+                huella = huella_contenido(leer_documento_ingreso(doc, ingreso, existentes[-1]))
+            except Exception:
+                huella = ''
+            return DocumentoRepositorio.objects.create(
+                atencion=atencion, cedula=cedula_l[:50], numero_ingreso=ingreso_l[:30], formato='trabajo_parto',
+                referencia=str(hoja.pk), modo=settings.REPOSITORIO_MODO[:10], estado=DocumentoRepositorio.ESTADO_ENVIADO,
+                nombre_archivo=existentes[-1][:255], enviado_por='automático (ya estaba en el repositorio)',
+                huella_contenido=huella[:64],
+            )
+        try:
+            pdf = _contenido_pdf(generar_pdf_formulario_clinico(hoja))
+        except Exception as exc:
+            logger.error('No se pudo generar el PDF de trabajo de parto de egreso de %s/%s: %s', doc, ingreso, exc)
+            return DocumentoRepositorio.objects.create(
+                atencion=atencion, cedula=cedula_l[:50], numero_ingreso=ingreso_l[:30], formato='trabajo_parto',
+                referencia=str(hoja.pk), modo=settings.REPOSITORIO_MODO[:10], estado=DocumentoRepositorio.ESTADO_ERROR,
+                detalle_error=f'Error generando el PDF: {type(exc).__name__}: {exc}'[:2000],
+                enviado_por=USUARIO_TRABAJO_PARTO_EGRESO,
+            )
+        return enviar_formato(pdf, cedula=doc, numero_ingreso=ingreso, formato='trabajo_parto',
+                              atencion=atencion, referencia=hoja.pk, usuario=USUARIO_TRABAJO_PARTO_EGRESO)
+
+
+def enviar_trabajo_parto_egresos_pendientes(dias=DIAS_HOJAS_TRABAJO_PARTO):
+    """Hojas de Trabajo de Parto (de los últimos `dias` días) con controles y sin
+    ningún envío: envía las de pacientes que ya egresaron. Lo llama la
+    sincronización periódica. Devuelve [(documento, DocumentoRepositorio)]."""
+    from trabajoparto.models import Formulario
+    from .models import DocumentoRepositorio
+
+    desde = timezone.now() - timedelta(days=dias)
+    # (Sin "exclude(pk__in=<hojas ya enviadas>)": esa lista crece sin fin y SQL
+    # Server no admite más de ~2100 parámetros; cada hoja se revisa abajo.)
+    hojas = (Formulario.objects.filter(created_at__gte=desde, atencion__isnull=False, mediciones__isnull=False)
+             .exclude(atencion__numero_ingreso='')
+             .select_related('paciente', 'atencion', 'aseguradora').distinct())
+    enviadas = DocumentoRepositorio.objects.filter(
+        formato='trabajo_parto',
+        estado__in=[DocumentoRepositorio.ESTADO_ENVIADO, DocumentoRepositorio.ESTADO_ENVIANDO],
+    )
+    enviados = []
+    for hoja in hojas:
+        if enviadas.filter(referencia=str(hoja.pk)).exists():
+            continue  # chequeo barato antes de preguntar a Dinámica
+        try:
+            resultado = enviar_trabajo_parto_al_egreso(hoja)
+        except Exception as exc:  # p. ej. Dinámica o la NAS no responden: se reintenta en la próxima pasada
+            logger.warning('Trabajo de parto de egreso de la hoja %s no revisado: %s', hoja.pk, exc)
+            continue
+        if resultado is not None:
+            enviados.append((hoja.paciente.num_identificacion, resultado))
     return enviados

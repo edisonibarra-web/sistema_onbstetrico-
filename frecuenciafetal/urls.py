@@ -23,6 +23,9 @@ registros_router.register(r'sutura', ControlSuturaViewSet, basename='sutura')
 
 urlpatterns = [
     path('', FormularioRegistroView.as_view(), name='home'),
+    # 2026-10-21: registros de Control Posparto sin cerrar (antes que el router de 'api/').
+    path('pendientes/', views.pendientes_posparto, name='pendientes_posparto'),
+    path('api/pendientes-resumen/', views.api_pendientes_resumen, name='api_pendientes_resumen'),
     # Puente para entornos donde este módulo queda montado en raíz.
     path('meows/', include('meows.urls')),
     path('api/', include(router.urls)),
@@ -36,6 +39,9 @@ urlpatterns = [
 # GET        /api/registros/por-atencion/?atencion=<id>&documento=<doc>  (repoblar formulario al reabrir)
 # GET        /api/registros/sala-partos/?q=opcional  (DGEMPRES03, solo lectura)
 # GET        /api/registros/{id}/pdf/
+# GET        /api/registros/{id}/requisitos-cierre/  (2026-10-21)
+# POST       /api/registros/{id}/anular/  {motivo, detalle}  (2026-10-21)
+# GET        /pendientes/  y  /api/pendientes-resumen/  (2026-10-21)
 # GET/POST   /api/registros/{id}/fetocardia/
 # GET/POST   /api/registros/{id}/recien-nacido/
 # GET/POST   /api/registros/{id}/postparto/

@@ -322,7 +322,8 @@ def asignar_registros_posparto(doc, ingresos):
     from frecuenciafetal.models import RegistroParto
 
     grupos = {}
-    for f in (RegistroParto.objects.filter(identificacion=doc).order_by('created_at')
+    # 2026-10-21: los anulados (abiertos por error / sin parto) no cuentan.
+    for f in (RegistroParto.objects.filter(identificacion=doc, anulado_en__isnull=True).order_by('created_at')
               .values('id', 'created_at', 'atencion__numero_ingreso')):
         clave = asignar_ingreso(f['created_at'], ingresos, numero_guardado=f['atencion__numero_ingreso'] or '')
         grupos.setdefault(clave, []).append(f['id'])
@@ -386,7 +387,7 @@ def conteos_ingreso_actual(doc):
         fetal = parto = 0
     else:
         mediciones = Medicion.objects.filter(paciente__numero_documento=doc)
-        fetal = RegistroParto.objects.filter(identificacion=doc).count()
+        fetal = RegistroParto.objects.filter(identificacion=doc, anulado_en__isnull=True).count()
         parto = Formulario.objects.filter(paciente__num_identificacion=doc).count()
     riesgos = set(mediciones.values_list('meows_riesgo', flat=True))
     estado = 'CRÍTICO' if 'ROJO' in riesgos else 'ALERTA' if 'AMARILLO' in riesgos else 'ESTABLE'

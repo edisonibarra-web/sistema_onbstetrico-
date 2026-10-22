@@ -450,7 +450,8 @@ class Command(BaseCommand):
         # Recorre las pacientes con triaje, no solo las activas de arriba: la
         # paciente pudo quedar ingresada en un área que no es gineco.
         from obstetriciaunificador.repositorio import (
-            confirmar_envios_pendientes, enviar_meows_egresos_pendientes, enviar_triajes_pendientes,
+            confirmar_envios_pendientes, enviar_meows_egresos_pendientes, enviar_trabajo_parto_egresos_pendientes,
+            enviar_triajes_pendientes,
         )
         # 2026-10-01: primero se cierran los envíos que quedaron "enviando"
         # (sin confirmar en la bitácora): se mira la NAS y pasan a enviado o
@@ -472,6 +473,20 @@ class Command(BaseCommand):
             estilo = self.style.SUCCESS if envio.estado == envio.ESTADO_ENVIADO else self.style.ERROR
             self.stdout.write(estilo(
                 f'[MEOWS EGRESO] {documento}/{envio.numero_ingreso}: {envio.estado} '
+                f'{envio.nombre_archivo or envio.detalle_error}'
+            ))
+        # 2026-10-21: Trabajo de Parto de las pacientes que ya egresaron y cuya
+        # hoja nadie envió con "Finalizar" (si ya tiene un envío, no se toca).
+        # Va al final y protegido: un fallo aquí nunca afecta a Triaje ni MEOWS.
+        try:
+            enviados_tp = enviar_trabajo_parto_egresos_pendientes()
+        except Exception as exc:
+            enviados_tp = []
+            self.stdout.write(self.style.ERROR(f'[TRABAJO DE PARTO EGRESO] no se pudo revisar: {exc}'))
+        for documento, envio in enviados_tp:
+            estilo = self.style.SUCCESS if envio.estado == envio.ESTADO_ENVIADO else self.style.ERROR
+            self.stdout.write(estilo(
+                f'[TRABAJO DE PARTO EGRESO] {documento}/{envio.numero_ingreso}: {envio.estado} '
                 f'{envio.nombre_archivo or envio.detalle_error}'
             ))
 

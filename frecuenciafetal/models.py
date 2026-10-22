@@ -149,6 +149,19 @@ class RegistroParto(models.Model):
     # 2026-10-19: dueño de cada dato del registro: {campo: {"usuario", "nombre"}}.
     # Solo quien lo registró puede cambiarlo o borrarlo (ver propiedad.py).
     duenos_campos = models.JSONField(default=dict, blank=True)
+    # 2026-10-21: registro abierto por error o sin parto en el ingreso. Un
+    # registro anulado no cuenta como pendiente, no se puede editar y no
+    # impide abrir uno nuevo en ese ingreso (ver frecuenciafetal/views.py:anular).
+    MOTIVOS_ANULACION = [
+        ('SIN_PARTO', 'No hubo parto en este ingreso'),
+        ('POR_ERROR', 'Se abrió por error'),
+        ('DUPLICADO', 'Registro duplicado'),
+        ('OTRO', 'Otro'),
+    ]
+    anulado_en = models.DateTimeField(null=True, blank=True, db_index=True, verbose_name="Anulado")
+    anulado_por = models.CharField(max_length=255, blank=True, default='', verbose_name="Anulado por")
+    motivo_anulacion = models.CharField(max_length=20, choices=MOTIVOS_ANULACION, blank=True, default='')
+    detalle_anulacion = models.CharField(max_length=255, blank=True, default='')
 
     def hora_parto_de_feto(self, feto):
         return self.hora_parto_b if (feto or 1) > 1 else self.hora_parto
