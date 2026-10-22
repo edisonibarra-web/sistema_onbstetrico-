@@ -208,6 +208,29 @@ def requisitos_cierre(registro):
     return [{'seccion': s, 'texto': t, 'ok': ok, 'detalle': d} for s, t, ok, d in req]
 
 
+def participo_en_registro(registro, request):
+    """2026-10-22: True si el usuario en sesión abrió el registro o escribió en
+    él (ParticipacionRegistroParto, por usuario o por nombre del profesional)."""
+    usuario = getattr(getattr(request, 'user', None), 'username', '') or ''
+    nombre = (nombre_profesional_sesion(request) or '').strip()
+    filtro = Q(usuario=usuario) if usuario else Q(pk__in=[])
+    if nombre:
+        filtro |= Q(profesional=nombre)
+    if registro.participaciones.filter(filtro).exists():
+        return True
+    return bool(nombre) and (registro.creado_por or '').strip() == nombre
+
+
+def puede_anular_registro(registro, request):
+    """2026-10-22: el administrador, cualquier registro abierto; el resto, solo
+    los vacíos y solo si participó en ellos."""
+    if registro.completado_en is not None or registro.anulado_en is not None:
+        return False
+    if request.user.is_superuser:
+        return True
+    return registro_sin_datos_clinicos(registro) and participo_en_registro(registro, request)
+
+
 def registro_sin_datos_clinicos(registro):
     """2026-10-21: lo que el personal (no solo el administrador) puede anular:
     sin controles, sin recién nacido y sin datos del parto."""
@@ -665,8 +688,7 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
             'completos': sum(1 for r in requisitos if r['ok']),
             'total': len(requisitos),
             'requisitos': requisitos,
-            'puede_anular': registro.completado_en is None and registro.anulado_en is None and (
-                request.user.is_superuser or registro_sin_datos_clinicos(registro)),
+            'puede_anular': puede_anular_registro(registro, request),
         })
 
     @action(detail=True, methods=['post'], url_path='cerrar')
@@ -724,6 +746,12 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
         if not request.user.is_superuser and not registro_sin_datos_clinicos(registro):
             return Response(
                 {'error': 'El registro tiene datos clínicos: solo el administrador puede anularlo.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        # 2026-10-22: un registro vacío solo lo anula quien participó en él.
+        if not request.user.is_superuser and not participo_en_registro(registro, request):
+            return Response(
+                {'error': 'Solo quien diligenció este registro o el administrador puede anularlo.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
         # En una sola operación: si otra pantalla lo cerró (o anuló) en este

@@ -37,6 +37,10 @@ class RequisitosYAnulacionTests(TestCase):
         self.registro = RegistroParto.objects.create(
             atencion=self.atencion, nombre_paciente='PACIENTE PRUEBA', identificacion=DOC, edad_gestacional=38,
         )
+        # La enfermera abrió el registro (participó en él).
+        from frecuenciafetal.models import ParticipacionRegistroParto
+        ParticipacionRegistroParto.objects.create(registro=self.registro, profesional='ENFERMERA UNO', usuario='enf',
+                                                  primera_vez=timezone.now(), ultima_vez=timezone.now())
         # Ingreso en curso: el bloqueo por egreso no aplica.
         p = mock.patch('frecuenciafetal.sala_partos_db.consultar_estado_ingreso', return_value=_estado(None))
         p.start()
@@ -76,6 +80,21 @@ class RequisitosYAnulacionTests(TestCase):
                                     'atencion': self.atencion.id}, format='json')
         self.assertIn(nuevo.status_code, (200, 201), nuevo.data)
         self.assertNotEqual(str(nuevo.data['id']), str(self.registro.pk))
+
+    def test_quien_no_participo_no_anula_un_registro_vacio(self, _):
+        otra = User.objects.create_user('otra', password='x', first_name='OTRA', last_name='ENFERMERA')
+        api = APIClient()
+        api.force_authenticate(otra)
+        self.assertFalse(api.get(f'{URL}{self.registro.pk}/requisitos-cierre/').json()['puede_anular'])
+        r = api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json')
+        self.assertEqual(r.status_code, 403)
+        self.assertIn('Solo quien diligenció', r.data['error'])
+        self.registro.refresh_from_db()
+        self.assertIsNone(self.registro.anulado_en)
+        # El administrador sí, aunque no haya participado.
+        admin = APIClient()
+        admin.force_authenticate(self.admin)
+        self.assertEqual(admin.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json').status_code, 200)
 
     def test_un_registro_anulado_no_se_puede_modificar(self, _):
         self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json')
