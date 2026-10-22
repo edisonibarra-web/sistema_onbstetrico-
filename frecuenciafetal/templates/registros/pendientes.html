@@ -278,7 +278,7 @@
                         {% if f.listo and f.categoria != 'bloqueado' or f.listo and user.is_superuser %}
                         <button type="button" class="p-btn guardar" data-cerrar><i data-lucide="send"></i> Guardar y enviar a la NAS</button>
                         {% endif %}
-                        {% if f.categoria != 'bloqueado' %}
+                        {% if f.categoria != 'bloqueado' or user.is_superuser %}
                         <a class="p-btn abrir" href="/fetal/?doc={{ f.cedula|urlencode }}{% if f.atencion_id %}&atencion={{ f.atencion_id }}{% endif %}{% if f.ingreso %}&ingreso={{ f.ingreso|urlencode }}{% endif %}"><i data-lucide="external-link"></i> Abrir registro</a>
                         {% endif %}
                         {% if user.is_superuser %}
