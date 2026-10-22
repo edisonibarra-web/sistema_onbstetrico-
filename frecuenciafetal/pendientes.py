@@ -80,7 +80,7 @@ def _cedula_no_coincide(registro):
 
 # 2026-10-22: requisito pendiente -> (ícono lucide, nombre corto) para la tarjeta.
 _REQUISITO_CORTO = (
-    ('acompañante', 'users', 'Sin acompañante'),
+    ('acompañante', 'users', 'Acompañante'),
     ('Hora de parto', 'clock', 'Hora de parto'),
     ('Sangrado', 'droplet', 'Sangrado cuantificado'),
     ('Globo', 'shield-plus', 'Globo de seguridad'),
@@ -90,7 +90,7 @@ _REQUISITO_CORTO = (
 )
 
 
-def _requisito_corto(texto):
+def _requisito_corto(texto, detalle=''):
     icono, corto = 'circle-alert', texto
     for clave, ico, nombre in _REQUISITO_CORTO:
         if clave in texto:
@@ -98,7 +98,7 @@ def _requisito_corto(texto):
             break
     if 'Feto ' in texto:
         corto += ' · ' + texto[texto.index('Feto '):].rstrip(')')
-    return {'icono': icono, 'corto': corto, 'texto': texto}
+    return {'icono': icono, 'corto': corto, 'texto': texto, 'detalle': detalle}
 
 
 ORDEN = {'urgente': 0, 'en_atencion': 1, 'sin_datos_ingreso': 2, 'bloqueado': 3}
@@ -145,7 +145,7 @@ def registros_pendientes(dias=DIAS_POR_DEFECTO):
             'completos': len(requisitos) - len(faltan),
             'total': len(requisitos),
             'faltan': faltan,
-            'faltan_cortos': [_requisito_corto(t) for t in faltan],
+            'faltan_cortos': [_requisito_corto(q['texto'], q.get('detalle', '')) for q in requisitos if not q['ok']],
             'situacion': situacion,
             'situacion_texto': texto,
             'categoria': categoria,

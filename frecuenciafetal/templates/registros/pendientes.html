@@ -168,10 +168,12 @@
         .p-req-cab .p-req-ico svg { width: 18px; height: 18px; }
         .p-req-cab strong { font-size: .98rem; color: #14215a; }
         .p-req-cuenta { margin-left: auto; border-radius: 8px; padding: 4px 12px; background: #ffe4e6; color: #e11d48; font-size: .84rem; font-weight: 700; }
-        .p-req-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
-        .p-req { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 12px;
-                 background: #fff1f3; color: #1e293b; font-size: .82rem; text-align: center; line-height: 1.25; }
-        .p-req svg { width: 24px; height: 24px; color: #f43f5e; }
+        .p-req-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+        .p-req { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 12px;
+                 background: #fff1f3; border: 1px solid #ffe0e7; color: #1e293b; line-height: 1.3; }
+        .p-req svg { width: 26px; height: 26px; flex-shrink: 0; color: #f43f5e; margin-top: 2px; }
+        .p-req strong { display: block; font-size: .9rem; color: #14215a; }
+        .p-req small { display: block; margin-top: 3px; font-size: .8rem; color: #64748b; }
         .p-req-listo { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 12px; background: #dcfce7;
                        color: #15803d; font-weight: 800; font-size: .88rem; }
         .p-req-listo svg { width: 22px; height: 22px; flex-shrink: 0; }
@@ -355,7 +357,7 @@
                                 <span class="p-req-cuenta">{{ f.faltan|length }} pendiente{{ f.faltan|length|pluralize }}</span>
                             </div>
                             <div class="p-req-lista">
-                                {% for q in f.faltan_cortos %}<div class="p-req" title="Falta: {{ q.texto }}"><i data-lucide="{{ q.icono }}"></i>{{ q.corto }}</div>{% endfor %}
+                                {% for q in f.faltan_cortos %}<div class="p-req" title="Falta: {{ q.texto }}"><i data-lucide="{{ q.icono }}"></i><div><strong>{{ q.corto }}</strong>{% if q.detalle %}<small>{{ q.detalle }}</small>{% endif %}</div></div>{% endfor %}
                             </div>
                             {% else %}
                             <div class="p-req-listo"><i data-lucide="circle-check"></i>Todo está completo: solo falta pulsar "Guardar Registro Completo" para enviarlo a la NAS.</div>

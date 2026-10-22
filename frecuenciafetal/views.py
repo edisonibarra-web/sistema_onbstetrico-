@@ -174,24 +174,38 @@ def requisitos_cierre(registro):
     estado ([{'seccion', 'texto', 'ok'}]). Mismas reglas que
     _faltantes_control_6h + pendientes_datos_cierre; lo muestra el recuadro
     "Para cerrar el registro" del formulario y el panel de pendientes."""
+    # 2026-10-22: 'detalle' = qué falta exactamente (lo muestra el panel de pendientes).
     gemelar = (registro.numero_fetos or 1) > 1
     req = [
-        ('paciente', 'Nombre del acompañante (o "Sin acompañante")', bool((registro.nombre_acompanante or '').strip())),
-        ('parto', 'Hora de parto' + (' del Feto A' if gemelar else ''), bool(registro.hora_parto)),
+        ('paciente', 'Nombre del acompañante (o "Sin acompañante")', bool((registro.nombre_acompanante or '').strip()),
+         'Escriba el nombre del acompañante o marque "Sin acompañante".'),
+        ('parto', 'Hora de parto' + (' del Feto A' if gemelar else ''), bool(registro.hora_parto),
+         'Registre la hora del parto en "Características del parto".'),
     ]
     if gemelar:
-        req.append(('parto', 'Hora de parto del Feto B', bool(registro.hora_parto_b)))
+        req.append(('parto', 'Hora de parto del Feto B', bool(registro.hora_parto_b),
+                    'Registre la hora del parto del Feto B.'))
     antiguo_360 = registro.controles_postparto.filter(minuto_control__gte=MINUTO_ULTIMO_CONTROL_POSPARTO).exists()
     for relacion, etiqueta in VIGILANCIA_CIERRE:
-        ok = antiguo_360 or getattr(registro, relacion).filter(minuto_control__gte=MINUTO_ULTIMO_CONTROL_POSPARTO).exists()
-        req.append(('vigilancia', f'{etiqueta}: control de las 6 horas', ok))
+        controles = getattr(registro, relacion)
+        ok = antiguo_360 or controles.filter(minuto_control__gte=MINUTO_ULTIMO_CONTROL_POSPARTO).exists()
+        minutos = list(controles.order_by('minuto_control').values_list('minuto_control', flat=True))
+        if not minutos:
+            detalle = f'Sin controles registrados: faltan todos, hasta el de las 6 h ({MINUTO_ULTIMO_CONTROL_POSPARTO} min).'
+        else:
+            detalle = (f'{len(minutos)} control{"es" if len(minutos) != 1 else ""} (último a los {minutos[-1]} min): '
+                       f'falta el de las 6 h ({MINUTO_ULTIMO_CONTROL_POSPARTO} min).')
+        req.append(('vigilancia', f'{etiqueta}: control de las 6 horas', ok, detalle))
     for feto in range(1, (registro.numero_fetos or 1) + 1):
         rn = registro.recien_nacido(feto)
         sufijo = f' (Feto {LETRAS_FETO.get(feto, feto)})' if gemelar else ''
-        datos_ok = rn is not None and all(getattr(rn, campo) not in (None, '') for campo, _ in CAMPOS_RN_OBLIGATORIOS_CIERRE)
-        req.append(('recien_nacido', "Recién nacido: género, peso, talla y APGAR 1' y 5'" + sufijo, datos_ok))
-        req.append(('recien_nacido', 'Huella plantar del recién nacido' + sufijo, bool(rn is not None and rn.huella_pdf)))
-    return [{'seccion': s, 'texto': t, 'ok': ok} for s, t, ok in req]
+        faltan_rn = [nombre for campo, nombre in CAMPOS_RN_OBLIGATORIOS_CIERRE
+                     if rn is None or getattr(rn, campo) in (None, '')]
+        detalle = ('Sin datos del recién nacido: falta ' if rn is None else 'Falta: ') + ', '.join(faltan_rn) + '.'
+        req.append(('recien_nacido', "Recién nacido: género, peso, talla y APGAR 1' y 5'" + sufijo, not faltan_rn, detalle))
+        req.append(('recien_nacido', 'Huella plantar del recién nacido' + sufijo, bool(rn is not None and rn.huella_pdf),
+                    'Falta cargar el PDF de la huella plantar.'))
+    return [{'seccion': s, 'texto': t, 'ok': ok, 'detalle': d} for s, t, ok, d in req]
 
 
 def registro_sin_datos_clinicos(registro):
