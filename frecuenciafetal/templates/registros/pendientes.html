@@ -160,6 +160,9 @@
                           font-size: 1.02rem; color: #3f4a6b; }
         .p-progreso-txt b { font-size: 1.25rem; font-weight: 800; color: #14215a; }
         .p-progreso-txt span { font-size: 1rem; font-weight: 800; color: var(--c-texto); }
+        .p-cumplidos { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; font-size: .84rem; line-height: 1.4; color: #3f4a6b; }
+        .p-cumplidos b { color: #15803d; }
+        .p-cumplidos svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; color: #16a34a; }
         .p-barra { height: 13px; border-radius: 99px; background: #e2e7f0; overflow: hidden; box-shadow: inset 0 1px 2px rgba(15, 23, 42, .12); }
         .p-barra > span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--c2), var(--c)); }
         .p-req-cab { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
@@ -348,6 +351,7 @@
                             <span class="p-estado"><i data-lucide="{% if f.categoria == 'completo' %}circle-check{% elif f.situacion == 'urgente' %}alarm-clock{% elif f.situacion == 'en_atencion' %}activity{% elif f.situacion == 'bloqueado' %}clock{% else %}circle-help{% endif %}"></i>{% if f.categoria == 'completo' %}Completo · falta guardar{% else %}{{ f.situacion_texto }}{% endif %}</span>
                             <div class="p-progreso-txt"><div><b>{{ f.completos }} de {{ f.total }}</b> requisitos de cierre</div><span>{% widthratio f.completos f.total 100 %}%</span></div>
                             <div class="p-barra"><span style="width: {% widthratio f.completos f.total 100 %}%"></span></div>
+                            {% if f.faltan %}<div class="p-cumplidos">{% if f.cumplidos_cortos %}<i data-lucide="circle-check"></i><span><b>Ya cumplidos:</b> {{ f.cumplidos_cortos|join:" · " }}</span>{% else %}<i data-lucide="circle-dashed"></i><span>Ningún requisito cumplido todavía</span>{% endif %}</div>{% endif %}
                         </div>
                         <div class="p-col-requisitos">
                             {% if f.faltan %}

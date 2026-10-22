@@ -146,6 +146,7 @@ def registros_pendientes(dias=DIAS_POR_DEFECTO):
             'total': len(requisitos),
             'faltan': faltan,
             'faltan_cortos': [_requisito_corto(q['texto'], q.get('detalle', '')) for q in requisitos if not q['ok']],
+            'cumplidos_cortos': [_requisito_corto(q['texto'])['corto'] for q in requisitos if q['ok']],
             'situacion': situacion,
             'situacion_texto': texto,
             'categoria': categoria,
