@@ -352,7 +352,8 @@
                 </div>
             </section>
 
-            <p class="p-filtrando-aviso" id="p-filtrando-aviso">Mostrando solo: <b id="p-filtrando-nombre"></b> · <button type="button" id="p-ver-todos">Ver todos</button></p>
+            <p class="p-filtrando-aviso" id="p-filtrando-aviso">Mostrando: <b id="p-filtrando-nombre"></b></p>
+            <div class="p-card p-vacia" id="p-vacia-filtro" hidden>No hay registros en esta categoría.</div>
 
             <section>
                 {% for f in filas %}
@@ -437,7 +438,8 @@
     <script>
     (function () {
         const CSRF = '{{ csrf_token }}';
-        // 2026-10-21: pulsar un recuadro muestra solo esa categoría (otra vez: todas).
+        // 2026-10-22: la lista muestra SIEMPRE solo la categoría del recuadro elegido;
+        // al abrir, el primero con registros (egresadas > en atención > sin dato > 24 h > completos).
         const aviso = document.getElementById('p-filtrando-aviso');
         function filtrar(cat, nombre) {
             document.querySelectorAll('.p-chip').forEach(c => {
@@ -445,17 +447,23 @@
                 c.classList.toggle('activo', activo);
                 c.setAttribute('aria-pressed', activo ? 'true' : 'false');
             });
+            let visibles = 0;
             document.querySelectorAll('.p-fila').forEach(f => {
-                f.style.display = (!cat || f.classList.contains('cat-' + cat)) ? '' : 'none';
+                const ver = !cat || f.classList.contains('cat-' + cat);
+                f.style.display = ver ? '' : 'none';
+                if (ver) visibles++;
             });
             aviso.classList.toggle('visible', !!cat);
             document.getElementById('p-filtrando-nombre').textContent = nombre || '';
+            document.getElementById('p-vacia-filtro').hidden = !cat || visibles > 0 || !document.querySelector('.p-fila');
         }
-        document.querySelectorAll('.p-chip').forEach(c => c.addEventListener('click', () => {
-            const ya = c.classList.contains('activo');
-            filtrar(ya ? null : c.dataset.cat, c.querySelector('.p-chip-num span').textContent);
-        }));
-        document.getElementById('p-ver-todos').addEventListener('click', () => filtrar(null));
+        const nombreChip = c => c.querySelector('.p-chip-num span').textContent;
+        document.querySelectorAll('.p-chip').forEach(c => c.addEventListener('click', () => filtrar(c.dataset.cat, nombreChip(c))));
+        const inicial = ['urgente', 'en_atencion', 'sin_datos_ingreso', 'bloqueado', 'completo']
+            .map(cat => document.querySelector(`.p-chip[data-cat="${cat}"]`))
+            .find(c => c && document.querySelector(`.p-fila.cat-${c.dataset.cat}`));
+        if (inicial) filtrar(inicial.dataset.cat, nombreChip(inicial));
+        function refrescarFiltro() { const c = document.querySelector('.p-chip.activo'); if (c) filtrar(c.dataset.cat, nombreChip(c)); }
         document.querySelectorAll('[data-anular]').forEach(btn => btn.addEventListener('click', () => {
             btn.closest('.p-fila').querySelector('.p-anular-form').classList.toggle('abierto');
         }));
@@ -489,7 +497,7 @@
                 const data = await r.json().catch(() => ({}));
                 if (r.ok && data.ok) {
                     alert((data.enviado ? '✔ ' : '') + (data.mensaje || 'Registro cerrado.'));
-                    fila.remove();
+                    fila.remove(); refrescarFiltro();
                     return;
                 }
                 alert(data.error || data.detail || 'No se pudo cerrar el registro.');
@@ -514,7 +522,7 @@
                     body: JSON.stringify({ motivo, detalle }),
                 });
                 const data = await r.json().catch(() => ({}));
-                if (r.ok && data.ok) { fila.remove(); return; }
+                if (r.ok && data.ok) { fila.remove(); refrescarFiltro(); return; }
                 alert(data.error || data.detail || 'No se pudo anular el registro.');
             } catch (e) {
                 alert('No se pudo conectar con el servidor.');
