@@ -907,7 +907,8 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
         if documento:
             try:
                 from obstetriciaunificador.ingresos import resumen_ingresos
-                resumen, grupos = resumen_ingresos(documento, 'control_posparto', request.query_params.get('ingreso') or '', fresco=True)
+                resumen, grupos = resumen_ingresos(documento, 'control_posparto', request.query_params.get('ingreso') or '',
+                                                   fresco=True, usuario=request.user)
             except Exception:
                 resumen, grupos = None, {}
             if resumen and resumen['elegido']:

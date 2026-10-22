@@ -270,6 +270,10 @@ window.activarSoloConsulta = function (opciones) {
                     + ' h: este ingreso quedó en <strong>solo consulta</strong>. Si hace falta una corrección, solicítela a un administrador.';
             }
             html.push('<div class="sel-ing__aviso sel-ing__aviso--consulta">🔒 <span>' + texto + volver + '</span></div>');
+        } else if (s && resumen.admin_completa && (resumen.elegido !== resumen.actual || !s.editable)) {
+            html.push('<div class="sel-ing__aviso sel-ing__aviso--gracia">🛡️ <span>Ingreso <strong>' + esc(s.numero) + '</strong>'
+                + (s.fecha_egreso ? ' (cerrado el ' + esc(s.fecha_egreso) + ')' : '')
+                + ': como <strong>administrador</strong> puede completar este registro. Registre solo lo que consta en la historia clínica.</span></div>');
         } else if (s && !s.especial && s.editable_hasta) {
             html.push('<div class="sel-ing__aviso sel-ing__aviso--gracia">⏳ <span>La paciente egresó el ' + esc(s.fecha_egreso)
                 + '. Se pueden completar registros hasta el <strong>' + esc(s.editable_hasta) + '</strong>; después quedará en solo consulta.</span></div>');

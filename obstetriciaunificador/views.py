@@ -1077,7 +1077,7 @@ def api_ingresos_paciente(request):
     # vigente ya (un ingreso recién creado en Dinámica); el vigilante que
     # revisa cada 3 min usa lo recordado (30 s).
     fresco = request.GET.get("fresco") == "1"
-    resumen, _ = resumen_ingresos(doc, modulo, request.GET.get("ingreso") or "", fresco=fresco)
+    resumen, _ = resumen_ingresos(doc, modulo, request.GET.get("ingreso") or "", fresco=fresco, usuario=request.user)
     return JsonResponse({"ok": True, **resumen})
 
 

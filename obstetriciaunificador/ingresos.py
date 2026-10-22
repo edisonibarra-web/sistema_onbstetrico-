@@ -542,7 +542,7 @@ def _detalle_registros(modulo, datos):
     return hojas, texto
 
 
-def resumen_ingresos(doc, modulo, ingreso_elegido='', fresco=False):
+def resumen_ingresos(doc, modulo, ingreso_elegido='', fresco=False, usuario=None):
     """Datos del selector de ingresos de `modulo` (JSON-serializable) y la
     asignación calculada, en una sola pasada."""
     from .models import DocumentoRepositorio
@@ -643,6 +643,11 @@ def resumen_ingresos(doc, modulo, ingreso_elegido='', fresco=False):
             elegido = ''
     seleccion = next((o for o in opciones if o['numero'] == elegido), None)
     triaje_en_curso = elegido == CLAVE_TRIAJE_ACTUAL and not actual
+    # 2026-10-22: el administrador completa el Control Posparto de un ingreso
+    # ya cerrado (panel "Pendientes al egreso"); el servidor ya se lo permitía
+    # (motivo_bloqueo_edicion), solo la pantalla lo dejaba en solo consulta.
+    admin_completa = (modulo == 'control_posparto' and bool(seleccion) and not seleccion.get('especial')
+                      and _es_administrador(usuario))
     return {
         'documento': doc,
         'modulo': modulo,
@@ -650,7 +655,9 @@ def resumen_ingresos(doc, modulo, ingreso_elegido='', fresco=False):
         'actual': actual,
         'elegido': elegido,
         'es_actual': bool(elegido) and elegido == actual,
-        'solo_consulta': bool(seleccion) and not triaje_en_curso and (elegido != actual or not seleccion['editable']),
+        'solo_consulta': bool(seleccion) and not triaje_en_curso and (elegido != actual or not seleccion['editable'])
+                         and not admin_completa,
+        'admin_completa': admin_completa,
         'seleccion': seleccion,
         'opciones': opciones,
         'inicio_app': _fmt(inicio_app),

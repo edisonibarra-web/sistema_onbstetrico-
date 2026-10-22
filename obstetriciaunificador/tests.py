@@ -541,3 +541,35 @@ class OtrosDocumentosTests(TestCase):
         r = self.client.get('/atencion/api/historico/documento/',
                             {'doc': CEDULA, 'ingreso': EGRESADO, 'archivo': f'otros_escala_downton_{CEDULA}_535.pdf'})
         self.assertEqual(r.status_code, 404)  # Downton no está aprobado
+
+
+class AdministradorCompletaPospartoTests(TestCase):
+    """2026-10-22: el administrador completa el Control Posparto de un ingreso
+    cerrado hace más de 24 h; para el resto sigue en solo consulta."""
+
+    def setUp(self):
+        for p in DINAMICA + [mock.patch('obstetriciaunificador.ingresos.ingresos_de_paciente',
+                                        side_effect=lambda *a, **k: _ingresos_simulados())]:
+            p.start()
+            self.addCleanup(p.stop)
+        self.admin = User.objects.create_superuser('admin', password='x')
+        self.enfermera = User.objects.create_user('enfermera', password='x')
+
+    def _resumen(self, usuario, modulo='control_posparto'):
+        self.client.force_login(usuario)
+        r = self.client.get('/atencion/api/ingresos/', {'doc': CEDULA, 'modulo': modulo, 'ingreso': EGRESADO})
+        return r.json()
+
+    def test_administrador_puede_completar_posparto(self):
+        datos = self._resumen(self.admin)
+        self.assertFalse(datos['solo_consulta'])
+        self.assertTrue(datos['admin_completa'])
+
+    def test_enfermera_sigue_en_solo_consulta(self):
+        datos = self._resumen(self.enfermera)
+        self.assertTrue(datos['solo_consulta'])
+        self.assertFalse(datos['admin_completa'])
+
+    def test_otros_modulos_no_cambian_para_el_administrador(self):
+        for modulo in ('meows', 'trabajo_parto', 'triaje'):
+            self.assertTrue(self._resumen(self.admin, modulo)['solo_consulta'], modulo)
