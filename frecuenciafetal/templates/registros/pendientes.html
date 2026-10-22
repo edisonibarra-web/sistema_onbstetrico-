@@ -137,7 +137,7 @@
         .p-fila.cat-bloqueado { --c: #64748b; --c2: #cbd5e1; --c-suave: #eef2f7; --c-texto: #475569; }
         .p-fila.cat-sin_datos_ingreso { --c: #9333ea; --c2: #d8b4fe; --c-suave: #f3e8ff; --c-texto: #7e22ce; }
         .p-fila-onda { position: absolute; top: 0; left: 0; width: 62%; height: 120px; pointer-events: none; }
-        .p-fila-cuerpo { position: relative; display: grid; grid-template-columns: minmax(300px, 1.35fr) minmax(230px, .9fr) minmax(360px, 2fr) auto;
+        .p-fila-cuerpo { position: relative; display: grid; grid-template-columns: minmax(300px, 1.3fr) minmax(270px, 1fr) minmax(360px, 2fr) auto;
                          align-items: center; padding: 34px 22px 20px 22px; }
         .p-fila-cuerpo > * { padding: 0 22px; }
         .p-fila-cuerpo > * + * { border-left: 1px solid #e3e8f4; }
@@ -148,14 +148,19 @@
         .p-avatar svg { width: 38px; height: 38px; fill: currentColor; stroke: currentColor; }
         .p-nombre { display: block; font-weight: 800; font-size: 1.05rem; color: #14215a; letter-spacing: .01em; }
         .p-ids { display: block; margin-top: 4px; font-size: .95rem; color: #475569; }
+        .p-ids > span { white-space: nowrap; }
         .p-ids i { font-style: normal; margin: 0 10px; color: #a3aac0; }
         .p-abierto { display: flex; gap: 8px; margin-top: 8px; font-size: .84rem; color: #3f4a6b; line-height: 1.35; }
         .p-abierto svg { width: 18px; height: 18px; flex-shrink: 0; color: #14215a; }
-        .p-estado { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; border-radius: 999px; padding: 7px 16px;
-                    background: var(--c-suave); color: var(--c-texto); font-size: .86rem; font-weight: 800; line-height: 1.3; }
-        .p-estado svg { width: 18px; height: 18px; flex-shrink: 0; }
-        .p-progreso-txt { margin: 14px 0 8px; font-size: .92rem; color: #3f4a6b; }
-        .p-barra { height: 9px; border-radius: 99px; background: #e2e7f0; overflow: hidden; }
+        .p-estado { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; border-radius: 14px; padding: 11px 18px;
+                    background: var(--c-suave); color: var(--c-texto); border: 1px solid var(--c2);
+                    font-size: 1rem; font-weight: 800; line-height: 1.3; box-shadow: 0 4px 12px rgba(30, 41, 89, .06); }
+        .p-estado svg { width: 24px; height: 24px; flex-shrink: 0; stroke-width: 2.4; }
+        .p-progreso-txt { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 18px 0 10px;
+                          font-size: 1.02rem; color: #3f4a6b; }
+        .p-progreso-txt b { font-size: 1.25rem; font-weight: 800; color: #14215a; }
+        .p-progreso-txt span { font-size: 1rem; font-weight: 800; color: var(--c-texto); }
+        .p-barra { height: 13px; border-radius: 99px; background: #e2e7f0; overflow: hidden; box-shadow: inset 0 1px 2px rgba(15, 23, 42, .12); }
         .p-barra > span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--c2), var(--c)); }
         .p-req-cab { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
         .p-req-cab .p-req-ico { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; color: #fff;
@@ -333,13 +338,13 @@
                             <span class="p-avatar"><i data-lucide="user-round"></i></span>
                             <div>
                                 <span class="p-nombre">{{ f.paciente|default:"(sin nombre)" }}</span>
-                                <span class="p-ids">Cédula {{ f.cedula }}{% if f.ingreso %}<i>|</i>Ingreso {{ f.ingreso }}{% endif %}</span>
+                                <span class="p-ids"><span>Cédula {{ f.cedula }}</span>{% if f.ingreso %}<i>|</i><span>Ingreso {{ f.ingreso }}</span>{% endif %}</span>
                                 <span class="p-abierto"><i data-lucide="calendar-days"></i><span>Abierto el {{ f.creado|date:"d/m/Y h:i A" }}{% if f.creado_por %}<br>por {{ f.creado_por }}{% endif %}</span></span>
                             </div>
                         </div>
                         <div class="p-col-estado">
                             <span class="p-estado"><i data-lucide="{% if f.categoria == 'completo' %}circle-check{% elif f.situacion == 'urgente' %}alarm-clock{% elif f.situacion == 'en_atencion' %}activity{% elif f.situacion == 'bloqueado' %}clock{% else %}circle-help{% endif %}"></i>{% if f.categoria == 'completo' %}Completo · falta guardar{% else %}{{ f.situacion_texto }}{% endif %}</span>
-                            <div class="p-progreso-txt">{{ f.completos }} de {{ f.total }} requisitos de cierre</div>
+                            <div class="p-progreso-txt"><div><b>{{ f.completos }} de {{ f.total }}</b> requisitos de cierre</div><span>{% widthratio f.completos f.total 100 %}%</span></div>
                             <div class="p-barra"><span style="width: {% widthratio f.completos f.total 100 %}%"></span></div>
                         </div>
                         <div class="p-col-requisitos">
