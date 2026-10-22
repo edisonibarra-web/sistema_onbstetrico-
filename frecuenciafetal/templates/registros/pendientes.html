@@ -119,21 +119,29 @@
         .p-chip.listo .p-chip-ico { background: linear-gradient(145deg, #34d27b, #15803d); box-shadow: 0 8px 18px rgba(22, 163, 74, .3); }
         .p-chip.listo .p-chip-barras i { background: linear-gradient(180deg, #4ade80, #bbf7d0); }
         .p-chip .p-chip-num span, .p-chip .p-chip-pie strong { color: inherit; }
-        /* 2026-10-22: con al menos una egresada pendiente, el recuadro rojo late para llamar la atención. */
-        .p-chip.urgente.alerta { background: linear-gradient(145deg, #ff3b5c 0%, #e11d48 55%, #be123c 100%); border-color: #be123c; color: #fff;
-                                 animation: p-latido 1.4s ease-in-out infinite; }
-        .p-chip.urgente.alerta .p-chip-ico { background: rgba(255, 255, 255, .22); box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); }
-        .p-chip.urgente.alerta .p-chip-pie small { color: rgba(255, 255, 255, .88); }
+        /* 2026-10-22: con al menos una egresada pendiente, el recuadro rojo late, parpadea y se sacude. */
+        .p-chip.urgente.alerta { overflow: visible; background: linear-gradient(145deg, #ff1f4b 0%, #e11d48 55%, #be123c 100%); border-color: #9f1239;
+                                 color: #fff; z-index: 1; animation: p-latido 1s ease-in-out infinite, p-destello 1s steps(1) infinite; }
+        .p-chip.urgente.alerta .p-chip-ico { background: rgba(255, 255, 255, .25); box-shadow: inset 0 0 0 1px rgba(255,255,255,.45);
+                                             animation: p-sacudir 1s ease-in-out infinite; }
+        .p-chip.urgente.alerta .p-chip-pie small { color: rgba(255, 255, 255, .9); }
         .p-chip.urgente.alerta .p-chip-barras i { background: linear-gradient(180deg, #fff, rgba(255,255,255,.55)); }
         .p-chip.urgente.alerta .p-chip-flecha { color: #e11d48; }
-        .p-chip.urgente.alerta .p-chip-num b { transform-origin: left center; animation: p-latido-num 1.4s ease-in-out infinite; }
+        .p-chip.urgente.alerta .p-chip-num b { transform-origin: left center; animation: p-latido-num 1s ease-in-out infinite; }
+        .p-chip.urgente.alerta .p-chip-num span { font-size: 1rem; text-transform: uppercase; letter-spacing: .02em; }
+        .p-chip.urgente.alerta::after { content: '¡URGENTE!'; position: absolute; top: -12px; left: 16px; padding: 3px 12px; border-radius: 999px;
+                                        background: #fff; color: #e11d48; font-size: .78rem; font-weight: 900; letter-spacing: .08em;
+                                        box-shadow: 0 4px 12px rgba(225, 29, 72, .45); animation: p-parpadeo .5s steps(1) infinite; }
         .p-chip.urgente.alerta.activo { box-shadow: 0 0 0 3px #fff, 0 0 0 6px #e11d48; }
         @keyframes p-latido {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, .55); }
-            50% { transform: scale(1.025); box-shadow: 0 0 0 12px rgba(225, 29, 72, 0); }
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, .75), 0 0 0 0 rgba(225, 29, 72, .45); }
+            50% { transform: scale(1.06); box-shadow: 0 0 0 10px rgba(225, 29, 72, .25), 0 0 0 22px rgba(225, 29, 72, 0); }
         }
-        @keyframes p-latido-num { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
-        @media (prefers-reduced-motion: reduce) { .p-chip.urgente.alerta, .p-chip.urgente.alerta .p-chip-num b { animation: none; } }
+        @keyframes p-destello { 0% { filter: brightness(1.12) saturate(1.2); } 50% { filter: brightness(.88); } }
+        @keyframes p-latido-num { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+        @keyframes p-sacudir { 0%, 50%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(-14deg); } 20%, 40% { transform: rotate(14deg); } }
+        @keyframes p-parpadeo { 0% { opacity: 1; } 50% { opacity: .25; } }
+        @media (prefers-reduced-motion: reduce) { .p-chip.urgente.alerta, .p-chip.urgente.alerta *, .p-chip.urgente.alerta::after { animation: none; } }
 
         .p-cedula-error { flex-basis: 100%; margin: 0 0 4px; padding: 8px 12px; border-radius: 10px; background: #fff1f2; color: #be123c; font-size: .85rem; font-weight: 700; }
         .p-filtrando-aviso { display: none; margin: 0 0 12px; font-size: .88rem; color: #475569; }
