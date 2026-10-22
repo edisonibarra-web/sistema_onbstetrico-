@@ -18,7 +18,7 @@ _CACHE_ESTADO_SEGUNDOS = 120
 _CACHE_RESUMEN_SEGUNDOS = 60
 # 2026-10-21 (v2): el contador = cantidad de tarjetas del panel (antes contaba
 # con otra regla y podía no coincidir con lo que se ve).
-CLAVE_RESUMEN = 'posparto_pendientes_resumen_v7'  # v7: la alerta incluye egresadas completas sin guardar
+CLAVE_RESUMEN = 'posparto_pendientes_resumen_v8'  # v8: sin enlace al registro si la cédula no coincide con el ingreso
 
 
 def _horas_gracia():
@@ -62,6 +62,20 @@ def _situacion(registro):
                            f'Quedan {horas} h para completarlo', horas, egreso, limite)
     return 'bloqueado', (f'Egresó el {timezone.localtime(egreso):%d/%m/%Y}: pasaron {_horas_gracia()} h, '
                          'solo el administrador puede completarlo'), None, egreso, limite
+
+
+def _cedula_no_coincide(registro):
+    """2026-10-22: texto si el ingreso del registro es de otra cédula en Dinámica."""
+    from frecuenciafetal.views import ingreso_de_otra_paciente
+    numero = (getattr(registro.atencion, 'numero_ingreso', '') or '').strip()
+    if not numero:
+        return ''
+    clave = f'posparto_pendiente_cedula:{numero}:{registro.identificacion}'
+    texto = cache.get(clave)
+    if texto is None:
+        texto = ingreso_de_otra_paciente(registro.atencion, registro.identificacion) or ''
+        cache.set(clave, texto, _CACHE_ESTADO_SEGUNDOS)
+    return texto.replace(' No se creó el registro: verifique la cédula.', '')
 
 
 ORDEN = {'urgente': 0, 'en_atencion': 1, 'sin_datos_ingreso': 2, 'bloqueado': 3}
@@ -115,6 +129,7 @@ def registros_pendientes(dias=DIAS_POR_DEFECTO):
             'limite': limite,
             'listo': not faltan,
             'horas_restantes': horas,
+            'cedula_no_coincide': _cedula_no_coincide(r),
         })
     filas.sort(key=lambda f: (ORDEN[f['situacion']], f['horas_restantes'] or 0, f['creado']))
     return filas
@@ -151,7 +166,7 @@ def resumen_pendientes():
             'completos': sum(1 for f in filas if f['categoria'] == 'completo'),
             'detalle_urgentes': [
                 {'paciente': f['paciente'], 'cedula': f['cedula'], 'ingreso': f['ingreso'],
-                 'horas_restantes': f['horas_restantes'], 'url': _url_registro(f),
+                 'horas_restantes': f['horas_restantes'], 'url': '/fetal/pendientes/' if f['cedula_no_coincide'] else _url_registro(f),
                  'egreso_texto': f'{timezone.localtime(f["egreso"]):%d/%m/%Y %I:%M %p}' if f['egreso'] else '',
                  'completo': f['listo'],
                  'limite_ts': f['limite'].timestamp() if f['limite'] else None}

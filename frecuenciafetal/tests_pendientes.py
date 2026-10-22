@@ -307,3 +307,51 @@ class GuardarCompletoTests(TestCase):
         self.assertEqual(resumen['urgentes'], 1)            # también en la alerta del cronómetro
         self.assertTrue(resumen['detalle_urgentes'][0]['completo'])
         self.assertEqual(resumen['completos'], 1)           # y en el aviso verde del menú
+
+
+@SIN_DINAMICA
+class CedulaDeOtroIngresoTests(TestCase):
+    """2026-10-22 (caso real): registro con la cédula de otra paciente. Al
+    abrirlo, la pantalla cargaba a la dueña de esa cédula y creaba registros
+    vacíos pegados al ingreso equivocado."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.admin = User.objects.create_superuser('admin', password='x')
+        self.api = APIClient()
+        self.api.force_authenticate(self.admin)
+        # El ingreso 1827594 es de ANGIE (1004439565); el registro quedó con la cédula de VALERYN.
+        self.atencion = AtencionParto.objects.create(paciente='1080831722', numero_ingreso='1827594')
+        self.malo = RegistroParto.objects.create(atencion=self.atencion, nombre_paciente='ANGIE', identificacion='1080831722',
+                                                 edad_gestacional=38, hora_parto=timezone.localtime().time())
+        info = {'cedula': '1004439565', 'nombre': 'ANGIE MARCELA URRESTI GARCIA', 'fecha_egreso': None, 'anulado': False}
+        for p in (mock.patch('frecuenciafetal.sala_partos_db.consultar_paciente_de_ingreso',
+                             side_effect=lambda n: info if n == '1827594' else {}),
+                  mock.patch('frecuenciafetal.sala_partos_db.consultar_estado_ingreso', return_value=_estado(72))):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_no_crea_un_registro_en_el_ingreso_de_otra_paciente(self, _):
+        antes = RegistroParto.objects.count()
+        RegistroParto.objects.filter(pk=self.malo.pk).update(anulado_en=timezone.now())  # que no lo encuentre como existente
+        r = self.api.post(URL, {'nombre_paciente': 'VALERYN', 'identificacion': '1080831722', 'edad_gestacional': 36,
+                                'atencion': self.atencion.id}, format='json')
+        self.assertEqual(r.status_code, 400, r.data)
+        self.assertIn('pertenece a otra paciente', r.data['detail'])
+        self.assertEqual(RegistroParto.objects.count(), antes)
+
+    def test_la_cedula_correcta_si_crea(self, _):
+        atencion = AtencionParto.objects.create(paciente='1004439565', numero_ingreso='1827594')
+        r = self.api.post(URL, {'nombre_paciente': 'ANGIE', 'identificacion': '1004439565', 'edad_gestacional': 38,
+                                'atencion': atencion.id}, format='json')
+        self.assertIn(r.status_code, (200, 201), r.data)
+
+    def test_el_panel_avisa_y_no_ofrece_abrir(self, _):
+        from frecuenciafetal.pendientes import registros_pendientes
+        fila = registros_pendientes()[0]
+        self.assertIn('pertenece a otra paciente', fila['cedula_no_coincide'])
+        self.client.force_login(self.admin)
+        r = self.client.get('/fetal/pendientes/')
+        self.assertContains(r, 'quedó con la cédula equivocada')
+        self.assertNotContains(r, 'Abrir registro</a>')

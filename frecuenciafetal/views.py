@@ -439,6 +439,30 @@ class ParticipacionEnEdicionMixin:
             registrar_cambios(registro, self.request, self.bitacora_seccion, [('eliminacion', etiqueta)])
 
 
+def ingreso_de_otra_paciente(atencion, identificacion):
+    """
+    2026-10-22: mensaje si el ingreso de `atencion` pertenece en Dinámica a otra
+    cédula; None si coincide o no se puede saber (sin Dinámica: no se frena).
+    Caso real: un registro abierto con la cédula de otra paciente; al abrirlo,
+    la pantalla cargaba a la dueña de esa cédula y creaba registros vacíos
+    pegados al ingreso equivocado.
+    """
+    numero = (getattr(atencion, 'numero_ingreso', '') or '').strip()
+    identificacion = (identificacion or '').strip().upper()
+    if not numero or not identificacion:
+        return None
+    from .sala_partos_db import consultar_paciente_de_ingreso
+    try:
+        info = consultar_paciente_de_ingreso(numero) or {}
+    except Exception:
+        info = {}
+    cedula = (info.get('cedula') or '').strip().upper()
+    if not cedula or cedula == identificacion:
+        return None
+    return (f'El ingreso {numero} pertenece a otra paciente ({info.get("nombre") or "sin nombre"}, '
+            f'cédula {cedula}), no a la cédula {identificacion}. No se creó el registro: verifique la cédula.')
+
+
 @method_decorator(never_cache, name='dispatch')
 class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
     queryset = RegistroParto.objects.all().order_by('-created_at')
@@ -482,6 +506,9 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
                 ) if identificacion else None
                 if existente is not None:
                     return self._responder_registro_existente(existente, serializer.validated_data, request)
+                otra = ingreso_de_otra_paciente(atencion_obj, identificacion) if atencion_obj else None
+                if otra:
+                    return Response({'detail': otra, 'error': otra}, status=status.HTTP_400_BAD_REQUEST)
                 # Guardar pasando el objeto atencion explícitamente si existe
                 if atencion_obj:
                     instance = serializer.save(atencion=atencion_obj)

@@ -84,6 +84,7 @@
         .p-chip.listo .p-chip-ico { background: linear-gradient(145deg, #34d27b, #15803d); box-shadow: 0 8px 18px rgba(22, 163, 74, .3); }
         .p-chip.listo .p-chip-barras i { background: linear-gradient(180deg, #4ade80, #bbf7d0); }
         .p-chip .p-chip-num span, .p-chip .p-chip-pie strong { color: inherit; }
+        .p-cedula-error { flex-basis: 100%; margin: 0 0 4px; padding: 8px 12px; border-radius: 10px; background: #fff1f2; color: #be123c; font-size: .85rem; font-weight: 700; }
         .p-filtrando-aviso { display: none; margin: 0 0 12px; font-size: .88rem; color: #475569; }
         .p-filtrando-aviso.visible { display: block; }
         .p-filtrando-aviso button { background: none; border: none; padding: 0; color: #2563eb; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
@@ -275,10 +276,12 @@
                     <ul class="p-faltan">{% for x in f.faltan %}<li>Falta: {{ x }}</li>{% endfor %}</ul>
                     {% endif %}
                     <div class="p-acciones">
-                        {% if f.listo and f.categoria != 'bloqueado' or f.listo and user.is_superuser %}
+                        {% if f.cedula_no_coincide %}
+                        <p class="p-cedula-error">⚠ {{ f.cedula_no_coincide }}. Este registro quedó con la cédula equivocada: no se puede abrir. Anúlelo o pida su corrección.</p>
+                        {% elif f.listo and f.categoria != 'bloqueado' or f.listo and user.is_superuser %}
                         <button type="button" class="p-btn guardar" data-cerrar><i data-lucide="send"></i> Guardar y enviar a la NAS</button>
                         {% endif %}
-                        {% if f.categoria != 'bloqueado' or user.is_superuser %}
+                        {% if not f.cedula_no_coincide and f.categoria != 'bloqueado' or not f.cedula_no_coincide and user.is_superuser %}
                         <a class="p-btn abrir" href="/fetal/?doc={{ f.cedula|urlencode }}{% if f.atencion_id %}&atencion={{ f.atencion_id }}{% endif %}{% if f.ingreso %}&ingreso={{ f.ingreso|urlencode }}{% endif %}"><i data-lucide="external-link"></i> Abrir registro</a>
                         {% endif %}
                         {% if user.is_superuser %}
