@@ -284,6 +284,49 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         </div>
     </div>
 
+    {# 2026-10-22: "Pendientes al egreso" va debajo del Manual de Usuario. #}
+    {% if not solo_historico %}
+    <!-- 2026-10-21: Control Posparto sin cerrar (ver frecuenciafetal/pendientes.py).
+         Aviso verde = registros completos a los que solo les falta "Guardar Registro
+         Completo". Las egresadas por completar las avisa la alerta POSPARTO del encabezado. -->
+    <div class="sidebar-module">
+        <a href="/fetal/pendientes/" id="sidebar-pendientes-link" class="sidebar-module-header {% if is_pendientes %}active{% endif %}" style="text-decoration: none; color: inherit; position: relative;" title="Control Posparto sin completar al egreso">
+            <div class="icon-container icon-container-pendientes">
+                <i data-lucide="clipboard-list" class="nav-icon"></i>
+            </div>
+            <div class="sidebar-module-info">
+                <div class="sidebar-module-title">Pendientes al egreso</div>
+                <div class="sidebar-module-name">Control Posparto</div>
+            </div>
+            <span class="sidebar-pendientes-badge" id="sidebar-pendientes-badge" hidden></span>
+        </a>
+    </div>
+    <script>
+        (function () {
+            const badge = document.getElementById('sidebar-pendientes-badge');
+            if (!badge) return;
+            fetch('/fetal/api/pendientes-resumen/', { credentials: 'same-origin' })
+                .then(r => r.ok ? r.json() : null)
+                .then(d => {
+                    if (!d || !d.ok) return;
+                    // 2026-10-21: el ítem avisa SOLO los registros completos a los que
+                    // solo les falta "Guardar Registro Completo" (verde y palpitante).
+                    const n = d.completos || 0;
+                    if (!n) return;
+                    badge.textContent = n;
+                    badge.title = `${n} Control Posparto completo(s): solo falta pulsar "Guardar Registro Completo"`;
+                    badge.hidden = false;
+                    const enlace = document.getElementById('sidebar-pendientes-link');
+                    if (enlace) {
+                        enlace.classList.add('alerta-listos');
+                        enlace.title = `${n} Control Posparto listo(s) para guardar: ábralos y pulse "Guardar Registro Completo" para enviarlos a la NAS`;
+                    }
+                })
+                .catch(() => {});
+        })();
+    </script>
+    {% endif %}
+
     <!-- Navegación de Módulos Clínicos -->
     {# 2026-10-20: oculto para el personal de "solo consulta histórica" (archivo). #}
     {% if not solo_historico %}
@@ -349,45 +392,6 @@ Variables: is_panel (bool), atencion_id, documento, current_module (meows|fetal|
         </a>
     </div>
 
-    <!-- 2026-10-21: Control Posparto sin cerrar (ver frecuenciafetal/pendientes.py).
-         Aviso verde = registros completos a los que solo les falta "Guardar Registro
-         Completo". Las egresadas por completar las avisa la alerta POSPARTO del encabezado. -->
-    <div class="sidebar-module">
-        <a href="/fetal/pendientes/" id="sidebar-pendientes-link" class="sidebar-module-header {% if is_pendientes %}active{% endif %}" style="text-decoration: none; color: inherit; position: relative;" title="Control Posparto sin completar al egreso">
-            <div class="icon-container icon-container-pendientes">
-                <i data-lucide="clipboard-list" class="nav-icon"></i>
-            </div>
-            <div class="sidebar-module-info">
-                <div class="sidebar-module-title">Pendientes al egreso</div>
-                <div class="sidebar-module-name">Control Posparto</div>
-            </div>
-            <span class="sidebar-pendientes-badge" id="sidebar-pendientes-badge" hidden></span>
-        </a>
-    </div>
-    <script>
-        (function () {
-            const badge = document.getElementById('sidebar-pendientes-badge');
-            if (!badge) return;
-            fetch('/fetal/api/pendientes-resumen/', { credentials: 'same-origin' })
-                .then(r => r.ok ? r.json() : null)
-                .then(d => {
-                    if (!d || !d.ok) return;
-                    // 2026-10-21: el ítem avisa SOLO los registros completos a los que
-                    // solo les falta "Guardar Registro Completo" (verde y palpitante).
-                    const n = d.completos || 0;
-                    if (!n) return;
-                    badge.textContent = n;
-                    badge.title = `${n} Control Posparto completo(s): solo falta pulsar "Guardar Registro Completo"`;
-                    badge.hidden = false;
-                    const enlace = document.getElementById('sidebar-pendientes-link');
-                    if (enlace) {
-                        enlace.classList.add('alerta-listos');
-                        enlace.title = `${n} Control Posparto listo(s) para guardar: ábralos y pulse "Guardar Registro Completo" para enviarlos a la NAS`;
-                    }
-                })
-                .catch(() => {});
-        })();
-    </script>
     {% endif %}
 
     <!-- 2026-10-20: Consulta histórica de pacientes egresadas -- solo el
