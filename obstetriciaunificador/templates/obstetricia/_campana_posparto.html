@@ -9,12 +9,24 @@ incluye desde obstetricia/header_formatos.html (no para "solo histórico").
 {% endcomment %}
 <style>
 #posparto-campana-grupo[hidden] { display: none; }
+/* 2026-10-22: misma alerta que el recuadro "Egresaron · completar ya" del panel:
+   latido con doble halo, destello, ícono que se sacude y número que late. */
 #posparto-campana-btn {
-    background: linear-gradient(135deg, #fb7185 0%, #be123c 100%);
-    animation: meows-campana-pulso-rojo 1.6s ease-in-out infinite;
+    position: relative; overflow: visible;
+    background: linear-gradient(145deg, #ff1f4b 0%, #e11d48 55%, #be123c 100%);
+    animation: pp-latido 1s ease-in-out infinite, pp-destello 1s steps(1) infinite;
 }
-#posparto-campana-btn .meows-campana-badge { color: #be123c; }
-.meows-campana-etiqueta-posparto { color: #fecdd3 !important; }
+#posparto-campana-btn > svg { animation: pp-sacudir 1s ease-in-out infinite; }
+#posparto-campana-btn .meows-campana-badge { color: #be123c; animation: pp-latido-num 1s ease-in-out infinite; }
+.meows-campana-etiqueta-posparto { color: #fff !important; font-weight: 900; animation: pp-parpadeo .5s steps(1) infinite; }
+@keyframes pp-latido {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 45, 85, .8), 0 0 0 0 rgba(255, 45, 85, .5); }
+    50% { transform: scale(1.12); box-shadow: 0 0 0 8px rgba(255, 45, 85, .3), 0 0 0 18px rgba(255, 45, 85, 0); }
+}
+@keyframes pp-destello { 0% { filter: brightness(1.15) saturate(1.2); } 50% { filter: brightness(.85); } }
+@keyframes pp-sacudir { 0%, 50%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(-16deg); } 20%, 40% { transform: rotate(16deg); } }
+@keyframes pp-latido-num { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+@keyframes pp-parpadeo { 0% { opacity: 1; } 50% { opacity: .3; } }
 .posparto-panel {
     position: fixed; top: 96px; left: 24px; z-index: 10040;
     width: min(440px, calc(100vw - 32px)); max-height: min(70vh, 560px); overflow: hidden;
@@ -46,7 +58,9 @@ incluye desde obstetricia/header_formatos.html (no para "solo histórico").
 .posparto-panel__item a:hover strong { text-decoration: underline; }
 .posparto-panel__pie { padding: 10px 16px; border-top: 1px solid #fecdd3; text-align: right; }
 .posparto-panel__pie a { color: #be123c; font-weight: 800; font-size: 0.85rem; text-decoration: none; }
-@media (prefers-reduced-motion: reduce) { #posparto-campana-btn, .posparto-crono.critico { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+    #posparto-campana-btn, #posparto-campana-btn *, .meows-campana-etiqueta-posparto, .posparto-crono.critico { animation: none; }
+}
 </style>
 <div class="meows-campana-grupo" id="posparto-campana-grupo" hidden>
     <button type="button" class="meows-campana-btn" id="posparto-campana-btn" aria-haspopup="true" aria-controls="posparto-panel"
