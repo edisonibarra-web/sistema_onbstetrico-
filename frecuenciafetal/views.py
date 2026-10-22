@@ -228,7 +228,17 @@ def puede_anular_registro(registro, request):
         return False
     if request.user.is_superuser:
         return True
-    return registro_sin_datos_clinicos(registro) and participo_en_registro(registro, request)
+    return anulable_por_participante(registro) and participo_en_registro(registro, request)
+
+
+def anulable_por_participante(registro):
+    """2026-10-22: lo que puede anular quien participó (sin ser administrador):
+    el registro vacío o el que solo tiene UN control de fetocardia."""
+    if registro_sin_datos_clinicos(registro):
+        return True
+    from .unicidad import cantidad_datos
+    return (cantidad_datos(registro) == 1 and registro.controles_fetocardia.count() == 1
+            and not registro.hora_parto and not registro.tipo_parto)
 
 
 def registro_sin_datos_clinicos(registro):
@@ -743,7 +753,7 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
             return Response({'error': 'Elija el motivo de la anulación.'}, status=status.HTTP_400_BAD_REQUEST)
         if motivo == 'OTRO' and not detalle:
             return Response({'error': 'Escriba el motivo de la anulación.'}, status=status.HTTP_400_BAD_REQUEST)
-        if not request.user.is_superuser and not registro_sin_datos_clinicos(registro):
+        if not request.user.is_superuser and not anulable_por_participante(registro):
             return Response(
                 {'error': 'El registro tiene datos clínicos: solo el administrador puede anularlo.'},
                 status=status.HTTP_403_FORBIDDEN,

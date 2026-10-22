@@ -96,6 +96,23 @@ class RequisitosYAnulacionTests(TestCase):
         admin.force_authenticate(self.admin)
         self.assertEqual(admin.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json').status_code, 200)
 
+    def test_con_un_solo_control_de_fetocardia_quien_participo_anula(self, _):
+        from frecuenciafetal.models import ControlFetocardia
+        ahora = timezone.localtime()
+        ControlFetocardia.objects.create(registro=self.registro, fecha=ahora.date(), hora=ahora.time(), fetocardia=140)
+        self.assertTrue(self._req()['puede_anular'])
+        r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json')
+        self.assertEqual(r.status_code, 200, r.data)
+
+    def test_con_dos_controles_de_fetocardia_solo_el_administrador(self, _):
+        from frecuenciafetal.models import ControlFetocardia
+        ahora = timezone.localtime()
+        for _i in range(2):
+            ControlFetocardia.objects.create(registro=self.registro, fecha=ahora.date(), hora=ahora.time(), fetocardia=140)
+        self.assertFalse(self._req()['puede_anular'])
+        r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json')
+        self.assertEqual(r.status_code, 403)
+
     def test_un_registro_anulado_no_se_puede_modificar(self, _):
         self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json')
         r = self.api.patch(f'{URL}{self.registro.pk}/', {'nombre_acompanante': 'X'}, format='json')
