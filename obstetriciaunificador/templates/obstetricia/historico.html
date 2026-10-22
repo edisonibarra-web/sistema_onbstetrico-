@@ -207,6 +207,13 @@
         .h-acordeon:last-child { margin-bottom: 0; }
         .h-acordeon.azul { background: linear-gradient(90deg, #e3efff 0%, #edf4ff 100%); }
         .h-acordeon.lila { background: linear-gradient(90deg, #ece6ff 0%, #f3efff 100%); }
+        .h-acordeon.rosa { background: linear-gradient(90deg, #ffe4ea 0%, #fff1f4 100%); margin-top: 12px; }
+        .h-acordeon.rosa .ico-acordeon { background: #ffd0db; color: #e11d48; }
+        .h-acordeon.rosa .chev-circulo { color: #e11d48; }
+        .h-acordeon.rosa .texto small { font-weight: 700; color: #be123c; }
+        .anul-motivo { display: inline-block; margin: 3px 0; padding: 2px 10px; border-radius: 999px; background: #ffe4e6; color: #be123c; font-size: .78rem; font-weight: 800; }
+        .anul-obs { margin: 4px 0; padding: 8px 12px; border-left: 3px solid #fb7185; background: #fff7f8; border-radius: 6px; color: #1e293b; font-size: .86rem; }
+        .anul-obs.vacia { color: #94a3b8; font-style: italic; }
         .h-acordeon-cab {
             width: 100%; display: flex; align-items: center; gap: 16px; padding: 8px 18px 8px 12px;
             background: none; border: none; cursor: pointer; text-align: left; font: inherit;
@@ -444,6 +451,15 @@
                             </button>
                             <div class="h-acordeon-cuerpo" id="perm-cambios"></div>
                         </div>
+                        <!-- 2026-10-22: Control Posparto anulados, con la observación y quién lo anuló. -->
+                        <div class="h-acordeon rosa">
+                            <button type="button" class="h-acordeon-cab" aria-expanded="false" aria-controls="anul-lista">
+                                <span class="ico-acordeon"><i data-lucide="ban"></i></span>
+                                <span class="texto">Registros anulados <small id="anul-total"></small></span>
+                                <span class="chev-circulo"><i data-lucide="chevron-down"></i></span>
+                            </button>
+                            <div class="h-acordeon-cuerpo" id="anul-lista"></div>
+                        </div>
                     </section>
                 </div>
                 {% endif %}
@@ -488,6 +504,35 @@
                 lucide.createIcons();
             }
         }
+
+        // 2026-10-22: Registros anulados (solo administrador).
+        async function cargarAnulaciones() {
+            const lista = document.getElementById('anul-lista');
+            if (!lista) return;
+            let data;
+            try {
+                const r = await fetch('/atencion/api/historico/anulaciones/', { credentials: 'same-origin' });
+                data = await r.json();
+            } catch (e) { data = null; }
+            lista.replaceChildren();
+            if (!data || !data.ok) { lista.appendChild(cajaMensaje('No se pudo cargar la lista de anulados.', 'error')); lucide.createIcons(); return; }
+            document.getElementById('anul-total').textContent = data.anulaciones.length ? `(${data.anulaciones.length})` : '';
+            if (!data.anulaciones.length) lista.appendChild(cajaMensaje('No hay registros anulados.', 'info'));
+            data.anulaciones.forEach(a => {
+                const fila = el('div', 'perm-fila');
+                const info = el('div', 'info');
+                info.append(
+                    el('div', 'usuario', `${a.paciente || '(sin nombre)'} · Cédula ${a.cedula}${a.ingreso ? ' · Ingreso ' + a.ingreso : ''}`),
+                    el('span', 'anul-motivo', a.motivo || 'Sin motivo'),
+                    el('div', 'anul-obs' + (a.observacion ? '' : ' vacia'), a.observacion ? `Observación: ${a.observacion}` : 'Sin observación'),
+                    el('div', 'detalle', `Anulado el ${a.fecha} por ${a.anulado_por || '(sin nombre)'}${a.abierto_por ? ' · lo abrió ' + a.abierto_por : ''}`),
+                );
+                fila.appendChild(info);
+                lista.appendChild(fila);
+            });
+            lucide.createIcons();
+        }
+        cargarAnulaciones();
 
         // Acordeones de la sección de permisos
         document.querySelectorAll('.h-acordeon-cab').forEach(cab => cab.addEventListener('click', () => {

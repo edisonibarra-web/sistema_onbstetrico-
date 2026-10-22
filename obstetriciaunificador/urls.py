@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/historico/documentos/', views.api_historico_documentos, name='api_historico_documentos'),
     path('api/historico/documento/', views.api_historico_documento, name='api_historico_documento'),
     path('api/historico/permisos/', views.api_historico_permisos, name='api_historico_permisos'),
+    path('api/historico/anulaciones/', views.api_historico_anulaciones, name='api_historico_anulaciones'),
     path('api/historico/permisos/verificar/', views.api_historico_verificar_usuario, name='api_historico_verificar_usuario'),
     path('sala-de-partos/', views.sala_de_partos, name='sala_de_partos'),
     path('<int:atencion_id>/guardar-datos-paciente/', views.guardar_datos_paciente_card, name='guardar_datos_paciente_card'),

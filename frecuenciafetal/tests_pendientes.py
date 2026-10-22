@@ -16,6 +16,7 @@ from obstetriciaunificador.models import AtencionParto
 DOC = 'PEND-PP-1'
 INGRESO = '900777'
 URL = '/fetal/api/registros/'
+OBS = 'Se abrió por error en esta paciente'
 SIN_DINAMICA = mock.patch('obstetriciaunificador.ingresos.resumen_ingresos', side_effect=Exception('sin Dinámica'))
 
 
@@ -68,7 +69,7 @@ class RequisitosYAnulacionTests(TestCase):
         self.assertFalse(any('control de las 6 horas' in t for t in faltan))
 
     def test_la_enfermera_anula_un_registro_vacio_y_se_puede_abrir_otro(self, _):
-        r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'SIN_PARTO'}, format='json')
+        r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'SIN_PARTO', 'detalle': OBS}, format='json')
         self.assertEqual(r.status_code, 200, r.data)
         self.registro.refresh_from_db()
         self.assertIsNotNone(self.registro.anulado_en)
@@ -86,7 +87,7 @@ class RequisitosYAnulacionTests(TestCase):
         api = APIClient()
         api.force_authenticate(otra)
         self.assertFalse(api.get(f'{URL}{self.registro.pk}/requisitos-cierre/').json()['puede_anular'])
-        r = api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json')
+        r = api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR', 'detalle': OBS}, format='json')
         self.assertEqual(r.status_code, 403)
         self.assertIn('Solo quien diligenció', r.data['error'])
         self.registro.refresh_from_db()
@@ -101,7 +102,7 @@ class RequisitosYAnulacionTests(TestCase):
         ahora = timezone.localtime()
         ControlFetocardia.objects.create(registro=self.registro, fecha=ahora.date(), hora=ahora.time(), fetocardia=140)
         self.assertTrue(self._req()['puede_anular'])
-        r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json')
+        r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR', 'detalle': OBS}, format='json')
         self.assertEqual(r.status_code, 200, r.data)
 
     def test_con_dos_controles_de_fetocardia_solo_el_administrador(self, _):
@@ -110,18 +111,18 @@ class RequisitosYAnulacionTests(TestCase):
         for _i in range(2):
             ControlFetocardia.objects.create(registro=self.registro, fecha=ahora.date(), hora=ahora.time(), fetocardia=140)
         self.assertFalse(self._req()['puede_anular'])
-        r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json')
+        r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR', 'detalle': OBS}, format='json')
         self.assertEqual(r.status_code, 403)
 
     def test_un_registro_anulado_no_se_puede_modificar(self, _):
-        self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json')
+        self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR', 'detalle': OBS}, format='json')
         r = self.api.patch(f'{URL}{self.registro.pk}/', {'nombre_acompanante': 'X'}, format='json')
         self.assertEqual(r.status_code, 403)
 
     def test_con_datos_clinicos_solo_el_administrador_anula(self, _):
         self.registro.hora_parto = timezone.localtime().time()
         self.registro.save()
-        r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json')
+        r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR', 'detalle': OBS}, format='json')
         self.assertEqual(r.status_code, 403)
         self.assertFalse(self._req()['puede_anular'])
         admin = APIClient()
@@ -147,7 +148,7 @@ class RequisitosYAnulacionTests(TestCase):
             RegistroParto.objects.filter(pk=obj.pk).update(completado_en=timezone.now())
             return obj
         with mock.patch.object(RegistroPartoViewSet, 'get_object', cerrar_justo_antes):
-            r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json')
+            r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR', 'detalle': OBS}, format='json')
         self.assertEqual(r.status_code, 409)
         self.assertIsNone(RegistroParto.objects.get(pk=self.registro.pk).anulado_en)
 
@@ -391,3 +392,50 @@ class CedulaDeOtroIngresoTests(TestCase):
         r = self.client.get('/fetal/pendientes/')
         self.assertContains(r, 'quedó con la cédula equivocada')
         self.assertNotContains(r, 'Abrir registro</a>')
+
+
+@SIN_DINAMICA
+class ObservacionAnulacionTests(TestCase):
+    """2026-10-22: salvo el administrador, nadie anula sin observación; las
+    anulaciones se ven (solo el administrador) en la Consulta histórica."""
+
+    def setUp(self):
+        from frecuenciafetal.models import ParticipacionRegistroParto
+        self.enfermera = User.objects.create_user('enf', password='x', first_name='ENFERMERA', last_name='UNO')
+        self.admin = User.objects.create_superuser('admin', password='x')
+        self.api = APIClient()
+        self.api.force_authenticate(self.enfermera)
+        atencion = AtencionParto.objects.create(paciente=DOC, numero_ingreso=INGRESO)
+        self.registro = RegistroParto.objects.create(atencion=atencion, nombre_paciente='PACIENTE PRUEBA',
+                                                     identificacion=DOC, edad_gestacional=38)
+        ParticipacionRegistroParto.objects.create(registro=self.registro, profesional='ENFERMERA UNO', usuario='enf',
+                                                  primera_vez=timezone.now(), ultima_vez=timezone.now())
+        p = mock.patch('frecuenciafetal.sala_partos_db.consultar_estado_ingreso', return_value=_estado(None))
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_sin_observacion_la_enfermera_no_anula(self, _):
+        for detalle in ('', 'corto'):
+            r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR', 'detalle': detalle}, format='json')
+            self.assertEqual(r.status_code, 400)
+            self.assertIn('observación', r.data['error'])
+        self.registro.refresh_from_db()
+        self.assertIsNone(self.registro.anulado_en)
+
+    def test_con_observacion_queda_registrada_y_la_ve_el_administrador(self, _):
+        r = self.api.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR', 'detalle': OBS}, format='json')
+        self.assertEqual(r.status_code, 200, r.data)
+        self.client.force_login(self.admin)
+        datos = self.client.get('/atencion/api/historico/anulaciones/').json()
+        fila = datos['anulaciones'][0]
+        self.assertEqual((fila['observacion'], fila['motivo']), (OBS, 'Se abrió por error'))
+        self.assertIn('ENFERMERA', fila['anulado_por'].upper())
+
+    def test_el_administrador_anula_sin_observacion(self, _):
+        admin = APIClient()
+        admin.force_authenticate(self.admin)
+        self.assertEqual(admin.post(f'{URL}{self.registro.pk}/anular/', {'motivo': 'POR_ERROR'}, format='json').status_code, 200)
+
+    def test_solo_el_administrador_ve_las_anulaciones(self, _):
+        self.client.force_login(self.enfermera)
+        self.assertEqual(self.client.get('/atencion/api/historico/anulaciones/').status_code, 403)

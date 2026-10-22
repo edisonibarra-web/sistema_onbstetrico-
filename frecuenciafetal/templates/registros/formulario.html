@@ -11502,7 +11502,7 @@
                       <option value="DUPLICADO">Registro duplicado</option>
                       <option value="OTRO">Otro</option>
                     </select>
-                    <input type="text" id="ppw-req-detalle" maxlength="255" placeholder="Detalle (obligatorio si es Otro)">
+                    <input type="text" id="ppw-req-detalle" maxlength="255" placeholder="{% if user.is_superuser %}Detalle (obligatorio si es Otro){% else %}Observación: por qué anula el registro (obligatoria){% endif %}">
                     <button type="button" id="ppw-req-confirmar">Confirmar anulación</button>
                   </div>
                 </div>
@@ -11596,6 +11596,11 @@
               const detalle = document.getElementById('ppw-req-detalle').value.trim();
               if (!motivo) { showToast('Elija el motivo de la anulación.', 'error'); return; }
               if (motivo === 'OTRO' && !detalle) { showToast('Escriba el motivo de la anulación.', 'error'); return; }
+              // 2026-10-22: observación obligatoria (salvo el administrador); el servidor también lo exige.
+              if (!{{ user.is_superuser|yesno:"true,false" }} && detalle.length < 10) {
+                showToast('Escriba una observación (mínimo 10 caracteres) explicando por qué anula el registro.', 'error');
+                return;
+              }
               if (!savedRegistroId || !confirm('¿Anular este Control Posparto? Quedará registrado quién lo anuló y el motivo, y ya no se podrá modificar.')) return;
               ev.currentTarget.disabled = true;
               try {

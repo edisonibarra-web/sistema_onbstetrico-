@@ -208,6 +208,9 @@ def requisitos_cierre(registro):
     return [{'seccion': s, 'texto': t, 'ok': ok, 'detalle': d} for s, t, ok, d in req]
 
 
+MIN_OBSERVACION_ANULACION = 10
+
+
 def participo_en_registro(registro, request):
     """2026-10-22: True si el usuario en sesión abrió el registro o escribió en
     él (ParticipacionRegistroParto, por usuario o por nombre del profesional)."""
@@ -753,6 +756,12 @@ class RegistroPartoViewSet(BloqueoIngresoCerradoMixin, viewsets.ModelViewSet):
             return Response({'error': 'Elija el motivo de la anulación.'}, status=status.HTTP_400_BAD_REQUEST)
         if motivo == 'OTRO' and not detalle:
             return Response({'error': 'Escriba el motivo de la anulación.'}, status=status.HTTP_400_BAD_REQUEST)
+        # 2026-10-22: salvo el administrador, nadie anula sin dejar una observación
+        # (queda con su nombre en "Registros anulados" de la Consulta histórica).
+        if not request.user.is_superuser and len(detalle) < MIN_OBSERVACION_ANULACION:
+            return Response({'error': f'Escriba una observación (mínimo {MIN_OBSERVACION_ANULACION} caracteres) '
+                                      'explicando por qué anula el registro.'},
+                            status=status.HTTP_400_BAD_REQUEST)
         if not request.user.is_superuser and not anulable_por_participante(registro):
             return Response(
                 {'error': 'El registro tiene datos clínicos: solo el administrador puede anularlo.'},

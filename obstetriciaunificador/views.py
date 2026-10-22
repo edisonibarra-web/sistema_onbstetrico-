@@ -1375,6 +1375,31 @@ def api_historico_verificar_usuario(request):
         return JsonResponse({"ok": False, "mensaje": str(exc)})
 
 
+@require_http_methods(["GET"])
+@_solo_superusuario
+def api_historico_anulaciones(request):
+    """2026-10-22: GET -- Control Posparto anulados (los más recientes primero),
+    con el motivo, la observación y quién lo anuló. Solo el administrador."""
+    from django.utils import timezone
+    from frecuenciafetal.models import RegistroParto
+
+    motivos = dict(RegistroParto.MOTIVOS_ANULACION)
+    filas = []
+    for r in (RegistroParto.objects.filter(anulado_en__isnull=False).select_related('atencion')
+              .order_by('-anulado_en')[:300]):
+        filas.append({
+            'paciente': r.nombre_paciente or '',
+            'cedula': r.identificacion or '',
+            'ingreso': getattr(r.atencion, 'numero_ingreso', '') or '',
+            'fecha': timezone.localtime(r.anulado_en).strftime('%d/%m/%Y %I:%M %p'),
+            'motivo': motivos.get(r.motivo_anulacion, r.motivo_anulacion or ''),
+            'observacion': r.detalle_anulacion or '',
+            'anulado_por': r.anulado_por or '',
+            'abierto_por': r.creado_por or '',
+        })
+    return JsonResponse({"ok": True, "anulaciones": filas})
+
+
 @require_http_methods(["GET", "POST"])
 @_solo_superusuario
 def api_historico_permisos(request):
