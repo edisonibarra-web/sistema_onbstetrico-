@@ -45,6 +45,41 @@
         .p-recargar:hover { background: #f6f4fd; }
         .p-recargar svg { width: 20px; height: 20px; }
 
+        /* 2026-10-22: encabezado con el diseño de "Pacientes activos en Sala de Partos". */
+        .p-hero { align-items: center; gap: 0; min-height: 132px; padding: 16px 28px 16px 0; overflow: hidden;
+                  background: linear-gradient(100deg, #0a1a33 0%, #0d2a52 30%, #0f3766 52%, #0c2f5a 75%, #0a1f3d 100%);
+                  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 6px 16px rgba(10, 26, 51, .35); }
+        .p-hero::after { content: ''; position: absolute; top: 0; bottom: 0; left: 48%; right: 0; pointer-events: none;
+                         clip-path: polygon(9% 0, 100% 0, 100% 100%, 0 100%);
+                         background: linear-gradient(90deg, rgba(64, 140, 220, .22) 0%, rgba(30, 90, 170, .12) 60%, rgba(10, 30, 60, 0) 100%); }
+        .p-hero > * { position: relative; z-index: 1; }
+        .p-hero .p-icono { width: 86px; height: 84px; margin: 0 16px 0 34px; border-radius: 12px; color: #fff;
+                           background: linear-gradient(160deg, #4a5f7e 0%, #2f4361 100%); border: 1px solid rgba(255, 255, 255, .22);
+                           box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 8px 18px rgba(0, 0, 0, .35); }
+        .p-hero .p-icono svg { width: 38px; height: 38px; }
+        .p-separador { align-self: stretch; width: 1px; margin: 0 20px 0 0; flex-shrink: 0;
+                       background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .28) 50%, rgba(255, 255, 255, 0) 100%); }
+        .p-hero .p-hero-texto { flex: 0 1 auto; min-width: 0; }
+        .p-hero .p-kicker { font-size: .95rem; font-weight: 600; letter-spacing: .03em; text-transform: none; color: #8fb3e0; }
+        .p-hero .p-kicker span { color: #5f7fa8; }
+        .p-hero h1 { margin: 2px 0 0; font-size: 2.45rem; font-weight: 700; line-height: 1.1; color: #fff; }
+        .p-ekg { flex: 1 1 0; min-width: 120px; height: 110px; margin: 0 18px 0 24px; pointer-events: none; }
+        .p-ekg svg { width: 100%; height: 100%; overflow: visible; }
+        .p-hero .p-filtro { background: linear-gradient(180deg, rgba(70, 90, 120, .55) 0%, rgba(40, 56, 82, .6) 100%);
+                            border: 1px solid rgba(255, 255, 255, .12); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 6px 14px rgba(0, 0, 0, .3); }
+        .p-hero .p-filtro label, .p-hero .p-filtro label svg { color: #e2ecff; }
+        .p-hero .p-rango-fechas, .p-hero .p-recargar { color: #fff; border: 1px solid rgba(255, 255, 255, .12);
+                            background: linear-gradient(180deg, rgba(70, 90, 120, .55) 0%, rgba(40, 56, 82, .6) 100%);
+                            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 6px 14px rgba(0, 0, 0, .3); }
+        .p-hero .p-rango-fechas svg, .p-hero .p-recargar svg { color: #b8cbe6; }
+        .p-hero .p-recargar:hover { background: linear-gradient(180deg, rgba(90, 115, 150, .65) 0%, rgba(55, 75, 105, .7) 100%); }
+        @media (max-width: 1100px) {
+            .p-hero { flex-wrap: wrap; padding: 16px 18px; gap: 14px; }
+            .p-hero .p-icono { width: 64px; height: 62px; margin: 0; }
+            .p-separador { display: none; }
+            .p-hero h1 { font-size: 1.6rem; }
+            .p-hero > .p-ekg { position: absolute; left: 30%; right: 0; top: 10px; margin: 0; opacity: .45; z-index: 0; }
+        }
         /* ---------- Recuadros del resumen ---------- */
         .p-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; padding: 16px 24px 24px; }
         .p-chip { position: relative; overflow: hidden; border-radius: 16px; padding: 18px 18px 16px; border: 1px solid; cursor: pointer;
@@ -184,39 +219,22 @@
         <main class="main-content">
             <section class="p-card">
                 <div class="p-hero">
-                <svg class="p-ilustracion" viewBox="0 0 330 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-                    <defs>
-                        <linearGradient id="pi-piel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f9c6dc"/><stop offset="1" stop-color="#e98bb7"/></linearGradient>
-                        <linearGradient id="pi-pelo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4669c"/><stop offset="1" stop-color="#b44a83"/></linearGradient>
-                        <linearGradient id="pi-manta" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbe3ef"/><stop offset="1" stop-color="#f3b9d4"/></linearGradient>
-                        <radialGradient id="pi-halo" cx="0.6" cy="0.45" r="0.6"><stop offset="0" stop-color="#ffffff" stop-opacity=".7"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
-                    </defs>
-                    <circle cx="200" cy="90" r="120" fill="url(#pi-halo)"/>
-                    <!-- cruces médicas -->
-                    <path d="M52 52h10v-10h10v10h10v10h-10v10h-10v-10h-10z" fill="#f7a8c9" opacity=".7"/>
-                    <path d="M40 130h7v-7h7v7h7v7h-7v7h-7v-7h-7z" fill="#f7a8c9" opacity=".55"/>
-                    <!-- madre: cabeza, cabello y hombros -->
-                    <path d="M150 210 C 150 150, 175 128, 205 126 C 238 124, 262 150, 266 210 Z" fill="url(#pi-piel)" opacity=".9"/>
-                    <path d="M196 34 C 168 34, 152 56, 154 82 C 156 104, 168 118, 186 122 L 214 122 C 236 112, 244 92, 238 66 C 232 44, 218 34, 196 34 Z" fill="url(#pi-pelo)"/>
-                    <path d="M200 52 C 182 52, 174 66, 176 84 C 178 100, 188 110, 200 110 C 213 110, 222 98, 222 82 C 222 64, 214 52, 200 52 Z" fill="url(#pi-piel)"/>
-                    <path d="M186 84 q 6 4 12 0" stroke="#b9487f" stroke-width="2" fill="none" stroke-linecap="round"/>
-                    <path d="M204 92 q 5 4 11 1" stroke="#c2588b" stroke-width="2" fill="none" stroke-linecap="round"/>
-                    <!-- bebé en brazos -->
-                    <ellipse cx="160" cy="150" rx="48" ry="30" fill="url(#pi-manta)" transform="rotate(-12 160 150)"/>
-                    <circle cx="140" cy="140" r="20" fill="url(#pi-piel)"/>
-                    <path d="M132 142 q 4 3 8 0" stroke="#b9487f" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-                    <path d="M120 168 C 150 182, 196 178, 214 160" stroke="#e98bb7" stroke-width="10" fill="none" stroke-linecap="round" opacity=".8"/>
-                    <!-- corazones -->
-                    <path d="M282 46 c -6 -10 -22 -6 -20 6 c 2 10 20 20 20 20 s 18 -10 20 -20 c 2 -12 -14 -16 -20 -6 z" fill="#f472b6" opacity=".55"/>
-                    <path d="M300 104 c -4 -7 -15 -4 -14 4 c 1 7 14 14 14 14 s 13 -7 14 -14 c 1 -8 -10 -11 -14 -4 z" fill="#f472b6" opacity=".45"/>
-                    <path d="M262 150 c -5 -8 -18 -5 -16 5 c 1 8 16 16 16 16 s 15 -8 16 -16 c 2 -10 -11 -13 -16 -5 z" fill="#f472b6" opacity=".4"/>
-                    <path d="M118 30 c -3 -5 -10 -3 -9 3 c 1 5 9 9 9 9 s 8 -4 9 -9 c 1 -6 -6 -8 -9 -3 z" fill="#f9a8d4" opacity=".6"/>
-                </svg>
                     <div class="p-icono"><i data-lucide="clipboard-list"></i></div>
+                    <span class="p-separador" aria-hidden="true"></span>
                     <div class="p-hero-texto">
                         <div class="p-kicker">Sala de partos<span>|</span>Seguimiento clínico</div>
                         <h1>Control Posparto pendientes</h1>
                     </div>
+                    <span class="p-ekg" aria-hidden="true">
+                        <svg viewBox="0 0 700 120" preserveAspectRatio="none" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <defs>
+                                <linearGradient id="pEkg" x1="0" x2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity="0"/><stop offset=".25" stop-color="#38bdf8" stop-opacity=".55"/><stop offset=".5" stop-color="#7dd3fc"/><stop offset=".85" stop-color="#38bdf8" stop-opacity=".8"/><stop offset="1" stop-color="#38bdf8" stop-opacity=".6"/></linearGradient>
+                                <filter id="pEkgBrillo" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                            </defs>
+                            <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="url(#pEkg)" stroke-width="2.6" filter="url(#pEkgBrillo)"/>
+                            <path d="M0 70H250l8-9 8 9h6l6 6 10-66 14 104 10-50h34l9-12 9 12h70l8-9 8 9h6l6 6 10-70 14 104 10-46h34l9-12 9 12H700" stroke="#e0f7ff" stroke-width="1" opacity=".85"/>
+                        </svg>
+                    </span>
                     <div class="p-hero-ctrl">
                         <form class="p-filtro" method="get">
                             <label for="dias"><i data-lucide="calendar-days"></i> Últimos</label>
