@@ -92,42 +92,83 @@
         @media (max-width: 1100px) { .p-hero-ctrl { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; align-items: center; } }
         @media (max-width: 760px) { .p-icono { width: 72px; height: 72px; } .p-hero h1 { font-size: 1.6rem; } }
 
-        .p-fila { background: #fff; border: 1px solid var(--p-borde); border-left: 6px solid #cbd5e1; border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; }
-        /* 2026-10-21: cada tarjeta con el color de su recuadro del resumen. */
-        .p-fila.cat-urgente { background: #fff1f2; border-color: #fecdd3; border-left-color: #e11d48; }
-        .p-fila.cat-en_atencion { background: #eff6ff; border-color: #bfdbfe; border-left-color: #3b82f6; }
-        .p-fila.cat-completo { background: #f0fdf4; border-color: #bbf7d0; border-left-color: #16a34a; }
-        .p-fila.cat-bloqueado { background: #f1f5f9; border-color: #e2e8f0; border-left-color: #94a3b8; }
-        .p-fila.cat-sin_datos_ingreso { background: #faf5ff; border-color: #e9d5ff; border-left-color: #a855f7; }
-        .p-fila.cat-urgente .p-barra > span { background: linear-gradient(90deg, #fb7185, #e11d48); }
-        .p-fila.cat-en_atencion .p-barra > span { background: linear-gradient(90deg, #60a5fa, #2563eb); }
-        .p-fila.cat-completo .p-barra > span { background: linear-gradient(90deg, #4ade80, #16a34a); }
-        .p-fila.cat-bloqueado .p-barra > span { background: linear-gradient(90deg, #cbd5e1, #94a3b8); }
-        .p-fila .p-barra { background: rgba(255, 255, 255, 0.85); }
-        .p-fila-cab { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-        .p-nombre { font-weight: 800; font-size: 1rem; }
-        .p-dato { color: var(--p-suave); font-size: 0.82rem; }
-        .p-estado { margin-left: auto; border-radius: 999px; padding: 4px 12px; font-size: 0.78rem; font-weight: 800; }
-        .p-estado.urgente { background: #ffe4e6; color: #be123c; }
-        .p-estado.en_atencion { background: #dbeafe; color: #1d4ed8; }
-        .p-estado.bloqueado { background: #f1f5f9; color: #475569; }
-        .p-estado.sin_datos_ingreso { background: #f3e8ff; color: #7e22ce; }
-        .p-barra { height: 6px; border-radius: 99px; background: #eef0f6; margin: 10px 0 8px; overflow: hidden; }
-        .p-barra > span { display: block; height: 100%; background: linear-gradient(90deg, #f472b6, #db2777); }
-        .p-faltan { margin: 0; padding-left: 18px; font-size: 0.85rem; color: var(--p-texto); }
-        .p-faltan li { margin: 2px 0; }
-        .p-listo-txt { font-size: 0.88rem; color: #15803d; font-weight: 800; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 12px; }
-        .p-acciones { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
-        .p-btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 8px; padding: 7px 14px; font: inherit; font-size: 0.85rem; font-weight: 800; cursor: pointer; text-decoration: none; }
-        .p-btn svg { width: 16px; height: 16px; }
-        .p-btn.abrir { background: #fce7f3; color: #be185d; }
-        .p-btn.abrir:hover { background: #fbcfe8; }
-        .p-btn.anular { background: #f1f5f9; color: #475569; }
-        .p-btn.anular:hover { background: #e2e8f0; }
-        .p-btn.confirmar { background: #475569; color: #fff; }
-        .p-btn.guardar { background: #16a34a; color: #fff; }
-        .p-btn.guardar:hover { background: #15803d; }
+        /* ---------- Tarjetas (diseño 2026-10-22); color según el estado ---------- */
+        .p-fila { --c: #94a3b8; --c2: #cbd5e1; --c-suave: #f1f5f9; --c-texto: #475569;
+                  position: relative; overflow: hidden; background: #fbfcff; border: 1px solid #e3e8f4; border-radius: 18px;
+                  box-shadow: 0 8px 22px rgba(30, 41, 89, .07); margin-bottom: 14px; }
+        .p-fila.cat-urgente { --c: #e11d48; --c2: #fda4af; --c-suave: #ffe4e6; --c-texto: #be123c; }
+        .p-fila.cat-en_atencion { --c: #1d6ff2; --c2: #93c5fd; --c-suave: #e3eeff; --c-texto: #1d4ed8; }
+        .p-fila.cat-completo { --c: #16a34a; --c2: #86efac; --c-suave: #dcfce7; --c-texto: #15803d; }
+        .p-fila.cat-bloqueado { --c: #64748b; --c2: #cbd5e1; --c-suave: #eef2f7; --c-texto: #475569; }
+        .p-fila.cat-sin_datos_ingreso { --c: #9333ea; --c2: #d8b4fe; --c-suave: #f3e8ff; --c-texto: #7e22ce; }
+        .p-fila-onda { position: absolute; top: 0; left: 0; width: 62%; height: 120px; pointer-events: none; }
+        .p-fila-cuerpo { position: relative; display: grid; grid-template-columns: minmax(300px, 1.35fr) minmax(230px, .9fr) minmax(360px, 2fr) auto;
+                         align-items: center; padding: 34px 22px 20px 22px; }
+        .p-fila-cuerpo > * { padding: 0 22px; }
+        .p-fila-cuerpo > * + * { border-left: 1px solid #e3e8f4; }
+        .p-fila-cuerpo > .p-col-acciones { border-left: none; padding-right: 0; }
+        .p-col-paciente { display: flex; align-items: center; gap: 18px; padding-left: 8px; }
+        .p-avatar { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
+                    background: var(--c-suave); color: var(--c); box-shadow: 0 0 0 6px rgba(255,255,255,.7); }
+        .p-avatar svg { width: 38px; height: 38px; fill: currentColor; stroke: currentColor; }
+        .p-nombre { display: block; font-weight: 800; font-size: 1.05rem; color: #14215a; letter-spacing: .01em; }
+        .p-ids { display: block; margin-top: 4px; font-size: .95rem; color: #475569; }
+        .p-ids i { font-style: normal; margin: 0 10px; color: #a3aac0; }
+        .p-abierto { display: flex; gap: 8px; margin-top: 8px; font-size: .84rem; color: #3f4a6b; line-height: 1.35; }
+        .p-abierto svg { width: 18px; height: 18px; flex-shrink: 0; color: #14215a; }
+        .p-estado { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; border-radius: 999px; padding: 7px 16px;
+                    background: var(--c-suave); color: var(--c-texto); font-size: .86rem; font-weight: 800; line-height: 1.3; }
+        .p-estado svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .p-progreso-txt { margin: 14px 0 8px; font-size: .92rem; color: #3f4a6b; }
+        .p-barra { height: 9px; border-radius: 99px; background: #e2e7f0; overflow: hidden; }
+        .p-barra > span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--c2), var(--c)); }
+        .p-req-cab { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .p-req-cab .p-req-ico { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; color: #fff;
+                                background: linear-gradient(145deg, #3b82f6, #1d4ed8); }
+        .p-req-cab .p-req-ico svg { width: 18px; height: 18px; }
+        .p-req-cab strong { font-size: .98rem; color: #14215a; }
+        .p-req-cuenta { margin-left: auto; border-radius: 8px; padding: 4px 12px; background: #ffe4e6; color: #e11d48; font-size: .84rem; font-weight: 700; }
+        .p-req-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+        .p-req { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 12px;
+                 background: #fff1f3; color: #1e293b; font-size: .82rem; text-align: center; line-height: 1.25; }
+        .p-req svg { width: 24px; height: 24px; color: #f43f5e; }
+        .p-req-listo { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 12px; background: #dcfce7;
+                       color: #15803d; font-weight: 800; font-size: .88rem; }
+        .p-req-listo svg { width: 22px; height: 22px; flex-shrink: 0; }
+        .p-col-acciones { display: flex; align-items: center; gap: 14px; }
+        .p-acciones { display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
+        .p-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 1px solid transparent; border-radius: 10px;
+                 padding: 12px 18px; font: inherit; font-size: .95rem; font-weight: 800; cursor: pointer; text-decoration: none; }
+        .p-btn svg { width: 20px; height: 20px; }
+        .p-btn.abrir { background: linear-gradient(180deg, #ff4d7d, #f0386b); color: #fff; box-shadow: 0 8px 18px rgba(240, 56, 107, .28); }
+        .p-btn.abrir:hover { filter: brightness(.96); }
+        .p-btn.anular { background: #fff; color: #14215a; border-color: #cfd6e4; }
+        .p-btn.anular:hover { background: #f6f8fc; }
+        .p-btn.confirmar { background: #475569; color: #fff; padding: 8px 14px; font-size: .85rem; }
+        .p-btn.guardar { background: linear-gradient(180deg, #22c55e, #16a34a); color: #fff; box-shadow: 0 8px 18px rgba(22, 163, 74, .25); }
+        .p-btn.guardar:hover { filter: brightness(.96); }
         .p-btn:disabled { opacity: .6; cursor: wait; }
+        .p-menu { position: relative; }
+        .p-menu-btn { width: 34px; height: 44px; border: none; background: none; color: #14215a; cursor: pointer; border-radius: 8px; display: grid; place-items: center; }
+        .p-menu-btn:hover { background: #eef2f8; }
+        .p-menu-btn svg { width: 22px; height: 22px; }
+        .p-menu-lista { display: none; position: absolute; right: 0; top: 46px; z-index: 5; min-width: 190px; background: #fff; border: 1px solid #e3e8f4;
+                        border-radius: 10px; box-shadow: 0 12px 28px rgba(30, 41, 89, .14); padding: 6px; }
+        .p-menu.abierto .p-menu-lista { display: block; }
+        .p-menu-lista button { display: flex; align-items: center; gap: 8px; width: 100%; border: none; background: none; padding: 9px 10px;
+                               border-radius: 8px; font: inherit; font-size: .86rem; color: #1e293b; cursor: pointer; text-align: left; }
+        .p-menu-lista button:hover { background: #f1f5f9; }
+        .p-menu-lista svg { width: 16px; height: 16px; }
+        .p-fila-extra { position: relative; padding: 0 22px 18px; }
+        .p-fila-extra:empty { display: none; }
+        @media (max-width: 1350px) {
+            .p-fila-cuerpo { grid-template-columns: 1fr 1fr; row-gap: 18px; }
+            .p-fila-cuerpo > * + * { border-left: none; }
+            .p-col-requisitos { grid-column: 1 / -1; }
+            .p-col-acciones { grid-column: 1 / -1; justify-content: flex-end; }
+            .p-acciones { flex-direction: row; flex-wrap: wrap; min-width: 0; }
+        }
+        @media (max-width: 760px) { .p-fila-cuerpo { grid-template-columns: 1fr; } .p-fila-cuerpo > * { padding: 0 6px; } }
         .p-anular-form { display: none; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: #f8fafc; border: 1px dashed #cbd5e1; font-size: 0.85rem; }
         .p-anular-form.abierto { display: flex; }
         .p-anular-form select, .p-anular-form input { padding: 6px 8px; border-radius: 6px; border: 1px solid #c9cfe3; font: inherit; }
@@ -263,30 +304,65 @@
             <section>
                 {% for f in filas %}
                 <div class="p-fila cat-{{ f.categoria }}" data-id="{{ f.id }}">
-                    <div class="p-fila-cab">
-                        <span class="p-nombre">{{ f.paciente|default:"(sin nombre)" }}</span>
-                        <span class="p-dato">Cédula {{ f.cedula }}{% if f.ingreso %} · Ingreso {{ f.ingreso }}{% endif %}</span>
-                        <span class="p-estado {{ f.situacion }}">{{ f.situacion_texto }}</span>
+                    <svg class="p-fila-onda" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true">
+                        <defs><linearGradient id="onda-{{ f.id }}" x1="0" x2="1" y1="0" y2="0">
+                            <stop offset="0" style="stop-color: var(--c)"/><stop offset=".45" style="stop-color: var(--c2); stop-opacity: .75"/>
+                            <stop offset="1" style="stop-color: var(--c2); stop-opacity: 0"/></linearGradient></defs>
+                        <path d="M0 0 H600 C 520 0 470 9 400 9 H 56 C 26 9 8 28 0 84 Z" fill="url(#onda-{{ f.id }})"/>
+                    </svg>
+                    <div class="p-fila-cuerpo">
+                        <div class="p-col-paciente">
+                            <span class="p-avatar"><i data-lucide="user-round"></i></span>
+                            <div>
+                                <span class="p-nombre">{{ f.paciente|default:"(sin nombre)" }}</span>
+                                <span class="p-ids">Cédula {{ f.cedula }}{% if f.ingreso %}<i>|</i>Ingreso {{ f.ingreso }}{% endif %}</span>
+                                <span class="p-abierto"><i data-lucide="calendar-days"></i><span>Abierto el {{ f.creado|date:"d/m/Y h:i A" }}{% if f.creado_por %}<br>por {{ f.creado_por }}{% endif %}</span></span>
+                            </div>
+                        </div>
+                        <div class="p-col-estado">
+                            <span class="p-estado"><i data-lucide="{% if f.categoria == 'completo' %}circle-check{% elif f.situacion == 'urgente' %}alarm-clock{% elif f.situacion == 'en_atencion' %}activity{% elif f.situacion == 'bloqueado' %}clock{% else %}circle-help{% endif %}"></i>{% if f.categoria == 'completo' %}Completo · falta guardar{% else %}{{ f.situacion_texto }}{% endif %}</span>
+                            <div class="p-progreso-txt">{{ f.completos }} de {{ f.total }} requisitos de cierre</div>
+                            <div class="p-barra"><span style="width: {% widthratio f.completos f.total 100 %}%"></span></div>
+                        </div>
+                        <div class="p-col-requisitos">
+                            {% if f.faltan %}
+                            <div class="p-req-cab">
+                                <span class="p-req-ico"><i data-lucide="list"></i></span>
+                                <strong>Requisitos pendientes</strong>
+                                <span class="p-req-cuenta">{{ f.faltan|length }} pendiente{{ f.faltan|length|pluralize }}</span>
+                            </div>
+                            <div class="p-req-lista">
+                                {% for q in f.faltan_cortos %}<div class="p-req" title="Falta: {{ q.texto }}"><i data-lucide="{{ q.icono }}"></i>{{ q.corto }}</div>{% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="p-req-listo"><i data-lucide="circle-check"></i>Todo está completo: solo falta pulsar "Guardar Registro Completo" para enviarlo a la NAS.</div>
+                            {% endif %}
+                        </div>
+                        <div class="p-col-acciones">
+                            <div class="p-acciones">
+                                {% if not f.cedula_no_coincide %}
+                                {% if f.listo and f.categoria != 'bloqueado' or f.listo and user.is_superuser %}
+                                <button type="button" class="p-btn guardar" data-cerrar><i data-lucide="send"></i> Guardar y enviar a la NAS</button>
+                                {% endif %}
+                                {% if f.categoria != 'bloqueado' or user.is_superuser %}
+                                <a class="p-btn abrir" href="/fetal/?doc={{ f.cedula|urlencode }}{% if f.atencion_id %}&atencion={{ f.atencion_id }}{% endif %}{% if f.ingreso %}&ingreso={{ f.ingreso|urlencode }}{% endif %}"><i data-lucide="external-link"></i> Abrir registro</a>
+                                {% endif %}
+                                {% endif %}
+                                {% if user.is_superuser %}
+                                <button type="button" class="p-btn anular" data-anular><i data-lucide="ban"></i> Anular</button>
+                                {% endif %}
+                            </div>
+                            <div class="p-menu">
+                                <button type="button" class="p-menu-btn" data-menu title="Más opciones" aria-label="Más opciones"><i data-lucide="ellipsis-vertical"></i></button>
+                                <div class="p-menu-lista">
+                                    <button type="button" data-copiar="{{ f.cedula }}"><i data-lucide="copy"></i> Copiar cédula</button>
+                                    {% if f.ingreso %}<button type="button" data-copiar="{{ f.ingreso }}"><i data-lucide="copy"></i> Copiar ingreso</button>{% endif %}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="p-dato">Abierto el {{ f.creado|date:"d/m/Y h:i A" }}{% if f.creado_por %} por {{ f.creado_por }}{% endif %} · {{ f.completos }} de {{ f.total }} requisitos de cierre</div>
-                    <div class="p-barra"><span style="width: {% widthratio f.completos f.total 100 %}%"></span></div>
-                    {% if not f.faltan %}
-                    <div class="p-listo-txt">✔ Todo está completo: solo falta abrir el registro y pulsar "Guardar Registro Completo" para enviarlo a la NAS.</div>
-                    {% else %}
-                    <ul class="p-faltan">{% for x in f.faltan %}<li>Falta: {{ x }}</li>{% endfor %}</ul>
-                    {% endif %}
-                    <div class="p-acciones">
-                        {% if f.cedula_no_coincide %}
-                        <p class="p-cedula-error">⚠ {{ f.cedula_no_coincide }}. Este registro quedó con la cédula equivocada: no se puede abrir. Anúlelo o pida su corrección.</p>
-                        {% elif f.listo and f.categoria != 'bloqueado' or f.listo and user.is_superuser %}
-                        <button type="button" class="p-btn guardar" data-cerrar><i data-lucide="send"></i> Guardar y enviar a la NAS</button>
-                        {% endif %}
-                        {% if not f.cedula_no_coincide and f.categoria != 'bloqueado' or not f.cedula_no_coincide and user.is_superuser %}
-                        <a class="p-btn abrir" href="/fetal/?doc={{ f.cedula|urlencode }}{% if f.atencion_id %}&atencion={{ f.atencion_id }}{% endif %}{% if f.ingreso %}&ingreso={{ f.ingreso|urlencode }}{% endif %}"><i data-lucide="external-link"></i> Abrir registro</a>
-                        {% endif %}
-                        {% if user.is_superuser %}
-                        <button type="button" class="p-btn anular" data-anular><i data-lucide="ban"></i> Anular</button>
-                        {% endif %}
+                    <div class="p-fila-extra">{% if f.cedula_no_coincide %}
+                        <p class="p-cedula-error">⚠ {{ f.cedula_no_coincide }}. Este registro quedó con la cédula equivocada: no se puede abrir. Anúlelo o pida su corrección.</p>{% endif %}{% if user.is_superuser %}
                         <div class="p-anular-form">
                             <select data-motivo>
                                 <option value="">Motivo de la anulación…</option>
@@ -297,8 +373,7 @@
                             </select>
                             <input type="text" data-detalle maxlength="255" placeholder="Detalle (obligatorio si es Otro)">
                             <button type="button" class="p-btn confirmar" data-confirmar>Confirmar anulación</button>
-                        </div>
-                    </div>
+                        </div>{% endif %}</div>
                 </div>
                 {% empty %}
                 <div class="p-card p-vacia">No hay registros de Control Posparto con datos pendientes de enviar a la NAS en los últimos {{ dias }} días.</div>
@@ -329,7 +404,22 @@
         }));
         document.getElementById('p-ver-todos').addEventListener('click', () => filtrar(null));
         document.querySelectorAll('[data-anular]').forEach(btn => btn.addEventListener('click', () => {
-            btn.closest('.p-acciones').querySelector('.p-anular-form').classList.toggle('abierto');
+            btn.closest('.p-fila').querySelector('.p-anular-form').classList.toggle('abierto');
+        }));
+        // 2026-10-22: menú ⋮ de cada tarjeta.
+        document.querySelectorAll('[data-menu]').forEach(btn => btn.addEventListener('click', ev => {
+            ev.stopPropagation();
+            const menu = btn.closest('.p-menu');
+            document.querySelectorAll('.p-menu.abierto').forEach(m => { if (m !== menu) m.classList.remove('abierto'); });
+            menu.classList.toggle('abierto');
+        }));
+        document.addEventListener('click', () => document.querySelectorAll('.p-menu.abierto').forEach(m => m.classList.remove('abierto')));
+        document.querySelectorAll('[data-copiar]').forEach(btn => btn.addEventListener('click', async () => {
+            const texto = btn.dataset.copiar;
+            try { await navigator.clipboard.writeText(texto); } catch (e) { window.prompt('Copie el dato:', texto); return; }
+            const original = btn.innerHTML;
+            btn.textContent = '✔ Copiado';
+            setTimeout(() => { btn.innerHTML = original; }, 1200);
         }));
         // 2026-10-21: registro completo -> cerrar y enviar a la NAS sin abrir el formulario.
         document.querySelectorAll('[data-cerrar]').forEach(btn => btn.addEventListener('click', async () => {

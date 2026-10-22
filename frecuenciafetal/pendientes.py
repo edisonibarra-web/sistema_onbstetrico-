@@ -78,6 +78,29 @@ def _cedula_no_coincide(registro):
     return texto.replace(' No se creó el registro: verifique la cédula.', '')
 
 
+# 2026-10-22: requisito pendiente -> (ícono lucide, nombre corto) para la tarjeta.
+_REQUISITO_CORTO = (
+    ('acompañante', 'users', 'Sin acompañante'),
+    ('Hora de parto', 'clock', 'Hora de parto'),
+    ('Sangrado', 'droplet', 'Sangrado cuantificado'),
+    ('Globo', 'shield-plus', 'Globo de seguridad'),
+    ('Sutura', 'bandage', 'Sutura y heridas'),
+    ('Recién nacido:', 'baby', 'Datos del recién nacido'),
+    ('Huella', 'footprints', 'Huella plantar'),
+)
+
+
+def _requisito_corto(texto):
+    icono, corto = 'circle-alert', texto
+    for clave, ico, nombre in _REQUISITO_CORTO:
+        if clave in texto:
+            icono, corto = ico, nombre
+            break
+    if 'Feto ' in texto:
+        corto += ' · ' + texto[texto.index('Feto '):].rstrip(')')
+    return {'icono': icono, 'corto': corto, 'texto': texto}
+
+
 ORDEN = {'urgente': 0, 'en_atencion': 1, 'sin_datos_ingreso': 2, 'bloqueado': 3}
 
 
@@ -122,6 +145,7 @@ def registros_pendientes(dias=DIAS_POR_DEFECTO):
             'completos': len(requisitos) - len(faltan),
             'total': len(requisitos),
             'faltan': faltan,
+            'faltan_cortos': [_requisito_corto(t) for t in faltan],
             'situacion': situacion,
             'situacion_texto': texto,
             'categoria': categoria,
