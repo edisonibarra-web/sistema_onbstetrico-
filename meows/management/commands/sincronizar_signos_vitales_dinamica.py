@@ -422,8 +422,17 @@ class Command(BaseCommand):
                 # api_correcciones_recientes (views.py) y el sondeo nuevo en
                 # sidebar.html.
                 medicion.ultima_correccion_en = timezone.now()
+                # 2026-10-23: BUG real en producción -- una toma que entró
+                # AMARILLA (alerta disparada) y luego se corrigió en Dinámica
+                # a VERDE seguía con alerta_pendiente=True, y el panel de la
+                # campana la mostraba como "MEOWS VERDE" (el panel pinta el
+                # riesgo ACTUAL). Si la corrección baja el riesgo a
+                # Blanco/Verde, la alerta deja de tener sentido: se retira.
+                if resultado["meows_riesgo"] not in ("AMARILLO", "ROJO"):
+                    medicion.alerta_pendiente = False
                 medicion.save(update_fields=[
                     "meows_total", "meows_riesgo", "meows_mensaje", "ultima_correccion_en",
+                    "alerta_pendiente",
                 ])
 
                 total_editadas += 1

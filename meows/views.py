@@ -894,6 +894,7 @@ def api_alertas_pendientes_triaje(request):
             origen='triaje',
             alerta_pendiente=True,
             alerta_generada_en__gte=ventana_desde,
+            meows_riesgo__in=('AMARILLO', 'ROJO'),
         )
         .select_related('paciente')
         .order_by('-fecha_hora')[:20]
@@ -1296,6 +1297,10 @@ def api_alertas_pendientes(request):
             origen='dinamica',
             alerta_pendiente=True,
             alerta_generada_en__gte=ventana_desde,
+            # 2026-10-23: defensa extra -- el panel pinta el riesgo ACTUAL de
+            # la medición; si una corrección posterior la bajó a Blanco/Verde
+            # no debe seguir apareciendo (ver sincronizar_signos_vitales_dinamica).
+            meows_riesgo__in=('AMARILLO', 'ROJO'),
         )
         .select_related('paciente')
         .order_by('-fecha_hora')[:20]
